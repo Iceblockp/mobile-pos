@@ -26,10 +26,12 @@ import {
   Scan,
 } from 'lucide-react-native';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
+import { useToast } from '@/context/ToastContext';
 
 export default function Products() {
-  const { db, isReady } = useDatabase();
+  const { db, isReady, refreshTrigger, triggerRefresh } = useDatabase();
   const [products, setProducts] = useState<Product[]>([]);
+  const { showToast } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -83,7 +85,7 @@ export default function Products() {
     if (isReady) {
       loadData();
     }
-  }, [isReady, db]);
+  }, [isReady, db, refreshTrigger]); // Add refreshTrigger as a dependency
 
   const formatMMK = (amount: number) => {
     return (
@@ -130,7 +132,7 @@ export default function Products() {
   const handleBarcodeScanned = (barcode: string) => {
     setFormData({ ...formData, barcode });
     setShowBarcodeScanner(false);
-    Alert.alert('Success', `Barcode ${barcode} added to product`);
+    showToast(`Barcode ${barcode} added to product`, 'success');
   };
 
   const handleSearchBarcodeScanned = async (barcode: string) => {
@@ -140,9 +142,9 @@ export default function Products() {
     // Find and highlight the product if it exists
     const foundProduct = products.find((p) => p.barcode === barcode);
     if (foundProduct) {
-      Alert.alert('Product Found', `Found: ${foundProduct.name}`);
+      showToast(`Found: ${foundProduct.name}`, 'success');
     } else {
-      Alert.alert('Product Not Found', 'No product found with this barcode');
+      showToast('No product found with this barcode', 'error');
     }
   };
 
@@ -179,6 +181,7 @@ export default function Products() {
         'Warning',
         'Price should be higher than cost for profitability'
       );
+      return;
     }
 
     try {
@@ -201,11 +204,17 @@ export default function Products() {
 
       await loadData();
       resetForm();
-      Alert.alert(
-        'Success',
+      // Alert.alert(
+      //   'Success',
+      //   editingProduct
+      //     ? 'Product updated successfully'
+      //     : 'Product added successfully'
+      // );
+      showToast(
         editingProduct
           ? 'Product updated successfully'
-          : 'Product added successfully'
+          : 'Product added successfully',
+        'success'
       );
     } catch (error) {
       Alert.alert('Error', 'Failed to save product');
@@ -230,11 +239,11 @@ export default function Products() {
 
       await loadData();
       resetCategoryForm();
-      Alert.alert(
-        'Success',
+      showToast(
         editingCategory
           ? 'Category updated successfully'
-          : 'Category added successfully'
+          : 'Category added successfully',
+        'success'
       );
     } catch (error) {
       Alert.alert('Error', 'Failed to save category');
@@ -279,7 +288,9 @@ export default function Products() {
             try {
               await db?.deleteProduct(product.id);
               await loadData();
-              Alert.alert('Success', 'Product deleted successfully');
+              // Add this line to trigger refresh for other components
+              triggerRefresh();
+              showToast('Product deleted successfully', 'success');
             } catch (error) {
               Alert.alert('Error', 'Failed to delete product');
               console.error('Error deleting product:', error);
@@ -303,8 +314,8 @@ export default function Products() {
             try {
               await db?.deleteCategory(category.id);
               await loadData();
-              Alert.alert('Success', 'Category deleted successfully');
-            } catch (error) {
+              showToast('Category deleted successfully', 'success');
+            } catch (error: any) {
               Alert.alert(
                 'Error',
                 error.message || 'Failed to delete category'
@@ -763,7 +774,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
-    paddingTop: 24,
   },
   header: {
     flexDirection: 'row',

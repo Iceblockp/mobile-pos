@@ -4,11 +4,15 @@ import { initializeDatabase, DatabaseService } from '@/services/database';
 interface DatabaseContextType {
   db: DatabaseService | null;
   isReady: boolean;
+  refreshTrigger: number;
+  triggerRefresh: () => void;
 }
 
 const DatabaseContext = createContext<DatabaseContextType>({
   db: null,
   isReady: false,
+  refreshTrigger: 0,
+  triggerRefresh: () => {},
 });
 
 export const useDatabase = () => {
@@ -19,9 +23,16 @@ export const useDatabase = () => {
   return context;
 };
 
-export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [db, setDb] = useState<DatabaseService | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const triggerRefresh = () => {
+    setRefreshTrigger((prev) => prev + 1);
+  };
 
   useEffect(() => {
     const setupDatabase = async () => {
@@ -38,7 +49,9 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   return (
-    <DatabaseContext.Provider value={{ db, isReady }}>
+    <DatabaseContext.Provider
+      value={{ db, isReady, refreshTrigger, triggerRefresh }}
+    >
       {children}
     </DatabaseContext.Provider>
   );

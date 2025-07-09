@@ -22,9 +22,11 @@ import {
   Plus,
   Minus,
 } from 'lucide-react-native';
+import { useToast } from '@/context/ToastContext';
 
 export default function Inventory() {
-  const { db, isReady } = useDatabase();
+  const { db, isReady, refreshTrigger } = useDatabase();
+  const { showToast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
@@ -58,7 +60,7 @@ export default function Inventory() {
     if (isReady) {
       loadData();
     }
-  }, [isReady, db]);
+  }, [isReady, db, refreshTrigger]); // Add refreshTrigger as a dependency
 
   const formatMMK = (amount: number) => {
     return (
@@ -101,9 +103,13 @@ export default function Inventory() {
       setSelectedProduct(null);
       setAdjustmentQuantity('');
 
-      Alert.alert(
-        'Success',
-        `Stock ${type === 'add' ? 'added' : 'removed'} successfully`
+      // Alert.alert(
+      //   'Success',
+      //   `Stock ${type === 'add' ? 'added' : 'removed'} successfully`
+      // );
+      showToast(
+        `Stock ${type === 'add' ? 'added' : 'removed'} successfully`,
+        'success'
       );
     } catch (error) {
       Alert.alert('Error', 'Failed to update stock');
@@ -283,7 +289,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
-    paddingTop: 24,
   },
   header: {
     paddingHorizontal: 20,

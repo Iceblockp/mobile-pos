@@ -149,6 +149,13 @@ export class DatabaseService {
   }
 
   async seedInitialData() {
+    // Check if data has already been seeded
+    const existingProducts = await this.db.getFirstAsync(
+      'SELECT COUNT(*) as count FROM products'
+    );
+    const hasProducts = (existingProducts as { count: number }).count > 0;
+
+    // Only seed categories and suppliers if needed
     const categories = [
       {
         name: 'Dairy & Eggs',
@@ -238,83 +245,86 @@ export class DatabaseService {
       );
     }
 
-    const products = [
-      {
-        name: 'Fresh Milk 1L',
-        barcode: '1234567890123',
-        category: 'Dairy & Eggs',
-        price: 2500,
-        cost: 1800,
-        quantity: 50,
-        min_stock: 10,
-        supplier_id: 2,
-      },
-      {
-        name: 'Free Range Eggs 12pk',
-        barcode: '2345678901234',
-        category: 'Dairy & Eggs',
-        price: 3500,
-        cost: 2200,
-        quantity: 30,
-        min_stock: 5,
-        supplier_id: 2,
-      },
-      {
-        name: 'Bananas 1kg',
-        barcode: '3456789012345',
-        category: 'Fruits & Vegetables',
-        price: 1500,
-        cost: 800,
-        quantity: 100,
-        min_stock: 20,
-        supplier_id: 1,
-      },
-      {
-        name: 'Coca Cola 500ml',
-        barcode: '4567890123456',
-        category: 'Beverages',
-        price: 1200,
-        cost: 700,
-        quantity: 80,
-        min_stock: 15,
-        supplier_id: 3,
-      },
-      {
-        name: 'White Bread Loaf',
-        barcode: '5678901234567',
-        category: 'Bakery',
-        price: 1800,
-        cost: 1200,
-        quantity: 25,
-        min_stock: 8,
-        supplier_id: 1,
-      },
-      {
-        name: 'Jasmine Rice 5kg',
-        barcode: '6789012345678',
-        category: 'Grains & Cereals',
-        price: 8500,
-        cost: 6000,
-        quantity: 40,
-        min_stock: 10,
-        supplier_id: 1,
-      },
-    ];
+    // Only seed products if no products exist yet
+    if (!hasProducts) {
+      const products = [
+        {
+          name: 'Fresh Milk 1L',
+          barcode: '1234567890123',
+          category: 'Dairy & Eggs',
+          price: 2500,
+          cost: 1800,
+          quantity: 50,
+          min_stock: 10,
+          supplier_id: 2,
+        },
+        {
+          name: 'Free Range Eggs 12pk',
+          barcode: '2345678901234',
+          category: 'Dairy & Eggs',
+          price: 3500,
+          cost: 2200,
+          quantity: 30,
+          min_stock: 5,
+          supplier_id: 2,
+        },
+        {
+          name: 'Bananas 1kg',
+          barcode: '3456789012345',
+          category: 'Fruits & Vegetables',
+          price: 1500,
+          cost: 800,
+          quantity: 100,
+          min_stock: 20,
+          supplier_id: 1,
+        },
+        {
+          name: 'Coca Cola 500ml',
+          barcode: '4567890123456',
+          category: 'Beverages',
+          price: 1200,
+          cost: 700,
+          quantity: 80,
+          min_stock: 15,
+          supplier_id: 3,
+        },
+        {
+          name: 'White Bread Loaf',
+          barcode: '5678901234567',
+          category: 'Bakery',
+          price: 1800,
+          cost: 1200,
+          quantity: 25,
+          min_stock: 8,
+          supplier_id: 1,
+        },
+        {
+          name: 'Jasmine Rice 5kg',
+          barcode: '6789012345678',
+          category: 'Grains & Cereals',
+          price: 8500,
+          cost: 6000,
+          quantity: 40,
+          min_stock: 10,
+          supplier_id: 1,
+        },
+      ];
 
-    for (const product of products) {
-      await this.db.runAsync(
-        'INSERT OR IGNORE INTO products (name, barcode, category, price, cost, quantity, min_stock, supplier_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [
-          product.name,
-          product.barcode,
-          product.category,
-          product.price,
-          product.cost,
-          product.quantity,
-          product.min_stock,
-          product.supplier_id,
-        ]
-      );
+      for (const product of products) {
+        await this.db.runAsync(
+          'INSERT INTO products (name, barcode, category, price, cost, quantity, min_stock, supplier_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [
+            product.name,
+            product.barcode,
+            product.category,
+            product.price,
+            product.cost,
+            product.quantity,
+            product.min_stock,
+            product.supplier_id,
+          ]
+        );
+      }
     }
   }
 

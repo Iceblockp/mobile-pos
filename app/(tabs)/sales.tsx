@@ -39,6 +39,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as XLSX from 'xlsx';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import { useToast } from '@/context/ToastContext';
 
 interface CartItem {
   product: Product;
@@ -50,8 +51,9 @@ const { width: screenWidth } = Dimensions.get('window');
 const isSmallScreen = screenWidth < 400;
 
 export default function Sales() {
-  const { db, isReady } = useDatabase();
+  const { db, isReady, triggerRefresh } = useDatabase();
   const [cart, setCart] = useState<CartItem[]>([]);
+  const { showToast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -106,7 +108,7 @@ export default function Sales() {
       if (product) {
         addToCart(product);
         setShowScanner(false);
-        Alert.alert('Success', `Added ${product.name} to cart`);
+        showToast(`Added ${product.name} to cart`, 'success');
       } else {
         Alert.alert('Product Not Found', 'No product found with this barcode');
       }
@@ -205,15 +207,16 @@ export default function Sales() {
         product_id: item.product.id,
         quantity: item.quantity,
         price: item.product.price,
-        cost: item.product.cost, // Add this line to store the cost at time of sale
+        cost: item.product.cost,
         subtotal: item.subtotal,
       }));
 
       await db.addSale(saleData, saleItems);
 
-      Alert.alert('Success', 'Sale completed successfully!');
+      showToast('Sale completed successfully!', 'success');
       clearCart();
-      await loadData(); // Refresh products to update stock
+      await loadData(); // Refresh products in this component
+      triggerRefresh(); // Add this line to notify other components
     } catch (error) {
       Alert.alert('Error', 'Failed to process sale');
       console.error('Error processing sale:', error);
@@ -693,8 +696,17 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   };
 
   const formatDate = (dateString: string) => {
+    // Create a date object from the UTC timestamp
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+
+    // Get the local timezone offset in minutes
+    const localOffset = new Date().getTimezoneOffset();
+
+    // Create a new date adjusted for the local timezone
+    // Note: getTimezoneOffset() returns minutes, so we multiply by 60000 to convert to milliseconds
+    const localDate = new Date(date.getTime() - localOffset * 60000);
+
+    return localDate.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -1796,7 +1808,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
-    paddingTop: 24,
   },
   header: {
     flexDirection: 'row',
