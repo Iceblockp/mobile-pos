@@ -528,6 +528,39 @@ export class DatabaseService {
     return result as (SaleItem & { product_name: string })[];
   }
 
+  async deleteSale(saleId: number): Promise<void> {
+    // Start a transaction to ensure data integrity
+    await this.db.execAsync('BEGIN TRANSACTION');
+
+    try {
+      // Get sale items to restore product quantities
+      const saleItems = await this.getSaleItems(saleId);
+
+      // Restore product quantities
+      for (const item of saleItems) {
+        await this.db.runAsync(
+          'UPDATE products SET quantity = quantity + ? WHERE id = ?',
+          [item.quantity, item.product_id]
+        );
+      }
+
+      // Delete sale items first (due to foreign key constraint)
+      await this.db.runAsync('DELETE FROM sale_items WHERE sale_id = ?', [
+        saleId,
+      ]);
+
+      // Delete the sale
+      await this.db.runAsync('DELETE FROM sales WHERE id = ?', [saleId]);
+
+      // Commit the transaction
+      await this.db.execAsync('COMMIT');
+    } catch (error) {
+      // Rollback in case of error
+      await this.db.execAsync('ROLLBACK');
+      throw error;
+    }
+  }
+
   async getSalesAnalytics(days: number = 30): Promise<{
     totalSales: number;
     totalRevenue: number;

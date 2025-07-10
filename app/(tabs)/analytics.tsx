@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Modal,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -40,13 +41,13 @@ interface DateFilter {
 }
 
 export default function Analytics() {
-  const { db, isReady } = useDatabase();
+  const { db, isReady, refreshTrigger } = useDatabase();
   const [analytics, setAnalytics] = useState<any>(null);
   const [recentSales, setRecentSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
-  console.log('firstsss', analytics);
   // Initialize with today as default
   const today = new Date();
   const [dateFilter, setDateFilter] = useState<DateFilter>({
@@ -58,11 +59,13 @@ export default function Analytics() {
     endDate: today,
   });
 
+  const onRefresh = () => loadAnalytics();
+
   const loadAnalytics = async () => {
     if (!db) return;
 
     try {
-      setLoading(true);
+      setRefreshing ? setRefreshing(true) : setLoading(true);
       let analyticsData;
       let salesData;
 
@@ -113,6 +116,7 @@ export default function Analytics() {
       console.error('Error loading analytics:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -120,7 +124,7 @@ export default function Analytics() {
     if (isReady) {
       loadAnalytics();
     }
-  }, [isReady, db, dateFilter]);
+  }, [isReady, db, dateFilter, refreshTrigger]);
 
   const formatMMK = (amount: number) => {
     return (
@@ -323,7 +327,7 @@ export default function Analytics() {
     });
   };
 
-  if (!isReady || loading) {
+  if (!isReady || (loading && !refreshing)) {
     return <LoadingSpinner />;
   }
 
@@ -334,7 +338,17 @@ export default function Analytics() {
         <Text style={styles.subtitle}>Business Performance Insights</Text>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView
+        style={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#059669']}
+            tintColor={'#059669'}
+          />
+        }
+      >
         {/* Enhanced Period Selector */}
         <Card style={styles.periodCard}>
           <View style={styles.periodHeader}>

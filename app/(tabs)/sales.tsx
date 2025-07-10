@@ -670,7 +670,8 @@ export default function Sales() {
 
 // Enhanced Sales History Component with Sale Details and Mobile Export
 const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { db } = useDatabase();
+  const { db, triggerRefresh } = useDatabase();
+  const { showToast } = useToast();
   const [sales, setSales] = useState<any[]>([]);
   const [filteredSales, setFilteredSales] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -867,6 +868,38 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }
 
     setShowExportModal(true);
+  };
+
+  // Handle deleting a sale
+  const handleDeleteSale = async () => {
+    if (!db || !selectedSale) return;
+
+    Alert.alert(
+      'Delete Sale',
+      `Are you sure you want to delete Sale #${selectedSale.id}? This will restore product quantities and permanently remove the sale record.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await db.deleteSale(selectedSale.id);
+              setShowSaleDetail(false);
+              await loadSales(); // Refresh the sales list
+              triggerRefresh(); // Notify other components (like analytics)
+              showToast('Sale deleted successfully', 'success');
+            } catch (error) {
+              console.error('Error deleting sale:', error);
+              Alert.alert('Error', 'Failed to delete sale');
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Export sales list data (original functionality)
@@ -1590,6 +1623,15 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
             {selectedSale && (
               <ScrollView style={styles.saleDetailContent}>
+                <View style={styles.saleDetailActions}>
+                  <TouchableOpacity
+                    style={styles.deleteSaleButton}
+                    onPress={handleDeleteSale}
+                  >
+                    <Trash2 size={16} color="#FFFFFF" />
+                    <Text style={styles.deleteSaleButtonText}>Delete Sale</Text>
+                  </TouchableOpacity>
+                </View>
                 <Card style={styles.saleDetailCard}>
                   <Text style={styles.saleDetailTitle}>Sale Information</Text>
                   <View style={styles.saleDetailRow}>
@@ -2475,5 +2517,29 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: 'Inter-Bold',
     color: '#10B981',
+  },
+  saleDetailActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  deleteSaleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  deleteSaleButtonText: {
+    color: '#FFFFFF',
+    fontFamily: 'Inter-Medium',
+    fontSize: 14,
+    marginLeft: 6,
+  },
+  deleteButton: {
+    marginRight: 15,
+    padding: 8,
   },
 });

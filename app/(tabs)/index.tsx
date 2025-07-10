@@ -22,7 +22,7 @@ import {
 import { router } from 'expo-router';
 
 export default function Dashboard() {
-  const { db, isReady } = useDatabase();
+  const { db, isReady, refreshTrigger } = useDatabase();
   const [analytics, setAnalytics] = useState<any>(null);
   const [lowStockCount, setLowStockCount] = useState(0);
   const [totalProducts, setTotalProducts] = useState(0);
@@ -50,7 +50,7 @@ export default function Dashboard() {
     if (isReady) {
       loadDashboardData();
     }
-  }, [isReady, db]);
+  }, [isReady, db, refreshTrigger]);
 
   const onRefresh = async () => {
     setRefreshing(true);
