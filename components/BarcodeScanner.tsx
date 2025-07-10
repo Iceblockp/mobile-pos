@@ -1,7 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, SafeAreaView, Alert, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  SafeAreaView,
+  Alert,
+  Platform,
+} from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { X, Camera, Flashlight } from 'lucide-react-native';
+import { Audio } from 'expo-av'; // Import Audio from expo-av
 
 interface BarcodeScannerProps {
   onBarcodeScanned: (barcode: string) => void;
@@ -15,6 +25,30 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
+
+  // Load sound when component mounts
+  useEffect(() => {
+    const loadSound = async () => {
+      try {
+        const { sound } = await Audio.Sound.createAsync(
+          require('../assets/audios/barcode-scan.mp3')
+        );
+        setSound(sound);
+      } catch (error) {
+        console.error('Failed to load sound', error);
+      }
+    };
+
+    loadSound();
+
+    // Cleanup function to unload sound when component unmounts
+    return () => {
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -54,14 +88,18 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             <Text style={styles.headerTitle}>Camera Permission</Text>
             <View style={styles.placeholder} />
           </View>
-          
+
           <View style={styles.permissionContainer}>
             <Camera size={64} color="#6B7280" />
             <Text style={styles.permissionTitle}>Camera Access Required</Text>
             <Text style={styles.permissionText}>
-              We need camera access to scan barcodes. Please grant permission to continue.
+              We need camera access to scan barcodes. Please grant permission to
+              continue.
             </Text>
-            <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+            <TouchableOpacity
+              style={styles.permissionButton}
+              onPress={requestPermission}
+            >
               <Text style={styles.permissionButtonText}>Grant Permission</Text>
             </TouchableOpacity>
           </View>
@@ -70,10 +108,27 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     );
   }
 
-  const handleBarcodeScanned = ({ type, data }: { type: string; data: string }) => {
+  const handleBarcodeScanned = async ({
+    type,
+    data,
+  }: {
+    type: string;
+    data: string;
+  }) => {
     if (scanned) return;
-    
+
     setScanned(true);
+
+    // Play the sound when barcode is scanned
+    try {
+      if (sound) {
+        await sound.setPositionAsync(0); // Reset to beginning in case it was played before
+        await sound.playAsync();
+      }
+    } catch (error) {
+      console.error('Failed to play sound', error);
+    }
+
     onBarcodeScanned(data);
   };
 
@@ -89,11 +144,11 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             <X size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Scan Barcode</Text>
-          <TouchableOpacity 
-            style={styles.flashButton} 
+          <TouchableOpacity
+            style={styles.flashButton}
             onPress={() => setFlashOn(!flashOn)}
           >
-            <Flashlight size={24} color={flashOn ? "#FCD34D" : "#FFFFFF"} />
+            <Flashlight size={24} color={flashOn ? '#FCD34D' : '#FFFFFF'} />
           </TouchableOpacity>
         </View>
 
@@ -116,9 +171,12 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           <Text style={styles.instructionText}>
             Position the barcode within the frame to scan
           </Text>
-          
+
           {scanned && (
-            <TouchableOpacity style={styles.rescanButton} onPress={resetScanner}>
+            <TouchableOpacity
+              style={styles.rescanButton}
+              onPress={resetScanner}
+            >
               <Text style={styles.rescanButtonText}>Scan Another</Text>
             </TouchableOpacity>
           )}

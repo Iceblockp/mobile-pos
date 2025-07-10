@@ -522,7 +522,7 @@ export class DatabaseService {
     saleId: number
   ): Promise<(SaleItem & { product_name: string })[]> {
     const result = await this.db.getAllAsync(
-      'SELECT si.*, p.name as product_name FROM sale_items si JOIN products p ON si.product_id = p.id WHERE si.sale_id = ?',
+      'SELECT si.*, COALESCE(p.name, "[Deleted Product]") as product_name FROM sale_items si LEFT JOIN products p ON si.product_id = p.id WHERE si.sale_id = ?',
       [saleId]
     );
     return result as (SaleItem & { product_name: string })[];
@@ -545,6 +545,12 @@ export class DatabaseService {
     }[];
     revenueGrowth?: { percentage: number; isPositive: boolean };
   }> {
+    // Add these two lines to define the date range
+    const endDate = new Date();
+    const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
+    const startDateStr = startDate.toISOString().split('T')[0];
+    const endDateStr = endDate.toISOString().split('T')[0];
+
     const salesResult = (await this.db.getFirstAsync(
       `SELECT 
         COUNT(*) as total_sales, 
@@ -557,12 +563,13 @@ export class DatabaseService {
     // Calculate cost and profit
     const costResult = (await this.db.getFirstAsync(
       `SELECT 
-        SUM(si.quantity * p.cost) as total_cost,
+        SUM(si.quantity * COALESCE(p.cost, si.cost)) as total_cost,
         SUM(si.quantity) as total_items
        FROM sale_items si 
-       JOIN products p ON si.product_id = p.id 
+       LEFT JOIN products p ON si.product_id = p.id 
        JOIN sales s ON si.sale_id = s.id 
-       WHERE s.created_at >= datetime("now", "-${days} days")`
+       WHERE date(s.created_at) >= ? AND date(s.created_at) <= ?`,
+      [startDateStr, endDateStr]
     )) as { total_cost: number; total_items: number };
 
     const totalRevenue = salesResult.total_revenue || 0;
@@ -669,14 +676,15 @@ export class DatabaseService {
     // Calculate cost and profit
     const costResult = (await this.db.getFirstAsync(
       `SELECT 
-        SUM(si.quantity * p.cost) as total_cost,
+        SUM(si.quantity * COALESCE(p.cost, si.cost)) as total_cost,
         SUM(si.quantity) as total_items
        FROM sale_items si 
-       JOIN products p ON si.product_id = p.id 
+       LEFT JOIN products p ON si.product_id = p.id 
        JOIN sales s ON si.sale_id = s.id 
        WHERE date(s.created_at) >= ? AND date(s.created_at) <= ?`,
       [startDateStr, endDateStr]
     )) as { total_cost: number; total_items: number };
+    console.log('sale and co', salesResult, costResult);
 
     const totalRevenue = salesResult.total_revenue || 0;
     const totalCost = costResult.total_cost || 0;
@@ -687,16 +695,16 @@ export class DatabaseService {
     // Get top products with profit calculations
     const topProductsResult = (await this.db.getAllAsync(
       `SELECT 
-        p.name, 
+        COALESCE(p.name, "[Deleted Product]") as name, 
         SUM(si.quantity) as quantity, 
         SUM(si.subtotal) as revenue,
-        SUM(si.quantity * p.cost) as cost,
-        (SUM(si.subtotal) - SUM(si.quantity * p.cost)) as profit
+        SUM(si.quantity * COALESCE(p.cost, si.cost)) as cost,
+        (SUM(si.subtotal) - SUM(si.quantity * COALESCE(p.cost, si.cost))) as profit
        FROM sale_items si 
-       JOIN products p ON si.product_id = p.id 
+       LEFT JOIN products p ON si.product_id = p.id 
        JOIN sales s ON si.sale_id = s.id 
        WHERE date(s.created_at) >= ? AND date(s.created_at) <= ?
-       GROUP BY p.id 
+       GROUP BY COALESCE(p.id, si.product_id) 
        ORDER BY revenue DESC 
        LIMIT 5`,
       [startDateStr, endDateStr]

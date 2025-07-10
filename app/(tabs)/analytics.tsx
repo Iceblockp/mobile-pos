@@ -46,7 +46,7 @@ export default function Analytics() {
   const [loading, setLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
-
+  console.log('firstsss', analytics);
   // Initialize with today as default
   const today = new Date();
   const [dateFilter, setDateFilter] = useState<DateFilter>({
@@ -696,8 +696,12 @@ export default function Analytics() {
                 <TouchableOpacity
                   style={styles.filterOption}
                   onPress={() => {
-                    setDateFilter({ ...dateFilter, mode: 'day' });
-                    setShowDatePicker(true);
+                    setShowFilterModal(false); // Close filter modal first
+                    setTimeout(() => {
+                      // Add a small delay before showing date picker
+                      setDateFilter({ ...dateFilter, mode: 'day' });
+                      setShowDatePicker(true);
+                    }, 300);
                   }}
                 >
                   <Text style={styles.filterOptionText}>
@@ -779,7 +783,8 @@ export default function Analytics() {
                               dateFilter.selectedMonth === i &&
                                 styles.monthChipActive,
                             ]}
-                            onPress={() => {
+                            onPress={(e) => {
+                              e.stopPropagation(); // Prevent event bubbling
                               setDateFilter({
                                 ...dateFilter,
                                 mode: 'month',
@@ -808,12 +813,13 @@ export default function Analytics() {
                     <View style={styles.yearControls}>
                       <TouchableOpacity
                         style={styles.yearButton}
-                        onPress={() =>
+                        onPress={(e) => {
+                          e.stopPropagation(); // Prevent event bubbling
                           setDateFilter({
                             ...dateFilter,
                             selectedYear: dateFilter.selectedYear - 1,
-                          })
-                        }
+                          });
+                        }}
                       >
                         <ChevronLeft size={16} color="#6B7280" />
                       </TouchableOpacity>
@@ -822,12 +828,13 @@ export default function Analytics() {
                       </Text>
                       <TouchableOpacity
                         style={styles.yearButton}
-                        onPress={() =>
+                        onPress={(e) => {
+                          e.stopPropagation(); // Prevent event bubbling
                           setDateFilter({
                             ...dateFilter,
                             selectedYear: dateFilter.selectedYear + 1,
-                          })
-                        }
+                          });
+                        }}
                       >
                         <ChevronRight size={16} color="#6B7280" />
                       </TouchableOpacity>

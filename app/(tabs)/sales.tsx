@@ -815,6 +815,11 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setFilteredSales(filtered);
   }, [sales, dateFilter, searchQuery, selectedDate]);
 
+  // Reset allSaleItems when filters change
+  useEffect(() => {
+    setAllSaleItems([]);
+  }, [dateFilter, searchQuery, selectedDate]);
+
   const onDateChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === 'ios');
     if (selectedDate) {
@@ -869,6 +874,12 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     try {
       setExporting(true);
 
+      // Load all sale items if not already loaded to calculate cost and profit
+      let items = allSaleItems;
+      if (items.length === 0) {
+        items = await loadAllSaleItems();
+      }
+
       // For mobile platforms
       if (Platform.OS !== 'web') {
         // Prepare data for Excel export
@@ -879,13 +890,17 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           'Total Amount': sale.total,
         }));
 
-        // Add summary data
-        const totalRevenue = filteredSales.reduce(
-          (sum, sale) => sum + sale.total,
+        // Calculate summary data using the same method as exportSalesItemsData
+        const totalSales = filteredSales.length;
+        const totalRevenue = items.reduce(
+          (sum, item) => sum + item.subtotal,
           0
         );
-        const totalSales = filteredSales.length;
-        const avgSale = totalSales > 0 ? totalRevenue / totalSales : 0;
+        const totalCost = items.reduce(
+          (sum, item) => sum + (item.cost || 0) * item.quantity,
+          0
+        );
+        const totalProfit = totalRevenue - totalCost;
 
         excelData.push({
           'Sale ID': '',
@@ -912,10 +927,16 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           'Total Amount': totalRevenue,
         });
         excelData.push({
-          'Sale ID': 'Average Sale',
+          'Sale ID': 'Total Cost',
           Date: '',
           'Payment Method': '',
-          'Total Amount': avgSale,
+          'Total Amount': totalCost,
+        });
+        excelData.push({
+          'Sale ID': 'Total Profit',
+          Date: '',
+          'Payment Method': '',
+          'Total Amount': totalProfit,
         });
 
         // Create worksheet and workbook
@@ -953,7 +974,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         return;
       }
 
-      // Web export functionality (unchanged)
+      // Web export functionality
       const excelData = filteredSales.map((sale) => ({
         'Sale ID': sale.id,
         Date: formatDate(sale.created_at),
@@ -963,13 +984,14 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         Day: formatDateOnly(sale.created_at),
       }));
 
-      // ... existing web export code ...
-      const totalRevenue = filteredSales.reduce(
-        (sum, sale) => sum + sale.total,
+      // Calculate summary data using the same method as exportSalesItemsData
+      const totalSales = filteredSales.length;
+      const totalRevenue = items.reduce((sum, item) => sum + item.subtotal, 0);
+      const totalCost = items.reduce(
+        (sum, item) => sum + (item.cost || 0) * item.quantity,
         0
       );
-      const totalSales = filteredSales.length;
-      const avgSale = totalSales > 0 ? totalRevenue / totalSales : 0;
+      const totalProfit = totalRevenue - totalCost;
 
       excelData.push({});
       excelData.push({
@@ -997,9 +1019,17 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         Day: '',
       });
       excelData.push({
-        'Sale ID': 'Average Sale',
-        Date: formatMMK(avgSale),
-        'Total Amount': avgSale,
+        'Sale ID': 'Total Cost',
+        Date: formatMMK(totalCost),
+        'Total Amount': totalCost,
+        'Total Amount (MMK)': '',
+        'Payment Method': '',
+        Day: '',
+      });
+      excelData.push({
+        'Sale ID': 'Total Profit',
+        Date: formatMMK(totalProfit),
+        'Total Amount': totalProfit,
         'Total Amount (MMK)': '',
         'Payment Method': '',
         Day: '',
@@ -1588,6 +1618,33 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                       {formatMMK(selectedSale.total)}
                     </Text>
                   </View>
+
+                  {/* Add Total Cost and Profit Information */}
+                  <View style={styles.saleDetailRow}>
+                    <Text style={styles.saleDetailLabel}>Total Cost:</Text>
+                    <Text style={styles.saleDetailValue}>
+                      {formatMMK(
+                        saleItems.reduce(
+                          (sum, item) => sum + item.cost * item.quantity,
+                          0
+                        )
+                      )}
+                    </Text>
+                  </View>
+                  <View style={styles.saleDetailRow}>
+                    <Text style={styles.saleDetailLabel}>Total Profit:</Text>
+                    <Text
+                      style={[styles.saleDetailValue, styles.saleDetailProfit]}
+                    >
+                      {formatMMK(
+                        selectedSale.total -
+                          saleItems.reduce(
+                            (sum, item) => sum + item.cost * item.quantity,
+                            0
+                          )
+                      )}
+                    </Text>
+                  </View>
                 </Card>
 
                 <Card style={styles.saleDetailCard}>
@@ -1602,9 +1659,15 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                           {item.quantity} × {formatMMK(item.price)}
                         </Text>
                       </View>
-                      <Text style={styles.saleItemSubtotal}>
-                        {formatMMK(item.subtotal)}
-                      </Text>
+                      <View style={styles.saleItemPricing}>
+                        <Text style={styles.saleItemSubtotal}>
+                          {formatMMK(item.subtotal)}
+                        </Text>
+                        <Text style={styles.saleItemProfit}>
+                          Profit:{' '}
+                          {formatMMK(item.subtotal - item.cost * item.quantity)}
+                        </Text>
+                      </View>
                     </View>
                   ))}
 
@@ -2353,6 +2416,11 @@ const styles = StyleSheet.create({
     color: '#10B981',
     fontSize: 18,
   },
+  saleDetailProfit: {
+    color: '#10B981',
+    // fontSize: 18,
+    fontFamily: 'Inter-Bold',
+  },
   saleItemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -2379,6 +2447,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
     color: '#10B981',
+  },
+  saleItemPricing: {
+    alignItems: 'flex-end',
+  },
+  saleItemProfit: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#10B981',
+    marginTop: 2,
   },
   saleItemsTotal: {
     flexDirection: 'row',
