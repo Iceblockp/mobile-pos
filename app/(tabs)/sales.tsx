@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Platform,
   Dimensions,
   ActivityIndicator,
+  PixelRatio,
 } from 'react-native';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -33,12 +34,14 @@ import {
   FileText,
   FileSpreadsheet,
   Share as ShareIcon,
+  Image as ImageIcon,
 } from 'lucide-react-native';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as XLSX from 'xlsx';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import { captureRef } from 'react-native-view-shot';
 import { useToast } from '@/context/ToastContext';
 
 interface CartItem {
@@ -686,6 +689,8 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [showExportModal, setShowExportModal] = useState(false);
   const [allSaleItems, setAllSaleItems] = useState<any[]>([]);
   const [loadingAllItems, setLoadingAllItems] = useState(false);
+  const saleDetailRef = useRef(null);
+  const [capturing, setCapturing] = useState(false);
 
   const formatMMK = (amount: number) => {
     return (
@@ -868,6 +873,50 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }
 
     setShowExportModal(true);
+  };
+
+  // Add this function to capture and save the sale detail as an image
+  const captureSaleDetail = async () => {
+    if (!saleDetailRef.current || !selectedSale) return;
+
+    try {
+      setCapturing(true);
+
+      // Calculate pixel ratio for high-quality image
+      const pixelRatio = PixelRatio.get();
+
+      // Capture the view
+      const uri = await captureRef(saleDetailRef, {
+        format: 'png',
+        quality: 1,
+        result: 'tmpfile',
+        height: 1920 / pixelRatio,
+        width: 1080 / pixelRatio,
+      });
+
+      // Check if sharing is available
+      const isAvailable = await Sharing.isAvailableAsync();
+
+      if (isAvailable) {
+        // Share the image
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          dialogTitle: `Sale #${selectedSale.id} Details`,
+          UTI: 'public.png',
+        });
+        showToast('Sale detail exported as image', 'success');
+      } else {
+        Alert.alert(
+          'Sharing not available',
+          'Sharing is not available on this device'
+        );
+      }
+    } catch (error) {
+      console.error('Error capturing sale detail:', error);
+      Alert.alert('Error', 'Failed to export sale detail');
+    } finally {
+      setCapturing(false);
+    }
   };
 
   // Handle deleting a sale
@@ -1631,97 +1680,124 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     <Trash2 size={16} color="#FFFFFF" />
                     <Text style={styles.deleteSaleButtonText}>Delete Sale</Text>
                   </TouchableOpacity>
-                </View>
-                <Card style={styles.saleDetailCard}>
-                  <Text style={styles.saleDetailTitle}>Sale Information</Text>
-                  <View style={styles.saleDetailRow}>
-                    <Text style={styles.saleDetailLabel}>Sale ID:</Text>
-                    <Text style={styles.saleDetailValue}>
-                      #{selectedSale.id}
-                    </Text>
-                  </View>
-                  <View style={styles.saleDetailRow}>
-                    <Text style={styles.saleDetailLabel}>Date:</Text>
-                    <Text style={styles.saleDetailValue}>
-                      {formatDate(selectedSale.created_at)}
-                    </Text>
-                  </View>
-                  <View style={styles.saleDetailRow}>
-                    <Text style={styles.saleDetailLabel}>Payment Method:</Text>
-                    <Text style={styles.saleDetailValue}>
-                      {selectedSale.payment_method.toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={styles.saleDetailRow}>
-                    <Text style={styles.saleDetailLabel}>Total Amount:</Text>
-                    <Text
-                      style={[styles.saleDetailValue, styles.saleDetailTotal]}
-                    >
-                      {formatMMK(selectedSale.total)}
-                    </Text>
-                  </View>
 
-                  {/* Add Total Cost and Profit Information */}
-                  <View style={styles.saleDetailRow}>
-                    <Text style={styles.saleDetailLabel}>Total Cost:</Text>
-                    <Text style={styles.saleDetailValue}>
-                      {formatMMK(
-                        saleItems.reduce(
-                          (sum, item) => sum + item.cost * item.quantity,
-                          0
-                        )
-                      )}
+                  {/* Add Export as Image button */}
+                  <TouchableOpacity
+                    style={styles.exportImageButton}
+                    onPress={captureSaleDetail}
+                    disabled={capturing}
+                  >
+                    <ImageIcon size={16} color="#FFFFFF" />
+                    <Text style={styles.exportImageButtonText}>
+                      {capturing ? 'Exporting...' : 'Export as Image'}
                     </Text>
-                  </View>
-                  <View style={styles.saleDetailRow}>
-                    <Text style={styles.saleDetailLabel}>Total Profit:</Text>
-                    <Text
-                      style={[styles.saleDetailValue, styles.saleDetailProfit]}
-                    >
-                      {formatMMK(
-                        selectedSale.total -
+                  </TouchableOpacity>
+                </View>
+
+                {/* Wrap the content to be captured in a View with ref */}
+                <View
+                  ref={saleDetailRef}
+                  collapsable={false}
+                  style={styles.captureContainer}
+                >
+                  <Card style={styles.saleDetailCard}>
+                    <Text style={styles.saleDetailTitle}>Sale Information</Text>
+                    <View style={styles.saleDetailRow}>
+                      <Text style={styles.saleDetailLabel}>Sale ID:</Text>
+                      <Text style={styles.saleDetailValue}>
+                        #{selectedSale.id}
+                      </Text>
+                    </View>
+                    <View style={styles.saleDetailRow}>
+                      <Text style={styles.saleDetailLabel}>Date:</Text>
+                      <Text style={styles.saleDetailValue}>
+                        {formatDate(selectedSale.created_at)}
+                      </Text>
+                    </View>
+                    <View style={styles.saleDetailRow}>
+                      <Text style={styles.saleDetailLabel}>
+                        Payment Method:
+                      </Text>
+                      <Text style={styles.saleDetailValue}>
+                        {selectedSale.payment_method.toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={styles.saleDetailRow}>
+                      <Text style={styles.saleDetailLabel}>Total Amount:</Text>
+                      <Text
+                        style={[styles.saleDetailValue, styles.saleDetailTotal]}
+                      >
+                        {formatMMK(selectedSale.total)}
+                      </Text>
+                    </View>
+
+                    {/* Add Total Cost and Profit Information */}
+                    <View style={styles.saleDetailRow}>
+                      <Text style={styles.saleDetailLabel}>Total Cost:</Text>
+                      <Text style={styles.saleDetailValue}>
+                        {formatMMK(
                           saleItems.reduce(
                             (sum, item) => sum + item.cost * item.quantity,
                             0
                           )
-                      )}
-                    </Text>
-                  </View>
-                </Card>
-
-                <Card style={styles.saleDetailCard}>
-                  <Text style={styles.saleDetailTitle}>Items Purchased</Text>
-                  {saleItems.map((item, index) => (
-                    <View key={index} style={styles.saleItemRow}>
-                      <View style={styles.saleItemInfo}>
-                        <Text style={styles.saleItemName}>
-                          {item.product_name}
-                        </Text>
-                        <Text style={styles.saleItemDetails}>
-                          {item.quantity} × {formatMMK(item.price)}
-                        </Text>
-                      </View>
-                      <View style={styles.saleItemPricing}>
-                        <Text style={styles.saleItemSubtotal}>
-                          {formatMMK(item.subtotal)}
-                        </Text>
-                        <Text style={styles.saleItemProfit}>
-                          Profit:{' '}
-                          {formatMMK(item.subtotal - item.cost * item.quantity)}
-                        </Text>
-                      </View>
+                        )}
+                      </Text>
                     </View>
-                  ))}
+                    <View style={styles.saleDetailRow}>
+                      <Text style={styles.saleDetailLabel}>Total Profit:</Text>
+                      <Text
+                        style={[
+                          styles.saleDetailValue,
+                          styles.saleDetailProfit,
+                        ]}
+                      >
+                        {formatMMK(
+                          selectedSale.total -
+                            saleItems.reduce(
+                              (sum, item) => sum + item.cost * item.quantity,
+                              0
+                            )
+                        )}
+                      </Text>
+                    </View>
+                  </Card>
 
-                  <View style={styles.saleItemsTotal}>
-                    <Text style={styles.saleItemsTotalLabel}>
-                      Total Items: {saleItems.length}
-                    </Text>
-                    <Text style={styles.saleItemsTotalValue}>
-                      {formatMMK(selectedSale.total)}
-                    </Text>
-                  </View>
-                </Card>
+                  <Card style={styles.saleDetailCard}>
+                    <Text style={styles.saleDetailTitle}>Items Purchased</Text>
+                    {saleItems.map((item, index) => (
+                      <View key={index} style={styles.saleItemRow}>
+                        <View style={styles.saleItemInfo}>
+                          <Text style={styles.saleItemName}>
+                            {item.product_name}
+                          </Text>
+                          <Text style={styles.saleItemDetails}>
+                            {item.quantity} × {formatMMK(item.price)}
+                          </Text>
+                        </View>
+                        <View style={styles.saleItemPricing}>
+                          <Text style={styles.saleItemSubtotal}>
+                            {formatMMK(item.subtotal)}
+                          </Text>
+                          <Text style={styles.saleItemProfit}>
+                            Profit:{' '}
+                            {formatMMK(
+                              item.subtotal - item.cost * item.quantity
+                            )}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+
+                    <View style={styles.saleItemsTotal}>
+                      <Text style={styles.saleItemsTotalLabel}>
+                        Total Items: {saleItems.length}
+                      </Text>
+                      <Text style={styles.saleItemsTotalValue}>
+                        {formatMMK(selectedSale.total)}
+                      </Text>
+                    </View>
+                  </Card>
+                </View>
               </ScrollView>
             )}
           </SafeAreaView>
@@ -2520,7 +2596,7 @@ const styles = StyleSheet.create({
   },
   saleDetailActions: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     marginBottom: 12,
     paddingHorizontal: 4,
   },
@@ -2537,6 +2613,24 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     fontSize: 14,
     marginLeft: 6,
+  },
+  exportImageButton: {
+    backgroundColor: '#007AFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  exportImageButtonText: {
+    color: '#FFFFFF',
+    marginLeft: 6,
+    fontFamily: 'Inter-Medium',
+    fontSize: 14,
+  },
+  captureContainer: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 10,
   },
   deleteButton: {
     marginRight: 15,
