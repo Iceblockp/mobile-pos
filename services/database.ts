@@ -3,13 +3,14 @@ import * as SQLite from 'expo-sqlite';
 export interface Product {
   id: number;
   name: string;
-  barcode: string;
+  barcode?: string; // Make barcode optional
   category: string;
   price: number;
   cost: number;
   quantity: number;
   min_stock: number;
   supplier_id: number;
+  imageUrl?: string; // Optional image URL property
   created_at: string;
   updated_at: string;
 }
@@ -76,13 +77,14 @@ export class DatabaseService {
       CREATE TABLE IF NOT EXISTS products (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
-        barcode TEXT UNIQUE,
+        barcode TEXT, /* Removed UNIQUE constraint */
         category TEXT NOT NULL,
         price INTEGER NOT NULL,
         cost INTEGER NOT NULL,
         quantity INTEGER NOT NULL DEFAULT 0,
         min_stock INTEGER NOT NULL DEFAULT 10,
         supplier_id INTEGER,
+        imageUrl TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (supplier_id) REFERENCES suppliers (id)
@@ -142,6 +144,21 @@ export class DatabaseService {
           'ALTER TABLE sale_items ADD COLUMN cost INTEGER DEFAULT 0'
         );
         console.log('Added cost column to sale_items table');
+      }
+
+      // Check if imageUrl column exists in products table
+      const productsInfo = await this.db.getAllAsync(
+        'PRAGMA table_info(products)'
+      );
+      const hasImageUrlColumn = productsInfo.some(
+        (column: any) => column.name === 'imageUrl'
+      );
+
+      if (!hasImageUrlColumn) {
+        await this.db.execAsync(
+          'ALTER TABLE products ADD COLUMN imageUrl TEXT'
+        );
+        console.log('Added imageUrl column to products table');
       }
     } catch (error) {
       console.log('Migration completed or column already exists');
@@ -355,16 +372,17 @@ export class DatabaseService {
     product: Omit<Product, 'id' | 'created_at' | 'updated_at'>
   ): Promise<number> {
     const result = await this.db.runAsync(
-      'INSERT INTO products (name, barcode, category, price, cost, quantity, min_stock, supplier_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO products (name, barcode, category, price, cost, quantity, min_stock, supplier_id, imageUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         product.name,
-        product.barcode,
+        product.barcode || null, // Handle empty barcode
         product.category,
         product.price,
         product.cost,
         product.quantity,
         product.min_stock,
         product.supplier_id,
+        product.imageUrl || null,
       ]
     );
     return result.lastInsertRowId;
@@ -582,7 +600,7 @@ export class DatabaseService {
     const endDate = new Date();
     const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
     const startDateStr = startDate.toISOString().split('T')[0];
-    const endDateStr = endDate.toISOString().split('T')[0];
+    const endDateStr = startDate.toISOString().split('T')[0];
 
     const salesResult = (await this.db.getFirstAsync(
       `SELECT 

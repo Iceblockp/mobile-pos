@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Alert,
   Modal,
+  Image,
 } from 'react-native';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -24,9 +25,16 @@ import {
   FolderPlus,
   Settings,
   Scan,
+  Camera,
+  Image as ImageIcon,
+  ArrowUpAZ,
+  Calendar,
+  ArrowDownAZ,
 } from 'lucide-react-native';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { useToast } from '@/context/ToastContext';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 
 export default function Products() {
   const { db, isReady, refreshTrigger, triggerRefresh } = useDatabase();
@@ -43,6 +51,9 @@ export default function Products() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sortBy, setSortBy] = useState<'name' | 'updated_at'>('name'); // Add sorting state
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc'); // Add sort order state
+  const [showSortOptions, setShowSortOptions] = useState(false); // Add state for sort dropdown
 
   const [formData, setFormData] = useState({
     name: '',
@@ -50,9 +61,10 @@ export default function Products() {
     category: '',
     price: '',
     cost: '',
-    quantity: '',
-    min_stock: '',
+    quantity: '0', // Default to 0
+    min_stock: '10', // Default to 10
     supplier_id: '',
+    imageUrl: '',
   });
 
   const [categoryFormData, setCategoryFormData] = useState({
@@ -96,14 +108,41 @@ export default function Products() {
     );
   };
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.barcode.includes(searchQuery);
-    const matchesCategory =
-      selectedCategory === 'All' || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredProducts = [...products]
+    .filter((product) => {
+      const matchesSearch =
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.barcode?.includes(searchQuery);
+      const matchesCategory =
+        selectedCategory === 'All' || product.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'name') {
+        return sortOrder === 'asc'
+          ? a.name.localeCompare(b.name)
+          : b.name.localeCompare(a.name);
+      } else {
+        // sort by updated_at
+        return sortOrder === 'asc'
+          ? new Date(a.updated_at || 0).getTime() -
+              new Date(b.updated_at || 0).getTime()
+          : new Date(b.updated_at || 0).getTime() -
+              new Date(a.updated_at || 0).getTime();
+      }
+    });
+
+  // Function to toggle sort order or change sort field
+  const handleSort = (field: 'name' | 'updated_at') => {
+    if (sortBy === field) {
+      // Toggle sort order if clicking the same field
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Change sort field and reset to ascending order
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
 
   const resetForm = () => {
     setFormData({
@@ -112,9 +151,10 @@ export default function Products() {
       category: '',
       price: '',
       cost: '',
-      quantity: '',
-      min_stock: '',
+      quantity: '0', // Default to 0
+      min_stock: '10', // Default to 10
       supplier_id: '',
+      imageUrl: '',
     });
     setEditingProduct(null);
     setShowAddForm(false);
@@ -154,6 +194,90 @@ export default function Products() {
     return cleanValue;
   };
 
+  // Add image picker functions
+  const pickImage = async () => {
+    // Request permissions
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permission Required',
+        'Sorry, we need camera roll permissions to make this work!'
+      );
+      return;
+    }
+
+    // Launch image picker
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const selectedAsset = result.assets[0];
+      const fileName = selectedAsset.uri.split('/').pop();
+      //@ts-ignore
+      const newPath = FileSystem.documentDirectory + fileName;
+
+      try {
+        // Copy the image to app's document directory for persistence
+        await FileSystem.copyAsync({
+          from: selectedAsset.uri,
+          to: newPath,
+        });
+
+        setFormData({ ...formData, imageUrl: newPath });
+        showToast('Image selected successfully', 'success');
+      } catch (error) {
+        console.error('Error saving image:', error);
+        showToast('Failed to save image', 'error');
+      }
+    }
+  };
+
+  const takePhoto = async () => {
+    // Request camera permissions
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permission Required',
+        'Sorry, we need camera permissions to make this work!'
+      );
+      return;
+    }
+
+    // Launch camera
+    let result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const selectedAsset = result.assets[0];
+      const fileName = selectedAsset.uri.split('/').pop();
+      //@ts-ignore
+      const newPath = FileSystem.documentDirectory + fileName;
+
+      try {
+        // Copy the image to app's document directory for persistence
+        await FileSystem.copyAsync({
+          from: selectedAsset.uri,
+          to: newPath,
+        });
+
+        setFormData({ ...formData, imageUrl: newPath });
+        showToast('Photo taken successfully', 'success');
+      } catch (error) {
+        console.error('Error saving image:', error);
+        showToast('Failed to save image', 'error');
+      }
+    }
+  };
+
   const handleSubmit = async () => {
     if (!db) return;
 
@@ -187,13 +311,14 @@ export default function Products() {
     try {
       const productData = {
         name: formData.name,
-        barcode: formData.barcode,
+        barcode: formData.barcode ? formData.barcode : undefined, // Convert empty string to null
         category: formData.category,
         price: price,
         cost: cost,
         quantity: parseInt(formData.quantity) || 0,
         min_stock: parseInt(formData.min_stock) || 10,
         supplier_id: parseInt(formData.supplier_id) || 1,
+        imageUrl: formData.imageUrl || undefined,
       };
 
       if (editingProduct) {
@@ -254,13 +379,14 @@ export default function Products() {
   const handleEdit = (product: Product) => {
     setFormData({
       name: product.name,
-      barcode: product.barcode,
+      barcode: product.barcode || '',
       category: product.category,
       price: product.price.toString(),
       cost: product.cost.toString(),
       quantity: product.quantity.toString(),
       min_stock: product.min_stock.toString(),
       supplier_id: product.supplier_id.toString(),
+      imageUrl: product.imageUrl || '',
     });
     setEditingProduct(product);
     setShowAddForm(true);
@@ -343,6 +469,23 @@ export default function Products() {
         <Text style={styles.title}>Products</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity
+            style={[styles.sortDropdown, { backgroundColor: '#6B7280' }]}
+            onPress={() => setShowSortOptions(!showSortOptions)}
+          >
+            <Text style={styles.sortDropdownText}>
+              {sortBy === 'name' ? (
+                sortOrder === 'asc' ? (
+                  <ArrowUpAZ size={20} color="#FFFFFF" />
+                ) : (
+                  <ArrowDownAZ size={20} color="#FFFFFF" />
+                )
+              ) : (
+                <Calendar size={20} color="#FFFFFF" />
+              )}{' '}
+              {sortOrder === 'asc' ? '↑' : '↓'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={styles.categoryButton}
             onPress={() => setShowCategoryModal(true)}
           >
@@ -356,6 +499,111 @@ export default function Products() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Sort options dropdown - only visible when showSortOptions is true */}
+      {showSortOptions && (
+        <View style={styles.sortOptionsContainer}>
+          <TouchableOpacity
+            style={[
+              styles.sortOption,
+              sortBy === 'name' &&
+                sortOrder === 'asc' &&
+                styles.sortOptionActive,
+            ]}
+            onPress={() => {
+              setSortBy('name');
+              setSortOrder('asc');
+              setShowSortOptions(false);
+            }}
+          >
+            <Text
+              style={[
+                styles.sortOptionText,
+                sortBy === 'name' &&
+                  sortOrder === 'asc' &&
+                  styles.sortOptionTextActive,
+              ]}
+            >
+              Name (A to Z)
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.sortOption,
+              sortBy === 'name' &&
+                sortOrder === 'desc' &&
+                styles.sortOptionActive,
+            ]}
+            onPress={() => {
+              setSortBy('name');
+              setSortOrder('desc');
+              setShowSortOptions(false);
+            }}
+          >
+            <Text
+              style={[
+                styles.sortOptionText,
+                sortBy === 'name' &&
+                  sortOrder === 'desc' &&
+                  styles.sortOptionTextActive,
+              ]}
+            >
+              Name (Z to A)
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.sortOption,
+              sortBy === 'updated_at' &&
+                sortOrder === 'desc' &&
+                styles.sortOptionActive,
+            ]}
+            onPress={() => {
+              setSortBy('updated_at');
+              setSortOrder('desc');
+              setShowSortOptions(false);
+            }}
+          >
+            <Text
+              style={[
+                styles.sortOptionText,
+                sortBy === 'updated_at' &&
+                  sortOrder === 'desc' &&
+                  styles.sortOptionTextActive,
+              ]}
+            >
+              Newest First
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.sortOption,
+              sortBy === 'updated_at' &&
+                sortOrder === 'asc' &&
+                styles.sortOptionActive,
+            ]}
+            onPress={() => {
+              setSortBy('updated_at');
+              setSortOrder('asc');
+              setShowSortOptions(false);
+            }}
+          >
+            <Text
+              style={[
+                styles.sortOptionText,
+                sortBy === 'updated_at' &&
+                  sortOrder === 'asc' &&
+                  styles.sortOptionTextActive,
+              ]}
+            >
+              Oldest First
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <View style={styles.searchContainer}>
         <View style={styles.searchBox}>
@@ -394,29 +642,35 @@ export default function Products() {
                 selectedCategory === 'All' && styles.categoryChipTextActive,
               ]}
             >
-              All
+              All ({products.length})
             </Text>
           </TouchableOpacity>
-          {categories.map((category) => (
-            <TouchableOpacity
-              key={category.id}
-              style={[
-                styles.categoryChip,
-                selectedCategory === category.name && styles.categoryChipActive,
-              ]}
-              onPress={() => setSelectedCategory(category.name)}
-            >
-              <Text
+          {categories.map((category) => {
+            const categoryCount = products.filter(
+              (p) => p.category === category.name
+            ).length;
+            return (
+              <TouchableOpacity
+                key={category.id}
                 style={[
-                  styles.categoryChipText,
+                  styles.categoryChip,
                   selectedCategory === category.name &&
-                    styles.categoryChipTextActive,
+                    styles.categoryChipActive,
                 ]}
+                onPress={() => setSelectedCategory(category.name)}
               >
-                {category.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  style={[
+                    styles.categoryChipText,
+                    selectedCategory === category.name &&
+                      styles.categoryChipTextActive,
+                  ]}
+                >
+                  {category.name} ({categoryCount})
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
 
@@ -424,6 +678,13 @@ export default function Products() {
         {filteredProducts.map((product) => (
           <Card key={product.id} style={styles.productCard}>
             <View style={styles.productHeader}>
+              {product.imageUrl && (
+                <Image
+                  source={{ uri: product.imageUrl }}
+                  style={styles.productImage}
+                  resizeMode="cover"
+                />
+              )}
               <View style={styles.productInfo}>
                 <Text style={styles.productName}>{product.name}</Text>
                 <Text style={styles.productCategory}>{product.category}</Text>
@@ -531,6 +792,39 @@ export default function Products() {
             style={styles.formScrollView}
             contentContainerStyle={styles.formContent}
           >
+            {/* Image Picker Section */}
+            <View style={styles.imagePickerContainer}>
+              {formData.imageUrl ? (
+                <Image
+                  source={{ uri: formData.imageUrl }}
+                  style={styles.productFormImage}
+                />
+              ) : (
+                <View style={styles.imagePlaceholder}>
+                  <ImageIcon size={40} color="#9CA3AF" />
+                  <Text style={styles.imagePlaceholderText}>No image</Text>
+                </View>
+              )}
+
+              <View style={styles.imagePickerButtons}>
+                <TouchableOpacity
+                  style={styles.imagePickerButton}
+                  onPress={takePhoto}
+                >
+                  <Camera size={20} color="#FFFFFF" />
+                  <Text style={styles.imagePickerButtonText}>Camera</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.imagePickerButton}
+                  onPress={pickImage}
+                >
+                  <ImageIcon size={20} color="#FFFFFF" />
+                  <Text style={styles.imagePickerButtonText}>Gallery</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             <TextInput
               style={styles.input}
               placeholder="Product Name *"
@@ -541,7 +835,7 @@ export default function Products() {
             <View style={styles.barcodeContainer}>
               <TextInput
                 style={[styles.input, styles.barcodeInput]}
-                placeholder="Barcode"
+                placeholder="Barcode (Optional)"
                 value={formData.barcode}
                 onChangeText={(text) =>
                   setFormData({ ...formData, barcode: text })
@@ -771,6 +1065,62 @@ export default function Products() {
 }
 
 const styles = StyleSheet.create({
+  productImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+
+  imagePickerContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+
+  productFormImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+
+  imagePlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+
+  imagePlaceholderText: {
+    color: '#9CA3AF',
+    marginTop: 8,
+    fontSize: 14,
+  },
+
+  imagePickerButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+  },
+
+  imagePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 8,
+  },
+
+  imagePickerButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
@@ -790,6 +1140,54 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     gap: 12,
+  },
+  sortDropdown: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  sortDropdownText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    alignItems: 'center',
+    color: '#fff',
+  },
+  sortOptionsContainer: {
+    position: 'absolute',
+    top: 80,
+    right: 120,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 8,
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    width: 180,
+  },
+  sortOption: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  sortOptionActive: {
+    backgroundColor: '#F3F4F6',
+  },
+  sortOptionText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+  },
+  sortOptionTextActive: {
+    color: '#059669',
+    fontFamily: 'Inter-Medium',
   },
   categoryButton: {
     backgroundColor: '#6B7280',

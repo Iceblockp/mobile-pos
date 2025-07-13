@@ -13,6 +13,7 @@ import {
   Dimensions,
   ActivityIndicator,
   PixelRatio,
+  Image,
 } from 'react-native';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -240,7 +241,7 @@ export default function Sales() {
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.barcode.includes(searchQuery);
+      product.barcode?.includes(searchQuery);
     const matchesCategory =
       selectedCategory === 'All' || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
@@ -591,6 +592,13 @@ export default function Sales() {
                   onPress={() => addToCart(product)}
                   disabled={product.quantity <= 0}
                 >
+                  {product.imageUrl && (
+                    <Image
+                      source={{ uri: product.imageUrl }}
+                      style={styles.dialogProductImage}
+                      resizeMode="cover"
+                    />
+                  )}
                   <View style={styles.dialogProductInfo}>
                     <Text
                       style={[
@@ -1075,6 +1083,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       );
       const totalProfit = totalRevenue - totalCost;
 
+      //@ts-ignore
       excelData.push({});
       excelData.push({
         'Sale ID': 'SUMMARY',
@@ -1194,7 +1203,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           0
         );
         const totalProfit = totalSales - totalCost;
-
+        //@ts-ignore
         excelData.push({});
         excelData.push({
           'Sale ID': 'SUMMARY',
@@ -1204,6 +1213,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           'Sale Price': '',
           'Cost Price': '',
           Subtotal: '',
+          //@ts-ignore
           Profit: '',
         });
         excelData.push({
@@ -1214,6 +1224,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           'Sale Price': '',
           'Cost Price': '',
           Subtotal: '',
+          //@ts-ignore
           Profit: '',
         });
         excelData.push({
@@ -1224,6 +1235,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           'Sale Price': '',
           'Cost Price': '',
           Subtotal: totalSales,
+          //@ts-ignore
           Profit: '',
         });
         excelData.push({
@@ -1309,6 +1321,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       );
       const totalProfit = totalSales - totalCost;
 
+      //@ts-ignore
       excelData.push({});
       excelData.push({
         'Sale ID': 'SUMMARY',
@@ -1321,6 +1334,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Cost Price (MMK)': '',
         Subtotal: '',
         'Subtotal (MMK)': '',
+        //@ts-ignore
         Profit: '',
         'Profit (MMK)': '',
       });
@@ -1335,6 +1349,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Cost Price (MMK)': '',
         Subtotal: '',
         'Subtotal (MMK)': '',
+        //@ts-ignore
         Profit: '',
         'Profit (MMK)': '',
       });
@@ -1349,6 +1364,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Cost Price (MMK)': '',
         Subtotal: totalSales,
         'Subtotal (MMK)': formatMMK(totalSales),
+        //@ts-ignore
         Profit: '',
         'Profit (MMK)': '',
       });
@@ -2273,6 +2289,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+  },
+  dialogProductImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 6,
+    marginRight: 12,
   },
   dialogProductItemDisabled: {
     opacity: 0.5,
