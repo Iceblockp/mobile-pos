@@ -693,8 +693,8 @@ export class DatabaseService {
       margin: number;
     }[];
   }> {
-    const startDateStr = startDate.toISOString().split('T')[0];
-    const endDateStr = endDate.toISOString().split('T')[0];
+    const startDateStr = startDate.toISOString();
+    const endDateStr = endDate.toISOString();
 
     const salesResult = (await this.db.getFirstAsync(
       `SELECT 
@@ -702,7 +702,7 @@ export class DatabaseService {
         SUM(total) as total_revenue, 
         AVG(total) as avg_sale 
        FROM sales 
-       WHERE date(created_at) >= ? AND date(created_at) <= ?`,
+       WHERE created_at >= ? AND created_at <= ?`,
       [startDateStr, endDateStr]
     )) as { total_sales: number; total_revenue: number; avg_sale: number };
 
@@ -714,7 +714,7 @@ export class DatabaseService {
        FROM sale_items si 
        LEFT JOIN products p ON si.product_id = p.id 
        JOIN sales s ON si.sale_id = s.id 
-       WHERE date(s.created_at) >= ? AND date(s.created_at) <= ?`,
+       WHERE s.created_at >= ? AND s.created_at <= ?`,
       [startDateStr, endDateStr]
     )) as { total_cost: number; total_items: number };
     console.log('sale and co', salesResult, costResult);
@@ -736,7 +736,7 @@ export class DatabaseService {
        FROM sale_items si 
        LEFT JOIN products p ON si.product_id = p.id 
        JOIN sales s ON si.sale_id = s.id 
-       WHERE date(s.created_at) >= ? AND date(s.created_at) <= ?
+       WHERE s.created_at >= ? AND s.created_at <= ?
        GROUP BY COALESCE(p.id, si.product_id) 
        ORDER BY revenue DESC 
        LIMIT 5`,
