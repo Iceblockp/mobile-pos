@@ -64,6 +64,9 @@ export class DatabaseService {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
 
+      CREATE INDEX IF NOT EXISTS idx_sales_created_at ON sales(created_at);
+CREATE INDEX IF NOT EXISTS idx_sale_items_sale_id ON sale_items(sale_id);
+
       CREATE TABLE IF NOT EXISTS suppliers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
@@ -513,10 +516,32 @@ export class DatabaseService {
     return saleId;
   }
 
-  async getSales(limit: number = 50): Promise<Sale[]> {
+  // Add these functions after the getSales function
+  async getSalesPaginated(
+    page: number = 1,
+    pageSize: number = 50
+  ): Promise<Sale[]> {
+    const offset = (page - 1) * pageSize;
     const result = await this.db.getAllAsync(
-      'SELECT * FROM sales ORDER BY created_at DESC LIMIT ?',
-      [limit]
+      'SELECT * FROM sales ORDER BY created_at DESC LIMIT ? OFFSET ?',
+      [pageSize, offset]
+    );
+    return result as Sale[];
+  }
+
+  async getSalesByDateRangePaginated(
+    startDate: Date,
+    endDate: Date,
+    page: number = 1,
+    pageSize: number = 50
+  ): Promise<Sale[]> {
+    const startDateStr = startDate.toISOString();
+    const endDateStr = endDate.toISOString();
+    const offset = (page - 1) * pageSize;
+
+    const result = await this.db.getAllAsync(
+      'SELECT * FROM sales WHERE created_at >= ? AND created_at <= ? ORDER BY created_at DESC LIMIT ? OFFSET ?',
+      [startDateStr, endDateStr, pageSize, offset]
     );
     return result as Sale[];
   }

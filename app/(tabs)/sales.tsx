@@ -699,6 +699,9 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [loadingAllItems, setLoadingAllItems] = useState(false);
   const saleDetailRef = useRef(null);
   const [capturing, setCapturing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMoreData, setHasMoreData] = useState(true);
+  const PAGE_SIZE = 50;
 
   const formatMMK = (amount: number) => {
     return (
@@ -738,18 +741,91 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     });
   };
 
-  const loadSales = async () => {
+  const calculateDateRange = (
+    dateFilterType: string,
+    selectedDate: Date
+  ): [Date, Date] => {
+    const now = new Date();
+    const startDate = new Date();
+    const endDate = new Date();
+
+    switch (dateFilterType) {
+      case 'today':
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      case 'week':
+        startDate.setDate(now.getDate() - 7);
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      case 'month':
+        startDate.setMonth(now.getMonth() - 1);
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      case 'custom':
+        const customDate = new Date(selectedDate);
+        customDate.setHours(0, 0, 0, 0);
+        startDate.setTime(customDate.getTime());
+        endDate.setTime(customDate.getTime());
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      default: // 'all'
+        // For 'all', set a very old start date and current date as end date
+        startDate.setFullYear(startDate.getFullYear() - 10); // 10 years ago
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+    }
+
+    return [startDate, endDate];
+  };
+
+  const loadSales = async (page = 1) => {
     if (!db) return;
 
     try {
       setLoading(true);
-      const salesData = await db.getSales(500);
-      setSales(salesData);
-      setFilteredSales(salesData);
+      let salesData;
+
+      if (dateFilter === 'all') {
+        salesData = await db.getSalesPaginated(page, PAGE_SIZE);
+      } else {
+        const [startDate, endDate] = calculateDateRange(
+          dateFilter,
+          selectedDate
+        );
+        salesData = await db.getSalesByDateRangePaginated(
+          startDate,
+          endDate,
+          page,
+          PAGE_SIZE
+        );
+      }
+
+      if (salesData.length < PAGE_SIZE) {
+        setHasMoreData(false);
+      }
+
+      if (page === 1) {
+        setSales(salesData);
+        setFilteredSales(salesData);
+      } else {
+        setSales((prev) => [...prev, ...salesData]);
+        setFilteredSales((prev) => [...prev, ...salesData]);
+      }
+
+      setCurrentPage(page);
     } catch (error) {
       console.error('Error loading sales:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMore = () => {
+    if (!loading && hasMoreData) {
+      loadSales(currentPage + 1);
     }
   };
 
