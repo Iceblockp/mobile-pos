@@ -49,6 +49,23 @@ export interface Category {
   created_at: string;
 }
 
+export interface ExpenseCategory {
+  id: number;
+  name: string;
+  description?: string;
+  created_at: string;
+}
+
+export interface Expense {
+  id: number;
+  category_id: number;
+  amount: number;
+  description: string;
+  date: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export class DatabaseService {
   private db: SQLite.SQLiteDatabase;
 
@@ -111,6 +128,27 @@ CREATE INDEX IF NOT EXISTS idx_sale_items_sale_id ON sale_items(sale_id);
         FOREIGN KEY (sale_id) REFERENCES sales (id),
         FOREIGN KEY (product_id) REFERENCES products (id)
       );
+
+      CREATE TABLE IF NOT EXISTS expense_categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        description TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS expenses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        category_id INTEGER NOT NULL,
+        amount INTEGER NOT NULL,
+        description TEXT,
+        date TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (category_id) REFERENCES expense_categories (id)
+      );
+      
+      CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
+      CREATE INDEX IF NOT EXISTS idx_expenses_category_id ON expenses(category_id);
     `);
 
     // Add description column to categories if it doesn't exist
@@ -263,6 +301,37 @@ CREATE INDEX IF NOT EXISTS idx_sale_items_sale_id ON sale_items(sale_id);
           supplier.address,
         ]
       );
+    }
+
+    // Seed expense categories if needed
+    const existingExpenseCategories = await this.db.getFirstAsync(
+      'SELECT COUNT(*) as count FROM expense_categories'
+    );
+    const hasExpenseCategories =
+      (existingExpenseCategories as { count: number }).count > 0;
+
+    if (!hasExpenseCategories) {
+      const expenseCategories = [
+        { name: 'Rent', description: 'Rent for store or office space' },
+        {
+          name: 'Utilities',
+          description: 'Electricity, water, internet, etc.',
+        },
+        { name: 'Salaries', description: 'Employee salaries and wages' },
+        { name: 'Inventory', description: 'Inventory purchases' },
+        {
+          name: 'Marketing',
+          description: 'Advertising and marketing expenses',
+        },
+        { name: 'Maintenance', description: 'Equipment and store maintenance' },
+        { name: 'Miscellaneous', description: 'Other expenses' },
+      ];
+
+      for (const category of expenseCategories) {
+        await this.addExpenseCategory(category.name, category.description);
+      }
+
+      console.log('Seeded expense categories');
     }
 
     // Only seed products if no products exist yet
@@ -808,6 +877,221 @@ CREATE INDEX IF NOT EXISTS idx_sale_items_sale_id ON sale_items(sale_id);
       avgSaleValue: salesResult.avg_sale || 0,
       totalItemsSold: costResult.total_items || 0,
       topProducts,
+    };
+  }
+
+  // Add these methods to the DatabaseService class
+
+  // Expense Categories CRUD
+  async getExpenseCategories(): Promise<ExpenseCategory[]> {
+    return (await this.db.getAllAsync(
+      'SELECT * FROM expense_categories ORDER BY name'
+    )) as ExpenseCategory[];
+  }
+
+  async addExpenseCategory(
+    name: string,
+    description?: string
+  ): Promise<number> {
+    const result = await this.db.runAsync(
+      'INSERT INTO expense_categories (name, description) VALUES (?, ?)',
+      [name, description || null]
+    );
+    return result.lastInsertRowId;
+  }
+
+  async updateExpenseCategory(
+    id: number,
+    name: string,
+    description?: string
+  ): Promise<void> {
+    await this.db.runAsync(
+      'UPDATE expense_categories SET name = ?, description = ? WHERE id = ?',
+      [name, description || null, id]
+    );
+  }
+
+  async deleteExpenseCategory(id: number): Promise<void> {
+    // Check if category is in use
+    const expensesCount = (await this.db.getFirstAsync(
+      'SELECT COUNT(*) as count FROM expenses WHERE category_id = ?',
+      [id]
+    )) as { count: number };
+
+    if (expensesCount.count > 0) {
+      throw new Error('Cannot delete category that has expenses');
+    }
+
+    await this.db.runAsync('DELETE FROM expense_categories WHERE id = ?', [id]);
+  }
+
+  // Expenses CRUD
+  async getExpenses(limit: number = 50): Promise<Expense[]> {
+    return (await this.db.getAllAsync(
+      `SELECT e.*, ec.name as category_name 
+     FROM expenses e
+     JOIN expense_categories ec ON e.category_id = ec.id
+     ORDER BY e.date DESC LIMIT ?`,
+      [limit]
+    )) as (Expense & { category_name: string })[];
+  }
+
+  async getExpensesByDateRange(
+    startDate: Date,
+    endDate: Date,
+    limit: number = 100
+  ): Promise<Expense[]> {
+    const startDateStr = startDate.toISOString();
+    const endDateStr = endDate.toISOString();
+
+    return (await this.db.getAllAsync(
+      `SELECT e.*, ec.name as category_name 
+     FROM expenses e
+     JOIN expense_categories ec ON e.category_id = ec.id
+     WHERE e.date >= ? AND e.date <= ?
+     ORDER BY e.date DESC LIMIT ?`,
+      [startDateStr, endDateStr, limit]
+    )) as (Expense & { category_name: string })[];
+  }
+
+  async getExpensesPaginated(
+    page: number = 1,
+    pageSize: number = 20
+  ): Promise<Expense[]> {
+    const offset = (page - 1) * pageSize;
+
+    return (await this.db.getAllAsync(
+      `SELECT e.*, ec.name as category_name 
+     FROM expenses e
+     JOIN expense_categories ec ON e.category_id = ec.id
+     ORDER BY e.date DESC LIMIT ? OFFSET ?`,
+      [pageSize, offset]
+    )) as (Expense & { category_name: string })[];
+  }
+
+  async getExpensesByDateRangePaginated(
+    startDate: Date,
+    endDate: Date,
+    page: number = 1,
+    pageSize: number = 20
+  ): Promise<Expense[]> {
+    const startDateStr = startDate.toISOString();
+    const endDateStr = endDate.toISOString();
+    const offset = (page - 1) * pageSize;
+
+    return (await this.db.getAllAsync(
+      `SELECT e.*, ec.name as category_name 
+     FROM expenses e
+     JOIN expense_categories ec ON e.category_id = ec.id
+     WHERE e.date >= ? AND e.date <= ?
+     ORDER BY e.date DESC LIMIT ? OFFSET ?`,
+      [startDateStr, endDateStr, pageSize, offset]
+    )) as (Expense & { category_name: string })[];
+  }
+
+  async addExpense(
+    category_id: number,
+    amount: number,
+    description: string,
+    date: string
+  ): Promise<number> {
+    const result = await this.db.runAsync(
+      `INSERT INTO expenses 
+     (category_id, amount, description, date, updated_at) 
+     VALUES (?, ?, ?, ?, datetime('now'))`,
+      [category_id, amount, description, date]
+    );
+    return result.lastInsertRowId;
+  }
+
+  async updateExpense(
+    id: number,
+    category_id: number,
+    amount: number,
+    description: string,
+    date: string
+  ): Promise<void> {
+    await this.db.runAsync(
+      `UPDATE expenses 
+     SET category_id = ?, amount = ?, description = ?, date = ?, updated_at = datetime('now') 
+     WHERE id = ?`,
+      [category_id, amount, description, date, id]
+    );
+  }
+
+  async deleteExpense(id: number): Promise<void> {
+    await this.db.runAsync('DELETE FROM expenses WHERE id = ?', [id]);
+  }
+
+  // Analytics with expenses
+  async getCustomAnalyticsWithExpenses(
+    startDate: Date,
+    endDate: Date
+  ): Promise<{
+    totalSales: number;
+    totalRevenue: number;
+    totalCost: number;
+    totalProfit: number;
+    totalExpenses: number;
+    netProfit: number;
+    profitMargin: number;
+    avgSaleValue: number;
+    totalItemsSold: number;
+    topProducts: {
+      name: string;
+      quantity: number;
+      revenue: number;
+      profit: number;
+      margin: number;
+    }[];
+    expensesByCategory: {
+      category_name: string;
+      amount: number;
+      percentage: number;
+    }[];
+  }> {
+    // Get existing analytics data
+    const analytics = await this.getCustomAnalytics(startDate, endDate);
+
+    // Get expenses for the period
+    const startDateStr = startDate.toISOString();
+    const endDateStr = endDate.toISOString();
+
+    const expensesResult = (await this.db.getFirstAsync(
+      `SELECT SUM(amount) as total_expenses
+     FROM expenses
+     WHERE date >= ? AND date <= ?`,
+      [startDateStr, endDateStr]
+    )) as { total_expenses: number };
+
+    const totalExpenses = expensesResult.total_expenses || 0;
+    const netProfit = analytics.totalProfit - totalExpenses;
+
+    // Get expenses by category
+    const expensesByCategory = (await this.db.getAllAsync(
+      `SELECT ec.name as category_name, SUM(e.amount) as amount
+     FROM expenses e
+     JOIN expense_categories ec ON e.category_id = ec.id
+     WHERE e.date >= ? AND e.date <= ?
+     GROUP BY e.category_id
+     ORDER BY amount DESC`,
+      [startDateStr, endDateStr]
+    )) as { category_name: string; amount: number }[];
+
+    // Calculate percentage for each category
+    const expensesByCategoryWithPercentage = expensesByCategory.map(
+      (category) => ({
+        ...category,
+        percentage:
+          totalExpenses > 0 ? (category.amount / totalExpenses) * 100 : 0,
+      })
+    );
+
+    return {
+      ...analytics,
+      totalExpenses,
+      netProfit,
+      expensesByCategory: expensesByCategoryWithPercentage,
     };
   }
 }

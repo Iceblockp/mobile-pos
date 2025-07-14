@@ -76,7 +76,10 @@ export default function Analytics() {
         const endOfDay = new Date(dateFilter.selectedDate);
         endOfDay.setHours(23, 59, 59, 999);
 
-        analyticsData = await db.getCustomAnalytics(startOfDay, endOfDay);
+        analyticsData = await db.getCustomAnalyticsWithExpenses(
+          startOfDay,
+          endOfDay
+        );
         salesData = await db.getSalesByDateRange(startOfDay, endOfDay, 50);
       } else if (dateFilter.mode === 'month') {
         // Monthly filter
@@ -95,11 +98,14 @@ export default function Analytics() {
           999
         );
 
-        analyticsData = await db.getCustomAnalytics(startOfMonth, endOfMonth);
+        analyticsData = await db.getCustomAnalyticsWithExpenses(
+          startOfMonth,
+          endOfMonth
+        );
         salesData = await db.getSalesByDateRange(startOfMonth, endOfMonth, 100);
       } else {
         // Custom range filter
-        analyticsData = await db.getCustomAnalytics(
+        analyticsData = await db.getCustomAnalyticsWithExpenses(
           dateFilter.startDate,
           dateFilter.endDate
         );
@@ -597,6 +603,59 @@ export default function Analytics() {
               {analytics?.totalItemsSold || 0} units
             </Text>
           </View>
+        </Card>
+
+        {/* Expense Summary */}
+        <Card>
+          <Text style={styles.sectionTitle}>Expense Summary</Text>
+
+          <View style={styles.insightItem}>
+            <Text style={styles.insightLabel}>Total Expenses</Text>
+            <Text style={styles.insightValue}>
+              {formatMMK(analytics?.totalExpenses || 0)}
+            </Text>
+          </View>
+
+          <View style={styles.insightItem}>
+            <Text style={styles.insightLabel}>Net Profit (After Expenses)</Text>
+            <Text
+              style={[
+                styles.insightValue,
+                {
+                  color:
+                    (analytics?.netProfit || 0) > 0 ? '#10B981' : '#EF4444',
+                },
+              ]}
+            >
+              {formatMMK(analytics?.netProfit || 0)}
+            </Text>
+          </View>
+
+          {analytics?.expensesByCategory &&
+          analytics.expensesByCategory.length > 0 ? (
+            <>
+              <Text style={styles.subSectionTitle}>Expenses by Category</Text>
+              {analytics.expensesByCategory.map((category:any, index:number) => (
+                <View key={index} style={styles.insightItem}>
+                  <Text style={styles.insightLabel}>
+                    {category.category_name}
+                  </Text>
+                  <View style={styles.expenseValueContainer}>
+                    <Text style={styles.insightValue}>
+                      {formatMMK(category.amount)}
+                    </Text>
+                    <Text style={styles.expensePercentage}>
+                      {category.percentage.toFixed(1)}%
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </>
+          ) : (
+            <Text style={styles.noDataText}>
+              No expense data for this period
+            </Text>
+          )}
         </Card>
 
         {/* Top Performing Products */}
@@ -1343,5 +1402,29 @@ const styles = StyleSheet.create({
     color: '#111827',
     minWidth: 60,
     textAlign: 'center',
+  },
+  subSectionTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  expenseValueContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  expensePercentage: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    marginLeft: 8,
+  },
+  noDataText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    fontStyle: 'italic',
+    marginTop: 8,
   },
 });

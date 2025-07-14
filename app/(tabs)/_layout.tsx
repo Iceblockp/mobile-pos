@@ -7,6 +7,9 @@ import {
   TrendingUp,
 } from 'lucide-react-native';
 
+// Add the expenses icon import
+import { DollarSign } from 'lucide-react-native';
+
 export default function TabLayout() {
   return (
     <Tabs
@@ -78,6 +81,14 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <BarChart3 size={size} color={color} />
           ),
+        }}
+      />
+      // Add the expenses tab to the tabs array
+      <Tabs.Screen
+        name="expenses"
+        options={{
+          title: 'Expenses',
+          tabBarIcon: ({ color }) => <DollarSign size={24} color={color} />,
         }}
       />
     </Tabs>
