@@ -52,7 +52,9 @@
     "xlsx": "^0.18.5",
     "expo-av": "~15.1.7",
     "react-native-view-shot": "4.0.3",
-    "expo-image-picker": "~16.1.4"
+    "expo-image-picker": "~16.1.4",
+    "expo-clipboard": "~7.1.5",
+    "react-native-get-random-values": "~1.11.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

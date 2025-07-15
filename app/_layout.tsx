@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { useFonts } from 'expo-font';
@@ -18,6 +18,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   useFrameworkReady();
+  console.log('RootLayout rendering');
 
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
@@ -25,6 +26,9 @@ export default function RootLayout() {
     'Inter-SemiBold': Inter_600SemiBold,
     'Inter-Bold': Inter_700Bold,
   });
+
+  const pathname = usePathname();
+  console.log('pathname', pathname);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
@@ -42,6 +46,7 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <SafeAreaView style={{ flex: 1 }}>
             <Stack screenOptions={{ headerShown: false }}>
+              {/* <Stack.Screen name="index" /> */}
               <Stack.Screen
                 name="(tabs)"
                 options={{

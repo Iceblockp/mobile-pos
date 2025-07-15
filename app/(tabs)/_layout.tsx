@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { router, Tabs, useRouter } from 'expo-router';
 import {
   Chrome as Home,
   Package,
@@ -9,8 +9,24 @@ import {
 
 // Add the expenses icon import
 import { DollarSign } from 'lucide-react-native';
+import { useEffect } from 'react';
+import { useLicense } from '@/hooks/useLicense';
 
 export default function TabLayout() {
+  const { isLicenseValid, loading } = useLicense();
+  const router = useRouter();
+
+  console.log('LicenseGuard - loading:', loading);
+  console.log('LicenseGuard - isLicenseValid:', isLicenseValid());
+
+  useEffect(() => {
+    if (!loading && !isLicenseValid()) {
+      // Redirect to the root page if license is not valid
+      console.log('goess');
+      router.replace('/');
+    }
+  }, [loading, isLicenseValid]);
+
   return (
     <Tabs
       screenOptions={{
@@ -41,7 +57,7 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="dashboard"
         options={{
           title: 'Dashboard',
           tabBarIcon: ({ size, color }) => <Home size={size} color={color} />,
@@ -83,7 +99,7 @@ export default function TabLayout() {
           ),
         }}
       />
-      // Add the expenses tab to the tabs array
+      {/* Add the expenses tab to the tabs array */}
       <Tabs.Screen
         name="expenses"
         options={{

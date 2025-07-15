@@ -22,8 +22,12 @@ import {
   Calendar,
   ChevronDown,
   X,
+  Filter,
+  Tag,
+  Settings,
 } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Button } from '@/components/Button';
 
 export default function Expenses() {
   const { db, isReady, refreshTrigger, triggerRefresh } = useDatabase();
@@ -39,6 +43,22 @@ export default function Expenses() {
   const [hasMoreData, setHasMoreData] = useState(true);
   const PAGE_SIZE = 20;
 
+  // New state variables for category management
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [categoryName, setCategoryName] = useState('');
+  const [categoryDescription, setCategoryDescription] = useState('');
+  const [editingCategory, setEditingCategory] =
+    useState<ExpenseCategory | null>(null);
+
+  // New state variables for date range filtering
+  const [filterStartDate, setFilterStartDate] = useState<Date>(new Date());
+  const [filterEndDate, setFilterEndDate] = useState<Date>(new Date());
+  const [showFilterStartDatePicker, setShowFilterStartDatePicker] =
+    useState(false);
+  const [showFilterEndDatePicker, setShowFilterEndDatePicker] = useState(false);
+  const [isDateFiltered, setIsDateFiltered] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+
   // Form state
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [formCategory, setFormCategory] = useState<number>(0);
@@ -51,15 +71,26 @@ export default function Expenses() {
 
     try {
       setLoading(true);
-      const newExpenses = await db.getExpensesPaginated(page, PAGE_SIZE);
+      let newExpenses;
+
+      if (isDateFiltered) {
+        newExpenses = await db.getExpensesByDateRangePaginated(
+          filterStartDate,
+          filterEndDate,
+          page,
+          PAGE_SIZE
+        );
+      } else {
+        newExpenses = await db.getExpensesPaginated(page, PAGE_SIZE);
+      }
 
       if (page === 1) {
         setExpenses(newExpenses as (Expense & { category_name: string })[]);
       } else {
-        setExpenses(
-          (prev) =>
-            [...prev, ...newExpenses] as (Expense & { category_name: string })[]
-        );
+        setExpenses((prev) => [
+          ...prev,
+          ...(newExpenses as (Expense & { category_name: string })[]),
+        ]);
       }
 
       setHasMoreData(newExpenses.length === PAGE_SIZE);
@@ -184,6 +215,89 @@ export default function Expenses() {
     setFormDate(new Date());
   };
 
+  const resetCategoryForm = () => {
+    setEditingCategory(null);
+    setCategoryName('');
+    setCategoryDescription('');
+  };
+
+  const handleAddCategory = async () => {
+    if (!db) return;
+
+    if (!categoryName.trim()) {
+      Alert.alert('Error', 'Please enter a category name');
+      return;
+    }
+
+    try {
+      if (editingCategory) {
+        await db.updateExpenseCategory(
+          editingCategory.id,
+          categoryName,
+          categoryDescription
+        );
+      } else {
+        await db.addExpenseCategory(categoryName, categoryDescription);
+      }
+
+      resetCategoryForm();
+      loadCategories();
+      triggerRefresh();
+    } catch (error) {
+      console.error('Error saving category:', error);
+      Alert.alert('Error', 'Failed to save category');
+    }
+  };
+
+  const handleEditCategory = (category: ExpenseCategory) => {
+    setEditingCategory(category);
+    setCategoryName(category.name);
+    setCategoryDescription(category.description || '');
+  };
+
+  const handleDeleteCategory = async (id: number) => {
+    if (!db) return;
+
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete this category? This cannot be undone if the category has expenses.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await db.deleteExpenseCategory(id);
+              loadCategories();
+              triggerRefresh();
+            } catch (error) {
+              console.error('Error deleting category:', error);
+              Alert.alert(
+                'Error',
+                'Failed to delete category. It may have associated expenses.'
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const applyDateFilter = () => {
+    setIsDateFiltered(true);
+    setShowFilterModal(false);
+    setCurrentPage(1);
+    loadExpenses(1);
+  };
+
+  const clearDateFilter = () => {
+    setIsDateFiltered(false);
+    setShowFilterModal(false);
+    setCurrentPage(1);
+    loadExpenses(1);
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -204,6 +318,35 @@ export default function Expenses() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Expenses</Text>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => setShowFilterModal(true)}
+          >
+            <Filter size={20} color="#3B82F6" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => setShowCategoryModal(true)}
+          >
+            <Settings size={20} color="#3B82F6" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => {
+              resetForm();
+              setShowAddModal(true);
+            }}
+          >
+            <Plus size={24} color="#FFFFFF" />
+            {/* <Text style={styles.addButtonText}>Add Expense</Text> */}
+          </TouchableOpacity>
+        </View>
+      </View>
       <ScrollView
         style={styles.scrollView}
         refreshControl={
@@ -221,19 +364,17 @@ export default function Expenses() {
         }}
         scrollEventThrottle={400}
       >
-        <View style={styles.header}>
-          <Text style={styles.title}>Expenses</Text>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => {
-              resetForm();
-              setShowAddModal(true);
-            }}
-          >
-            <Plus size={24} color="#FFFFFF" />
-            <Text style={styles.addButtonText}>Add Expense</Text>
-          </TouchableOpacity>
-        </View>
+        {isDateFiltered && (
+          <View style={styles.filterInfo}>
+            <Text style={styles.filterText}>
+              Filtered: {filterStartDate.toLocaleDateString()} -{' '}
+              {filterEndDate.toLocaleDateString()}
+            </Text>
+            <TouchableOpacity onPress={clearDateFilter}>
+              <X size={16} color="#6B7280" />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {loading && expenses.length === 0 ? (
           <LoadingSpinner />
@@ -295,85 +436,245 @@ export default function Expenses() {
       </ScrollView>
 
       {/* Add/Edit Expense Modal */}
-      <Modal visible={showAddModal} animationType="slide" transparent={true}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {editingExpense ? 'Edit Expense' : 'Add Expense'}
+      <Modal
+        visible={showAddModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>
+              {editingExpense ? 'Edit Expense' : 'Add Expense'}
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                setShowAddModal(false);
+                resetForm();
+              }}
+            >
+              <Text style={styles.modalClose}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            style={styles.formScrollView}
+            contentContainerStyle={styles.formContent}
+          >
+            <Card style={styles.categoryFormCard}>
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Category</Text>
+                <TouchableOpacity
+                  style={styles.select}
+                  onPress={() => {
+                    // Show category picker
+                    Alert.alert(
+                      'Select Category',
+                      '',
+                      [
+                        ...categories.map((category) => ({
+                          text: category.name,
+                          onPress: () => setFormCategory(category.id),
+                        })),
+                        { text: 'Cancel', style: 'cancel' },
+                      ],
+                      { cancelable: true }
+                    );
+                  }}
+                >
+                  <Text>
+                    {formCategory
+                      ? categories.find((c) => c.id === formCategory)?.name ||
+                        'Select Category'
+                      : 'Select Category'}
+                  </Text>
+                  <ChevronDown size={16} color="#000000" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Amount (MMK)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formAmount}
+                  onChangeText={setFormAmount}
+                  keyboardType="numeric"
+                  placeholder="Enter amount"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Description</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={formDescription}
+                  onChangeText={setFormDescription}
+                  placeholder="Enter description"
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Date</Text>
+                <TouchableOpacity
+                  style={styles.dateInput}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Text>
+                    {formDate.toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </Text>
+                  <Calendar size={16} color="#000000" />
+                </TouchableOpacity>
+              </View>
+
+              {showDatePicker && (
+                <DateTimePicker
+                  value={formDate}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowDatePicker(false);
+                    if (selectedDate) {
+                      setFormDate(selectedDate);
+                    }
+                  }}
+                />
+              )}
+
+              <View style={styles.formButtons}>
+                <Button
+                  title="Cancel"
+                  onPress={() => {
+                    setShowAddModal(false);
+                    resetForm();
+                  }}
+                  variant="secondary"
+                  style={styles.formButton}
+                />
+                <Button
+                  title={editingExpense ? 'Update' : 'Save'}
+                  onPress={handleAddExpense}
+                  style={styles.formButton}
+                />
+              </View>
+            </Card>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Category Management Modal */}
+      <Modal
+        visible={showCategoryModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Manage Categories</Text>
+            <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
+              <Text style={styles.modalClose}>Done</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            style={styles.formScrollView}
+            contentContainerStyle={styles.formContent}
+          >
+            <Card style={styles.categoryFormCard}>
+              <Text style={styles.formTitle}>
+                {editingCategory ? 'Edit Category' : 'Add New Category'}
               </Text>
-              <TouchableOpacity
-                onPress={() => {
-                  setShowAddModal(false);
-                  resetForm();
-                }}
-              >
-                <X size={24} color="#000000" />
-              </TouchableOpacity>
-            </View>
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Category</Text>
-              <TouchableOpacity
-                style={styles.select}
-                onPress={() => {
-                  // Show category picker
-                  // For simplicity, we'll use an alert with options
-                  Alert.alert(
-                    'Select Category',
-                    '',
-                    [
-                      ...categories.map((category) => ({
-                        text: category.name,
-                        onPress: () => setFormCategory(category.id),
-                      })),
-                      { text: 'Cancel', style: 'cancel' },
-                    ],
-                    { cancelable: true }
-                  );
-                }}
-              >
-                <Text>
-                  {formCategory
-                    ? categories.find((c) => c.id === formCategory)?.name ||
-                      'Select Category'
-                    : 'Select Category'}
-                </Text>
-                <ChevronDown size={16} color="#000000" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Amount (MMK)</Text>
               <TextInput
                 style={styles.input}
-                value={formAmount}
-                onChangeText={setFormAmount}
-                keyboardType="numeric"
-                placeholder="Enter amount"
+                placeholder="Category Name *"
+                value={categoryName}
+                onChangeText={setCategoryName}
               />
-            </View>
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Description</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
-                value={formDescription}
-                onChangeText={setFormDescription}
-                placeholder="Enter description"
+                placeholder="Description"
+                value={categoryDescription}
+                onChangeText={setCategoryDescription}
                 multiline
                 numberOfLines={3}
               />
-            </View>
 
+              <View style={styles.formButtons}>
+                <Button
+                  title="Cancel"
+                  onPress={resetCategoryForm}
+                  variant="secondary"
+                  style={styles.formButton}
+                />
+                <Button
+                  title={editingCategory ? 'Update' : 'Add'}
+                  onPress={handleAddCategory}
+                  style={styles.formButton}
+                />
+              </View>
+            </Card>
+
+            <Text style={styles.sectionTitle}>Existing Categories</Text>
+            {categories.map((category) => (
+              <Card key={category.id} style={styles.categoryCard}>
+                <View style={styles.categoryHeader}>
+                  <View style={styles.categoryInfo}>
+                    <Text style={styles.categoryName}>{category.name}</Text>
+                    {category.description && (
+                      <Text style={styles.categoryDescription}>
+                        {category.description}
+                      </Text>
+                    )}
+                  </View>
+                  <View style={styles.categoryActions}>
+                    <TouchableOpacity
+                      style={styles.actionButton}
+                      onPress={() => handleEditCategory(category)}
+                    >
+                      <Edit size={18} color="#6B7280" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.actionButton}
+                      onPress={() => handleDeleteCategory(category.id)}
+                    >
+                      <Trash2 size={18} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Card>
+            ))}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Date Filter Modal */}
+      <Modal
+        visible={showFilterModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Filter by Date Range</Text>
+            <TouchableOpacity onPress={() => setShowFilterModal(false)}>
+              <Text style={styles.modalClose}>Done</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.modalContent}>
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Date</Text>
+              <Text style={styles.label}>Start Date</Text>
               <TouchableOpacity
                 style={styles.dateInput}
-                onPress={() => setShowDatePicker(true)}
+                onPress={() => setShowFilterStartDatePicker(true)}
               >
                 <Text>
-                  {formDate.toLocaleDateString('en-US', {
+                  {filterStartDate.toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'short',
                     day: 'numeric',
@@ -383,30 +684,67 @@ export default function Expenses() {
               </TouchableOpacity>
             </View>
 
-            {showDatePicker && (
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>End Date</Text>
+              <TouchableOpacity
+                style={styles.dateInput}
+                onPress={() => setShowFilterEndDatePicker(true)}
+              >
+                <Text>
+                  {filterEndDate.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </Text>
+                <Calendar size={16} color="#000000" />
+              </TouchableOpacity>
+            </View>
+
+            {showFilterStartDatePicker && (
               <DateTimePicker
-                value={formDate}
+                value={filterStartDate}
                 mode="date"
                 display="default"
                 onChange={(event, selectedDate) => {
-                  setShowDatePicker(false);
+                  setShowFilterStartDatePicker(false);
                   if (selectedDate) {
-                    setFormDate(selectedDate);
+                    setFilterStartDate(selectedDate);
                   }
                 }}
               />
             )}
 
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={handleAddExpense}
-            >
-              <Text style={styles.saveButtonText}>
-                {editingExpense ? 'Update' : 'Save'}
-              </Text>
-            </TouchableOpacity>
+            {showFilterEndDatePicker && (
+              <DateTimePicker
+                value={filterEndDate}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setShowFilterEndDatePicker(false);
+                  if (selectedDate) {
+                    setFilterEndDate(selectedDate);
+                  }
+                }}
+              />
+            )}
+
+            <View style={styles.filterButtons}>
+              <TouchableOpacity
+                style={[styles.filterButton, styles.clearButton]}
+                onPress={clearDateFilter}
+              >
+                <Text style={styles.clearButtonText}>Clear Filter</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterButton, styles.applyButton]}
+                onPress={applyDateFilter}
+              >
+                <Text style={styles.applyButtonText}>Apply Filter</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
@@ -424,12 +762,18 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+    alignItems: 'flex-start',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontFamily: 'Inter-Bold',
+    color: '#111827',
   },
   addButton: {
     flexDirection: 'row',
@@ -498,26 +842,86 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: '#F5F5F5',
   },
   modalContent: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 24,
-    width: '90%',
+    width: '100%',
     maxWidth: 500,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
+  },
+  modalClose: {
+    fontSize: 16,
+    color: '#3B82F6',
+    fontWeight: '500',
+  },
+  formScrollView: {
+    flex: 1,
+  },
+  formContent: {
+    padding: 16,
+  },
+  formTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  categoryFormCard: {
+    marginBottom: 16,
+    padding: 16,
+  },
+  formButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+  },
+  formButton: {
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginVertical: 16,
+  },
+  categoryCard: {
+    marginBottom: 12,
+    padding: 16,
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  categoryInfo: {
+    flex: 1,
+  },
+  categoryName: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  categoryDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  categoryActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   formGroup: {
     marginBottom: 16,
@@ -566,6 +970,82 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconButton: {
+    padding: 8,
+    marginRight: 8,
+    borderRadius: 8,
+    backgroundColor: '#E5E7EB',
+  },
+  filterInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#EFF6FF',
+    padding: 8,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  filterText: {
+    color: '#3B82F6',
+    fontSize: 14,
+  },
+  categoriesList: {
+    marginTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 16,
+  },
+  categoriesTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  categoryItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+
+  categoryAction: {
+    padding: 8,
+    marginLeft: 8,
+  },
+  filterButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+  },
+  filterButton: {
+    flex: 1,
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+  },
+  clearButton: {
+    backgroundColor: '#F3F4F6',
+    marginRight: 8,
+  },
+  clearButtonText: {
+    color: '#4B5563',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  applyButton: {
+    backgroundColor: '#3B82F6',
+    marginLeft: 8,
+  },
+  applyButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
