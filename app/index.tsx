@@ -50,16 +50,22 @@ const Index = () => {
     ? isLicenseExpired(licenseStatus.expiryDate)
     : true;
 
+  console.log('first', licenseStatus?.expiryDate);
   // Check if license is about to expire (within 10 days)
   const isAboutToExpire = () => {
     if (!licenseStatus?.expiryDate) return false;
 
-    const expiryDate = new Date(licenseStatus.expiryDate);
+    const expiryDate = new Date(
+      `${licenseStatus.expiryDate.slice(0, 4)}-${licenseStatus.expiryDate.slice(
+        4,
+        6
+      )}-${licenseStatus.expiryDate.slice(6, 8)}`
+    );
     const currentDate = new Date();
     const timeDifference = expiryDate.getTime() - currentDate.getTime();
     const daysDifference = Math.ceil(timeDifference / (1000 * 3600 * 24));
 
-    return daysDifference <= 10 && daysDifference > 0;
+    return daysDifference <= 30 && daysDifference > 0;
   };
 
   if (!isValid) {
@@ -68,9 +74,9 @@ const Index = () => {
         <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
         <View style={styles.verificationHeader}>
           <Image
-            source={require('@/assets/images/icon.png')}
+            source={require('@/assets/images/pos.png')}
             style={styles.logo}
-            resizeMode="contain"
+            resizeMode="cover"
           />
           <View style={styles.headerTextContainer}>
             <Text style={styles.title}>Mobile POS</Text>
@@ -146,7 +152,7 @@ const Index = () => {
       <StatusBar barStyle="light-content" backgroundColor="#2563EB" />
       <View style={styles.welcomeHeader}>
         <Image
-          source={require('@/assets/images/icon.png')}
+          source={require('@/assets/images/pos.png')}
           style={styles.welcomeLogo}
           resizeMode="contain"
         />
@@ -169,7 +175,17 @@ const Index = () => {
             <Text style={styles.warningMessage}>
               Your license will expire in{' '}
               {Math.ceil(
-                (new Date(licenseStatus?.expiryDate || '').getTime() -
+                (new Date(
+                  licenseStatus?.expiryDate
+                    ? `${licenseStatus.expiryDate.slice(
+                        0,
+                        4
+                      )}-${licenseStatus.expiryDate.slice(
+                        4,
+                        6
+                      )}-${licenseStatus.expiryDate.slice(6, 8)}`
+                    : ''
+                ).getTime() -
                   new Date().getTime()) /
                   (1000 * 3600 * 24)
               )}{' '}
@@ -177,7 +193,7 @@ const Index = () => {
             </Text>
             <TouchableOpacity
               style={styles.regenerateChallengeButton}
-              onPress={() => setModalVisible(true)}
+              onPress={() => regenerateChallenge(30)}
             >
               <ShieldCheck size={16} color="#FFFFFF" />
               <Text style={styles.regenerateChallengeButtonText}>
@@ -189,7 +205,7 @@ const Index = () => {
 
         <View style={styles.welcomeCard}>
           <Image
-            source={require('@/assets/images/icon.png')}
+            source={require('@/assets/images/pos.png')}
             style={styles.welcomeImage}
             resizeMode="contain"
           />
@@ -351,7 +367,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     marginRight: 12,
-    tintColor: '#FFFFFF',
+    // tintColor: '#FFFFFF',
   },
   welcomeTitle: {
     fontSize: 20,
