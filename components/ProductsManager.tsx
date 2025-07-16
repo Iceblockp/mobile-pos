@@ -36,7 +36,11 @@ import { useToast } from '@/context/ToastContext';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 
-export default function Products() {
+interface ProductsManagerProps {
+  compact?: boolean;
+}
+
+export default function Products({ compact = false }: ProductsManagerProps) {
   const { db, isReady, refreshTrigger, triggerRefresh } = useDatabase();
   const [products, setProducts] = useState<Product[]>([]);
   const { showToast } = useToast();
@@ -464,214 +468,432 @@ export default function Products() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Products</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={[styles.sortDropdown, { backgroundColor: '#6B7280' }]}
-            onPress={() => setShowSortOptions(!showSortOptions)}
-          >
-            <Text style={styles.sortDropdownText}>
-              {sortBy === 'name' ? (
-                sortOrder === 'asc' ? (
-                  <ArrowUpAZ size={20} color="#FFFFFF" />
-                ) : (
-                  <ArrowDownAZ size={20} color="#FFFFFF" />
-                )
-              ) : (
-                <Calendar size={20} color="#FFFFFF" />
-              )}{' '}
-              {sortOrder === 'asc' ? '↑' : '↓'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.categoryButton}
-            onPress={() => setShowCategoryModal(true)}
-          >
-            <Settings size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setShowAddForm(true)}
-          >
-            <Plus size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Sort options dropdown - only visible when showSortOptions is true */}
-      {showSortOptions && (
-        <View style={styles.sortOptionsContainer}>
-          <TouchableOpacity
-            style={[
-              styles.sortOption,
-              sortBy === 'name' &&
-                sortOrder === 'asc' &&
-                styles.sortOptionActive,
-            ]}
-            onPress={() => {
-              setSortBy('name');
-              setSortOrder('asc');
-              setShowSortOptions(false);
-            }}
-          >
-            <Text
-              style={[
-                styles.sortOptionText,
-                sortBy === 'name' &&
-                  sortOrder === 'asc' &&
-                  styles.sortOptionTextActive,
-              ]}
-            >
-              Name (A to Z)
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.sortOption,
-              sortBy === 'name' &&
-                sortOrder === 'desc' &&
-                styles.sortOptionActive,
-            ]}
-            onPress={() => {
-              setSortBy('name');
-              setSortOrder('desc');
-              setShowSortOptions(false);
-            }}
-          >
-            <Text
-              style={[
-                styles.sortOptionText,
-                sortBy === 'name' &&
-                  sortOrder === 'desc' &&
-                  styles.sortOptionTextActive,
-              ]}
-            >
-              Name (Z to A)
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.sortOption,
-              sortBy === 'updated_at' &&
-                sortOrder === 'desc' &&
-                styles.sortOptionActive,
-            ]}
-            onPress={() => {
-              setSortBy('updated_at');
-              setSortOrder('desc');
-              setShowSortOptions(false);
-            }}
-          >
-            <Text
-              style={[
-                styles.sortOptionText,
-                sortBy === 'updated_at' &&
-                  sortOrder === 'desc' &&
-                  styles.sortOptionTextActive,
-              ]}
-            >
-              Newest First
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.sortOption,
-              sortBy === 'updated_at' &&
-                sortOrder === 'asc' &&
-                styles.sortOptionActive,
-            ]}
-            onPress={() => {
-              setSortBy('updated_at');
-              setSortOrder('asc');
-              setShowSortOptions(false);
-            }}
-          >
-            <Text
-              style={[
-                styles.sortOptionText,
-                sortBy === 'updated_at' &&
-                  sortOrder === 'asc' &&
-                  styles.sortOptionTextActive,
-              ]}
-            >
-              Oldest First
-            </Text>
-          </TouchableOpacity>
-        </View>
+    <View style={compact ? styles.compactContainer : styles.container}>
+      {!compact && (
+        <SafeAreaView>
+          <View style={styles.header}>
+            <Text style={styles.title}>Products</Text>
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                style={[styles.sortDropdown, { backgroundColor: '#6B7280' }]}
+                onPress={() => setShowSortOptions(!showSortOptions)}
+              >
+                <Text style={styles.sortDropdownText}>
+                  {sortBy === 'name' ? (
+                    sortOrder === 'asc' ? (
+                      <ArrowUpAZ size={20} color="#FFFFFF" />
+                    ) : (
+                      <ArrowDownAZ size={20} color="#FFFFFF" />
+                    )
+                  ) : (
+                    <Calendar size={20} color="#FFFFFF" />
+                  )}{' '}
+                  {sortOrder === 'asc' ? '↑' : '↓'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.categoryButton}
+                onPress={() => setShowCategoryModal(true)}
+              >
+                <Settings size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => setShowAddForm(true)}
+              >
+                <Plus size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </SafeAreaView>
       )}
 
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBox}>
-          <Search size={20} color="#6B7280" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search products or scan barcode..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          <TouchableOpacity
-            style={styles.searchScanButton}
-            onPress={() => setShowSearchScanner(true)}
-          >
-            <Scan size={20} color="#3B82F6" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoryScroll}
-        >
-          <TouchableOpacity
-            style={[
-              styles.categoryChip,
-              selectedCategory === 'All' && styles.categoryChipActive,
-            ]}
-            onPress={() => setSelectedCategory('All')}
-          >
-            <Text
-              style={[
-                styles.categoryChipText,
-                selectedCategory === 'All' && styles.categoryChipTextActive,
-              ]}
-            >
-              All ({products.length})
-            </Text>
-          </TouchableOpacity>
-          {categories.map((category) => {
-            const categoryCount = products.filter(
-              (p) => p.category === category.name
-            ).length;
-            return (
+      {/* Compact mode: Combine search and actions in one row */}
+      {compact ? (
+        <>
+          <View style={styles.compactSearchContainer}>
+            <View style={styles.compactSearchBox}>
+              <Search size={16} color="#6B7280" />
+              <TextInput
+                style={styles.compactSearchInput}
+                placeholder="Search products..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
               <TouchableOpacity
-                key={category.id}
+                style={styles.compactScanButton}
+                onPress={() => setShowSearchScanner(true)}
+              >
+                <Scan size={16} color="#3B82F6" />
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.compactSortDropdown,
+                { backgroundColor: '#6B7280' },
+              ]}
+              onPress={() => setShowSortOptions(!showSortOptions)}
+            >
+              <Text style={styles.sortDropdownText}>
+                {sortBy === 'name' ? (
+                  sortOrder === 'asc' ? (
+                    <ArrowUpAZ size={16} color="#FFFFFF" />
+                  ) : (
+                    <ArrowDownAZ size={16} color="#FFFFFF" />
+                  )
+                ) : (
+                  <Calendar size={16} color="#FFFFFF" />
+                )}{' '}
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.compactButton}
+              onPress={() => setShowCategoryModal(true)}
+            >
+              <Settings size={16} color="#6B7280" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.compactAddButton}
+              onPress={() => setShowAddForm(true)}
+            >
+              <Plus size={16} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+          {showSortOptions && (
+            <View style={styles.sortOptionsContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.sortOption,
+                  sortBy === 'name' &&
+                    sortOrder === 'asc' &&
+                    styles.sortOptionActive,
+                ]}
+                onPress={() => {
+                  setSortBy('name');
+                  setSortOrder('asc');
+                  setShowSortOptions(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.sortOptionText,
+                    sortBy === 'name' &&
+                      sortOrder === 'asc' &&
+                      styles.sortOptionTextActive,
+                  ]}
+                >
+                  Name (A to Z)
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.sortOption,
+                  sortBy === 'name' &&
+                    sortOrder === 'desc' &&
+                    styles.sortOptionActive,
+                ]}
+                onPress={() => {
+                  setSortBy('name');
+                  setSortOrder('desc');
+                  setShowSortOptions(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.sortOptionText,
+                    sortBy === 'name' &&
+                      sortOrder === 'desc' &&
+                      styles.sortOptionTextActive,
+                  ]}
+                >
+                  Name (Z to A)
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.sortOption,
+                  sortBy === 'updated_at' &&
+                    sortOrder === 'desc' &&
+                    styles.sortOptionActive,
+                ]}
+                onPress={() => {
+                  setSortBy('updated_at');
+                  setSortOrder('desc');
+                  setShowSortOptions(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.sortOptionText,
+                    sortBy === 'updated_at' &&
+                      sortOrder === 'desc' &&
+                      styles.sortOptionTextActive,
+                  ]}
+                >
+                  Newest First
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.sortOption,
+                  sortBy === 'updated_at' &&
+                    sortOrder === 'asc' &&
+                    styles.sortOptionActive,
+                ]}
+                onPress={() => {
+                  setSortBy('updated_at');
+                  setSortOrder('asc');
+                  setShowSortOptions(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.sortOptionText,
+                    sortBy === 'updated_at' &&
+                      sortOrder === 'asc' &&
+                      styles.sortOptionTextActive,
+                  ]}
+                >
+                  Oldest First
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Sort options dropdown - only visible when showSortOptions is true */}
+          {showSortOptions && (
+            <View style={styles.sortOptionsContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.sortOption,
+                  sortBy === 'name' &&
+                    sortOrder === 'asc' &&
+                    styles.sortOptionActive,
+                ]}
+                onPress={() => {
+                  setSortBy('name');
+                  setSortOrder('asc');
+                  setShowSortOptions(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.sortOptionText,
+                    sortBy === 'name' &&
+                      sortOrder === 'asc' &&
+                      styles.sortOptionTextActive,
+                  ]}
+                >
+                  Name (A to Z)
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.sortOption,
+                  sortBy === 'name' &&
+                    sortOrder === 'desc' &&
+                    styles.sortOptionActive,
+                ]}
+                onPress={() => {
+                  setSortBy('name');
+                  setSortOrder('desc');
+                  setShowSortOptions(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.sortOptionText,
+                    sortBy === 'name' &&
+                      sortOrder === 'desc' &&
+                      styles.sortOptionTextActive,
+                  ]}
+                >
+                  Name (Z to A)
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.sortOption,
+                  sortBy === 'updated_at' &&
+                    sortOrder === 'desc' &&
+                    styles.sortOptionActive,
+                ]}
+                onPress={() => {
+                  setSortBy('updated_at');
+                  setSortOrder('desc');
+                  setShowSortOptions(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.sortOptionText,
+                    sortBy === 'updated_at' &&
+                      sortOrder === 'desc' &&
+                      styles.sortOptionTextActive,
+                  ]}
+                >
+                  Newest First
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.sortOption,
+                  sortBy === 'updated_at' &&
+                    sortOrder === 'asc' &&
+                    styles.sortOptionActive,
+                ]}
+                onPress={() => {
+                  setSortBy('updated_at');
+                  setSortOrder('asc');
+                  setShowSortOptions(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.sortOptionText,
+                    sortBy === 'updated_at' &&
+                      sortOrder === 'asc' &&
+                      styles.sortOptionTextActive,
+                  ]}
+                >
+                  Oldest First
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={styles.searchContainer}>
+            <View style={styles.searchBox}>
+              <Search size={20} color="#6B7280" />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search products or scan barcode..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              <TouchableOpacity
+                style={styles.searchScanButton}
+                onPress={() => setShowSearchScanner(true)}
+              >
+                <Scan size={20} color="#3B82F6" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.categoryScroll}
+            >
+              <TouchableOpacity
                 style={[
                   styles.categoryChip,
-                  selectedCategory === category.name &&
-                    styles.categoryChipActive,
+                  selectedCategory === 'All' && styles.categoryChipActive,
                 ]}
-                onPress={() => setSelectedCategory(category.name)}
+                onPress={() => setSelectedCategory('All')}
               >
                 <Text
                   style={[
                     styles.categoryChipText,
-                    selectedCategory === category.name &&
-                      styles.categoryChipTextActive,
+                    selectedCategory === 'All' && styles.categoryChipTextActive,
                   ]}
                 >
-                  {category.name} ({categoryCount})
+                  All ({products.length})
                 </Text>
               </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+              {categories.map((category) => {
+                const categoryCount = products.filter(
+                  (p) => p.category === category.name
+                ).length;
+                return (
+                  <TouchableOpacity
+                    key={category.id}
+                    style={[
+                      styles.categoryChip,
+                      selectedCategory === category.name &&
+                        styles.categoryChipActive,
+                    ]}
+                    onPress={() => setSelectedCategory(category.name)}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryChipText,
+                        selectedCategory === category.name &&
+                          styles.categoryChipTextActive,
+                      ]}
+                    >
+                      {category.name} ({categoryCount})
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </>
+      )}
+      <View>
+        {/* Compact category filter - horizontal chips below search */}
+        {compact && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.compactCategoryScroll}
+          >
+            <TouchableOpacity
+              style={[
+                styles.compactCategoryChip,
+                selectedCategory === 'All' && styles.compactCategoryChipActive,
+              ]}
+              onPress={() => setSelectedCategory('All')}
+            >
+              <Text
+                style={[
+                  styles.compactCategoryChipText,
+                  selectedCategory === 'All' &&
+                    styles.compactCategoryChipTextActive,
+                ]}
+              >
+                All ({products.length})
+              </Text>
+            </TouchableOpacity>
+            {categories.map((category) => {
+              const categoryCount = products.filter(
+                (p) => p.category === category.name
+              ).length;
+              return (
+                <TouchableOpacity
+                  key={category.id}
+                  style={[
+                    styles.compactCategoryChip,
+                    selectedCategory === category.name &&
+                      styles.compactCategoryChipActive,
+                  ]}
+                  onPress={() => setSelectedCategory(category.name)}
+                >
+                  <Text
+                    style={[
+                      styles.compactCategoryChipText,
+                      selectedCategory === category.name &&
+                        styles.compactCategoryChipTextActive,
+                    ]}
+                  >
+                    {category.name} ({categoryCount})
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
       </View>
 
       <ScrollView style={styles.productsList}>
@@ -1060,7 +1282,7 @@ export default function Products() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -1125,6 +1347,91 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
+  compactContainer: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  compactHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  compactHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  compactButton: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  compactAddButton: {
+    backgroundColor: '#059669',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  compactSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  compactSearchBox: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  compactSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#111827',
+    marginLeft: 8,
+  },
+  compactScanButton: {
+    padding: 4,
+  },
+  compactCategoryScroll: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  compactCategoryChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+  },
+  compactCategoryChipActive: {
+    backgroundColor: '#059669',
+  },
+  compactCategoryChipText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  compactCategoryChipTextActive: {
+    color: '#FFFFFF',
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1148,6 +1455,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
+  },
+  compactSortDropdown: {
+    padding: 4,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
   },
   sortDropdownText: {
     fontSize: 14,

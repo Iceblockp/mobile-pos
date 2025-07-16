@@ -82,7 +82,7 @@ export default function Dashboard() {
         </View>
         <TouchableOpacity
           style={styles.viewAllButton}
-          onPress={() => router.push('/analytics')}
+          onPress={() => router.push('/reports')}
         >
           <Eye size={20} color="#059669" />
         </TouchableOpacity>
@@ -182,7 +182,7 @@ export default function Dashboard() {
         <Card style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Top Products (30 days)</Text>
-            <TouchableOpacity onPress={() => router.push('/analytics')}>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/reports')}>
               <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
           </View>

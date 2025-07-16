@@ -635,21 +635,23 @@ export default function Analytics() {
           analytics.expensesByCategory.length > 0 ? (
             <>
               <Text style={styles.subSectionTitle}>Expenses by Category</Text>
-              {analytics.expensesByCategory.map((category:any, index:number) => (
-                <View key={index} style={styles.insightItem}>
-                  <Text style={styles.insightLabel}>
-                    {category.category_name}
-                  </Text>
-                  <View style={styles.expenseValueContainer}>
-                    <Text style={styles.insightValue}>
-                      {formatMMK(category.amount)}
+              {analytics.expensesByCategory.map(
+                (category: any, index: number) => (
+                  <View key={index} style={styles.insightItem}>
+                    <Text style={styles.insightLabel}>
+                      {category.category_name}
                     </Text>
-                    <Text style={styles.expensePercentage}>
-                      {category.percentage.toFixed(1)}%
-                    </Text>
+                    <View style={styles.expenseValueContainer}>
+                      <Text style={styles.insightValue}>
+                        {formatMMK(category.amount)}
+                      </Text>
+                      <Text style={styles.expensePercentage}>
+                        {category.percentage.toFixed(1)}%
+                      </Text>
+                    </View>
                   </View>
-                </View>
-              ))}
+                )
+              )}
             </>
           ) : (
             <Text style={styles.noDataText}>

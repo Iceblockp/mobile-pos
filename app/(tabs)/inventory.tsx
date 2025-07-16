@@ -18,15 +18,19 @@ import {
   TriangleAlert as AlertTriangle,
   TrendingUp,
   Package,
-  Users,
-  Plus,
-  Minus,
+  List,
 } from 'lucide-react-native';
 import { useToast } from '@/context/ToastContext';
+
+// Import the ProductsManager component
+import ProductsManager from '@/components/ProductsManager';
+
+type InventoryTab = 'overview' | 'products';
 
 export default function Inventory() {
   const { db, isReady, refreshTrigger } = useDatabase();
   const { showToast } = useToast();
+  const [activeTab, setActiveTab] = useState<InventoryTab>('overview');
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
@@ -125,6 +129,155 @@ export default function Inventory() {
     return { text: 'In Stock', color: '#10B981' };
   };
 
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return renderOverviewContent();
+      case 'products':
+        return <ProductsManager />;
+      default:
+        return renderOverviewContent();
+    }
+  };
+
+  const renderOverviewContent = () => {
+    return (
+      <>
+        <ScrollView style={styles.content}>
+          <View style={styles.summaryCards}>
+            <Card style={styles.summaryCard}>
+              <View style={styles.summaryContent}>
+                <View
+                  style={[styles.summaryIcon, { backgroundColor: '#3B82F6' }]}
+                >
+                  <Package size={24} color="#FFFFFF" />
+                </View>
+                <View style={styles.summaryText}>
+                  <Text style={styles.summaryValue}>{products.length}</Text>
+                  <Text style={styles.summaryLabel}>Total Products</Text>
+                </View>
+              </View>
+            </Card>
+
+            <Card style={styles.summaryCard}>
+              <View style={styles.summaryContent}>
+                <View
+                  style={[styles.summaryIcon, { backgroundColor: '#EF4444' }]}
+                >
+                  <AlertTriangle size={24} color="#FFFFFF" />
+                </View>
+                <View style={styles.summaryText}>
+                  <Text style={styles.summaryValue}>
+                    {lowStockProducts.length}
+                  </Text>
+                  <Text style={styles.summaryLabel}>Low Stock</Text>
+                </View>
+              </View>
+            </Card>
+          </View>
+
+          {lowStockProducts.length > 0 && (
+            <Card>
+              <Text style={styles.sectionTitle}>Low Stock Alert</Text>
+              {lowStockProducts.map((product) => (
+                <View key={product.id} style={styles.alertItem}>
+                  <View style={styles.alertInfo}>
+                    <Text style={styles.alertProductName}>{product.name}</Text>
+                    <Text style={styles.alertProductDetails}>
+                      Stock: {product.quantity} | Min: {product.min_stock}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.adjustButton}
+                    onPress={() => handleStockAdjustment(product)}
+                  >
+                    <Text style={styles.adjustButtonText}>Adjust</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </Card>
+          )}
+
+          <Card>
+            <Text style={styles.sectionTitle}>All Products</Text>
+            {products.map((product) => {
+              const status = getStockStatus(product);
+              return (
+                <View key={product.id} style={styles.productItem}>
+                  <View style={styles.productInfo}>
+                    <Text style={styles.productName}>{product.name}</Text>
+                    <Text style={styles.productCategory}>
+                      {product.category}
+                    </Text>
+                    <Text style={styles.productSupplier}>
+                      Supplier: {getSupplierName(product.supplier_id)}
+                    </Text>
+                    <Text style={styles.productPrice}>
+                      Price: {formatMMK(product.price)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.productStock}>
+                    <Text style={styles.stockQuantity}>{product.quantity}</Text>
+                    <Text style={[styles.stockStatus, { color: status.color }]}>
+                      {status.text}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.adjustButton}
+                      onPress={() => handleStockAdjustment(product)}
+                    >
+                      <Text style={styles.adjustButtonText}>Adjust</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })}
+          </Card>
+        </ScrollView>
+
+        {showAdjustment && selectedProduct && (
+          <View style={styles.modal}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Adjust Stock</Text>
+              <Text style={styles.modalSubtitle}>
+                {selectedProduct.name} - Current Stock:{' '}
+                {selectedProduct.quantity}
+              </Text>
+
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Enter quantity"
+                value={adjustmentQuantity}
+                onChangeText={setAdjustmentQuantity}
+                keyboardType="numeric"
+              />
+
+              <View style={styles.modalButtons}>
+                <Button
+                  title="Cancel"
+                  onPress={() => setShowAdjustment(false)}
+                  variant="secondary"
+                  style={styles.modalButton}
+                />
+                <Button
+                  title="Remove"
+                  onPress={() => processAdjustment('remove')}
+                  variant="danger"
+                  style={styles.modalButton}
+                />
+                <Button
+                  title="Add"
+                  onPress={() => processAdjustment('add')}
+                  style={styles.modalButton}
+                />
+              </View>
+            </View>
+          </View>
+        )}
+      </>
+    );
+  };
+
   if (!isReady || loading) {
     return <LoadingSpinner />;
   }
@@ -133,153 +286,56 @@ export default function Inventory() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Inventory</Text>
+        <Text style={styles.subtitle}>
+          Stock management and product catalog
+        </Text>
       </View>
 
-      <ScrollView style={styles.content}>
-        <View style={styles.summaryCards}>
-          <Card style={styles.summaryCard}>
-            <View style={styles.summaryContent}>
-              <View
-                style={[styles.summaryIcon, { backgroundColor: '#3B82F6' }]}
-              >
-                <Package size={24} color="#FFFFFF" />
-              </View>
-              <View style={styles.summaryText}>
-                <Text style={styles.summaryValue}>{products.length}</Text>
-                <Text style={styles.summaryLabel}>Total Products</Text>
-              </View>
-            </View>
-          </Card>
+      {/* Tab Navigation */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'overview' && styles.activeTab]}
+          onPress={() => setActiveTab('overview')}
+        >
+          <TrendingUp
+            size={20}
+            color={activeTab === 'overview' ? '#059669' : '#6B7280'}
+          />
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'overview' && styles.activeTabText,
+            ]}
+          >
+            Overview
+          </Text>
+        </TouchableOpacity>
 
-          <Card style={styles.summaryCard}>
-            <View style={styles.summaryContent}>
-              <View
-                style={[styles.summaryIcon, { backgroundColor: '#EF4444' }]}
-              >
-                <AlertTriangle size={24} color="#FFFFFF" />
-              </View>
-              <View style={styles.summaryText}>
-                <Text style={styles.summaryValue}>
-                  {lowStockProducts.length}
-                </Text>
-                <Text style={styles.summaryLabel}>Low Stock</Text>
-              </View>
-            </View>
-          </Card>
-        </View>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'products' && styles.activeTab]}
+          onPress={() => setActiveTab('products')}
+        >
+          <List
+            size={20}
+            color={activeTab === 'products' ? '#059669' : '#6B7280'}
+          />
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'products' && styles.activeTabText,
+            ]}
+          >
+            Products
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-        {lowStockProducts.length > 0 && (
-          <Card>
-            <Text style={styles.sectionTitle}>Low Stock Alert</Text>
-            {lowStockProducts.map((product) => (
-              <View key={product.id} style={styles.alertItem}>
-                <View style={styles.alertInfo}>
-                  <Text style={styles.alertProductName}>{product.name}</Text>
-                  <Text style={styles.alertProductDetails}>
-                    Stock: {product.quantity} | Min: {product.min_stock}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.adjustButton}
-                  onPress={() => handleStockAdjustment(product)}
-                >
-                  <Text style={styles.adjustButtonText}>Adjust</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </Card>
-        )}
-
-        <Card>
-          <Text style={styles.sectionTitle}>All Products</Text>
-          {products.map((product) => {
-            const status = getStockStatus(product);
-            return (
-              <View key={product.id} style={styles.productItem}>
-                <View style={styles.productInfo}>
-                  <Text style={styles.productName}>{product.name}</Text>
-                  <Text style={styles.productCategory}>{product.category}</Text>
-                  <Text style={styles.productSupplier}>
-                    Supplier: {getSupplierName(product.supplier_id)}
-                  </Text>
-                  <Text style={styles.productPrice}>
-                    Price: {formatMMK(product.price)}
-                  </Text>
-                </View>
-
-                <View style={styles.productStock}>
-                  <Text style={styles.stockQuantity}>{product.quantity}</Text>
-                  <Text style={[styles.stockStatus, { color: status.color }]}>
-                    {status.text}
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.adjustButton}
-                    onPress={() => handleStockAdjustment(product)}
-                  >
-                    <Text style={styles.adjustButtonText}>Adjust</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          })}
-        </Card>
-
-        {/* <Card>
-          <Text style={styles.sectionTitle}>Suppliers</Text>
-          {suppliers.map((supplier) => (
-            <View key={supplier.id} style={styles.supplierItem}>
-              <View style={styles.supplierInfo}>
-                <Text style={styles.supplierName}>{supplier.name}</Text>
-                <Text style={styles.supplierContact}>
-                  {supplier.contact_name}
-                </Text>
-                <Text style={styles.supplierDetails}>
-                  {supplier.phone} | {supplier.email}
-                </Text>
-                <Text style={styles.supplierAddress}>{supplier.address}</Text>
-              </View>
-            </View>
-          ))}
-        </Card> */}
-      </ScrollView>
-
-      {showAdjustment && selectedProduct && (
-        <View style={styles.modal}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Adjust Stock</Text>
-            <Text style={styles.modalSubtitle}>
-              {selectedProduct.name} - Current Stock: {selectedProduct.quantity}
-            </Text>
-
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Enter quantity"
-              value={adjustmentQuantity}
-              onChangeText={setAdjustmentQuantity}
-              keyboardType="numeric"
-            />
-
-            <View style={styles.modalButtons}>
-              <Button
-                title="Cancel"
-                onPress={() => setShowAdjustment(false)}
-                variant="secondary"
-                style={styles.modalButton}
-              />
-              <Button
-                title="Remove"
-                onPress={() => processAdjustment('remove')}
-                variant="danger"
-                style={styles.modalButton}
-              />
-              <Button
-                title="Add"
-                onPress={() => processAdjustment('add')}
-                style={styles.modalButton}
-              />
-            </View>
-          </View>
-        </View>
+      {/* Tab Content */}
+      {activeTab === 'products' ? (
+        // For products tab, render full screen without additional container
+        <ProductsManager compact={true} />
+      ) : (
+        <View style={styles.tabContent}>{renderTabContent()}</View>
       )}
     </SafeAreaView>
   );
@@ -301,6 +357,45 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontFamily: 'Inter-Bold',
     color: '#111827',
+  },
+  subtitle: {
+    fontSize: 15,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: '#059669',
+    backgroundColor: '#F0FDF4',
+  },
+  tabText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+    marginLeft: 8,
+  },
+  activeTabText: {
+    color: '#059669',
+    fontFamily: 'Inter-SemiBold',
+  },
+  tabContent: {
+    flex: 1,
   },
   content: {
     flex: 1,

@@ -64,15 +64,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="products"
-        options={{
-          title: 'Products',
-          tabBarIcon: ({ size, color }) => (
-            <Package size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="sales"
         options={{
           title: 'Sales',
@@ -86,25 +77,17 @@ export default function TabLayout() {
         options={{
           title: 'Inventory',
           tabBarIcon: ({ size, color }) => (
-            <TrendingUp size={size} color={color} />
+            <Package size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="analytics"
+        name="reports"
         options={{
-          title: 'Analytics',
+          title: 'Reports',
           tabBarIcon: ({ size, color }) => (
             <BarChart3 size={size} color={color} />
           ),
-        }}
-      />
-      {/* Add the expenses tab to the tabs array */}
-      <Tabs.Screen
-        name="expenses"
-        options={{
-          title: 'Expenses',
-          tabBarIcon: ({ color }) => <DollarSign size={24} color={color} />,
         }}
       />
     </Tabs>
