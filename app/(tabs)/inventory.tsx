@@ -255,18 +255,21 @@ export default function Inventory() {
               <View style={styles.modalButtons}>
                 <Button
                   title="Cancel"
+                  size="small"
                   onPress={() => setShowAdjustment(false)}
                   variant="secondary"
                   style={styles.modalButton}
                 />
                 <Button
                   title="Remove"
+                  size="small"
                   onPress={() => processAdjustment('remove')}
                   variant="danger"
                   style={styles.modalButton}
                 />
                 <Button
                   title="Add"
+                  size="small"
                   onPress={() => processAdjustment('add')}
                   style={styles.modalButton}
                 />

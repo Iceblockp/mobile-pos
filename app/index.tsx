@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import React, { useState } from 'react';
 import { useLicense } from '@/hooks/useLicense';
-import { LicenseCard } from '@/components/LicenseCard';
 import { ChallengeDisplay } from '@/components/ChallengeDisplay';
 import { ResponseInput } from '@/components/ResponseInput';
 import { LicenseDurationModal } from '@/components/LicenseDurationModal';
@@ -50,6 +49,18 @@ const Index = () => {
   const isExpired = licenseStatus?.expiryDate
     ? isLicenseExpired(licenseStatus.expiryDate)
     : true;
+
+  // Check if license is about to expire (within 10 days)
+  const isAboutToExpire = () => {
+    if (!licenseStatus?.expiryDate) return false;
+
+    const expiryDate = new Date(licenseStatus.expiryDate);
+    const currentDate = new Date();
+    const timeDifference = expiryDate.getTime() - currentDate.getTime();
+    const daysDifference = Math.ceil(timeDifference / (1000 * 3600 * 24));
+
+    return daysDifference <= 10 && daysDifference > 0;
+  };
 
   if (!isValid) {
     return (
@@ -148,6 +159,34 @@ const Index = () => {
       </View>
 
       <View style={styles.welcomeContent}>
+        {/* License Expiration Warning */}
+        {isAboutToExpire() && (
+          <View style={styles.expirationWarning}>
+            <View style={styles.warningHeader}>
+              <ShieldCheck size={20} color="#F59E0B" />
+              <Text style={styles.warningTitle}>License Expiring Soon</Text>
+            </View>
+            <Text style={styles.warningMessage}>
+              Your license will expire in{' '}
+              {Math.ceil(
+                (new Date(licenseStatus?.expiryDate || '').getTime() -
+                  new Date().getTime()) /
+                  (1000 * 3600 * 24)
+              )}{' '}
+              days. Regenerate your challenge to extend your license.
+            </Text>
+            <TouchableOpacity
+              style={styles.regenerateChallengeButton}
+              onPress={() => setModalVisible(true)}
+            >
+              <ShieldCheck size={16} color="#FFFFFF" />
+              <Text style={styles.regenerateChallengeButtonText}>
+                Regenerate Challenge
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <View style={styles.welcomeCard}>
           <Image
             source={require('@/assets/images/icon.png')}
@@ -385,5 +424,52 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+
+  // Expiration Warning Styles
+  expirationWarning: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  warningHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  warningTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#92400E',
+    marginLeft: 8,
+  },
+  warningMessage: {
+    fontSize: 14,
+    color: '#A16207',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  regenerateChallengeButton: {
+    backgroundColor: '#F59E0B',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  regenerateChallengeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
 });

@@ -1,15 +1,21 @@
 {
   "expo": {
-    "name": "pos",
+    "name": "Mini POS",
     "slug": "pos",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "pos",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "icon": "./assets/images/pos.png",
+      "bundleIdentifier": "com.james_marcus.pos",
+      "buildNumber": "2",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "web": {
       "bundler": "metro",
@@ -27,7 +33,12 @@
       }
     },
     "android": {
-      "package": "com.james_marcus.pos"
+      "package": "com.james_marcus.pos",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/pos.png",
+        "backgroundColor": "#ffffff"
+      },
+      "versionCode": 2
     }
   }
 }

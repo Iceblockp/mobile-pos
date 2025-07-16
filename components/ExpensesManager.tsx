@@ -28,9 +28,11 @@ import {
 } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Button } from '@/components/Button';
+import { useToast } from '@/context/ToastContext';
 
 export default function Expenses() {
   const { db, isReady, refreshTrigger, triggerRefresh } = useDatabase();
+  const { showToast } = useToast();
   const [expenses, setExpenses] = useState<
     (Expense & { category_name: string })[]
   >([]);
@@ -65,6 +67,9 @@ export default function Expenses() {
   const [formAmount, setFormAmount] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formDate, setFormDate] = useState(new Date());
+
+  // Category selector state
+  const [showCategorySelector, setShowCategorySelector] = useState(false);
 
   const loadExpenses = async (page = 1) => {
     if (!db) return;
@@ -167,6 +172,14 @@ export default function Expenses() {
       setShowAddModal(false);
       resetForm();
       triggerRefresh();
+
+      // Show success toast
+      showToast(
+        editingExpense
+          ? 'Expense updated successfully!'
+          : 'Expense added successfully!',
+        'success'
+      );
     } catch (error) {
       console.error('Error saving expense:', error);
       Alert.alert('Error', 'Failed to save expense');
@@ -188,6 +201,7 @@ export default function Expenses() {
             try {
               await db.deleteExpense(id);
               triggerRefresh();
+              showToast('Expense deleted successfully!', 'success');
             } catch (error) {
               console.error('Error deleting expense:', error);
               Alert.alert('Error', 'Failed to delete expense');
@@ -243,6 +257,14 @@ export default function Expenses() {
       resetCategoryForm();
       loadCategories();
       triggerRefresh();
+
+      // Show success toast
+      showToast(
+        editingCategory
+          ? 'Category updated successfully!'
+          : 'Category added successfully!',
+        'success'
+      );
     } catch (error) {
       console.error('Error saving category:', error);
       Alert.alert('Error', 'Failed to save category');
@@ -271,6 +293,7 @@ export default function Expenses() {
               await db.deleteExpenseCategory(id);
               loadCategories();
               triggerRefresh();
+              showToast('Category deleted successfully!', 'success');
             } catch (error) {
               console.error('Error deleting category:', error);
               Alert.alert(
@@ -465,21 +488,7 @@ export default function Expenses() {
                 <Text style={styles.label}>Category</Text>
                 <TouchableOpacity
                   style={styles.select}
-                  onPress={() => {
-                    // Show category picker
-                    Alert.alert(
-                      'Select Category',
-                      '',
-                      [
-                        ...categories.map((category) => ({
-                          text: category.name,
-                          onPress: () => setFormCategory(category.id),
-                        })),
-                        { text: 'Cancel', style: 'cancel' },
-                      ],
-                      { cancelable: true }
-                    );
-                  }}
+                  onPress={() => setShowCategorySelector(!showCategorySelector)}
                 >
                   <Text>
                     {formCategory
@@ -487,8 +496,127 @@ export default function Expenses() {
                         'Select Category'
                       : 'Select Category'}
                   </Text>
-                  <ChevronDown size={16} color="#000000" />
+                  <ChevronDown
+                    size={16}
+                    color="#000000"
+                    style={{
+                      transform: [
+                        { rotate: showCategorySelector ? '180deg' : '0deg' },
+                      ],
+                    }}
+                  />
                 </TouchableOpacity>
+
+                {/* Inline Category Selector */}
+                {showCategorySelector && (
+                  <View style={styles.inlineCategorySelector}>
+                    {categories.length === 0 ? (
+                      <View style={styles.emptyCategoryState}>
+                        <Tag size={32} color="#9CA3AF" />
+                        <Text style={styles.emptyCategoryText}>
+                          No categories found
+                        </Text>
+                        <Text style={styles.emptyCategorySubtext}>
+                          Create categories first to organize your expenses
+                        </Text>
+                        <TouchableOpacity
+                          style={styles.createCategoryButton}
+                          onPress={() => {
+                            setShowCategorySelector(false);
+                            setShowCategoryModal(true);
+                          }}
+                        >
+                          <Plus size={14} color="#FFFFFF" />
+                          <Text style={styles.createCategoryButtonText}>
+                            Create Category
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <>
+                        <ScrollView
+                          style={styles.categoryList}
+                          showsVerticalScrollIndicator={false}
+                          nestedScrollEnabled={true}
+                        >
+                          {categories.map((category) => (
+                            <TouchableOpacity
+                              key={category.id}
+                              style={[
+                                styles.inlineCategoryOption,
+                                formCategory === category.id &&
+                                  styles.inlineCategoryOptionSelected,
+                              ]}
+                              onPress={() => {
+                                setFormCategory(category.id);
+                                setShowCategorySelector(false);
+                                showToast(
+                                  `Selected: ${category.name}`,
+                                  'success'
+                                );
+                              }}
+                            >
+                              <View style={styles.inlineCategoryContent}>
+                                <View
+                                  style={[
+                                    styles.inlineCategoryIcon,
+                                    formCategory === category.id &&
+                                      styles.inlineCategoryIconSelected,
+                                  ]}
+                                >
+                                  <Tag
+                                    size={16}
+                                    color={
+                                      formCategory === category.id
+                                        ? '#FFFFFF'
+                                        : '#6B7280'
+                                    }
+                                  />
+                                </View>
+                                <View style={styles.inlineCategoryInfo}>
+                                  <Text
+                                    style={[
+                                      styles.inlineCategoryName,
+                                      formCategory === category.id &&
+                                        styles.inlineCategoryNameSelected,
+                                    ]}
+                                  >
+                                    {category.name}
+                                  </Text>
+                                  {category.description && (
+                                    <Text
+                                      style={[
+                                        styles.inlineCategoryDescription,
+                                        formCategory === category.id &&
+                                          styles.inlineCategoryDescriptionSelected,
+                                      ]}
+                                    >
+                                      {category.description}
+                                    </Text>
+                                  )}
+                                </View>
+                                {formCategory === category.id && (
+                                  <View style={styles.inlineSelectedIndicator}>
+                                    <View style={styles.selectedDot} />
+                                  </View>
+                                )}
+                              </View>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+
+                        <TouchableOpacity
+                          style={styles.inlineAddCategoryButton}
+                        >
+                          {/* <Plus size={14} color="#3B82F6" /> */}
+                          <Text style={styles.inlineAddCategoryText}>
+                            Select a Category
+                          </Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
+                  </View>
+                )}
               </View>
 
               <View style={styles.formGroup}>
@@ -937,6 +1065,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
+    marginBottom: 12,
   },
   textArea: {
     height: 100,
@@ -1049,5 +1178,130 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+
+  // Inline Category Selector Styles
+  inlineCategorySelector: {
+    marginTop: 8,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    maxHeight: 300,
+  },
+  emptyCategoryState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  emptyCategoryText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  emptyCategorySubtext: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 6,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  createCategoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 6,
+    marginTop: 16,
+  },
+  createCategoryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  categoryList: {
+    maxHeight: 200,
+    paddingVertical: 8,
+  },
+  inlineCategoryOption: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 8,
+    marginVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  inlineCategoryOptionSelected: {
+    borderColor: '#3B82F6',
+    backgroundColor: '#EFF6FF',
+  },
+  inlineCategoryContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+  },
+  inlineCategoryIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  inlineCategoryIconSelected: {
+    backgroundColor: '#3B82F6',
+  },
+  inlineCategoryInfo: {
+    flex: 1,
+  },
+  inlineCategoryName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  inlineCategoryNameSelected: {
+    color: '#1D4ED8',
+  },
+  inlineCategoryDescription: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  inlineCategoryDescriptionSelected: {
+    color: '#3B82F6',
+  },
+  inlineSelectedIndicator: {
+    marginLeft: 8,
+  },
+  selectedDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#10B981',
+  },
+  inlineAddCategoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
+    borderRadius: 6,
+    padding: 12,
+    margin: 8,
+    marginTop: 4,
+  },
+  inlineAddCategoryText: {
+    color: '#3B82F6',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
 });

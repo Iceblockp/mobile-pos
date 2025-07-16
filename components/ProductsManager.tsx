@@ -1223,6 +1223,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
                 }
               />
 
+              <View style={{ height: 12 }}></View>
               <TextInput
                 style={styles.input}
                 placeholder="Description"
