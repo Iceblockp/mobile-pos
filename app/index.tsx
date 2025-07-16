@@ -7,6 +7,7 @@ import {
   Image,
   TouchableOpacity,
   StatusBar,
+  ScrollView,
 } from 'react-native';
 import React, { useState } from 'react';
 import { useLicense } from '@/hooks/useLicense';
@@ -17,6 +18,8 @@ import { isLicenseExpired } from '@/utils/crypto';
 import { ShieldCheck, ArrowRight } from 'lucide-react-native';
 import { LICENSE_PACKAGES } from '@/utils/admin';
 import { router } from 'expo-router';
+import { LanguageIconButton } from '@/components/LanguageIconButton';
+import { useTranslation } from '@/context/LocalizationContext';
 
 const Index = () => {
   const {
@@ -28,6 +31,7 @@ const Index = () => {
     isLicenseValid,
     getExpiryDate,
   } = useLicense();
+  const { t } = useTranslation();
 
   console.log('Index component - loading:', loading);
   console.log('Index component - licenseStatus:', licenseStatus);
@@ -40,7 +44,9 @@ const Index = () => {
       <View style={styles.loadingContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
         <ActivityIndicator size="large" color="#3B82F6" />
-        <Text style={styles.loadingText}>Initializing license system...</Text>
+        <Text style={styles.loadingText}>
+          {t('license.initializingLicense')}
+        </Text>
       </View>
     );
   }
@@ -79,23 +85,25 @@ const Index = () => {
             resizeMode="cover"
           />
           <View style={styles.headerTextContainer}>
-            <Text style={styles.title}>Mobile POS</Text>
-            <Text style={styles.subtitle}>License Verification Required</Text>
+            <Text style={styles.title}>{t('license.title')}</Text>
+            <Text style={styles.subtitle}>
+              {t('license.verificationRequired')}
+            </Text>
           </View>
+          <LanguageIconButton />
         </View>
 
-        <View style={styles.contentContainer}>
+        <ScrollView style={styles.contentContainer}>
           <View style={styles.verificationCard}>
             <View style={styles.verificationCardHeader}>
               <ShieldCheck size={24} color="#3B82F6" />
               <Text style={styles.verificationCardTitle}>
-                Verify Your License
+                {t('license.verifyLicense')}
               </Text>
             </View>
 
             <Text style={styles.verificationCardText}>
-              To access all features of Mobile POS, please verify your license
-              using the steps below.
+              {t('license.accessAllFeatures')}
             </Text>
 
             <TouchableOpacity
@@ -103,7 +111,7 @@ const Index = () => {
               onPress={() => setModalVisible(true)}
             >
               <Text style={styles.durationButtonText}>
-                Select License Duration:{' '}
+                {t('license.selectLicenseDuration')}:{' '}
                 {LICENSE_PACKAGES[selectedDuration]?.description}
               </Text>
             </TouchableOpacity>
@@ -130,11 +138,13 @@ const Index = () => {
               disabled={loading}
             >
               <Text style={styles.regenerateButtonText}>
-                {loading ? 'Generating...' : 'Generate New Challenge'}
+                {loading
+                  ? t('license.generating')
+                  : t('license.generateNewChallenge')}
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
 
         <LicenseDurationModal
           visible={modalVisible}
@@ -156,12 +166,13 @@ const Index = () => {
           style={styles.welcomeLogo}
           resizeMode="contain"
         />
-        <View>
-          <Text style={styles.welcomeTitle}>Mobile POS</Text>
+        <View style={styles.welcomeHeaderText}>
+          <Text style={styles.welcomeTitle}>{t('license.title')}</Text>
           <Text style={styles.welcomeSubtitle}>
-            License valid until {getExpiryDate()}
+            {t('license.licenseValidUntil')} {getExpiryDate()}
           </Text>
         </View>
+        <LanguageIconButton style={styles.welcomeLanguageButton} />
       </View>
 
       <View style={styles.welcomeContent}>
@@ -170,10 +181,12 @@ const Index = () => {
           <View style={styles.expirationWarning}>
             <View style={styles.warningHeader}>
               <ShieldCheck size={20} color="#F59E0B" />
-              <Text style={styles.warningTitle}>License Expiring Soon</Text>
+              <Text style={styles.warningTitle}>
+                {t('license.licenseExpiringSoon')}
+              </Text>
             </View>
             <Text style={styles.warningMessage}>
-              Your license will expire in{' '}
+              {t('license.licenseWillExpire')}{' '}
               {Math.ceil(
                 (new Date(
                   licenseStatus?.expiryDate
@@ -189,7 +202,7 @@ const Index = () => {
                   new Date().getTime()) /
                   (1000 * 3600 * 24)
               )}{' '}
-              days. Regenerate your challenge to extend your license.
+              {t('analytics.days')}. {t('license.regenerateChallenge')}
             </Text>
             <TouchableOpacity
               style={styles.regenerateChallengeButton}
@@ -197,7 +210,7 @@ const Index = () => {
             >
               <ShieldCheck size={16} color="#FFFFFF" />
               <Text style={styles.regenerateChallengeButtonText}>
-                Regenerate Challenge
+                {t('license.regenerateChallengeButton')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -209,17 +222,16 @@ const Index = () => {
             style={styles.welcomeImage}
             resizeMode="contain"
           />
-          <Text style={styles.welcomeGreeting}>Welcome to Mobile POS!</Text>
-          <Text style={styles.welcomeMessage}>
-            Your point-of-sale system is ready to use. Get started with your
-            business operations.
-          </Text>
+          <Text style={styles.welcomeGreeting}>{t('license.welcome')}</Text>
+          <Text style={styles.welcomeMessage}>{t('license.systemReady')}</Text>
 
           <TouchableOpacity
             onPress={() => router.push('/(tabs)/dashboard')}
             style={styles.getStartedButton}
           >
-            <Text style={styles.getStartedButtonText}>Get Started</Text>
+            <Text style={styles.getStartedButtonText}>
+              {t('license.getStarted')}
+            </Text>
             <ArrowRight size={16} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
@@ -229,7 +241,9 @@ const Index = () => {
             style={styles.renewButton}
             onPress={() => setModalVisible(true)}
           >
-            <Text style={styles.renewButtonText}>Renew License</Text>
+            <Text style={styles.renewButtonText}>
+              {t('license.renewLicense')}
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -369,6 +383,9 @@ const styles = StyleSheet.create({
     marginRight: 12,
     // tintColor: '#FFFFFF',
   },
+  welcomeHeaderText: {
+    flex: 1,
+  },
   welcomeTitle: {
     fontSize: 20,
     fontWeight: '700',
@@ -377,6 +394,9 @@ const styles = StyleSheet.create({
   welcomeSubtitle: {
     fontSize: 12,
     color: '#DBEAFE',
+  },
+  welcomeLanguageButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   welcomeContent: {
     flex: 1,

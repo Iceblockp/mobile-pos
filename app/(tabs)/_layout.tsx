@@ -11,10 +11,12 @@ import {
 import { DollarSign } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { useLicense } from '@/hooks/useLicense';
+import { useTranslation } from '@/context/LocalizationContext';
 
 export default function TabLayout() {
   const { isLicenseValid, loading } = useLicense();
   const router = useRouter();
+  const { t } = useTranslation();
 
   console.log('LicenseGuard - loading:', loading);
   console.log('LicenseGuard - isLicenseValid:', isLicenseValid());
@@ -59,14 +61,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: 'Dashboard',
+          title: t('navigation.dashboard'),
           tabBarIcon: ({ size, color }) => <Home size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="sales"
         options={{
-          title: 'Sales',
+          title: t('navigation.sales'),
           tabBarIcon: ({ size, color }) => (
             <ShoppingCart size={size} color={color} />
           ),
@@ -75,7 +77,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="inventory"
         options={{
-          title: 'Inventory',
+          title: t('navigation.inventory'),
           tabBarIcon: ({ size, color }) => (
             <Package size={size} color={color} />
           ),
@@ -84,7 +86,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="reports"
         options={{
-          title: 'Reports',
+          title: t('navigation.reports'),
           tabBarIcon: ({ size, color }) => (
             <BarChart3 size={size} color={color} />
           ),

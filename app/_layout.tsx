@@ -12,6 +12,7 @@ import {
 import { SplashScreen } from 'expo-router';
 import { DatabaseProvider } from '@/context/DatabaseContext';
 import { ToastProvider } from '@/context/ToastContext';
+import { LocalizationProvider } from '@/context/LocalizationContext';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 SplashScreen.preventAutoHideAsync();
@@ -41,26 +42,28 @@ export default function RootLayout() {
   }
 
   return (
-    <DatabaseProvider>
-      <ToastProvider>
-        <SafeAreaProvider>
-          <SafeAreaView style={{ flex: 1 }}>
-            <Stack screenOptions={{ headerShown: false }}>
-              {/* <Stack.Screen name="index" /> */}
-              <Stack.Screen
-                name="(tabs)"
-                options={{
-                  headerShown: false,
-                  statusBarStyle: 'dark',
-                  statusBarBackgroundColor: 'white',
-                }}
-              />
-              <Stack.Screen name="+not-found" />
-            </Stack>
-            <StatusBar style="auto" />
-          </SafeAreaView>
-        </SafeAreaProvider>
-      </ToastProvider>
-    </DatabaseProvider>
+    <LocalizationProvider>
+      <DatabaseProvider>
+        <ToastProvider>
+          <SafeAreaProvider>
+            <SafeAreaView style={{ flex: 1 }}>
+              <Stack screenOptions={{ headerShown: false }}>
+                {/* <Stack.Screen name="index" /> */}
+                <Stack.Screen
+                  name="(tabs)"
+                  options={{
+                    headerShown: false,
+                    statusBarStyle: 'dark',
+                    statusBarBackgroundColor: 'white',
+                  }}
+                />
+                <Stack.Screen name="+not-found" />
+              </Stack>
+              <StatusBar style="auto" />
+            </SafeAreaView>
+          </SafeAreaProvider>
+        </ToastProvider>
+      </DatabaseProvider>
+    </LocalizationProvider>
   );
 }

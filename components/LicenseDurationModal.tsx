@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { Clock, X } from 'lucide-react-native';
 import { LICENSE_PACKAGES } from '@/utils/admin';
+import { useTranslation } from '@/context/LocalizationContext';
 
 interface LicenseDurationModalProps {
   visible: boolean;
@@ -15,6 +16,7 @@ export const LicenseDurationModal = ({
   onDurationChange,
   onClose,
 }: LicenseDurationModalProps) => {
+  const { t } = useTranslation();
   const durations = Object.entries(LICENSE_PACKAGES);
 
   const handleSelect = (key: string) => {
@@ -34,7 +36,9 @@ export const LicenseDurationModal = ({
           <View style={styles.modalHeader}>
             <View style={styles.headerLeft}>
               <Clock size={20} color="#3B82F6" />
-              <Text style={styles.title}>Select License Duration</Text>
+              <Text style={styles.title}>
+                {t('license.selectLicenseDuration')}
+              </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <X size={20} color="#6B7280" />
@@ -66,8 +70,10 @@ export const LicenseDurationModal = ({
                       selectedDuration === key && styles.selectedOptionSubtext,
                     ]}
                   >
-                    {config.validityMonths} month
-                    {config.validityMonths !== 1 ? 's' : ''}
+                    {config.validityMonths}{' '}
+                    {config.validityMonths === 1
+                      ? t('license.month')
+                      : t('license.months')}
                   </Text>
                 </View>
                 {selectedDuration === key && (

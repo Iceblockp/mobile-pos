@@ -20,9 +20,12 @@ import {
   Eye,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { useTranslation } from '@/context/LocalizationContext';
+import { LanguageIconButton } from '@/components/LanguageIconButton';
 
 export default function Dashboard() {
   const { db, isReady, refreshTrigger } = useDatabase();
+  const { t } = useTranslation();
   const [analytics, setAnalytics] = useState<any>(null);
   const [lowStockCount, setLowStockCount] = useState(0);
   const [totalProducts, setTotalProducts] = useState(0);
@@ -74,18 +77,19 @@ export default function Dashboard() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Dashboard</Text>
-          <Text style={styles.subtitle}>
-            Welcome back! Here's your store overview
-          </Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.title}>{t('dashboard.title')}</Text>
+          <Text style={styles.subtitle}>{t('dashboard.subtitle')}</Text>
         </View>
-        <TouchableOpacity
-          style={styles.viewAllButton}
-          onPress={() => router.push('/reports')}
-        >
-          <Eye size={20} color="#059669" />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <LanguageIconButton style={styles.languageSelector} />
+          <TouchableOpacity
+            style={styles.viewAllButton}
+            onPress={() => router.push('/reports')}
+          >
+            <Eye size={20} color="#059669" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -107,7 +111,9 @@ export default function Dashboard() {
                 <Text style={styles.metricValue}>
                   {formatMMK(analytics?.totalRevenue || 0)}
                 </Text>
-                <Text style={styles.metricLabel}>Total Revenue (30d)</Text>
+                <Text style={styles.metricLabel}>
+                  {t('dashboard.totalRevenue')} (30d)
+                </Text>
                 <View style={styles.metricTrend}>
                   <ArrowUpRight size={12} color="#059669" />
                   <Text style={styles.trendText}>+12.5%</Text>
@@ -127,7 +133,9 @@ export default function Dashboard() {
                 <Text style={styles.metricValue}>
                   {analytics?.totalSales || 0}
                 </Text>
-                <Text style={styles.metricLabel}>Total Sales (30d)</Text>
+                <Text style={styles.metricLabel}>
+                  {t('dashboard.totalSales')} (30d)
+                </Text>
                 <View style={styles.metricTrend}>
                   <ArrowUpRight size={12} color="#059669" />
                   <Text style={styles.trendText}>+8.2%</Text>
@@ -147,7 +155,9 @@ export default function Dashboard() {
                 <Text style={styles.metricValue}>
                   {formatMMK(analytics?.avgSaleValue || 0)}
                 </Text>
-                <Text style={styles.metricLabel}>Avg Sale Value</Text>
+                <Text style={styles.metricLabel}>
+                  {t('dashboard.avgSaleValue')}
+                </Text>
                 <View style={styles.metricTrend}>
                   <ArrowUpRight size={12} color="#059669" />
                   <Text style={styles.trendText}>+5.1%</Text>
@@ -165,13 +175,17 @@ export default function Dashboard() {
               </View>
               <View style={styles.metricText}>
                 <Text style={styles.metricValue}>{lowStockCount}</Text>
-                <Text style={styles.metricLabel}>Low Stock Items</Text>
+                <Text style={styles.metricLabel}>
+                  {t('dashboard.lowStockItems')}
+                </Text>
                 {lowStockCount > 0 && (
                   <TouchableOpacity
                     style={styles.actionLink}
                     onPress={() => router.push('/inventory')}
                   >
-                    <Text style={styles.actionLinkText}>View Details</Text>
+                    <Text style={styles.actionLinkText}>
+                      {t('dashboard.viewDetails')}
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -181,9 +195,11 @@ export default function Dashboard() {
 
         <Card style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Top Products (30 days)</Text>
+            <Text style={styles.sectionTitle}>
+              {t('dashboard.topProducts')} (30 days)
+            </Text>
             <TouchableOpacity onPress={() => router.push('/(tabs)/reports')}>
-              <Text style={styles.viewAllText}>View All</Text>
+              <Text style={styles.viewAllText}>{t('dashboard.viewAll')}</Text>
             </TouchableOpacity>
           </View>
           {analytics?.topProducts?.length > 0 ? (
@@ -207,9 +223,9 @@ export default function Dashboard() {
           ) : (
             <View style={styles.emptyState}>
               <Package size={32} color="#9CA3AF" />
-              <Text style={styles.noData}>No sales data available</Text>
+              <Text style={styles.noData}>{t('dashboard.noSalesData')}</Text>
               <Text style={styles.noDataSubtext}>
-                Start making sales to see analytics
+                {t('dashboard.startMakingSales')}
               </Text>
             </View>
           )}
@@ -217,7 +233,9 @@ export default function Dashboard() {
 
         <Card style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Store Overview</Text>
+            <Text style={styles.sectionTitle}>
+              {t('dashboard.storeOverview')}
+            </Text>
             <TouchableOpacity onPress={() => router.push('/inventory')}>
               <Text style={styles.viewAllText}>Manage</Text>
             </TouchableOpacity>
@@ -226,14 +244,18 @@ export default function Dashboard() {
             <View style={styles.overviewIcon}>
               <Package size={16} color="#6B7280" />
             </View>
-            <Text style={styles.overviewLabel}>Total Products</Text>
+            <Text style={styles.overviewLabel}>
+              {t('dashboard.totalProducts')}
+            </Text>
             <Text style={styles.overviewValue}>{totalProducts}</Text>
           </View>
           <View style={styles.overviewRow}>
             <View style={styles.overviewIcon}>
               <AlertTriangle size={16} color="#EF4444" />
             </View>
-            <Text style={styles.overviewLabel}>Low Stock Items</Text>
+            <Text style={styles.overviewLabel}>
+              {t('dashboard.lowStockItems')}
+            </Text>
             <Text
               style={[
                 styles.overviewValue,
@@ -266,6 +288,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  languageSelector: {
+    marginRight: 8,
   },
   viewAllButton: {
     width: 40,

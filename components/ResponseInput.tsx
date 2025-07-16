@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { Key, Check } from 'lucide-react-native';
+import { useTranslation } from '@/context/LocalizationContext';
 
 interface ResponseInputProps {
   onVerify: (response: string) => Promise<boolean>;
@@ -15,40 +16,35 @@ interface ResponseInputProps {
 }
 
 export const ResponseInput = ({ onVerify, verifying }: ResponseInputProps) => {
+  const { t } = useTranslation();
   const [response, setResponse] = useState('');
 
   const handleVerify = async () => {
     if (!response.trim()) {
-      Alert.alert('Error', 'Please enter the response code');
+      Alert.alert(t('common.error'), t('license.enterResponseCodeError'));
       return;
     }
 
     const isValid = await onVerify(response.trim());
 
     if (isValid) {
-      Alert.alert(
-        'Success!',
-        'License verified successfully. POS features are now unlocked.'
-      );
+      Alert.alert(t('common.success'), t('license.licenseVerifiedSuccess'));
       setResponse('');
     } else {
-      Alert.alert(
-        'Invalid Code',
-        'The response code is invalid or expired. Please check and try again.'
-      );
+      Alert.alert(t('license.invalidCode'), t('license.invalidCodeMessage'));
     }
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.stepNumber}>Step 2</Text>
-        <Text style={styles.title}>Enter Response Code</Text>
+        <Text style={styles.stepNumber}>{t('license.step2')}</Text>
+        <Text style={styles.title}>{t('license.enterResponseCode')}</Text>
       </View>
 
       <TextInput
         style={styles.input}
-        placeholder="Enter the response code from vendor"
+        placeholder={t('license.enterResponsePlaceholder')}
         value={response}
         onChangeText={setResponse}
         autoCapitalize="characters"
@@ -63,7 +59,7 @@ export const ResponseInput = ({ onVerify, verifying }: ResponseInputProps) => {
       >
         <Check size={16} color="#FFFFFF" />
         <Text style={styles.verifyButtonText}>
-          {verifying ? 'Verifying...' : 'Verify License'}
+          {verifying ? t('license.verifying') : t('license.verifyLicense')}
         </Text>
       </TouchableOpacity>
     </View>

@@ -1,39 +1,40 @@
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Copy, Info } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
+import { useTranslation } from '@/context/LocalizationContext';
 
 interface ChallengeDisplayProps {
   challenge: string;
 }
 
 export const ChallengeDisplay = ({ challenge }: ChallengeDisplayProps) => {
+  const { t } = useTranslation();
+
   const copyToClipboard = async () => {
     try {
       await Clipboard.setString(challenge);
-      Alert.alert('Copied!', 'Challenge code copied to clipboard');
+      Alert.alert(t('license.copied'), t('license.challengeCodeCopied'));
     } catch (error) {
-      Alert.alert('Error', 'Failed to copy to clipboard');
+      Alert.alert(t('common.error'), t('license.failedToCopy'));
     }
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.stepNumber}>Step 1</Text>
-        <Text style={styles.title}>Copy Challenge Code</Text>
+        <Text style={styles.stepNumber}>{t('license.step1')}</Text>
+        <Text style={styles.title}>{t('license.copyChallengeCode')}</Text>
       </View>
 
       <View style={styles.challengeContainer}>
         <Text style={styles.challengeText}>{challenge}</Text>
         <TouchableOpacity style={styles.copyButton} onPress={copyToClipboard}>
           <Copy size={16} color="#FFFFFF" />
-          <Text style={styles.copyText}>Copy</Text>
+          <Text style={styles.copyText}>{t('license.copy')}</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.instruction}>
-        Send this code to the vendor to receive your license key
-      </Text>
+      <Text style={styles.instruction}>{t('license.sendCodeToVendor')}</Text>
     </View>
   );
 };
