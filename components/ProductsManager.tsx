@@ -432,6 +432,23 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   };
 
   const handleDeleteCategory = async (category: Category) => {
+    // First check if there are products using this category
+    const productsInCategory = products.filter(
+      (p) => p.category === category.name
+    );
+
+    if (productsInCategory.length > 0) {
+      showToast(
+        `Cannot delete "${category.name}" - ${
+          productsInCategory.length
+        } product${productsInCategory.length > 1 ? 's' : ''} still use${
+          productsInCategory.length === 1 ? 's' : ''
+        } this category`,
+        'error'
+      );
+      return;
+    }
+
     Alert.alert(
       'Delete Category',
       `Are you sure you want to delete "${category.name}"?`,
@@ -446,11 +463,22 @@ export default function Products({ compact = false }: ProductsManagerProps) {
               await loadData();
               showToast('Category deleted successfully', 'success');
             } catch (error: any) {
-              Alert.alert(
-                'Error',
-                error.message || 'Failed to delete category'
-              );
               console.error('Error deleting category:', error);
+              // Check if it's a foreign key constraint error
+              if (
+                error.message &&
+                error.message.includes('FOREIGN KEY constraint')
+              ) {
+                showToast(
+                  `Cannot delete "${category.name}" - products are still using this category`,
+                  'error'
+                );
+              } else {
+                showToast(
+                  `Failed to delete category "${category.name}". Please try again.`,
+                  'error'
+                );
+              }
             }
           },
         },

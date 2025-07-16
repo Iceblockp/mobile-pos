@@ -321,9 +321,28 @@ export default function Expenses() {
   const handleDeleteCategory = async (id: number) => {
     if (!db) return;
 
+    // Find the category name for better error messages
+    const category = categories.find((c) => c.id === id);
+    const categoryName = category?.name || 'this category';
+
+    // First check if there are expenses using this category
+    const expensesInCategory = expenses.filter((e) => e.category_id === id);
+
+    if (expensesInCategory.length > 0) {
+      showToast(
+        `Cannot delete "${categoryName}" - ${
+          expensesInCategory.length
+        } expense${expensesInCategory.length > 1 ? 's' : ''} still use${
+          expensesInCategory.length === 1 ? 's' : ''
+        } this category`,
+        'error'
+      );
+      return;
+    }
+
     Alert.alert(
-      'Confirm Delete',
-      'Are you sure you want to delete this category? This cannot be undone if the category has expenses.',
+      'Delete Category',
+      `Are you sure you want to delete "${categoryName}"?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -335,12 +354,25 @@ export default function Expenses() {
               loadCategories();
               triggerRefresh();
               showToast('Category deleted successfully!', 'success');
-            } catch (error) {
+            } catch (error: any) {
               console.error('Error deleting category:', error);
-              Alert.alert(
-                'Error',
-                'Failed to delete category. It may have associated expenses.'
-              );
+              // Check if it's a foreign key constraint error
+              if (
+                error.message &&
+                (error.message.includes('FOREIGN KEY constraint') ||
+                  error.message.includes('foreign key constraint') ||
+                  error.message.includes('constraint failed'))
+              ) {
+                showToast(
+                  `Cannot delete "${categoryName}" - expenses are still using this category`,
+                  'error'
+                );
+              } else {
+                showToast(
+                  `Failed to delete category "${categoryName}". Please try again.`,
+                  'error'
+                );
+              }
             }
           },
         },
