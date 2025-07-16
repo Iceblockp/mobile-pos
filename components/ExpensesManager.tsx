@@ -40,7 +40,6 @@ export default function Expenses() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreData, setHasMoreData] = useState(true);
   const PAGE_SIZE = 20;
@@ -52,14 +51,11 @@ export default function Expenses() {
   const [editingCategory, setEditingCategory] =
     useState<ExpenseCategory | null>(null);
 
-  // New state variables for date range filtering
-  const [filterStartDate, setFilterStartDate] = useState<Date>(new Date());
-  const [filterEndDate, setFilterEndDate] = useState<Date>(new Date());
-  const [showFilterStartDatePicker, setShowFilterStartDatePicker] =
-    useState(false);
-  const [showFilterEndDatePicker, setShowFilterEndDatePicker] = useState(false);
-  const [isDateFiltered, setIsDateFiltered] = useState(false);
-  const [showFilterModal, setShowFilterModal] = useState(false);
+  // Date filtering state (similar to sales.tsx)
+  const [dateFilter, setDateFilter] = useState('all');
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showFormDatePicker, setShowFormDatePicker] = useState(false);
 
   // Form state
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -71,6 +67,47 @@ export default function Expenses() {
   // Category selector state
   const [showCategorySelector, setShowCategorySelector] = useState(false);
 
+  // Add the date range calculation function (from sales.tsx)
+  const calculateDateRange = (
+    dateFilterType: string,
+    selectedDate: Date
+  ): [Date, Date] => {
+    const now = new Date();
+    const startDate = new Date();
+    const endDate = new Date();
+
+    switch (dateFilterType) {
+      case 'today':
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      case 'week':
+        startDate.setDate(now.getDate() - 7);
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      case 'month':
+        startDate.setMonth(now.getMonth() - 1);
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      case 'custom':
+        const customDate = new Date(selectedDate);
+        customDate.setHours(0, 0, 0, 0);
+        startDate.setTime(customDate.getTime());
+        endDate.setTime(customDate.getTime());
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      default: // 'all'
+        // For 'all', set a very old start date and current date as end date
+        startDate.setFullYear(startDate.getFullYear() - 10); // 10 years ago
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+    }
+
+    return [startDate, endDate];
+  };
+
   const loadExpenses = async (page = 1) => {
     if (!db) return;
 
@@ -78,15 +115,19 @@ export default function Expenses() {
       setLoading(true);
       let newExpenses;
 
-      if (isDateFiltered) {
+      if (dateFilter === 'all') {
+        newExpenses = await db.getExpensesPaginated(page, PAGE_SIZE);
+      } else {
+        const [startDate, endDate] = calculateDateRange(
+          dateFilter,
+          selectedDate
+        );
         newExpenses = await db.getExpensesByDateRangePaginated(
-          filterStartDate,
-          filterEndDate,
+          startDate,
+          endDate,
           page,
           PAGE_SIZE
         );
-      } else {
-        newExpenses = await db.getExpensesPaginated(page, PAGE_SIZE);
       }
 
       if (page === 1) {
@@ -307,19 +348,22 @@ export default function Expenses() {
     );
   };
 
-  const applyDateFilter = () => {
-    setIsDateFiltered(true);
-    setShowFilterModal(false);
-    setCurrentPage(1);
-    loadExpenses(1);
+  // Add date picker handler (from sales.tsx)
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setSelectedDate(selectedDate);
+      setDateFilter('custom');
+    }
   };
 
-  const clearDateFilter = () => {
-    setIsDateFiltered(false);
-    setShowFilterModal(false);
-    setCurrentPage(1);
-    loadExpenses(1);
-  };
+  // Reload expenses when date filter changes
+  useEffect(() => {
+    if (isReady) {
+      setCurrentPage(1);
+      loadExpenses(1);
+    }
+  }, [dateFilter, selectedDate]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -346,13 +390,6 @@ export default function Expenses() {
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={styles.iconButton}
-            onPress={() => setShowFilterModal(true)}
-          >
-            <Filter size={20} color="#3B82F6" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.iconButton}
             onPress={() => setShowCategoryModal(true)}
           >
             <Settings size={20} color="#3B82F6" />
@@ -366,7 +403,6 @@ export default function Expenses() {
             }}
           >
             <Plus size={24} color="#FFFFFF" />
-            {/* <Text style={styles.addButtonText}>Add Expense</Text> */}
           </TouchableOpacity>
         </View>
       </View>
@@ -387,17 +423,73 @@ export default function Expenses() {
         }}
         scrollEventThrottle={400}
       >
-        {isDateFiltered && (
-          <View style={styles.filterInfo}>
-            <Text style={styles.filterText}>
-              Filtered: {filterStartDate.toLocaleDateString()} -{' '}
-              {filterEndDate.toLocaleDateString()}
+        {/* Date Filter Chips (similar to sales.tsx) */}
+        <View style={styles.filtersContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.dateFilters}
+          >
+            {[
+              { key: 'all', label: 'All' },
+              { key: 'today', label: 'Today' },
+              { key: 'week', label: 'This Week' },
+              { key: 'month', label: 'This Month' },
+              { key: 'custom', label: 'Select Date' },
+            ].map((filter) => (
+              <TouchableOpacity
+                key={filter.key}
+                style={[
+                  styles.dateFilterChip,
+                  dateFilter === filter.key && styles.dateFilterChipActive,
+                ]}
+                onPress={() => {
+                  if (filter.key === 'custom') {
+                    setShowDatePicker(true);
+                  } else {
+                    setDateFilter(filter.key);
+                  }
+                }}
+              >
+                <Text
+                  style={[
+                    styles.dateFilterText,
+                    dateFilter === filter.key && styles.dateFilterTextActive,
+                  ]}
+                >
+                  {filter.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {dateFilter === 'custom' && (
+            <View style={styles.customDateContainer}>
+              <TouchableOpacity
+                style={styles.customDateButton}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Calendar size={16} color="#6B7280" />
+                <Text style={styles.customDateText}>
+                  {selectedDate.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={styles.summaryContainer}>
+            <Text style={styles.summaryText}>
+              {expenses.length} expenses • Total:{' '}
+              {formatMMK(
+                expenses.reduce((sum, expense) => sum + expense.amount, 0)
+              )}
             </Text>
-            <TouchableOpacity onPress={clearDateFilter}>
-              <X size={16} color="#6B7280" />
-            </TouchableOpacity>
           </View>
-        )}
+        </View>
 
         {loading && expenses.length === 0 ? (
           <LoadingSpinner />
@@ -781,99 +873,31 @@ export default function Expenses() {
         </SafeAreaView>
       </Modal>
 
-      {/* Date Filter Modal */}
-      <Modal
-        visible={showFilterModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Filter by Date Range</Text>
-            <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-              <Text style={styles.modalClose}>Done</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.modalContent}>
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Start Date</Text>
-              <TouchableOpacity
-                style={styles.dateInput}
-                onPress={() => setShowFilterStartDatePicker(true)}
-              >
-                <Text>
-                  {filterStartDate.toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
-                </Text>
-                <Calendar size={16} color="#000000" />
-              </TouchableOpacity>
-            </View>
+      {/* Date Picker for custom date selection */}
+      {showDatePicker && (
+        <DateTimePicker
+          value={selectedDate}
+          mode="date"
+          display="default"
+          onChange={onDateChange}
+          maximumDate={new Date()}
+        />
+      )}
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>End Date</Text>
-              <TouchableOpacity
-                style={styles.dateInput}
-                onPress={() => setShowFilterEndDatePicker(true)}
-              >
-                <Text>
-                  {filterEndDate.toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
-                </Text>
-                <Calendar size={16} color="#000000" />
-              </TouchableOpacity>
-            </View>
-
-            {showFilterStartDatePicker && (
-              <DateTimePicker
-                value={filterStartDate}
-                mode="date"
-                display="default"
-                onChange={(event, selectedDate) => {
-                  setShowFilterStartDatePicker(false);
-                  if (selectedDate) {
-                    setFilterStartDate(selectedDate);
-                  }
-                }}
-              />
-            )}
-
-            {showFilterEndDatePicker && (
-              <DateTimePicker
-                value={filterEndDate}
-                mode="date"
-                display="default"
-                onChange={(event, selectedDate) => {
-                  setShowFilterEndDatePicker(false);
-                  if (selectedDate) {
-                    setFilterEndDate(selectedDate);
-                  }
-                }}
-              />
-            )}
-
-            <View style={styles.filterButtons}>
-              <TouchableOpacity
-                style={[styles.filterButton, styles.clearButton]}
-                onPress={clearDateFilter}
-              >
-                <Text style={styles.clearButtonText}>Clear Filter</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.filterButton, styles.applyButton]}
-                onPress={applyDateFilter}
-              >
-                <Text style={styles.applyButtonText}>Apply Filter</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </SafeAreaView>
-      </Modal>
+      {/* Form Date Picker */}
+      {showFormDatePicker && (
+        <DateTimePicker
+          value={formDate}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setShowFormDatePicker(false);
+            if (selectedDate) {
+              setFormDate(selectedDate);
+            }
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -1303,5 +1327,65 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 6,
+  },
+
+  // Date Filter Styles (from sales.tsx)
+  filtersContainer: {
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    marginBottom: 8,
+  },
+  dateFilters: {
+    flexDirection: 'row',
+  },
+  dateFilterChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+  },
+  dateFilterChipActive: {
+    backgroundColor: '#10B981',
+  },
+  dateFilterText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  dateFilterTextActive: {
+    color: '#FFFFFF',
+  },
+  customDateContainer: {
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  customDateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  customDateText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#374151',
+    marginLeft: 8,
+  },
+  summaryContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  summaryText: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#374151',
+    textAlign: 'center',
   },
 });
