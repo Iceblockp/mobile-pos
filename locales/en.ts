@@ -431,6 +431,12 @@ export const en = {
     licenseWillExpire: 'Your license will expire in',
     regenerateChallenge: 'Regenerate your challenge to extend your license.',
     regenerateChallengeButton: 'Regenerate Challenge',
+    regenerateWarningTitle: 'Warning: POS Features Will Be Disabled',
+    regenerateWarningMessage:
+      'After regenerating the challenge, POS features will be temporarily disabled until you receive and enter the new response code from the admin. Please contact the admin first before proceeding.',
+    contactAdmin: 'Contact Admin First',
+    proceedAnyway: 'Proceed Anyway',
+    contactPhone: 'Contact Phone',
     // Challenge Display
     step1: 'Step 1',
     copyChallengeCode: 'Copy Challenge Code',

@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   StatusBar,
   ScrollView,
+  Alert,
 } from 'react-native';
 import React, { useState } from 'react';
 import { useLicense } from '@/hooks/useLicense';
@@ -38,6 +39,26 @@ const Index = () => {
 
   const [selectedDuration, setSelectedDuration] = useState('trial');
   const [modalVisible, setModalVisible] = useState(false);
+
+  // Function to handle regenerate challenge with warning
+  const handleRegenerateChallenge = (validityMonths: number) => {
+    Alert.alert(
+      t('license.regenerateWarningTitle'),
+      t('license.regenerateWarningMessage'),
+      [
+        {
+          text: t('license.contactAdmin'),
+          style: 'default',
+        },
+        {
+          text: t('license.proceedAnyway'),
+          style: 'destructive',
+          onPress: () => regenerateChallenge(validityMonths),
+        },
+      ],
+      { cancelable: true }
+    );
+  };
 
   if (loading) {
     return (
@@ -144,6 +165,14 @@ const Index = () => {
               </Text>
             </TouchableOpacity>
           </View>
+
+          {/* Contact Phone Section */}
+          <View style={styles.contactSection}>
+            <Text style={styles.contactLabel}>
+              {t('license.contactPhone')}:
+            </Text>
+            <Text style={styles.contactPhone}>+959425743536</Text>
+          </View>
         </ScrollView>
 
         <LicenseDurationModal
@@ -206,7 +235,7 @@ const Index = () => {
             </Text>
             <TouchableOpacity
               style={styles.regenerateChallengeButton}
-              onPress={() => regenerateChallenge(30)}
+              onPress={() => handleRegenerateChallenge(30)}
             >
               <ShieldCheck size={16} color="#FFFFFF" />
               <Text style={styles.regenerateChallengeButtonText}>
@@ -246,6 +275,12 @@ const Index = () => {
             </Text>
           </TouchableOpacity>
         )}
+
+        {/* Contact Phone Section */}
+        <View style={styles.contactSection}>
+          <Text style={styles.contactLabel}>{t('license.contactPhone')}:</Text>
+          <Text style={styles.contactPhone}>+959425743536</Text>
+        </View>
       </View>
 
       <LicenseDurationModal
@@ -507,5 +542,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 6,
+  },
+
+  // Contact Section Styles
+  contactSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    alignItems: 'center',
+  },
+  contactLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  contactPhone: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2563EB',
+    letterSpacing: 0.5,
   },
 });
