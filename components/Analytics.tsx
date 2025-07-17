@@ -28,6 +28,7 @@ import {
   ChevronRight,
 } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from '@/context/LocalizationContext';
 
 type FilterMode = 'day' | 'month' | 'range';
 
@@ -42,6 +43,7 @@ interface DateFilter {
 
 export default function Analytics() {
   const { db, isReady, refreshTrigger } = useDatabase();
+  const { t } = useTranslation();
   const [analytics, setAnalytics] = useState<any>(null);
   const [recentSales, setRecentSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(false);
@@ -340,8 +342,8 @@ export default function Analytics() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Analytics</Text>
-        <Text style={styles.subtitle}>Business Performance Insights</Text>
+        <Text style={styles.title}>{t('analytics.title')}</Text>
+        <Text style={styles.subtitle}>{t('analytics.subtitle')}</Text>
       </View>
 
       <ScrollView
@@ -358,13 +360,15 @@ export default function Analytics() {
         {/* Enhanced Period Selector */}
         <Card style={styles.periodCard}>
           <View style={styles.periodHeader}>
-            <Text style={styles.sectionTitle}>Analysis Period</Text>
+            <Text style={styles.sectionTitle}>
+              {t('analytics.analysisPeriod')}
+            </Text>
             <TouchableOpacity
               style={styles.filterButton}
               onPress={() => setShowFilterModal(true)}
             >
               <Calendar size={16} color="#059669" />
-              <Text style={styles.filterButtonText}>Filter</Text>
+              <Text style={styles.filterButtonText}>{t('common.filter')}</Text>
               <ChevronDown size={16} color="#059669" />
             </TouchableOpacity>
           </View>
@@ -372,7 +376,9 @@ export default function Analytics() {
           {/* Current Filter Display */}
           <View style={styles.currentFilterContainer}>
             <View style={styles.currentFilterDisplay}>
-              <Text style={styles.currentFilterLabel}>Current Period:</Text>
+              <Text style={styles.currentFilterLabel}>
+                {t('analytics.currentPeriod')}:
+              </Text>
               <Text style={styles.currentFilterValue}>
                 {getFilterDisplayText()}
               </Text>
@@ -425,7 +431,7 @@ export default function Analytics() {
                     styles.quickFilterTextActive,
                 ]}
               >
-                Today
+                {t('common.today')}
               </Text>
             </TouchableOpacity>
 
@@ -446,7 +452,7 @@ export default function Analytics() {
                     styles.quickFilterTextActive,
                 ]}
               >
-                This Month
+                {t('common.thisMonth')}
               </Text>
             </TouchableOpacity>
 
@@ -454,14 +460,17 @@ export default function Analytics() {
               style={styles.quickFilterChip}
               onPress={() => handleQuickFilter('range', 'week')}
             >
-              <Text style={styles.quickFilterText}>Last 7 Days</Text>
+              <Text style={styles.quickFilterText}>{t('common.thisWeek')}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.periodSummary}>
             <Text style={styles.periodSummaryText}>
-              {getDaysInPeriod()} {getDaysInPeriod() === 1 ? 'day' : 'days'} •{' '}
-              {analytics?.totalSales || 0} sales
+              {getDaysInPeriod()}{' '}
+              {getDaysInPeriod() === 1
+                ? t('analytics.day')
+                : t('analytics.days')}{' '}
+              • {analytics?.totalSales || 0} {t('analytics.sales')}
             </Text>
           </View>
         </Card>
@@ -477,7 +486,9 @@ export default function Analytics() {
                 <Text style={styles.metricValue}>
                   {formatMMK(analytics?.totalRevenue || 0)}
                 </Text>
-                <Text style={styles.metricLabel}>Total Revenue</Text>
+                <Text style={styles.metricLabel}>
+                  {t('analytics.totalRevenue')}
+                </Text>
                 {analytics?.revenueGrowth && (
                   <View style={styles.growthIndicator}>
                     {analytics.revenueGrowth.isPositive ? (
@@ -512,9 +523,12 @@ export default function Analytics() {
                 <Text style={styles.metricValue}>
                   {formatMMK(analytics?.totalProfit || 0)}
                 </Text>
-                <Text style={styles.metricLabel}>Total Profit</Text>
+                <Text style={styles.metricLabel}>
+                  {t('analytics.totalProfit')}
+                </Text>
                 <Text style={styles.metricSubtext}>
-                  Margin: {analytics?.profitMargin?.toFixed(1) || 0}%
+                  {t('analytics.profitMargin')}:{' '}
+                  {analytics?.profitMargin?.toFixed(1) || 0}%
                 </Text>
               </View>
             </View>
@@ -529,13 +543,15 @@ export default function Analytics() {
                 <Text style={styles.metricValue}>
                   {analytics?.totalSales || 0}
                 </Text>
-                <Text style={styles.metricLabel}>Total Sales</Text>
+                <Text style={styles.metricLabel}>
+                  {t('analytics.totalSales')}
+                </Text>
                 <Text style={styles.metricSubtext}>
                   Avg:{' '}
                   {((analytics?.totalSales || 0) / getDaysInPeriod()).toFixed(
                     1
                   )}
-                  /day
+                  /{t('analytics.day')}
                 </Text>
               </View>
             </View>
@@ -550,8 +566,12 @@ export default function Analytics() {
                 <Text style={styles.metricValue}>
                   {formatMMK(analytics?.avgSaleValue || 0)}
                 </Text>
-                <Text style={styles.metricLabel}>Avg Sale Value</Text>
-                <Text style={styles.metricSubtext}>Per transaction</Text>
+                <Text style={styles.metricLabel}>
+                  {t('analytics.avgSaleValue')}
+                </Text>
+                <Text style={styles.metricSubtext}>
+                  {t('analytics.perTransaction')}
+                </Text>
               </View>
             </View>
           </Card>
@@ -559,31 +579,41 @@ export default function Analytics() {
 
         {/* Business Insights */}
         <Card>
-          <Text style={styles.sectionTitle}>Business Insights</Text>
+          <Text style={styles.sectionTitle}>
+            {t('analytics.businessInsights')}
+          </Text>
 
           <View style={styles.insightItem}>
-            <Text style={styles.insightLabel}>Daily Average Revenue</Text>
+            <Text style={styles.insightLabel}>
+              {t('analytics.dailyAverageRevenue')}
+            </Text>
             <Text style={styles.insightValue}>
               {formatMMK((analytics?.totalRevenue || 0) / getDaysInPeriod())}
             </Text>
           </View>
 
           <View style={styles.insightItem}>
-            <Text style={styles.insightLabel}>Daily Average Profit</Text>
+            <Text style={styles.insightLabel}>
+              {t('analytics.dailyAverageProfit')}
+            </Text>
             <Text style={styles.insightValue}>
               {formatMMK((analytics?.totalProfit || 0) / getDaysInPeriod())}
             </Text>
           </View>
 
           <View style={styles.insightItem}>
-            <Text style={styles.insightLabel}>Cost of Goods Sold</Text>
+            <Text style={styles.insightLabel}>
+              {t('analytics.costOfGoodsSold')}
+            </Text>
             <Text style={styles.insightValue}>
               {formatMMK(analytics?.totalCost || 0)}
             </Text>
           </View>
 
           <View style={styles.insightItem}>
-            <Text style={styles.insightLabel}>Profit Margin</Text>
+            <Text style={styles.insightLabel}>
+              {t('analytics.profitMargin')}
+            </Text>
             <Text
               style={[
                 styles.insightValue,
@@ -598,26 +628,30 @@ export default function Analytics() {
           </View>
 
           <View style={styles.insightItem}>
-            <Text style={styles.insightLabel}>Items Sold</Text>
+            <Text style={styles.insightLabel}>{t('analytics.itemsSold')}</Text>
             <Text style={styles.insightValue}>
-              {analytics?.totalItemsSold || 0} units
+              {analytics?.totalItemsSold || 0} {t('analytics.units')}
             </Text>
           </View>
         </Card>
 
         {/* Expense Summary */}
         <Card>
-          <Text style={styles.sectionTitle}>Expense Summary</Text>
+          <Text style={styles.sectionTitle}>
+            {t('analytics.expenseSummary')}
+          </Text>
 
           <View style={styles.insightItem}>
-            <Text style={styles.insightLabel}>Total Expenses</Text>
+            <Text style={styles.insightLabel}>
+              {t('analytics.totalExpenses')}
+            </Text>
             <Text style={styles.insightValue}>
               {formatMMK(analytics?.totalExpenses || 0)}
             </Text>
           </View>
 
           <View style={styles.insightItem}>
-            <Text style={styles.insightLabel}>Net Profit (After Expenses)</Text>
+            <Text style={styles.insightLabel}>{t('analytics.netProfit')}</Text>
             <Text
               style={[
                 styles.insightValue,
@@ -634,7 +668,9 @@ export default function Analytics() {
           {analytics?.expensesByCategory &&
           analytics.expensesByCategory.length > 0 ? (
             <>
-              <Text style={styles.subSectionTitle}>Expenses by Category</Text>
+              <Text style={styles.subSectionTitle}>
+                {t('analytics.expensesByCategory')}
+              </Text>
               {analytics.expensesByCategory.map(
                 (category: any, index: number) => (
                   <View key={index} style={styles.insightItem}>
@@ -655,14 +691,16 @@ export default function Analytics() {
             </>
           ) : (
             <Text style={styles.noDataText}>
-              No expense data for this period
+              {t('analytics.noExpenseData')}
             </Text>
           )}
         </Card>
 
         {/* Top Performing Products */}
         <Card>
-          <Text style={styles.sectionTitle}>Top Performing Products</Text>
+          <Text style={styles.sectionTitle}>
+            {t('analytics.topPerformingProducts')}
+          </Text>
           {analytics?.topProducts?.length > 0 ? (
             analytics.topProducts.map((product: any, index: number) => (
               <View key={index} style={styles.productRank}>
@@ -672,11 +710,12 @@ export default function Analytics() {
                 <View style={styles.productInfo}>
                   <Text style={styles.productName}>{product.name}</Text>
                   <Text style={styles.productStats}>
-                    {product.quantity} units • Profit:{' '}
-                    {formatMMK(product.profit)}
+                    {product.quantity} {t('analytics.units')} •{' '}
+                    {t('analytics.profit')}: {formatMMK(product.profit)}
                   </Text>
                   <Text style={styles.productMargin}>
-                    Margin: {product.margin?.toFixed(1) || 0}%
+                    {t('analytics.profitMargin')}:{' '}
+                    {product.margin?.toFixed(1) || 0}%
                   </Text>
                 </View>
                 <View style={styles.productRevenue}>
@@ -687,32 +726,34 @@ export default function Analytics() {
               </View>
             ))
           ) : (
-            <Text style={styles.noData}>
-              No sales data available for this period
-            </Text>
+            <Text style={styles.noData}>{t('analytics.noSalesForPeriod')}</Text>
           )}
         </Card>
 
         {/* Recent Sales */}
         <Card>
-          <Text style={styles.sectionTitle}>Recent Sales</Text>
+          <Text style={styles.sectionTitle}>{t('analytics.recentSales')}</Text>
           {recentSales.length > 0 ? (
             recentSales.slice(0, 10).map((sale) => (
               <View key={sale.id} style={styles.saleItem}>
                 <View style={styles.saleInfo}>
-                  <Text style={styles.saleId}>Sale #{sale.id}</Text>
+                  <Text style={styles.saleId}>
+                    {t('analytics.saleId')}
+                    {sale.id}
+                  </Text>
                   <Text style={styles.saleDate}>
                     {formatDate(sale.created_at)}
                   </Text>
                   <Text style={styles.salePayment}>
-                    Payment: {sale.payment_method.toUpperCase()}
+                    {t('analytics.payment')}:{' '}
+                    {sale.payment_method.toUpperCase()}
                   </Text>
                 </View>
                 <Text style={styles.saleAmount}>{formatMMK(sale.total)}</Text>
               </View>
             ))
           ) : (
-            <Text style={styles.noData}>No sales for this period</Text>
+            <Text style={styles.noData}>{t('analytics.noSalesForPeriod')}</Text>
           )}
         </Card>
       </ScrollView>
@@ -726,16 +767,20 @@ export default function Analytics() {
       >
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Select Date Filter</Text>
+            <Text style={styles.modalTitle}>
+              {t('common.selectDate')} {t('common.filter')}
+            </Text>
             <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-              <Text style={styles.modalClose}>Done</Text>
+              <Text style={styles.modalClose}>{t('common.done')}</Text>
             </TouchableOpacity>
           </View>
 
           <ScrollView style={styles.modalContent}>
             {/* Day Filter Section */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Day Filter</Text>
+              <Text style={styles.filterSectionTitle}>
+                {t('common.today')} {t('common.filter')}
+              </Text>
               <Text style={styles.filterSectionDesc}>
                 View data for a specific day
               </Text>

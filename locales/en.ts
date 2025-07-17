@@ -297,6 +297,7 @@ export const en = {
     enterCategoryName: 'Please enter a category name',
     failedToSave: 'Failed to save category',
     deleteCategory: 'Delete Category',
+    areYouSure: 'Are you sure you want to delete',
     cannotDelete: 'Cannot delete',
     productsStillUse: 'products still use this category',
     productStillUses: 'product still uses this category',
@@ -326,8 +327,15 @@ export const en = {
     addNewCategory: 'Add New Category',
     selected: 'Selected',
   },
+  reports: {
+    title: 'Reports',
+    subtitle: 'Business insights and expense tracking',
+    analytics: 'Analytics',
+    expenses: 'Expenses',
+  },
   analytics: {
     title: 'Analytics',
+    profit: 'Profit',
     subtitle: 'Business Performance Insights',
     analysisPeriod: 'Analysis Period',
     currentPeriod: 'Current Period',
@@ -413,5 +421,4 @@ export const en = {
   },
 };
 
-// Export the type for TypeScript support
 export type TranslationKeys = typeof en;

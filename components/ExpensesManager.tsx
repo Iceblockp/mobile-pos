@@ -29,10 +29,12 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Button } from '@/components/Button';
 import { useToast } from '@/context/ToastContext';
+import { useTranslation } from '@/context/LocalizationContext';
 
 export default function Expenses() {
   const { db, isReady, refreshTrigger, triggerRefresh } = useDatabase();
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [expenses, setExpenses] = useState<
     (Expense & { category_name: string })[]
   >([]);
@@ -183,12 +185,12 @@ export default function Expenses() {
     if (!db) return;
 
     if (!formCategory) {
-      Alert.alert('Error', 'Please select a category');
+      Alert.alert(t('common.error'), t('expenses.selectCategory'));
       return;
     }
 
     if (!formAmount || isNaN(Number(formAmount)) || Number(formAmount) <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount');
+      Alert.alert(t('common.error'), t('expenses.enterValidAmount'));
       return;
     }
 
@@ -217,40 +219,36 @@ export default function Expenses() {
       // Show success toast
       showToast(
         editingExpense
-          ? 'Expense updated successfully!'
-          : 'Expense added successfully!',
+          ? t('expenses.expenseUpdated')
+          : t('expenses.expenseAdded'),
         'success'
       );
     } catch (error) {
       console.error('Error saving expense:', error);
-      Alert.alert('Error', 'Failed to save expense');
+      Alert.alert(t('common.error'), t('expenses.failedToSave'));
     }
   };
 
   const handleDeleteExpense = async (id: number) => {
     if (!db) return;
 
-    Alert.alert(
-      'Confirm Delete',
-      'Are you sure you want to delete this expense?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await db.deleteExpense(id);
-              triggerRefresh();
-              showToast('Expense deleted successfully!', 'success');
-            } catch (error) {
-              console.error('Error deleting expense:', error);
-              Alert.alert('Error', 'Failed to delete expense');
-            }
-          },
+    Alert.alert(t('expenses.confirmDelete'), t('expenses.areYouSureDelete'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await db.deleteExpense(id);
+            triggerRefresh();
+            showToast(t('expenses.expenseDeleted'), 'success');
+          } catch (error) {
+            console.error('Error deleting expense:', error);
+            Alert.alert(t('common.error'), t('expenses.failedToDelete'));
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleEditExpense = (expense: Expense & { category_name: string }) => {
@@ -280,7 +278,7 @@ export default function Expenses() {
     if (!db) return;
 
     if (!categoryName.trim()) {
-      Alert.alert('Error', 'Please enter a category name');
+      Alert.alert(t('common.error'), t('categories.enterCategoryName'));
       return;
     }
 
@@ -302,13 +300,13 @@ export default function Expenses() {
       // Show success toast
       showToast(
         editingCategory
-          ? 'Category updated successfully!'
-          : 'Category added successfully!',
+          ? t('categories.categoryUpdated')
+          : t('categories.categoryAdded'),
         'success'
       );
     } catch (error) {
       console.error('Error saving category:', error);
-      Alert.alert('Error', 'Failed to save category');
+      Alert.alert(t('common.error'), t('categories.failedToSave'));
     }
   };
 
@@ -329,31 +327,38 @@ export default function Expenses() {
     const expensesInCategory = expenses.filter((e) => e.category_id === id);
 
     if (expensesInCategory.length > 0) {
-      showToast(
-        `Cannot delete "${categoryName}" - ${
+      // Show alert for error - it will appear on top of modal and be clearly visible
+      Alert.alert(
+        t('categories.cannotDelete'),
+        `${t('categories.cannotDelete')} "${categoryName}" - ${
           expensesInCategory.length
-        } expense${expensesInCategory.length > 1 ? 's' : ''} still use${
-          expensesInCategory.length === 1 ? 's' : ''
-        } this category`,
-        'error'
+        } ${
+          expensesInCategory.length > 1
+            ? t('categories.expensesStillUse')
+            : t('categories.expenseStillUses')
+        }`,
+        [{ text: t('common.close'), style: 'default' }]
       );
       return;
     }
 
     Alert.alert(
-      'Delete Category',
-      `Are you sure you want to delete "${categoryName}"?`,
+      t('categories.deleteCategory'),
+      `${t('categories.areYouSure')} "${categoryName}"?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await db.deleteExpenseCategory(id);
               loadCategories();
               triggerRefresh();
-              showToast('Category deleted successfully!', 'success');
+              setShowCategoryModal(false);
+              setTimeout(() => {
+                showToast(t('categories.categoryDeleted'), 'success');
+              }, 300);
             } catch (error: any) {
               console.error('Error deleting category:', error);
               // Check if it's a foreign key constraint error
@@ -364,12 +369,16 @@ export default function Expenses() {
                   error.message.includes('constraint failed'))
               ) {
                 showToast(
-                  `Cannot delete "${categoryName}" - expenses are still using this category`,
+                  `${t('categories.cannotDelete')} "${categoryName}" - ${t(
+                    'categories.expensesStillUse'
+                  )}`,
                   'error'
                 );
               } else {
                 showToast(
-                  `Failed to delete category "${categoryName}". Please try again.`,
+                  `${t('categories.failedToSave')} "${categoryName}". ${t(
+                    'common.error'
+                  )}.`,
                   'error'
                 );
               }
@@ -418,7 +427,7 @@ export default function Expenses() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Expenses</Text>
+        <Text style={styles.title}>{t('expenses.title')}</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={styles.iconButton}
@@ -463,11 +472,11 @@ export default function Expenses() {
             style={styles.dateFilters}
           >
             {[
-              { key: 'all', label: 'All' },
-              { key: 'today', label: 'Today' },
-              { key: 'week', label: 'This Week' },
-              { key: 'month', label: 'This Month' },
-              { key: 'custom', label: 'Select Date' },
+              { key: 'all', label: t('common.all') },
+              { key: 'today', label: t('common.today') },
+              { key: 'week', label: t('common.thisWeek') },
+              { key: 'month', label: t('common.thisMonth') },
+              { key: 'custom', label: t('common.selectDate') },
             ].map((filter) => (
               <TouchableOpacity
                 key={filter.key}
@@ -515,7 +524,8 @@ export default function Expenses() {
 
           <View style={styles.summaryContainer}>
             <Text style={styles.summaryText}>
-              {expenses.length} expenses • Total:{' '}
+              {expenses.length} {t('expenses.title').toLowerCase()} •{' '}
+              {t('common.total')}:{' '}
               {formatMMK(
                 expenses.reduce((sum, expense) => sum + expense.amount, 0)
               )}
@@ -528,7 +538,7 @@ export default function Expenses() {
         ) : expenses.length === 0 ? (
           <Card>
             <Text style={styles.emptyText}>
-              No expenses found. Add your first expense!
+              {t('expenses.noExpensesFound')}
             </Text>
           </Card>
         ) : (
@@ -561,7 +571,7 @@ export default function Expenses() {
                     onPress={() => handleEditExpense(expense)}
                   >
                     <Edit size={16} color="#3B82F6" />
-                    <Text style={styles.actionText}>Edit</Text>
+                    <Text style={styles.actionText}>{t('common.edit')}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -570,7 +580,7 @@ export default function Expenses() {
                   >
                     <Trash2 size={16} color="#EF4444" />
                     <Text style={[styles.actionText, { color: '#EF4444' }]}>
-                      Delete
+                      {t('common.delete')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -591,7 +601,9 @@ export default function Expenses() {
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
-              {editingExpense ? 'Edit Expense' : 'Add Expense'}
+              {editingExpense
+                ? t('expenses.editExpense')
+                : t('expenses.addExpense')}
             </Text>
             <TouchableOpacity
               onPress={() => {
@@ -599,7 +611,7 @@ export default function Expenses() {
                 resetForm();
               }}
             >
-              <Text style={styles.modalClose}>Cancel</Text>
+              <Text style={styles.modalClose}>{t('common.cancel')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -609,7 +621,7 @@ export default function Expenses() {
           >
             <Card style={styles.categoryFormCard}>
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Category</Text>
+                <Text style={styles.label}>{t('common.category')}</Text>
                 <TouchableOpacity
                   style={styles.select}
                   onPress={() => setShowCategorySelector(!showCategorySelector)}
@@ -617,8 +629,8 @@ export default function Expenses() {
                   <Text>
                     {formCategory
                       ? categories.find((c) => c.id === formCategory)?.name ||
-                        'Select Category'
-                      : 'Select Category'}
+                        t('expenses.selectCategory')
+                      : t('expenses.selectCategory')}
                   </Text>
                   <ChevronDown
                     size={16}
@@ -638,10 +650,10 @@ export default function Expenses() {
                       <View style={styles.emptyCategoryState}>
                         <Tag size={32} color="#9CA3AF" />
                         <Text style={styles.emptyCategoryText}>
-                          No categories found
+                          {t('expenses.noCategoriesFound')}
                         </Text>
                         <Text style={styles.emptyCategorySubtext}>
-                          Create categories first to organize your expenses
+                          {t('expenses.createCategoriesFirst')}
                         </Text>
                         <TouchableOpacity
                           style={styles.createCategoryButton}
@@ -652,7 +664,7 @@ export default function Expenses() {
                         >
                           <Plus size={14} color="#FFFFFF" />
                           <Text style={styles.createCategoryButtonText}>
-                            Create Category
+                            {t('expenses.createCategory')}
                           </Text>
                         </TouchableOpacity>
                       </View>
@@ -675,7 +687,7 @@ export default function Expenses() {
                                 setFormCategory(category.id);
                                 setShowCategorySelector(false);
                                 showToast(
-                                  `Selected: ${category.name}`,
+                                  `${t('expenses.selected')}: ${category.name}`,
                                   'success'
                                 );
                               }}
@@ -734,7 +746,7 @@ export default function Expenses() {
                         >
                           {/* <Plus size={14} color="#3B82F6" /> */}
                           <Text style={styles.inlineAddCategoryText}>
-                            Select a Category
+                            {t('expenses.selectCategory')}
                           </Text>
                         </TouchableOpacity>
                       </>
@@ -744,30 +756,30 @@ export default function Expenses() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Amount (MMK)</Text>
+                <Text style={styles.label}>{t('expenses.amountMMK')}</Text>
                 <TextInput
                   style={styles.input}
                   value={formAmount}
                   onChangeText={setFormAmount}
                   keyboardType="numeric"
-                  placeholder="Enter amount"
+                  placeholder={t('expenses.enterAmount')}
                 />
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Description</Text>
+                <Text style={styles.label}>{t('common.description')}</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   value={formDescription}
                   onChangeText={setFormDescription}
-                  placeholder="Enter description"
+                  placeholder={t('expenses.enterDescription')}
                   multiline
                   numberOfLines={3}
                 />
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Date</Text>
+                <Text style={styles.label}>{t('common.date')}</Text>
                 <TouchableOpacity
                   style={styles.dateInput}
                   onPress={() => setShowDatePicker(true)}
@@ -799,7 +811,7 @@ export default function Expenses() {
 
               <View style={styles.formButtons}>
                 <Button
-                  title="Cancel"
+                  title={t('common.cancel')}
                   onPress={() => {
                     setShowAddModal(false);
                     resetForm();
@@ -808,7 +820,7 @@ export default function Expenses() {
                   style={styles.formButton}
                 />
                 <Button
-                  title={editingExpense ? 'Update' : 'Save'}
+                  title={editingExpense ? t('common.edit') : t('common.save')}
                   onPress={handleAddExpense}
                   style={styles.formButton}
                 />
@@ -826,9 +838,11 @@ export default function Expenses() {
       >
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Manage Categories</Text>
+            <Text style={styles.modalTitle}>
+              {t('categories.manageCategories')}
+            </Text>
             <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
-              <Text style={styles.modalClose}>Done</Text>
+              <Text style={styles.modalClose}>{t('common.done')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -838,19 +852,21 @@ export default function Expenses() {
           >
             <Card style={styles.categoryFormCard}>
               <Text style={styles.formTitle}>
-                {editingCategory ? 'Edit Category' : 'Add New Category'}
+                {editingCategory
+                  ? t('categories.editCategory')
+                  : t('categories.addNewCategory')}
               </Text>
 
               <TextInput
                 style={styles.input}
-                placeholder="Category Name *"
+                placeholder={t('categories.categoryName') + ' *'}
                 value={categoryName}
                 onChangeText={setCategoryName}
               />
 
               <TextInput
                 style={[styles.input, styles.textArea]}
-                placeholder="Description"
+                placeholder={t('common.description')}
                 value={categoryDescription}
                 onChangeText={setCategoryDescription}
                 multiline
@@ -859,20 +875,22 @@ export default function Expenses() {
 
               <View style={styles.formButtons}>
                 <Button
-                  title="Cancel"
+                  title={t('common.cancel')}
                   onPress={resetCategoryForm}
                   variant="secondary"
                   style={styles.formButton}
                 />
                 <Button
-                  title={editingCategory ? 'Update' : 'Add'}
+                  title={editingCategory ? t('common.edit') : t('common.add')}
                   onPress={handleAddCategory}
                   style={styles.formButton}
                 />
               </View>
             </Card>
 
-            <Text style={styles.sectionTitle}>Existing Categories</Text>
+            <Text style={styles.sectionTitle}>
+              {t('categories.existingCategories')}
+            </Text>
             {categories.map((category) => (
               <Card key={category.id} style={styles.categoryCard}>
                 <View style={styles.categoryHeader}>

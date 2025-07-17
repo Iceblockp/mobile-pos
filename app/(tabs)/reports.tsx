@@ -5,15 +5,9 @@ import {
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
-  ScrollView,
 } from 'react-native';
-import { Card } from '@/components/Card';
-import {
-  BarChart3,
-  DollarSign,
-  TrendingUp,
-  Calendar,
-} from 'lucide-react-native';
+import { BarChart3, DollarSign } from 'lucide-react-native';
+import { useTranslation } from '@/context/LocalizationContext';
 
 // Import the existing screens as components
 import AnalyticsScreen from '../../components/Analytics';
@@ -23,6 +17,7 @@ type ReportTab = 'analytics' | 'expenses';
 
 export default function Reports() {
   const [activeTab, setActiveTab] = useState<ReportTab>('analytics');
+  const { t } = useTranslation();
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -38,10 +33,8 @@ export default function Reports() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Reports</Text>
-        <Text style={styles.subtitle}>
-          Business insights and expense tracking
-        </Text>
+        <Text style={styles.title}>{t('reports.title')}</Text>
+        <Text style={styles.subtitle}>{t('reports.subtitle')}</Text>
       </View>
 
       {/* Tab Navigation */}
@@ -60,7 +53,7 @@ export default function Reports() {
               activeTab === 'analytics' && styles.activeTabText,
             ]}
           >
-            Analytics
+            {t('reports.analytics')}
           </Text>
         </TouchableOpacity>
 
@@ -78,7 +71,7 @@ export default function Reports() {
               activeTab === 'expenses' && styles.activeTabText,
             ]}
           >
-            Expenses
+            {t('reports.expenses')}
           </Text>
         </TouchableOpacity>
       </View>

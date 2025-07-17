@@ -437,24 +437,26 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     );
 
     if (productsInCategory.length > 0) {
-      showToast(
-        `${t('products.cannotDeleteCategory')} "${category.name}" - ${
+      // Show alert for error - it will appear on top of modal and be clearly visible
+      Alert.alert(
+        t('categories.cannotDelete'),
+        `${t('categories.cannotDelete')} "${category.name}" - ${
           productsInCategory.length
         } ${
           productsInCategory.length > 1
-            ? t('products.productsStillUseCategory')
-            : t('products.productStillUsesCategory')
+            ? t('categories.productsStillUse')
+            : t('categories.productStillUses')
         }`,
-        'error'
+        [{ text: t('common.close'), style: 'default' }]
       );
       return;
     }
 
     Alert.alert(
-      t('products.deleteCategory'),
-      `${t('products.areYouSure')} "${category.name}"?`,
+      t('categories.deleteCategory'),
+      `${t('categories.areYouSure')} "${category.name}"?`,
       [
-        { text: t('products.cancel'), style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
           text: t('common.delete'),
           style: 'destructive',
@@ -462,26 +464,34 @@ export default function Products({ compact = false }: ProductsManagerProps) {
             try {
               await db?.deleteCategory(category.id);
               await loadData();
-              showToast(t('products.categoryDeleted'), 'success');
+              // Close modal first, then show success toast
+              setShowCategoryModal(false);
+              setTimeout(() => {
+                showToast(t('categories.categoryDeleted'), 'success');
+              }, 300); // Small delay for smooth transition
             } catch (error: any) {
               console.error('Error deleting category:', error);
               // Check if it's a foreign key constraint error
               if (
                 error.message &&
-                error.message.includes('FOREIGN KEY constraint')
+                (error.message.includes('FOREIGN KEY constraint') ||
+                  error.message.includes('foreign key constraint') ||
+                  error.message.includes('constraint failed'))
               ) {
-                showToast(
-                  `${t('products.cannotDeleteCategory')} "${
-                    category.name
-                  }" - ${t('products.productsStillUseCategory')}`,
-                  'error'
+                Alert.alert(
+                  t('categories.cannotDelete'),
+                  `${t('categories.cannotDelete')} "${category.name}" - ${t(
+                    'categories.productsStillUse'
+                  )}`,
+                  [{ text: t('common.close'), style: 'default' }]
                 );
               } else {
-                showToast(
-                  `${t('products.failedToSaveCategory')} "${
-                    category.name
-                  }". ${t('common.error')}.`,
-                  'error'
+                Alert.alert(
+                  t('common.error'),
+                  `${t('categories.failedToSave')} "${category.name}". ${t(
+                    'common.error'
+                  )}.`,
+                  [{ text: t('common.close'), style: 'default' }]
                 );
               }
             }
