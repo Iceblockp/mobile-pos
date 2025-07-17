@@ -112,7 +112,7 @@ export default function Dashboard() {
                   {formatMMK(analytics?.totalRevenue || 0)}
                 </Text>
                 <Text style={styles.metricLabel}>
-                  {t('dashboard.totalRevenue')} (30d)
+                  {t('dashboard.totalRevenue')} ({t('dashboard.days30')})
                 </Text>
                 <View style={styles.metricTrend}>
                   <ArrowUpRight size={12} color="#059669" />
@@ -134,7 +134,7 @@ export default function Dashboard() {
                   {analytics?.totalSales || 0}
                 </Text>
                 <Text style={styles.metricLabel}>
-                  {t('dashboard.totalSales')} (30d)
+                  {t('dashboard.totalSales')} ({t('dashboard.days30')})
                 </Text>
                 <View style={styles.metricTrend}>
                   <ArrowUpRight size={12} color="#059669" />
@@ -196,7 +196,7 @@ export default function Dashboard() {
         <Card style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
-              {t('dashboard.topProducts')} (30 days)
+              {t('dashboard.topProducts')} ({t('dashboard.days30Long')})
             </Text>
             <TouchableOpacity onPress={() => router.push('/(tabs)/reports')}>
               <Text style={styles.viewAllText}>{t('dashboard.viewAll')}</Text>
@@ -211,8 +211,8 @@ export default function Dashboard() {
                 <View style={styles.productInfo}>
                   <Text style={styles.productName}>{product.name}</Text>
                   <Text style={styles.productStats}>
-                    Sold: {product.quantity} • Revenue:{' '}
-                    {formatMMK(product.revenue)}
+                    {t('dashboard.sold')}: {product.quantity} •{' '}
+                    {t('dashboard.revenue')}: {formatMMK(product.revenue)}
                   </Text>
                 </View>
                 <View style={styles.productTrend}>
@@ -237,7 +237,7 @@ export default function Dashboard() {
               {t('dashboard.storeOverview')}
             </Text>
             <TouchableOpacity onPress={() => router.push('/inventory')}>
-              <Text style={styles.viewAllText}>Manage</Text>
+              <Text style={styles.viewAllText}>{t('dashboard.manage')}</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.overviewRow}>

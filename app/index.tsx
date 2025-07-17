@@ -8,13 +8,14 @@ import {
   TouchableOpacity,
   StatusBar,
   ScrollView,
-  Alert,
 } from 'react-native';
 import React, { useState } from 'react';
 import { useLicense } from '@/hooks/useLicense';
 import { ChallengeDisplay } from '@/components/ChallengeDisplay';
 import { ResponseInput } from '@/components/ResponseInput';
 import { LicenseDurationModal } from '@/components/LicenseDurationModal';
+import { SplashScreen } from '@/components/SplashScreen';
+import { RegenerateWarningModal } from '@/components/RegenerateWarningModal';
 import { isLicenseExpired } from '@/utils/crypto';
 import { ShieldCheck, ArrowRight } from 'lucide-react-native';
 import { LICENSE_PACKAGES } from '@/utils/admin';
@@ -39,26 +40,30 @@ const Index = () => {
 
   const [selectedDuration, setSelectedDuration] = useState('trial');
   const [modalVisible, setModalVisible] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [pendingValidityMonths, setPendingValidityMonths] = useState(30);
 
   // Function to handle regenerate challenge with warning
   const handleRegenerateChallenge = (validityMonths: number) => {
-    Alert.alert(
-      t('license.regenerateWarningTitle'),
-      t('license.regenerateWarningMessage'),
-      [
-        {
-          text: t('license.contactAdmin'),
-          style: 'default',
-        },
-        {
-          text: t('license.proceedAnyway'),
-          style: 'destructive',
-          onPress: () => regenerateChallenge(validityMonths),
-        },
-      ],
-      { cancelable: true }
-    );
+    setPendingValidityMonths(validityMonths);
+    setShowWarningModal(true);
   };
+
+  // Function to proceed with regeneration
+  const handleProceedRegeneration = () => {
+    regenerateChallenge(pendingValidityMonths);
+  };
+
+  // Handle splash screen animation finish
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+  };
+
+  // Show splash screen first
+  if (showSplash) {
+    return <SplashScreen onAnimationFinish={handleSplashFinish} />;
+  }
 
   if (loading) {
     return (
@@ -288,6 +293,12 @@ const Index = () => {
         selectedDuration={selectedDuration}
         onDurationChange={setSelectedDuration}
         onClose={() => setModalVisible(false)}
+      />
+
+      <RegenerateWarningModal
+        visible={showWarningModal}
+        onClose={() => setShowWarningModal(false)}
+        onProceed={handleProceedRegeneration}
       />
     </SafeAreaView>
   );
