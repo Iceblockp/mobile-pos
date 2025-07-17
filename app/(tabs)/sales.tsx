@@ -759,6 +759,50 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     });
   };
 
+  // Helper function to generate descriptive filename with date range
+  const generateFilename = (
+    baseFilename: string,
+    dateFilter: string,
+    selectedDate: Date
+  ) => {
+    const now = new Date();
+    const formatDateForFilename = (date: Date) => {
+      return date.toISOString().split('T')[0]; // YYYY-MM-DD format
+    };
+
+    let filename = baseFilename;
+
+    switch (dateFilter) {
+      case 'today':
+        filename += `_${formatDateForFilename(now)}`;
+        break;
+      case 'week':
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - 7);
+        filename += `_${formatDateForFilename(
+          weekStart
+        )}_to_${formatDateForFilename(now)}`;
+        break;
+      case 'month':
+        const monthStart = new Date(now);
+        monthStart.setMonth(now.getMonth() - 1);
+        filename += `_${formatDateForFilename(
+          monthStart
+        )}_to_${formatDateForFilename(now)}`;
+        break;
+      case 'custom':
+        filename += `_${formatDateForFilename(selectedDate)}`;
+        break;
+      case 'all':
+        filename += `_all_time_${formatDateForFilename(now)}`;
+        break;
+      default:
+        filename += `_${formatDateForFilename(now)}`;
+    }
+
+    return filename + '.xlsx';
+  };
+
   const calculateDateRange = (
     dateFilterType: string,
     selectedDate: Date
@@ -1125,17 +1169,25 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
         // Create worksheet and workbook
         const ws = XLSX.utils.json_to_sheet(excelData);
+
+        // Set column widths for better readability
+        ws['!cols'] = [
+          { wch: 10 }, // Sale ID
+          { wch: 18 }, // Date
+          { wch: 15 }, // Payment Method
+          { wch: 15 }, // Total Amount
+          { wch: 18 }, // Total Amount (MMK)
+        ];
+
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Sales List');
 
-        // Generate filename
-        let filename = 'sales_list';
-        if (dateFilter === 'custom') {
-          filename += `_${selectedDate.toISOString().split('T')[0]}`;
-        } else if (dateFilter !== 'all') {
-          filename += `_${dateFilter}`;
-        }
-        filename += '.xlsx';
+        // Generate descriptive filename with date range
+        const filename = generateFilename(
+          'sales_list',
+          dateFilter,
+          selectedDate
+        );
 
         // Convert to binary string
         const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
@@ -1221,16 +1273,24 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       });
 
       const ws = XLSX.utils.json_to_sheet(excelData);
+
+      // Set column widths for better readability
+      ws['!cols'] = [
+        { wch: 10 }, // Sale ID
+        { wch: 18 }, // Date
+        { wch: 15 }, // Payment Method
+        { wch: 15 }, // Total Amount
+        { wch: 18 }, // Total Amount (MMK)
+      ];
+
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Sales History');
 
-      let filename = 'sales_history';
-      if (dateFilter === 'custom') {
-        filename += `_${selectedDate.toISOString().split('T')[0]}`;
-      } else if (dateFilter !== 'all') {
-        filename += `_${dateFilter}`;
-      }
-      filename += '.xlsx';
+      const filename = generateFilename(
+        'sales_history',
+        dateFilter,
+        selectedDate
+      );
 
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
       const blob = new Blob([wbout], { type: 'application/octet-stream' });
@@ -1355,17 +1415,28 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
         // Create worksheet and workbook
         const ws = XLSX.utils.json_to_sheet(excelData);
+
+        // Set column widths to prevent overflow
+        ws['!cols'] = [
+          { wch: 10 }, // Sale ID
+          { wch: 20 }, // Date
+          { wch: 25 }, // Product (wider for product names)
+          { wch: 10 }, // Quantity
+          { wch: 12 }, // Sale Price
+          { wch: 12 }, // Cost Price
+          { wch: 12 }, // Profit
+          { wch: 12 }, // Subtotal
+        ];
+
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Sales Items');
 
-        // Generate filename
-        let filename = 'sales_items';
-        if (dateFilter === 'custom') {
-          filename += `_${selectedDate.toISOString().split('T')[0]}`;
-        } else if (dateFilter !== 'all') {
-          filename += `_${dateFilter}`;
-        }
-        filename += '.xlsx';
+        // Generate descriptive filename with date range
+        const filename = generateFilename(
+          'sales_items',
+          dateFilter,
+          selectedDate
+        );
 
         // Convert to binary string
         const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
@@ -1492,16 +1563,31 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       });
 
       const ws = XLSX.utils.json_to_sheet(excelData);
+
+      // Set column widths to prevent overflow
+      ws['!cols'] = [
+        { wch: 10 }, // Sale ID
+        { wch: 20 }, // Date
+        { wch: 25 }, // Product (wider for product names)
+        { wch: 10 }, // Quantity
+        { wch: 12 }, // Sale Price
+        { wch: 15 }, // Sale Price (MMK)
+        { wch: 12 }, // Cost Price
+        { wch: 15 }, // Cost Price (MMK)
+        { wch: 12 }, // Subtotal
+        { wch: 15 }, // Subtotal (MMK)
+        { wch: 12 }, // Profit
+        { wch: 15 }, // Profit (MMK)
+      ];
+
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Sales Items');
 
-      let filename = 'sales_items';
-      if (dateFilter === 'custom') {
-        filename += `_${selectedDate.toISOString().split('T')[0]}`;
-      } else if (dateFilter !== 'all') {
-        filename += `_${dateFilter}`;
-      }
-      filename += '.xlsx';
+      const filename = generateFilename(
+        'sales_items',
+        dateFilter,
+        selectedDate
+      );
 
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
       const blob = new Blob([wbout], { type: 'application/octet-stream' });

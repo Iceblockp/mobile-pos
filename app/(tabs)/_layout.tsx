@@ -5,6 +5,7 @@ import {
   ShoppingCart,
   ChartBar as BarChart3,
   TrendingUp,
+  HelpCircle,
 } from 'lucide-react-native';
 
 // Add the expenses icon import
@@ -89,6 +90,15 @@ export default function TabLayout() {
           title: t('navigation.reports'),
           tabBarIcon: ({ size, color }) => (
             <BarChart3 size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="help"
+        options={{
+          title: t('navigation.help'),
+          tabBarIcon: ({ size, color }) => (
+            <HelpCircle size={size} color={color} />
           ),
         }}
       />

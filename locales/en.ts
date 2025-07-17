@@ -39,6 +39,7 @@ export const en = {
     sales: 'Sales',
     inventory: 'Inventory',
     reports: 'Reports',
+    help: 'Help',
     products: 'Products',
     overview: 'Overview',
     analytics: 'Analytics',
@@ -466,6 +467,77 @@ export const en = {
     // Duration Modal
     month: 'month',
     months: 'months',
+  },
+  help: {
+    title: 'Help & Support',
+    subtitle: 'User manual and contact information',
+    contactAdmin: 'Contact Admin',
+    userManual: 'User Manual',
+    quickStart: 'Quick Start Guide',
+    features: 'Features Overview',
+    troubleshooting: 'Troubleshooting',
+    contactInfo: 'Contact Information',
+    adminPhone: 'Admin Phone',
+    supportEmail: 'Support Email',
+    businessHours: 'Business Hours',
+    mondayToFriday: 'Monday - Friday: 9:00 AM - 6:00 PM',
+    saturday: 'Saturday: 9:00 AM - 1:00 PM',
+    sunday: 'Sunday: Closed',
+    // Quick Start Guide
+    quickStartTitle: 'Getting Started with Mobile POS',
+    step1Title: '1. License Verification',
+    step1Description:
+      'Verify your license to unlock all POS features. Contact admin if you need help with license codes.',
+    step2Title: '2. Add Products',
+    step2Description:
+      'Go to Inventory → Products to add your products with prices, costs, and stock levels.',
+    step3Title: '3. Start Selling',
+    step3Description:
+      'Use the Sales tab to add products to cart and process payments.',
+    step4Title: '4. Track Performance',
+    step4Description:
+      'Monitor your business with Dashboard analytics and Reports.',
+    // Features Overview
+    featuresTitle: 'Key Features',
+    dashboardFeature: 'Dashboard - View sales overview and key metrics',
+    salesFeature: 'Sales - Process transactions with multiple payment methods',
+    inventoryFeature: 'Inventory - Manage products and stock levels',
+    reportsFeature: 'Reports - Analyze business performance and expenses',
+    barcodeFeature: 'Barcode Scanning - Quick product lookup and adding',
+    multiLanguageFeature: 'Multi-language Support - English and Myanmar',
+    // Troubleshooting
+    troubleshootingTitle: 'Common Issues',
+    licenseIssue: 'License Problems',
+    licenseIssueSolution:
+      'If license expires or becomes invalid, contact admin with your challenge code.',
+    barcodeIssue: 'Barcode Scanner Not Working',
+    barcodeIssueSolution:
+      'Check camera permissions in device settings. Restart app if needed.',
+    dataBackupIssue: 'Data Backup & Export',
+    dataBackupSolution:
+      'All data is stored locally on your device. Export sales data regularly from Sales History to backup your records. Uninstalling the app will delete all data permanently.',
+    performanceIssue: 'App Running Slowly',
+    performanceIssueSolution:
+      'Close other apps and restart Mobile POS. Clear app cache if problem persists.',
+    // How to Use Sections
+    howToSell: 'How to Make a Sale',
+    howToSellStep1: '1. Go to Sales tab',
+    howToSellStep2: '2. Search or scan products to add to cart',
+    howToSellStep3: '3. Adjust quantities if needed',
+    howToSellStep4: '4. Select payment method (Cash/Card/Mobile)',
+    howToSellStep5: '5. Complete the sale',
+    howToManageInventory: 'How to Manage Inventory',
+    howToInventoryStep1: '1. Go to Inventory tab',
+    howToInventoryStep2: '2. Add new products with details',
+    howToInventoryStep3: '3. Set minimum stock levels',
+    howToInventoryStep4: '4. Adjust stock when receiving new inventory',
+    howToInventoryStep5: '5. Monitor low stock alerts',
+    howToViewReports: 'How to View Reports',
+    howToReportsStep1: '1. Go to Reports tab',
+    howToReportsStep2: '2. Choose Analytics for sales insights',
+    howToReportsStep3: '3. Select time period for analysis',
+    howToReportsStep4: '4. View top products and trends',
+    howToReportsStep5: '5. Track expenses in Expenses section',
   },
   currency: {
     mmk: 'MMK',
