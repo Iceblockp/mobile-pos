@@ -164,7 +164,7 @@ export default function Analytics() {
         const isToday =
           dateFilter.selectedDate.toDateString() === new Date().toDateString();
         if (isToday) {
-          return 'Today';
+          return t('common.today');
         }
         return dateFilter.selectedDate.toLocaleDateString('en-US', {
           month: 'short',
@@ -173,18 +173,18 @@ export default function Analytics() {
         });
       case 'month':
         const monthNames = [
-          'January',
-          'February',
-          'March',
-          'April',
-          'May',
-          'June',
-          'July',
-          'August',
-          'September',
-          'October',
-          'November',
-          'December',
+          t('analytics.january'),
+          t('analytics.february'),
+          t('analytics.march'),
+          t('analytics.april'),
+          t('analytics.may'),
+          t('analytics.june'),
+          t('analytics.july'),
+          t('analytics.august'),
+          t('analytics.september'),
+          t('analytics.october'),
+          t('analytics.november'),
+          t('analytics.december'),
         ];
         return `${monthNames[dateFilter.selectedMonth]} ${
           dateFilter.selectedYear
@@ -201,7 +201,7 @@ export default function Analytics() {
         });
         return `${start} - ${end}`;
       default:
-        return 'Select Period';
+        return t('analytics.selectPeriod');
     }
   };
 
@@ -225,8 +225,23 @@ export default function Analytics() {
       endDate = dateFilter.endDate;
     }
 
-    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    // Calculate days by comparing just the date parts (ignore time)
+    const startDateOnly = new Date(
+      startDate.getFullYear(),
+      startDate.getMonth(),
+      startDate.getDate()
+    );
+    const endDateOnly = new Date(
+      endDate.getFullYear(),
+      endDate.getMonth(),
+      endDate.getDate()
+    );
+
+    const diffTime = Math.abs(endDateOnly.getTime() - startDateOnly.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    // Add 1 to include both start and end dates
+    return diffDays + 1;
   };
 
   const getGrowthIndicator = (current: number, previous: number) => {
@@ -279,22 +294,52 @@ export default function Analytics() {
         break;
       case 'range':
         if (value === 'week') {
+          // Calculate proper "This Week" (Monday to Sunday)
           const weekStart = new Date(today);
-          weekStart.setDate(today.getDate() - 6);
+          const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+          const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // If Sunday, go back 6 days to Monday
+          weekStart.setDate(today.getDate() - daysToMonday);
+          weekStart.setHours(0, 0, 0, 0);
+
+          // Calculate the end of the week (Sunday)
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekStart.getDate() + 6); // Monday + 6 days = Sunday
+          weekEnd.setHours(23, 59, 59, 999);
+
           setDateFilter({
             ...dateFilter,
             mode: 'range',
             startDate: weekStart,
-            endDate: today,
+            endDate: weekEnd,
+          });
+        } else if (value === 'last7days') {
+          // Keep the last 7 days functionality as a separate option
+          const weekStart = new Date(today);
+          weekStart.setDate(today.getDate() - 6);
+          weekStart.setHours(0, 0, 0, 0);
+
+          const weekEnd = new Date(today);
+          weekEnd.setHours(23, 59, 59, 999);
+
+          setDateFilter({
+            ...dateFilter,
+            mode: 'range',
+            startDate: weekStart,
+            endDate: weekEnd,
           });
         } else if (value === 'month') {
           const monthStart = new Date(today);
           monthStart.setDate(today.getDate() - 29);
+          monthStart.setHours(0, 0, 0, 0);
+
+          const monthEnd = new Date(today);
+          monthEnd.setHours(23, 59, 59, 999);
+
           setDateFilter({
             ...dateFilter,
             mode: 'range',
             startDate: monthStart,
-            endDate: today,
+            endDate: monthEnd,
           });
         }
         break;
@@ -335,6 +380,74 @@ export default function Analytics() {
     });
   };
 
+  // Helper function to check if current filter represents "this week"
+  const isCurrentWeek = () => {
+    if (dateFilter.mode !== 'range') return false;
+
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+
+    const currentWeekStart = new Date(today);
+    currentWeekStart.setDate(today.getDate() - daysToMonday);
+    currentWeekStart.setHours(0, 0, 0, 0);
+
+    const currentWeekEnd = new Date(today);
+    currentWeekEnd.setHours(23, 59, 59, 999);
+
+    // Check if the filter dates match the current week
+    const filterStart = new Date(dateFilter.startDate);
+    filterStart.setHours(0, 0, 0, 0);
+
+    const filterEnd = new Date(dateFilter.endDate);
+    filterEnd.setHours(23, 59, 59, 999);
+
+    return (
+      filterStart.getTime() === currentWeekStart.getTime() &&
+      filterEnd.toDateString() === currentWeekEnd.toDateString()
+    );
+  };
+
+  // Navigation function for week/range mode
+  const navigateWeek = (direction: 'prev' | 'next') => {
+    const currentStart = new Date(dateFilter.startDate);
+    const currentEnd = new Date(dateFilter.endDate);
+
+    // Calculate the number of days in the current range (using date-only comparison)
+    const startDateOnly = new Date(
+      currentStart.getFullYear(),
+      currentStart.getMonth(),
+      currentStart.getDate()
+    );
+    const endDateOnly = new Date(
+      currentEnd.getFullYear(),
+      currentEnd.getMonth(),
+      currentEnd.getDate()
+    );
+    const rangeDays =
+      Math.ceil(
+        (endDateOnly.getTime() - startDateOnly.getTime()) /
+          (1000 * 60 * 60 * 24)
+      ) + 1;
+
+    // Move the entire range by exactly the same number of days
+    const daysToMove = direction === 'next' ? rangeDays : -rangeDays;
+
+    const newStart = new Date(currentStart);
+    newStart.setDate(currentStart.getDate() + daysToMove);
+    newStart.setHours(0, 0, 0, 0);
+
+    const newEnd = new Date(currentEnd);
+    newEnd.setDate(currentEnd.getDate() + daysToMove);
+    newEnd.setHours(23, 59, 59, 999);
+
+    setDateFilter({
+      ...dateFilter,
+      startDate: newStart,
+      endDate: newEnd,
+    });
+  };
+
   if (!isReady || (loading && !refreshing)) {
     return <LoadingSpinner />;
   }
@@ -348,14 +461,14 @@ export default function Analytics() {
 
       <ScrollView
         style={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#059669']}
-            tintColor={'#059669'}
-          />
-        }
+        // refreshControl={
+        //   <RefreshControl
+        //     refreshing={refreshing}
+        //     onRefresh={onRefresh}
+        //     colors={['#059669']}
+        //     tintColor={'#059669'}
+        //   />
+        // }
       >
         {/* Enhanced Period Selector */}
         <Card style={styles.periodCard}>
@@ -388,22 +501,30 @@ export default function Analytics() {
             <View style={styles.navigationControls}>
               <TouchableOpacity
                 style={styles.navButton}
-                onPress={() =>
-                  dateFilter.mode === 'day'
-                    ? navigateDay('prev')
-                    : navigateMonth('prev')
-                }
+                onPress={() => {
+                  if (dateFilter.mode === 'day') {
+                    navigateDay('prev');
+                  } else if (dateFilter.mode === 'month') {
+                    navigateMonth('prev');
+                  } else if (dateFilter.mode === 'range') {
+                    navigateWeek('prev');
+                  }
+                }}
               >
                 <ChevronLeft size={20} color="#6B7280" />
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.navButton}
-                onPress={() =>
-                  dateFilter.mode === 'day'
-                    ? navigateDay('next')
-                    : navigateMonth('next')
-                }
+                onPress={() => {
+                  if (dateFilter.mode === 'day') {
+                    navigateDay('next');
+                  } else if (dateFilter.mode === 'month') {
+                    navigateMonth('next');
+                  } else if (dateFilter.mode === 'range') {
+                    navigateWeek('next');
+                  }
+                }}
               >
                 <ChevronRight size={20} color="#6B7280" />
               </TouchableOpacity>
@@ -457,10 +578,20 @@ export default function Analytics() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.quickFilterChip}
+              style={[
+                styles.quickFilterChip,
+                isCurrentWeek() && styles.quickFilterChipActive,
+              ]}
               onPress={() => handleQuickFilter('range', 'week')}
             >
-              <Text style={styles.quickFilterText}>{t('common.thisWeek')}</Text>
+              <Text
+                style={[
+                  styles.quickFilterText,
+                  isCurrentWeek() && styles.quickFilterTextActive,
+                ]}
+              >
+                {t('common.thisWeek')}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -547,7 +678,7 @@ export default function Analytics() {
                   {t('analytics.totalSales')}
                 </Text>
                 <Text style={styles.metricSubtext}>
-                  Avg:{' '}
+                  {t('analytics.avg')}:{' '}
                   {((analytics?.totalSales || 0) / getDaysInPeriod()).toFixed(
                     1
                   )}
@@ -782,7 +913,7 @@ export default function Analytics() {
                 {t('common.today')} {t('common.filter')}
               </Text>
               <Text style={styles.filterSectionDesc}>
-                View data for a specific day
+                {t('analytics.viewDataForDay')}
               </Text>
 
               <View style={styles.filterOptions}>
@@ -790,7 +921,9 @@ export default function Analytics() {
                   style={styles.filterOption}
                   onPress={() => handleQuickFilter('day', 'today')}
                 >
-                  <Text style={styles.filterOptionText}>Today</Text>
+                  <Text style={styles.filterOptionText}>
+                    {t('common.today')}
+                  </Text>
                   <Text style={styles.filterOptionDate}>
                     {new Date().toLocaleDateString('en-US', {
                       month: 'short',
@@ -804,7 +937,9 @@ export default function Analytics() {
                   style={styles.filterOption}
                   onPress={() => handleQuickFilter('day', 'yesterday')}
                 >
-                  <Text style={styles.filterOptionText}>Yesterday</Text>
+                  <Text style={styles.filterOptionText}>
+                    {t('analytics.yesterday')}
+                  </Text>
                   <Text style={styles.filterOptionDate}>
                     {new Date(Date.now() - 86400000).toLocaleDateString(
                       'en-US',
@@ -825,7 +960,7 @@ export default function Analytics() {
                   }}
                 >
                   <Text style={styles.filterOptionText}>
-                    Select Custom Date
+                    {t('analytics.selectCustomDate')}
                   </Text>
                   <Calendar size={16} color="#6B7280" />
                 </TouchableOpacity>
@@ -834,9 +969,11 @@ export default function Analytics() {
 
             {/* Month Filter Section */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Month Filter</Text>
+              <Text style={styles.filterSectionTitle}>
+                {t('analytics.monthFilter')}
+              </Text>
               <Text style={styles.filterSectionDesc}>
-                View data for entire months
+                {t('analytics.viewDataForMonths')}
               </Text>
 
               <View style={styles.filterOptions}>
@@ -844,7 +981,9 @@ export default function Analytics() {
                   style={styles.filterOption}
                   onPress={() => handleQuickFilter('month', 'current')}
                 >
-                  <Text style={styles.filterOptionText}>This Month</Text>
+                  <Text style={styles.filterOptionText}>
+                    {t('analytics.thisMonth')}
+                  </Text>
                   <Text style={styles.filterOptionDate}>
                     {new Date().toLocaleDateString('en-US', {
                       month: 'long',
@@ -857,7 +996,9 @@ export default function Analytics() {
                   style={styles.filterOption}
                   onPress={() => handleQuickFilter('month', 'previous')}
                 >
-                  <Text style={styles.filterOptionText}>Last Month</Text>
+                  <Text style={styles.filterOptionText}>
+                    {t('analytics.lastMonth')}
+                  </Text>
                   <Text style={styles.filterOptionDate}>
                     {new Date(
                       new Date().setMonth(new Date().getMonth() - 1)
@@ -871,10 +1012,14 @@ export default function Analytics() {
 
               {/* Month/Year Selector */}
               <View style={styles.monthYearSelector}>
-                <Text style={styles.monthYearLabel}>Select Month & Year:</Text>
+                <Text style={styles.monthYearLabel}>
+                  {t('analytics.selectMonthYear')}
+                </Text>
                 <View style={styles.monthYearControls}>
                   <View style={styles.monthSelector}>
-                    <Text style={styles.selectorLabel}>Month</Text>
+                    <Text style={styles.selectorLabel}>
+                      {t('analytics.month')}
+                    </Text>
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}
@@ -882,18 +1027,18 @@ export default function Analytics() {
                     >
                       {Array.from({ length: 12 }, (_, i) => {
                         const monthNames = [
-                          'Jan',
-                          'Feb',
-                          'Mar',
-                          'Apr',
-                          'May',
-                          'Jun',
-                          'Jul',
-                          'Aug',
-                          'Sep',
-                          'Oct',
-                          'Nov',
-                          'Dec',
+                          t('analytics.jan'),
+                          t('analytics.feb'),
+                          t('analytics.mar'),
+                          t('analytics.apr'),
+                          t('analytics.may'),
+                          t('analytics.jun'),
+                          t('analytics.jul'),
+                          t('analytics.aug'),
+                          t('analytics.sep'),
+                          t('analytics.oct'),
+                          t('analytics.nov'),
+                          t('analytics.dec'),
                         ];
                         return (
                           <TouchableOpacity
@@ -929,7 +1074,9 @@ export default function Analytics() {
                   </View>
 
                   <View style={styles.yearSelector}>
-                    <Text style={styles.selectorLabel}>Year</Text>
+                    <Text style={styles.selectorLabel}>
+                      {t('analytics.year')}
+                    </Text>
                     <View style={styles.yearControls}>
                       <TouchableOpacity
                         style={styles.yearButton}
@@ -966,9 +1113,11 @@ export default function Analytics() {
 
             {/* Range Filter Section */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Date Range Filter</Text>
+              <Text style={styles.filterSectionTitle}>
+                {t('analytics.dateRangeFilter')}
+              </Text>
               <Text style={styles.filterSectionDesc}>
-                View data for custom date ranges
+                {t('analytics.viewDataForRanges')}
               </Text>
 
               <View style={styles.filterOptions}>
@@ -976,16 +1125,36 @@ export default function Analytics() {
                   style={styles.filterOption}
                   onPress={() => handleQuickFilter('range', 'week')}
                 >
-                  <Text style={styles.filterOptionText}>Last 7 Days</Text>
-                  <Text style={styles.filterOptionDate}>Most recent week</Text>
+                  <Text style={styles.filterOptionText}>
+                    {t('analytics.thisWeek')}
+                  </Text>
+                  <Text style={styles.filterOptionDate}>
+                    {t('analytics.mondayToToday')}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.filterOption}
+                  onPress={() => handleQuickFilter('range', 'last7days')}
+                >
+                  <Text style={styles.filterOptionText}>
+                    {t('analytics.last7Days')}
+                  </Text>
+                  <Text style={styles.filterOptionDate}>
+                    {t('analytics.rolling7DayPeriod')}
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={styles.filterOption}
                   onPress={() => handleQuickFilter('range', 'month')}
                 >
-                  <Text style={styles.filterOptionText}>Last 30 Days</Text>
-                  <Text style={styles.filterOptionDate}>Most recent month</Text>
+                  <Text style={styles.filterOptionText}>
+                    {t('analytics.last30Days')}
+                  </Text>
+                  <Text style={styles.filterOptionDate}>
+                    {t('analytics.rolling30DayPeriod')}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
