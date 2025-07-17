@@ -44,6 +44,7 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { captureRef } from 'react-native-view-shot';
 import { useToast } from '@/context/ToastContext';
+import { useTranslation } from '@/context/LocalizationContext';
 
 interface CartItem {
   product: Product;
@@ -58,6 +59,7 @@ export default function Sales() {
   const { db, isReady, triggerRefresh } = useDatabase();
   const [cart, setCart] = useState<CartItem[]>([]);
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -112,19 +114,22 @@ export default function Sales() {
       if (product) {
         addToCart(product);
         setShowScanner(false);
-        showToast(`Added ${product.name} to cart`, 'success');
+        showToast(t('messages.addedToCart', { name: product.name }), 'success');
       } else {
-        Alert.alert('Product Not Found', 'No product found with this barcode');
+        Alert.alert(
+          t('sales.productNotFound'),
+          t('sales.noProductFoundWithBarcode')
+        );
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to find product');
+      Alert.alert(t('common.error'), t('sales.failedToFindProduct'));
       console.error('Error finding product by barcode:', error);
     }
   };
 
   const addToCart = (product: Product) => {
     if (product.quantity <= 0) {
-      Alert.alert('Error', 'This product is out of stock');
+      Alert.alert(t('common.error'), t('sales.outOfStock'));
       return;
     }
 
@@ -132,7 +137,7 @@ export default function Sales() {
 
     if (existingItem) {
       if (existingItem.quantity >= product.quantity) {
-        Alert.alert('Error', 'Not enough stock available');
+        Alert.alert(t('common.error'), t('sales.notEnoughStock'));
         return;
       }
 
@@ -171,7 +176,7 @@ export default function Sales() {
     }
 
     if (newQuantity > item.product.quantity) {
-      Alert.alert('Error', 'Not enough stock available');
+      Alert.alert(t('common.error'), t('sales.notEnoughStock'));
       return;
     }
 
@@ -217,12 +222,12 @@ export default function Sales() {
 
       await db.addSale(saleData, saleItems);
 
-      showToast('Sale completed successfully!', 'success');
+      showToast(t('sales.saleCompleted'), 'success');
       clearCart();
       await loadData(); // Refresh products in this component
       triggerRefresh(); // Add this line to notify other components
     } catch (error) {
-      Alert.alert('Error', 'Failed to process sale');
+      Alert.alert(t('common.error'), t('common.error'));
       console.error('Error processing sale:', error);
     } finally {
       setLoading(false);
@@ -231,7 +236,7 @@ export default function Sales() {
 
   const handlePayment = () => {
     if (cart.length === 0) {
-      Alert.alert('Error', 'Cart is empty');
+      Alert.alert(t('common.error'), t('sales.cartIsEmpty'));
       return;
     }
 
@@ -258,7 +263,9 @@ export default function Sales() {
         <View style={styles.paymentModalOverlay}>
           <View style={styles.paymentModalContainer}>
             <View style={styles.paymentModalHeader}>
-              <Text style={styles.paymentModalTitle}>Payment Method</Text>
+              <Text style={styles.paymentModalTitle}>
+                {t('sales.paymentMethod')}
+              </Text>
               <TouchableOpacity
                 onPress={() => setShowPaymentModal(false)}
                 style={styles.paymentModalCloseButton}
@@ -268,7 +275,7 @@ export default function Sales() {
             </View>
 
             <Text style={styles.paymentModalDescription}>
-              Select a payment method to complete the sale:
+              {t('sales.selectPaymentMethod')}
             </Text>
 
             <View style={styles.paymentOptionsContainer}>
@@ -289,9 +296,11 @@ export default function Sales() {
                   <Text style={{ fontSize: 24 }}>💵</Text>
                 </View>
                 <View style={styles.paymentOptionContent}>
-                  <Text style={styles.paymentOptionTitle}>Cash</Text>
+                  <Text style={styles.paymentOptionTitle}>
+                    {t('sales.cash')}
+                  </Text>
                   <Text style={styles.paymentOptionDescription}>
-                    Complete sale with cash payment
+                    {t('sales.completeSaleCash')}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -313,9 +322,11 @@ export default function Sales() {
                   <Text style={{ fontSize: 24 }}>💳</Text>
                 </View>
                 <View style={styles.paymentOptionContent}>
-                  <Text style={styles.paymentOptionTitle}>Card</Text>
+                  <Text style={styles.paymentOptionTitle}>
+                    {t('sales.card')}
+                  </Text>
                   <Text style={styles.paymentOptionDescription}>
-                    Complete sale with credit/debit card
+                    {t('sales.completeSaleCard')}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -337,9 +348,11 @@ export default function Sales() {
                   <Text style={{ fontSize: 24 }}>📱</Text>
                 </View>
                 <View style={styles.paymentOptionContent}>
-                  <Text style={styles.paymentOptionTitle}>Mobile Payment</Text>
+                  <Text style={styles.paymentOptionTitle}>
+                    {t('sales.mobilePayment')}
+                  </Text>
                   <Text style={styles.paymentOptionDescription}>
-                    Complete sale with mobile payment apps
+                    {t('sales.completeSaleMobile')}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -348,7 +361,9 @@ export default function Sales() {
             {loading && (
               <View style={styles.processingIndicator}>
                 <ActivityIndicator size="small" color="#059669" />
-                <Text style={styles.processingText}>Processing sale...</Text>
+                <Text style={styles.processingText}>
+                  {t('sales.processingSale')}
+                </Text>
               </View>
             )}
 
@@ -357,7 +372,9 @@ export default function Sales() {
               onPress={() => setShowPaymentModal(false)}
               disabled={loading}
             >
-              <Text style={styles.paymentModalCancelText}>Cancel</Text>
+              <Text style={styles.paymentModalCancelText}>
+                {t('common.cancel')}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -372,7 +389,7 @@ export default function Sales() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Sales</Text>
+        <Text style={styles.title}>{t('sales.title')}</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.historyButton}
@@ -395,7 +412,7 @@ export default function Sales() {
           <View style={styles.cartHeader}>
             <View style={styles.cartTitleContainer}>
               <ShoppingCart size={20} color="#059669" />
-              <Text style={styles.cartTitle}>Shopping Cart</Text>
+              <Text style={styles.cartTitle}>{t('sales.shoppingCart')}</Text>
               <View style={styles.cartBadge}>
                 <Text style={styles.cartBadgeText}>{cart.length}</Text>
               </View>
@@ -406,9 +423,9 @@ export default function Sales() {
           {cart.length === 0 ? (
             <View style={styles.emptyCart}>
               <ShoppingCart size={isSmallScreen ? 32 : 48} color="#9CA3AF" />
-              <Text style={styles.emptyCartText}>Cart is empty</Text>
+              <Text style={styles.emptyCartText}>{t('sales.cartEmpty')}</Text>
               <Text style={styles.emptyCartSubtext}>
-                Add products to start a sale
+                {t('sales.addProducts')}
               </Text>
             </View>
           ) : (
@@ -426,7 +443,7 @@ export default function Sales() {
                       {item.product.name}
                     </Text>
                     <Text style={styles.cartItemPrice}>
-                      {formatMMK(item.product.price)} each
+                      {formatMMK(item.product.price)} {t('sales.each')}
                     </Text>
                   </View>
 
@@ -473,13 +490,13 @@ export default function Sales() {
 
           <View style={styles.cartActions}>
             <Button
-              title="Add Product"
+              title={t('sales.addProduct')}
               onPress={() => setShowProductDialog(true)}
               variant="secondary"
               style={styles.cartActionButton}
             />
             <Button
-              title="Process Sale"
+              title={t('sales.processSale')}
               onPress={handlePayment}
               disabled={cart.length === 0 || loading}
               style={styles.cartActionButton}
@@ -497,7 +514,7 @@ export default function Sales() {
       >
         <SafeAreaView style={styles.dialogContainer}>
           <View style={styles.dialogHeader}>
-            <Text style={styles.dialogTitle}>Add Products</Text>
+            <Text style={styles.dialogTitle}>{t('sales.addProducts')}</Text>
             <TouchableOpacity
               style={styles.dialogCloseButton}
               onPress={() => setShowProductDialog(false)}
@@ -511,7 +528,7 @@ export default function Sales() {
             <View style={styles.searchContainer}>
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search products..."
+                placeholder={t('sales.searchProducts')}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
@@ -522,7 +539,7 @@ export default function Sales() {
               <View style={styles.categoryFilterHeader}>
                 <Filter size={16} color="#6B7280" />
                 <Text style={styles.categoryFilterTitle}>
-                  Filter by Category
+                  {t('sales.filterByCategory')}
                 </Text>
               </View>
               <ScrollView
@@ -622,11 +639,11 @@ export default function Sales() {
                           : styles.inStock,
                       ]}
                     >
-                      Stock: {product.quantity}
+                      {t('sales.stock')}: {product.quantity}
                       {product.quantity <= product.min_stock &&
                         product.quantity > 0 &&
-                        ' (Low)'}
-                      {product.quantity <= 0 && ' (Out)'}
+                        ` ${t('sales.low')}`}
+                      {product.quantity <= 0 && ` ${t('sales.out')}`}
                     </Text>
                   </View>
                   <View style={styles.dialogProductPriceContainer}>
@@ -651,12 +668,12 @@ export default function Sales() {
               {filteredProducts.length === 0 && (
                 <View style={styles.emptyProductsState}>
                   <Text style={styles.emptyProductsText}>
-                    No products found
+                    {t('sales.noProductsFound')}
                   </Text>
                   <Text style={styles.emptyProductsSubtext}>
                     {searchQuery || selectedCategory !== 'All'
-                      ? 'Try adjusting your search or category filter'
-                      : 'No products available'}
+                      ? t('sales.adjustSearch')
+                      : t('sales.noProductsAvailable')}
                   </Text>
                 </View>
               )}
@@ -683,6 +700,7 @@ export default function Sales() {
 const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { db, triggerRefresh } = useDatabase();
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [sales, setSales] = useState<any[]>([]);
   const [filteredSales, setFilteredSales] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -997,7 +1015,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       }
     } catch (error) {
       console.error('Error capturing sale detail:', error);
-      Alert.alert('Error', 'Failed to export sale detail');
+      Alert.alert(t('common.error'), t('sales.failedToExportSaleDetail'));
     } finally {
       setCapturing(false);
     }
@@ -1008,12 +1026,12 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     if (!db || !selectedSale) return;
 
     Alert.alert(
-      'Delete Sale',
-      `Are you sure you want to delete Sale #${selectedSale.id}? This will restore product quantities and permanently remove the sale record.`,
+      t('sales.deleteSale'),
+      t('sales.deleteSaleConfirm', { saleId: selectedSale.id }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -1022,10 +1040,10 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               setShowSaleDetail(false);
               await loadSales(); // Refresh the sales list
               triggerRefresh(); // Notify other components (like analytics)
-              showToast('Sale deleted successfully', 'success');
+              showToast(t('sales.saleDeletedSuccessfully'), 'success');
             } catch (error) {
               console.error('Error deleting sale:', error);
-              Alert.alert('Error', 'Failed to delete sale');
+              Alert.alert(t('common.error'), t('sales.failedToDeleteSale'));
             } finally {
               setLoading(false);
             }
@@ -1514,7 +1532,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     <Modal visible={true} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>Sales History</Text>
+          <Text style={styles.modalTitle}>{t('sales.salesHistory')}</Text>
           <View style={styles.modalHeaderActions}>
             <TouchableOpacity
               style={styles.exportButton}
@@ -1524,7 +1542,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <Download size={20} color="#FFFFFF" />
             </TouchableOpacity>
             <TouchableOpacity onPress={onClose}>
-              <Text style={styles.modalClose}>Done</Text>
+              <Text style={styles.modalClose}>{t('sales.done')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1539,7 +1557,9 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           <View style={styles.exportModalOverlay}>
             <View style={styles.exportModalContainer}>
               <View style={styles.exportModalHeader}>
-                <Text style={styles.exportModalTitle}>Export Options</Text>
+                <Text style={styles.exportModalTitle}>
+                  {t('sales.exportOptions')}
+                </Text>
                 <TouchableOpacity
                   onPress={() => setShowExportModal(false)}
                   style={styles.exportModalCloseButton}
@@ -1549,7 +1569,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               </View>
 
               <Text style={styles.exportModalDescription}>
-                Choose what data you want to export:
+                {t('sales.chooseDataToExport')}
               </Text>
 
               <View style={styles.exportOptionsContainer}>
@@ -1562,10 +1582,11 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     <FileText size={24} color="#059669" />
                   </View>
                   <View style={styles.exportOptionContent}>
-                    <Text style={styles.exportOptionTitle}>Sales List</Text>
+                    <Text style={styles.exportOptionTitle}>
+                      {t('sales.salesList')}
+                    </Text>
                     <Text style={styles.exportOptionDescription}>
-                      Export summary of sales with date, payment method, and
-                      total amount
+                      {t('sales.salesListDescription')}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -1580,11 +1601,10 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   </View>
                   <View style={styles.exportOptionContent}>
                     <Text style={styles.exportOptionTitle}>
-                      Sales Items Data
+                      {t('sales.salesItemsData')}
                     </Text>
                     <Text style={styles.exportOptionDescription}>
-                      Export detailed list of individual sale items with product
-                      name, quantity, price, and profit
+                      {t('sales.salesItemsDataDescription')}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -1593,7 +1613,9 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               {exporting && (
                 <View style={styles.exportingIndicator}>
                   <ActivityIndicator size="small" color="#059669" />
-                  <Text style={styles.exportingText}>Preparing export...</Text>
+                  <Text style={styles.exportingText}>
+                    {t('sales.preparingExport')}
+                  </Text>
                 </View>
               )}
 
@@ -1601,7 +1623,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 <View style={styles.exportingIndicator}>
                   <ActivityIndicator size="small" color="#059669" />
                   <Text style={styles.exportingText}>
-                    Loading sales items data...
+                    {t('sales.loadingSalesItemsData')}
                   </Text>
                 </View>
               )}
@@ -1611,7 +1633,9 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 onPress={() => setShowExportModal(false)}
                 disabled={exporting || loadingAllItems}
               >
-                <Text style={styles.exportModalCancelText}>Cancel</Text>
+                <Text style={styles.exportModalCancelText}>
+                  {t('common.cancel')}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1620,7 +1644,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         <View style={styles.filtersContainer}>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by sale ID or payment method..."
+            placeholder={t('sales.searchBySaleId')}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -1631,11 +1655,11 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             style={styles.dateFilters}
           >
             {[
-              { key: 'all', label: 'All' },
-              { key: 'today', label: 'Today' },
-              { key: 'week', label: 'This Week' },
-              { key: 'month', label: 'This Month' },
-              { key: 'custom', label: 'Select Date' },
+              { key: 'all', label: t('sales.all') },
+              { key: 'today', label: t('sales.today') },
+              { key: 'week', label: t('sales.thisWeek') },
+              { key: 'month', label: t('sales.thisMonth') },
+              { key: 'custom', label: t('sales.selectDate') },
             ].map((filter) => (
               <TouchableOpacity
                 key={filter.key}
@@ -1683,7 +1707,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
           <View style={styles.summaryContainer}>
             <Text style={styles.summaryText}>
-              {filteredSales.length} sales • Total:{' '}
+              {filteredSales.length} {t('sales.salesTotal')}{' '}
               {formatMMK(
                 filteredSales.reduce((sum, sale) => sum + sale.total, 0)
               )}
@@ -1703,12 +1727,15 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 <Card style={styles.saleCard}>
                   <View style={styles.saleHeader}>
                     <View style={styles.saleInfo}>
-                      <Text style={styles.saleId}>Sale #{sale.id}</Text>
+                      <Text style={styles.saleId}>
+                        {t('sales.saleNumber')}
+                        {sale.id}
+                      </Text>
                       <Text style={styles.saleDate}>
                         {formatDate(sale.created_at)}
                       </Text>
                       <Text style={styles.salePayment}>
-                        Payment: {sale.payment_method.toUpperCase()}
+                        {t('sales.payment')} {sale.payment_method.toUpperCase()}
                       </Text>
                     </View>
                     <View style={styles.saleAmountContainer}>
@@ -1725,11 +1752,13 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             {filteredSales.length === 0 && (
               <View style={styles.emptyState}>
                 <History size={48} color="#9CA3AF" />
-                <Text style={styles.emptyStateText}>No sales found</Text>
+                <Text style={styles.emptyStateText}>
+                  {t('sales.noSalesFound')}
+                </Text>
                 <Text style={styles.emptyStateSubtext}>
                   {searchQuery || dateFilter !== 'all'
-                    ? 'Try adjusting your filters'
-                    : 'No sales have been made yet'}
+                    ? t('sales.tryAdjustingFilters')
+                    : t('sales.noSalesMadeYet')}
                 </Text>
               </View>
             )}
@@ -1756,9 +1785,9 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         >
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Sale Details</Text>
+              <Text style={styles.modalTitle}>{t('sales.saleDetails')}</Text>
               <TouchableOpacity onPress={() => setShowSaleDetail(false)}>
-                <Text style={styles.modalClose}>Close</Text>
+                <Text style={styles.modalClose}>{t('sales.close')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -1770,7 +1799,9 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     onPress={handleDeleteSale}
                   >
                     <Trash2 size={16} color="#FFFFFF" />
-                    <Text style={styles.deleteSaleButtonText}>Delete Sale</Text>
+                    <Text style={styles.deleteSaleButtonText}>
+                      {t('sales.deleteSale')}
+                    </Text>
                   </TouchableOpacity>
 
                   {/* Add Export as Image button */}
@@ -1781,7 +1812,9 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   >
                     <ImageIcon size={16} color="#FFFFFF" />
                     <Text style={styles.exportImageButtonText}>
-                      {capturing ? 'Exporting...' : 'Export as Image'}
+                      {capturing
+                        ? t('sales.exporting')
+                        : t('sales.exportAsImage')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1793,29 +1826,37 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   style={styles.captureContainer}
                 >
                   <Card style={styles.saleDetailCard}>
-                    <Text style={styles.saleDetailTitle}>Sale Information</Text>
+                    <Text style={styles.saleDetailTitle}>
+                      {t('sales.saleInformation')}
+                    </Text>
                     <View style={styles.saleDetailRow}>
-                      <Text style={styles.saleDetailLabel}>Sale ID:</Text>
+                      <Text style={styles.saleDetailLabel}>
+                        {t('sales.saleId')}
+                      </Text>
                       <Text style={styles.saleDetailValue}>
                         #{selectedSale.id}
                       </Text>
                     </View>
                     <View style={styles.saleDetailRow}>
-                      <Text style={styles.saleDetailLabel}>Date:</Text>
+                      <Text style={styles.saleDetailLabel}>
+                        {t('sales.date')}
+                      </Text>
                       <Text style={styles.saleDetailValue}>
                         {formatDate(selectedSale.created_at)}
                       </Text>
                     </View>
                     <View style={styles.saleDetailRow}>
                       <Text style={styles.saleDetailLabel}>
-                        Payment Method:
+                        {t('sales.paymentMethod')}
                       </Text>
                       <Text style={styles.saleDetailValue}>
                         {selectedSale.payment_method.toUpperCase()}
                       </Text>
                     </View>
                     <View style={styles.saleDetailRow}>
-                      <Text style={styles.saleDetailLabel}>Total Amount:</Text>
+                      <Text style={styles.saleDetailLabel}>
+                        {t('sales.totalAmount')}
+                      </Text>
                       <Text
                         style={[styles.saleDetailValue, styles.saleDetailTotal]}
                       >
@@ -1825,7 +1866,9 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
                     {/* Add Total Cost and Profit Information */}
                     <View style={styles.saleDetailRow}>
-                      <Text style={styles.saleDetailLabel}>Total Cost:</Text>
+                      <Text style={styles.saleDetailLabel}>
+                        {t('sales.totalCost')}
+                      </Text>
                       <Text style={styles.saleDetailValue}>
                         {formatMMK(
                           saleItems.reduce(
@@ -1836,7 +1879,9 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                       </Text>
                     </View>
                     <View style={styles.saleDetailRow}>
-                      <Text style={styles.saleDetailLabel}>Total Profit:</Text>
+                      <Text style={styles.saleDetailLabel}>
+                        {t('sales.totalProfit')}
+                      </Text>
                       <Text
                         style={[
                           styles.saleDetailValue,
@@ -1855,7 +1900,9 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   </Card>
 
                   <Card style={styles.saleDetailCard}>
-                    <Text style={styles.saleDetailTitle}>Items Purchased</Text>
+                    <Text style={styles.saleDetailTitle}>
+                      {t('sales.itemsPurchased')}
+                    </Text>
                     {saleItems.map((item, index) => (
                       <View key={index} style={styles.saleItemRow}>
                         <View style={styles.saleItemInfo}>
@@ -1871,7 +1918,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                             {formatMMK(item.subtotal)}
                           </Text>
                           <Text style={styles.saleItemProfit}>
-                            Profit:{' '}
+                            {t('sales.profit')}{' '}
                             {formatMMK(
                               item.subtotal - item.cost * item.quantity
                             )}
@@ -1882,7 +1929,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
                     <View style={styles.saleItemsTotal}>
                       <Text style={styles.saleItemsTotalLabel}>
-                        Total Items: {saleItems.length}
+                        {t('sales.totalItems')} {saleItems.length}
                       </Text>
                       <Text style={styles.saleItemsTotalValue}>
                         {formatMMK(selectedSale.total)}

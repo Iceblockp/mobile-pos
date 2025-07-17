@@ -12,6 +12,7 @@ import {
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { X, Camera, Flashlight } from 'lucide-react-native';
 import { Audio } from 'expo-av'; // Import Audio from expo-av
+import { useTranslation } from '@/context/LocalizationContext';
 
 interface BarcodeScannerProps {
   onBarcodeScanned: (barcode: string) => void;
@@ -22,6 +23,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   onBarcodeScanned,
   onClose,
 }) => {
+  const { t } = useTranslation();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
@@ -53,9 +55,9 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   useEffect(() => {
     if (Platform.OS === 'web') {
       Alert.alert(
-        'Camera Not Available',
-        'Barcode scanning is not available on web. Please enter the barcode manually.',
-        [{ text: 'OK', onPress: onClose }]
+        t('barcodeScanner.cameraNotAvailable'),
+        t('barcodeScanner.cameraNotAvailableWeb'),
+        [{ text: t('common.confirm'), onPress: onClose }]
       );
       return;
     }
@@ -70,7 +72,9 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       <Modal visible={true} animationType="slide">
         <SafeAreaView style={styles.container}>
           <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Loading camera...</Text>
+            <Text style={styles.loadingText}>
+              {t('barcodeScanner.loadingCamera')}
+            </Text>
           </View>
         </SafeAreaView>
       </Modal>
@@ -85,22 +89,27 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
               <X size={24} color="#FFFFFF" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Camera Permission</Text>
+            <Text style={styles.headerTitle}>
+              {t('barcodeScanner.cameraPermission')}
+            </Text>
             <View style={styles.placeholder} />
           </View>
 
           <View style={styles.permissionContainer}>
             <Camera size={64} color="#6B7280" />
-            <Text style={styles.permissionTitle}>Camera Access Required</Text>
+            <Text style={styles.permissionTitle}>
+              {t('barcodeScanner.cameraAccessRequired')}
+            </Text>
             <Text style={styles.permissionText}>
-              We need camera access to scan barcodes. Please grant permission to
-              continue.
+              {t('barcodeScanner.cameraPermissionText')}
             </Text>
             <TouchableOpacity
               style={styles.permissionButton}
               onPress={requestPermission}
             >
-              <Text style={styles.permissionButtonText}>Grant Permission</Text>
+              <Text style={styles.permissionButtonText}>
+                {t('barcodeScanner.grantPermission')}
+              </Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -143,7 +152,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <X size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Scan Barcode</Text>
+          <Text style={styles.headerTitle}>{t('barcodeScanner.title')}</Text>
           <TouchableOpacity
             style={styles.flashButton}
             onPress={() => setFlashOn(!flashOn)}
@@ -169,7 +178,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
         <View style={styles.footer}>
           <Text style={styles.instructionText}>
-            Position the barcode within the frame to scan
+            {t('barcodeScanner.positionBarcode')}
           </Text>
 
           {scanned && (
@@ -177,7 +186,9 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               style={styles.rescanButton}
               onPress={resetScanner}
             >
-              <Text style={styles.rescanButtonText}>Scan Another</Text>
+              <Text style={styles.rescanButtonText}>
+                {t('barcodeScanner.scanAnother')}
+              </Text>
             </TouchableOpacity>
           )}
         </View>

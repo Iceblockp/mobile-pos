@@ -21,6 +21,7 @@ import {
   List,
 } from 'lucide-react-native';
 import { useToast } from '@/context/ToastContext';
+import { useTranslation } from '@/context/LocalizationContext';
 
 // Import the ProductsManager component
 import ProductsManager from '@/components/ProductsManager';
@@ -30,6 +31,7 @@ type InventoryTab = 'overview' | 'products';
 export default function Inventory() {
   const { db, isReady, refreshTrigger } = useDatabase();
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<InventoryTab>('overview');
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -77,7 +79,7 @@ export default function Inventory() {
 
   const getSupplierName = (supplierId: number) => {
     const supplier = suppliers.find((s) => s.id === supplierId);
-    return supplier ? supplier.name : 'Unknown';
+    return supplier ? supplier.name : t('inventory.unknown');
   };
 
   const handleStockAdjustment = (product: Product) => {
@@ -91,7 +93,7 @@ export default function Inventory() {
 
     const quantity = parseInt(adjustmentQuantity);
     if (isNaN(quantity) || quantity <= 0) {
-      Alert.alert('Error', 'Please enter a valid quantity');
+      Alert.alert(t('common.error'), t('inventory.enterValidQuantity'));
       return;
     }
 
@@ -112,21 +114,23 @@ export default function Inventory() {
       //   `Stock ${type === 'add' ? 'added' : 'removed'} successfully`
       // );
       showToast(
-        `Stock ${type === 'add' ? 'added' : 'removed'} successfully`,
+        type === 'add'
+          ? t('inventory.stockAddedSuccessfully')
+          : t('inventory.stockRemovedSuccessfully'),
         'success'
       );
     } catch (error) {
-      Alert.alert('Error', 'Failed to update stock');
+      Alert.alert(t('common.error'), t('inventory.failedToUpdate'));
       console.error('Error updating stock:', error);
     }
   };
 
   const getStockStatus = (product: Product) => {
     if (product.quantity <= 0)
-      return { text: 'Out of Stock', color: '#EF4444' };
+      return { text: t('inventory.outOfStock'), color: '#EF4444' };
     if (product.quantity <= product.min_stock)
-      return { text: 'Low Stock', color: '#F59E0B' };
-    return { text: 'In Stock', color: '#10B981' };
+      return { text: t('inventory.lowStock'), color: '#F59E0B' };
+    return { text: t('inventory.inStock'), color: '#10B981' };
   };
 
   const renderTabContent = () => {
@@ -154,7 +158,9 @@ export default function Inventory() {
                 </View>
                 <View style={styles.summaryText}>
                   <Text style={styles.summaryValue}>{products.length}</Text>
-                  <Text style={styles.summaryLabel}>Total Products</Text>
+                  <Text style={styles.summaryLabel}>
+                    {t('inventory.totalProducts')}
+                  </Text>
                 </View>
               </View>
             </Card>
@@ -170,7 +176,9 @@ export default function Inventory() {
                   <Text style={styles.summaryValue}>
                     {lowStockProducts.length}
                   </Text>
-                  <Text style={styles.summaryLabel}>Low Stock</Text>
+                  <Text style={styles.summaryLabel}>
+                    {t('inventory.lowStock')}
+                  </Text>
                 </View>
               </View>
             </Card>
@@ -178,20 +186,25 @@ export default function Inventory() {
 
           {lowStockProducts.length > 0 && (
             <Card>
-              <Text style={styles.sectionTitle}>Low Stock Alert</Text>
+              <Text style={styles.sectionTitle}>
+                {t('inventory.lowStockAlert')}
+              </Text>
               {lowStockProducts.map((product) => (
                 <View key={product.id} style={styles.alertItem}>
                   <View style={styles.alertInfo}>
                     <Text style={styles.alertProductName}>{product.name}</Text>
                     <Text style={styles.alertProductDetails}>
-                      Stock: {product.quantity} | Min: {product.min_stock}
+                      {t('inventory.stock')}: {product.quantity} |{' '}
+                      {t('inventory.min')}: {product.min_stock}
                     </Text>
                   </View>
                   <TouchableOpacity
                     style={styles.adjustButton}
                     onPress={() => handleStockAdjustment(product)}
                   >
-                    <Text style={styles.adjustButtonText}>Adjust</Text>
+                    <Text style={styles.adjustButtonText}>
+                      {t('inventory.adjust')}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               ))}
@@ -199,7 +212,9 @@ export default function Inventory() {
           )}
 
           <Card>
-            <Text style={styles.sectionTitle}>All Products</Text>
+            <Text style={styles.sectionTitle}>
+              {t('inventory.allProducts')}
+            </Text>
             {products.map((product) => {
               const status = getStockStatus(product);
               return (
@@ -210,10 +225,11 @@ export default function Inventory() {
                       {product.category}
                     </Text>
                     <Text style={styles.productSupplier}>
-                      Supplier: {getSupplierName(product.supplier_id)}
+                      {t('inventory.supplier')}:{' '}
+                      {getSupplierName(product.supplier_id)}
                     </Text>
                     <Text style={styles.productPrice}>
-                      Price: {formatMMK(product.price)}
+                      {t('inventory.price')}: {formatMMK(product.price)}
                     </Text>
                   </View>
 
@@ -226,7 +242,9 @@ export default function Inventory() {
                       style={styles.adjustButton}
                       onPress={() => handleStockAdjustment(product)}
                     >
-                      <Text style={styles.adjustButtonText}>Adjust</Text>
+                      <Text style={styles.adjustButtonText}>
+                        {t('inventory.adjust')}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -238,15 +256,17 @@ export default function Inventory() {
         {showAdjustment && selectedProduct && (
           <View style={styles.modal}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Adjust Stock</Text>
+              <Text style={styles.modalTitle}>
+                {t('inventory.adjustStock')}
+              </Text>
               <Text style={styles.modalSubtitle}>
-                {selectedProduct.name} - Current Stock:{' '}
+                {selectedProduct.name} - {t('inventory.currentStock')}:{' '}
                 {selectedProduct.quantity}
               </Text>
 
               <TextInput
                 style={styles.modalInput}
-                placeholder="Enter quantity"
+                placeholder={t('inventory.enterQuantity')}
                 value={adjustmentQuantity}
                 onChangeText={setAdjustmentQuantity}
                 keyboardType="numeric"
@@ -254,21 +274,21 @@ export default function Inventory() {
 
               <View style={styles.modalButtons}>
                 <Button
-                  title="Cancel"
+                  title={t('inventory.cancel')}
                   size="small"
                   onPress={() => setShowAdjustment(false)}
                   variant="secondary"
                   style={styles.modalButton}
                 />
                 <Button
-                  title="Remove"
+                  title={t('inventory.remove')}
                   size="small"
                   onPress={() => processAdjustment('remove')}
                   variant="danger"
                   style={styles.modalButton}
                 />
                 <Button
-                  title="Add"
+                  title={t('inventory.add')}
                   size="small"
                   onPress={() => processAdjustment('add')}
                   style={styles.modalButton}
@@ -288,10 +308,8 @@ export default function Inventory() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Inventory</Text>
-        <Text style={styles.subtitle}>
-          Stock management and product catalog
-        </Text>
+        <Text style={styles.title}>{t('inventory.title')}</Text>
+        <Text style={styles.subtitle}>{t('inventory.subtitle')}</Text>
       </View>
 
       {/* Tab Navigation */}
@@ -310,7 +328,7 @@ export default function Inventory() {
               activeTab === 'overview' && styles.activeTabText,
             ]}
           >
-            Overview
+            {t('inventory.overview')}
           </Text>
         </TouchableOpacity>
 
@@ -328,7 +346,7 @@ export default function Inventory() {
               activeTab === 'products' && styles.activeTabText,
             ]}
           >
-            Products
+            {t('inventory.products')}
           </Text>
         </TouchableOpacity>
       </View>

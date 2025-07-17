@@ -33,6 +33,7 @@ import {
 } from 'lucide-react-native';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { useToast } from '@/context/ToastContext';
+import { useTranslation } from '@/context/LocalizationContext';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 
@@ -44,6 +45,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   const { db, isReady, refreshTrigger, triggerRefresh } = useDatabase();
   const [products, setProducts] = useState<Product[]>([]);
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -176,7 +178,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   const handleBarcodeScanned = (barcode: string) => {
     setFormData({ ...formData, barcode });
     setShowBarcodeScanner(false);
-    showToast(`Barcode ${barcode} added to product`, 'success');
+    showToast(t('messages.barcodeAdded', { barcode }), 'success');
   };
 
   const handleSearchBarcodeScanned = async (barcode: string) => {
@@ -186,9 +188,9 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     // Find and highlight the product if it exists
     const foundProduct = products.find((p) => p.barcode === barcode);
     if (foundProduct) {
-      showToast(`Found: ${foundProduct.name}`, 'success');
+      showToast(t('messages.found', { name: foundProduct.name }), 'success');
     } else {
-      showToast('No product found with this barcode', 'error');
+      showToast(t('messages.noProductWithBarcode'), 'error');
     }
   };
 
@@ -205,8 +207,8 @@ export default function Products({ compact = false }: ProductsManagerProps) {
 
     if (status !== 'granted') {
       Alert.alert(
-        'Permission Required',
-        'Sorry, we need camera roll permissions to make this work!'
+        t('products.permissionRequired'),
+        t('products.galleryPermissionNeeded')
       );
       return;
     }
@@ -233,10 +235,10 @@ export default function Products({ compact = false }: ProductsManagerProps) {
         });
 
         setFormData({ ...formData, imageUrl: newPath });
-        showToast('Image selected successfully', 'success');
+        showToast(t('products.imageSelected'), 'success');
       } catch (error) {
         console.error('Error saving image:', error);
-        showToast('Failed to save image', 'error');
+        showToast(t('products.failedToSaveImage'), 'error');
       }
     }
   };
@@ -247,8 +249,8 @@ export default function Products({ compact = false }: ProductsManagerProps) {
 
     if (status !== 'granted') {
       Alert.alert(
-        'Permission Required',
-        'Sorry, we need camera permissions to make this work!'
+        t('products.permissionRequired'),
+        t('products.cameraPermissionNeeded')
       );
       return;
     }
@@ -274,10 +276,10 @@ export default function Products({ compact = false }: ProductsManagerProps) {
         });
 
         setFormData({ ...formData, imageUrl: newPath });
-        showToast('Photo taken successfully', 'success');
+        showToast(t('products.photoTaken'), 'success');
       } catch (error) {
         console.error('Error saving image:', error);
-        showToast('Failed to save image', 'error');
+        showToast(t('products.failedToSaveImage'), 'error');
       }
     }
   };
@@ -291,7 +293,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
       !formData.price ||
       !formData.cost
     ) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      Alert.alert(t('common.error'), t('products.fillRequiredFields'));
       return;
     }
 
@@ -300,15 +302,12 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     const cost = parseInt(formData.cost);
 
     if (isNaN(price) || isNaN(cost) || price <= 0 || cost <= 0) {
-      Alert.alert('Error', 'Price and cost must be valid positive numbers');
+      Alert.alert(t('common.error'), t('products.validPositiveNumbers'));
       return;
     }
 
     if (price <= cost) {
-      Alert.alert(
-        'Warning',
-        'Price should be higher than cost for profitability'
-      );
+      Alert.alert(t('products.warning'), t('products.priceShouldBeHigher'));
       return;
     }
 
@@ -341,12 +340,12 @@ export default function Products({ compact = false }: ProductsManagerProps) {
       // );
       showToast(
         editingProduct
-          ? 'Product updated successfully'
-          : 'Product added successfully',
+          ? t('products.productUpdated')
+          : t('products.productAdded'),
         'success'
       );
     } catch (error) {
-      Alert.alert('Error', 'Failed to save product');
+      Alert.alert(t('common.error'), t('products.failedToSave'));
       console.error('Error saving product:', error);
     }
   };
@@ -355,7 +354,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     if (!db) return;
 
     if (!categoryFormData.name) {
-      Alert.alert('Error', 'Please enter a category name');
+      Alert.alert(t('common.error'), t('products.enterCategoryName'));
       return;
     }
 
@@ -370,12 +369,12 @@ export default function Products({ compact = false }: ProductsManagerProps) {
       resetCategoryForm();
       showToast(
         editingCategory
-          ? 'Category updated successfully'
-          : 'Category added successfully',
+          ? t('products.categoryUpdated')
+          : t('products.categoryAdded'),
         'success'
       );
     } catch (error) {
-      Alert.alert('Error', 'Failed to save category');
+      Alert.alert(t('common.error'), t('products.failedToSaveCategory'));
       console.error('Error saving category:', error);
     }
   };
@@ -407,12 +406,12 @@ export default function Products({ compact = false }: ProductsManagerProps) {
 
   const handleDelete = async (product: Product) => {
     Alert.alert(
-      'Delete Product',
-      `Are you sure you want to delete "${product.name}"?`,
+      t('products.deleteProduct'),
+      `${t('products.areYouSure')} "${product.name}"?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('products.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -420,9 +419,9 @@ export default function Products({ compact = false }: ProductsManagerProps) {
               await loadData();
               // Add this line to trigger refresh for other components
               triggerRefresh();
-              showToast('Product deleted successfully', 'success');
+              showToast(t('products.productDeleted'), 'success');
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete product');
+              Alert.alert(t('common.error'), t('products.failedToSave'));
               console.error('Error deleting product:', error);
             }
           },
@@ -439,29 +438,31 @@ export default function Products({ compact = false }: ProductsManagerProps) {
 
     if (productsInCategory.length > 0) {
       showToast(
-        `Cannot delete "${category.name}" - ${
+        `${t('products.cannotDeleteCategory')} "${category.name}" - ${
           productsInCategory.length
-        } product${productsInCategory.length > 1 ? 's' : ''} still use${
-          productsInCategory.length === 1 ? 's' : ''
-        } this category`,
+        } ${
+          productsInCategory.length > 1
+            ? t('products.productsStillUseCategory')
+            : t('products.productStillUsesCategory')
+        }`,
         'error'
       );
       return;
     }
 
     Alert.alert(
-      'Delete Category',
-      `Are you sure you want to delete "${category.name}"?`,
+      t('products.deleteCategory'),
+      `${t('products.areYouSure')} "${category.name}"?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('products.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await db?.deleteCategory(category.id);
               await loadData();
-              showToast('Category deleted successfully', 'success');
+              showToast(t('products.categoryDeleted'), 'success');
             } catch (error: any) {
               console.error('Error deleting category:', error);
               // Check if it's a foreign key constraint error
@@ -470,12 +471,16 @@ export default function Products({ compact = false }: ProductsManagerProps) {
                 error.message.includes('FOREIGN KEY constraint')
               ) {
                 showToast(
-                  `Cannot delete "${category.name}" - products are still using this category`,
+                  `${t('products.cannotDeleteCategory')} "${
+                    category.name
+                  }" - ${t('products.productsStillUseCategory')}`,
                   'error'
                 );
               } else {
                 showToast(
-                  `Failed to delete category "${category.name}". Please try again.`,
+                  `${t('products.failedToSaveCategory')} "${
+                    category.name
+                  }". ${t('common.error')}.`,
                   'error'
                 );
               }
@@ -488,7 +493,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
 
   const getSupplierName = (supplierId: number) => {
     const supplier = suppliers.find((s) => s.id === supplierId);
-    return supplier ? supplier.name : 'Unknown';
+    return supplier ? supplier.name : t('products.unknown');
   };
 
   if (!isReady || loading) {
@@ -500,7 +505,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
       {!compact && (
         <SafeAreaView>
           <View style={styles.header}>
-            <Text style={styles.title}>Products</Text>
+            <Text style={styles.title}>{t('products.title')}</Text>
             <View style={styles.headerActions}>
               <TouchableOpacity
                 style={[styles.sortDropdown, { backgroundColor: '#6B7280' }]}
@@ -544,7 +549,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
               <Search size={16} color="#6B7280" />
               <TextInput
                 style={styles.compactSearchInput}
-                placeholder="Search products..."
+                placeholder={t('products.searchProducts')}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
@@ -804,7 +809,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
               <Search size={20} color="#6B7280" />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search products or scan barcode..."
+                placeholder={t('products.searchProducts')}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
@@ -836,7 +841,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
                     selectedCategory === 'All' && styles.categoryChipTextActive,
                   ]}
                 >
-                  All ({products.length})
+                  {t('common.all')} ({products.length})
                 </Text>
               </TouchableOpacity>
               {categories.map((category) => {
@@ -891,7 +896,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
                     styles.compactCategoryChipTextActive,
                 ]}
               >
-                All ({products.length})
+                {t('common.all')} ({products.length})
               </Text>
             </TouchableOpacity>
             {categories.map((category) => {
@@ -938,9 +943,10 @@ export default function Products({ compact = false }: ProductsManagerProps) {
               <View style={styles.productInfo}>
                 <Text style={styles.productName}>{product.name}</Text>
                 <Text style={styles.productCategory}>{product.category}</Text>
-                <Text style={styles.productSupplier}>
-                  Supplier: {getSupplierName(product.supplier_id)}
-                </Text>
+                {/* <Text style={styles.productSupplier}>
+                  {t('products.supplier')}:{' '}
+                  {getSupplierName(product.supplier_id)}
+                </Text> */}
               </View>
               <View style={styles.productActions}>
                 <TouchableOpacity
@@ -960,13 +966,17 @@ export default function Products({ compact = false }: ProductsManagerProps) {
 
             <View style={styles.productDetails}>
               <View style={styles.productDetailItem}>
-                <Text style={styles.productDetailLabel}>Price</Text>
+                <Text style={styles.productDetailLabel}>
+                  {t('products.price')}
+                </Text>
                 <Text style={styles.productDetailValue}>
                   {formatMMK(product.price)}
                 </Text>
               </View>
               <View style={styles.productDetailItem}>
-                <Text style={styles.productDetailLabel}>Stock</Text>
+                <Text style={styles.productDetailLabel}>
+                  {t('products.stock')}
+                </Text>
                 <Text
                   style={[
                     styles.productDetailValue,
@@ -978,7 +988,9 @@ export default function Products({ compact = false }: ProductsManagerProps) {
                 </Text>
               </View>
               <View style={styles.productDetailItem}>
-                <Text style={styles.productDetailLabel}>Profit</Text>
+                <Text style={styles.productDetailLabel}>
+                  {t('products.profit')}
+                </Text>
                 <Text style={[styles.productDetailValue, styles.profitText]}>
                   {formatMMK(product.price - product.cost)}
                 </Text>
@@ -988,7 +1000,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
             {product.barcode && (
               <View style={styles.barcodeDisplay}>
                 <Text style={styles.barcodeLabel}>
-                  Barcode: {product.barcode}
+                  {t('products.barcodeLabel')} {product.barcode}
                 </Text>
               </View>
             )}
@@ -998,22 +1010,17 @@ export default function Products({ compact = false }: ProductsManagerProps) {
         {filteredProducts.length === 0 && (
           <View style={styles.emptyState}>
             <Package size={48} color="#9CA3AF" />
-            <Text style={styles.emptyStateText}>No products found</Text>
+            <Text style={styles.emptyStateText}>
+              {t('products.noProductsFound')}
+            </Text>
             <Text style={styles.emptyStateSubtext}>
               {searchQuery
-                ? 'Try adjusting your search or scan a barcode'
-                : 'Add your first product to get started'}
+                ? t('products.tryAdjustingSearch')
+                : t('products.addFirstProductToStart')}
             </Text>
           </View>
         )}
       </ScrollView>
-
-      {showBarcodeScanner && (
-        <BarcodeScanner
-          onBarcodeScanned={handleBarcodeScanned}
-          onClose={() => setShowBarcodeScanner(false)}
-        />
-      )}
 
       {showSearchScanner && (
         <BarcodeScanner
@@ -1031,10 +1038,12 @@ export default function Products({ compact = false }: ProductsManagerProps) {
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
-              {editingProduct ? 'Edit Product' : 'Add New Product'}
+              {editingProduct
+                ? t('products.editProduct')
+                : t('products.addNewProduct')}
             </Text>
             <TouchableOpacity onPress={resetForm}>
-              <Text style={styles.modalClose}>Cancel</Text>
+              <Text style={styles.modalClose}>{t('products.cancel')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -1052,7 +1061,9 @@ export default function Products({ compact = false }: ProductsManagerProps) {
               ) : (
                 <View style={styles.imagePlaceholder}>
                   <ImageIcon size={40} color="#9CA3AF" />
-                  <Text style={styles.imagePlaceholderText}>No image</Text>
+                  <Text style={styles.imagePlaceholderText}>
+                    {t('products.noImage')}
+                  </Text>
                 </View>
               )}
 
@@ -1062,7 +1073,9 @@ export default function Products({ compact = false }: ProductsManagerProps) {
                   onPress={takePhoto}
                 >
                   <Camera size={20} color="#FFFFFF" />
-                  <Text style={styles.imagePickerButtonText}>Camera</Text>
+                  <Text style={styles.imagePickerButtonText}>
+                    {t('products.camera')}
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -1070,37 +1083,51 @@ export default function Products({ compact = false }: ProductsManagerProps) {
                   onPress={pickImage}
                 >
                   <ImageIcon size={20} color="#FFFFFF" />
-                  <Text style={styles.imagePickerButtonText}>Gallery</Text>
+                  <Text style={styles.imagePickerButtonText}>
+                    {t('products.gallery')}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Product Name *"
-              value={formData.name}
-              onChangeText={(text) => setFormData({ ...formData, name: text })}
-            />
-
-            <View style={styles.barcodeContainer}>
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>
+                {t('products.productName')} *
+              </Text>
               <TextInput
-                style={[styles.input, styles.barcodeInput]}
-                placeholder="Barcode (Optional)"
-                value={formData.barcode}
+                style={styles.input}
+                placeholder={t('products.productNamePlaceholder')}
+                value={formData.name}
                 onChangeText={(text) =>
-                  setFormData({ ...formData, barcode: text })
+                  setFormData({ ...formData, name: text })
                 }
               />
-              <TouchableOpacity
-                style={styles.scanBarcodeButton}
-                onPress={() => setShowBarcodeScanner(true)}
-              >
-                <Scan size={20} color="#FFFFFF" />
-              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>
+                {t('products.barcode')} ({t('products.optional')})
+              </Text>
+              <View style={styles.barcodeContainer}>
+                <TextInput
+                  style={[styles.input, styles.barcodeInput]}
+                  placeholder={t('products.barcodePlaceholder')}
+                  value={formData.barcode}
+                  onChangeText={(text) =>
+                    setFormData({ ...formData, barcode: text })
+                  }
+                />
+                <TouchableOpacity
+                  style={styles.scanBarcodeButton}
+                  onPress={() => setShowBarcodeScanner(true)}
+                >
+                  <Scan size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <View style={styles.pickerContainer}>
-              <Text style={styles.pickerLabel}>Category *</Text>
+              <Text style={styles.pickerLabel}>{t('common.category')} *</Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -1132,66 +1159,82 @@ export default function Products({ compact = false }: ProductsManagerProps) {
               </ScrollView>
             </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Price (MMK) * - Enter whole numbers only"
-              value={formData.price}
-              onChangeText={(text) =>
-                setFormData({ ...formData, price: validatePricing(text) })
-              }
-              keyboardType="numeric"
-            />
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>{t('common.price')} *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder={t('products.pricePlaceholder')}
+                value={formData.price}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, price: validatePricing(text) })
+                }
+                keyboardType="numeric"
+              />
+            </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Cost (MMK) * - Enter whole numbers only"
-              value={formData.cost}
-              onChangeText={(text) =>
-                setFormData({ ...formData, cost: validatePricing(text) })
-              }
-              keyboardType="numeric"
-            />
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>{t('products.cost')} *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder={t('products.costPlaceholder')}
+                value={formData.cost}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, cost: validatePricing(text) })
+                }
+                keyboardType="numeric"
+              />
+            </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Quantity"
-              value={formData.quantity}
-              onChangeText={(text) =>
-                setFormData({
-                  ...formData,
-                  quantity: text.replace(/[^\d]/g, ''),
-                })
-              }
-              keyboardType="numeric"
-            />
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>{t('common.quantity')}</Text>
+              <TextInput
+                style={styles.input}
+                placeholder={t('products.quantityPlaceholder')}
+                value={formData.quantity}
+                onChangeText={(text) =>
+                  setFormData({
+                    ...formData,
+                    quantity: text.replace(/[^\d]/g, ''),
+                  })
+                }
+                keyboardType="numeric"
+              />
+            </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Min Stock Level"
-              value={formData.min_stock}
-              onChangeText={(text) =>
-                setFormData({
-                  ...formData,
-                  min_stock: text.replace(/[^\d]/g, ''),
-                })
-              }
-              keyboardType="numeric"
-            />
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>
+                {t('products.minStockLevel')}
+              </Text>
+              <TextInput
+                style={styles.input}
+                placeholder={t('products.minStockPlaceholder')}
+                value={formData.min_stock}
+                onChangeText={(text) =>
+                  setFormData({
+                    ...formData,
+                    min_stock: text.replace(/[^\d]/g, ''),
+                  })
+                }
+                keyboardType="numeric"
+              />
+            </View>
 
             {formData.price &&
               formData.cost &&
               parseInt(formData.price) > 0 &&
               parseInt(formData.cost) > 0 && (
                 <View style={styles.profitPreview}>
-                  <Text style={styles.profitLabel}>Profit Preview:</Text>
+                  <Text style={styles.profitLabel}>
+                    {t('products.profitPreview')}:
+                  </Text>
                   <Text style={styles.profitValue}>
                     {formatMMK(
                       parseInt(formData.price) - parseInt(formData.cost)
                     )}{' '}
-                    per unit
+                    {t('products.perUnit')}
                   </Text>
                   <Text style={styles.marginValue}>
-                    Margin:{' '}
+                    {t('products.margin')}:{' '}
                     {(
                       ((parseInt(formData.price) - parseInt(formData.cost)) /
                         parseInt(formData.price)) *
@@ -1204,18 +1247,26 @@ export default function Products({ compact = false }: ProductsManagerProps) {
 
             <View style={styles.formButtons}>
               <Button
-                title="Cancel"
+                title={t('common.cancel')}
                 onPress={resetForm}
                 variant="secondary"
                 style={styles.formButton}
               />
               <Button
-                title={editingProduct ? 'Update' : 'Add'}
+                title={editingProduct ? t('common.edit') : t('common.add')}
                 onPress={handleSubmit}
                 style={styles.formButton}
               />
             </View>
           </ScrollView>
+
+          {/* Barcode Scanner inside the form modal */}
+          {showBarcodeScanner && (
+            <BarcodeScanner
+              onBarcodeScanned={handleBarcodeScanned}
+              onClose={() => setShowBarcodeScanner(false)}
+            />
+          )}
         </SafeAreaView>
       </Modal>
 
@@ -1227,9 +1278,11 @@ export default function Products({ compact = false }: ProductsManagerProps) {
       >
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Manage Categories</Text>
+            <Text style={styles.modalTitle}>
+              {t('products.manageCategories')}
+            </Text>
             <TouchableOpacity onPress={resetCategoryForm}>
-              <Text style={styles.modalClose}>Done</Text>
+              <Text style={styles.modalClose}>{t('common.done')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -1239,49 +1292,62 @@ export default function Products({ compact = false }: ProductsManagerProps) {
           >
             <Card style={styles.categoryFormCard}>
               <Text style={styles.formTitle}>
-                {editingCategory ? 'Edit Category' : 'Add New Category'}
+                {editingCategory
+                  ? t('products.addNewCategory')
+                  : t('products.editCategory')}
               </Text>
 
-              <TextInput
-                style={styles.input}
-                placeholder="Category Name *"
-                value={categoryFormData.name}
-                onChangeText={(text) =>
-                  setCategoryFormData({ ...categoryFormData, name: text })
-                }
-              />
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>
+                  {t('categories.categoryName')} *
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder={t('products.categoryNamePlaceholder')}
+                  value={categoryFormData.name}
+                  onChangeText={(text) =>
+                    setCategoryFormData({ ...categoryFormData, name: text })
+                  }
+                />
+              </View>
 
-              <View style={{ height: 12 }}></View>
-              <TextInput
-                style={styles.input}
-                placeholder="Description"
-                value={categoryFormData.description}
-                onChangeText={(text) =>
-                  setCategoryFormData({
-                    ...categoryFormData,
-                    description: text,
-                  })
-                }
-                multiline
-                numberOfLines={3}
-              />
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>
+                  {t('products.description')}
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder={t('products.description')}
+                  value={categoryFormData.description}
+                  onChangeText={(text) =>
+                    setCategoryFormData({
+                      ...categoryFormData,
+                      description: text,
+                    })
+                  }
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
 
               <View style={styles.formButtons}>
                 <Button
-                  title="Cancel"
+                  title={t('common.cancel')}
                   onPress={resetCategoryForm}
                   variant="secondary"
                   style={styles.formButton}
                 />
                 <Button
-                  title={editingCategory ? 'Update' : 'Add'}
+                  title={editingCategory ? t('common.edit') : t('common.add')}
                   onPress={handleCategorySubmit}
                   style={styles.formButton}
                 />
               </View>
             </Card>
 
-            <Text style={styles.sectionTitle}>Existing Categories</Text>
+            <Text style={styles.sectionTitle}>
+              {t('categories.existingCategories')}
+            </Text>
             {categories.map((category) => (
               <Card key={category.id} style={styles.categoryCard}>
                 <View style={styles.categoryHeader}>
@@ -1779,6 +1845,15 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     marginBottom: 12,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#374151',
+    marginBottom: 8,
   },
   pickerLabel: {
     fontSize: 16,
