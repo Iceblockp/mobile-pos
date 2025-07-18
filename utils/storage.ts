@@ -43,7 +43,6 @@ export const saveLicenseStatus = async (
 export const getLicenseStatus = async (): Promise<LicenseStatus | null> => {
   try {
     const statusStr = await AsyncStorage.getItem(STORAGE_KEYS.LICENSE_STATUS);
-    console.log('getLicenseStatus - raw data:', statusStr);
     return statusStr ? JSON.parse(statusStr) : null;
   } catch (error) {
     console.error('Failed to get license status:', error);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { useDatabase } from '@/context/DatabaseContext';
+import { useDashboardAnalytics } from '@/hooks/useQueries';
 import {
   DollarSign,
   Package,
@@ -24,42 +24,24 @@ import { useTranslation } from '@/context/LocalizationContext';
 import { LanguageIconButton } from '@/components/LanguageIconButton';
 
 export default function Dashboard() {
-  const { db, isReady, refreshTrigger } = useDatabase();
   const { t } = useTranslation();
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [lowStockCount, setLowStockCount] = useState(0);
-  const [totalProducts, setTotalProducts] = useState(0);
-  const [refreshing, setRefreshing] = useState(false);
 
-  const loadDashboardData = async () => {
-    if (!db) return;
+  // Use React Query for optimized data fetching
+  const {
+    data: dashboardData,
+    isLoading,
+    isRefetching,
+    refetch,
+  } = useDashboardAnalytics();
 
-    try {
-      const [analyticsData, lowStockProducts, allProducts] = await Promise.all([
-        db.getSalesAnalytics(30),
-        db.getLowStockProducts(),
-        db.getProducts(),
-      ]);
-
-      setAnalytics(analyticsData);
-      setLowStockCount(lowStockProducts.length);
-      setTotalProducts(allProducts.length);
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-    }
+  const onRefresh = () => {
+    refetch();
   };
 
-  useEffect(() => {
-    if (isReady) {
-      loadDashboardData();
-    }
-  }, [isReady, db, refreshTrigger]);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadDashboardData();
-    setRefreshing(false);
-  };
+  // Extract data from React Query result
+  const analytics = dashboardData?.analytics;
+  const lowStockCount = dashboardData?.lowStockCount || 0;
+  const totalProducts = dashboardData?.totalProducts || 0;
 
   const formatMMK = (amount: number) => {
     return (
@@ -70,7 +52,7 @@ export default function Dashboard() {
     );
   };
 
-  if (!isReady) {
+  if (isLoading) {
     return <LoadingSpinner />;
   }
 
@@ -95,7 +77,7 @@ export default function Dashboard() {
       <ScrollView
         style={styles.scrollView}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -202,7 +184,7 @@ export default function Dashboard() {
               <Text style={styles.viewAllText}>{t('dashboard.viewAll')}</Text>
             </TouchableOpacity>
           </View>
-          {analytics?.topProducts?.length > 0 ? (
+          {analytics?.topProducts && analytics.topProducts.length > 0 ? (
             analytics.topProducts.map((product: any, index: number) => (
               <View key={index} style={styles.productRow}>
                 <View style={styles.productRank}>

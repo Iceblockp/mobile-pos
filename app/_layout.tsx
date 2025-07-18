@@ -14,12 +14,13 @@ import { DatabaseProvider } from '@/context/DatabaseContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { LocalizationProvider } from '@/context/LocalizationContext';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   useFrameworkReady();
-  console.log('RootLayout rendering');
 
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
@@ -29,7 +30,6 @@ export default function RootLayout() {
   });
 
   const pathname = usePathname();
-  console.log('pathname', pathname);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
@@ -42,28 +42,30 @@ export default function RootLayout() {
   }
 
   return (
-    <LocalizationProvider>
-      <DatabaseProvider>
-        <ToastProvider>
-          <SafeAreaProvider>
-            <SafeAreaView style={{ flex: 1 }}>
-              <Stack screenOptions={{ headerShown: false }}>
-                {/* <Stack.Screen name="index" /> */}
-                <Stack.Screen
-                  name="(tabs)"
-                  options={{
-                    headerShown: false,
-                    statusBarStyle: 'dark',
-                    statusBarBackgroundColor: 'white',
-                  }}
-                />
-                <Stack.Screen name="+not-found" />
-              </Stack>
-              <StatusBar style="auto" />
-            </SafeAreaView>
-          </SafeAreaProvider>
-        </ToastProvider>
-      </DatabaseProvider>
-    </LocalizationProvider>
+    <QueryClientProvider client={queryClient}>
+      <LocalizationProvider>
+        <DatabaseProvider>
+          <ToastProvider>
+            <SafeAreaProvider>
+              <SafeAreaView style={{ flex: 1 }}>
+                <Stack screenOptions={{ headerShown: false }}>
+                  {/* <Stack.Screen name="index" /> */}
+                  <Stack.Screen
+                    name="(tabs)"
+                    options={{
+                      headerShown: false,
+                      statusBarStyle: 'dark',
+                      statusBarBackgroundColor: 'white',
+                    }}
+                  />
+                  <Stack.Screen name="+not-found" />
+                </Stack>
+                <StatusBar style="auto" />
+              </SafeAreaView>
+            </SafeAreaProvider>
+          </ToastProvider>
+        </DatabaseProvider>
+      </LocalizationProvider>
+    </QueryClientProvider>
   );
 }

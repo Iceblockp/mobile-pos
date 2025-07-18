@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { useDatabase } from '@/context/DatabaseContext';
+import { useExpenseCategories, useExpenseMutations } from '@/hooks/useQueries';
+import { useInfiniteExpenses } from '@/hooks/useInfiniteQueries';
 import { Expense, ExpenseCategory } from '@/services/database';
 import {
   Plus,
@@ -32,18 +33,10 @@ import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
 
 export default function Expenses() {
-  const { db, isReady, refreshTrigger, triggerRefresh } = useDatabase();
   const { showToast } = useToast();
   const { t } = useTranslation();
-  const [expenses, setExpenses] = useState<
-    (Expense & { category_name: string })[]
-  >([]);
-  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [hasMoreData, setHasMoreData] = useState(true);
   const PAGE_SIZE = 20;
 
   // New state variables for category management
@@ -68,6 +61,32 @@ export default function Expenses() {
 
   // Category selector state
   const [showCategorySelector, setShowCategorySelector] = useState(false);
+
+  // Use infinite query for optimized data fetching with pagination
+  const {
+    data,
+    isLoading,
+    isRefetching,
+    refetch: refetchExpenses,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteExpenses(dateFilter, selectedDate);
+
+  // Flatten the paginated data
+  const expenses = data?.pages.flatMap((page) => page.data) || [];
+
+  const { data: categories = [], isLoading: categoriesLoading } =
+    useExpenseCategories();
+
+  const {
+    addExpense,
+    updateExpense,
+    deleteExpense,
+    addExpenseCategory,
+    updateExpenseCategory,
+    deleteExpenseCategory,
+  } = useExpenseMutations();
 
   // Add the date range calculation function (from sales.tsx)
   const calculateDateRange = (
@@ -110,80 +129,14 @@ export default function Expenses() {
     return [startDate, endDate];
   };
 
-  const loadExpenses = async (page = 1) => {
-    if (!db) return;
-
-    try {
-      setLoading(true);
-      let newExpenses;
-
-      if (dateFilter === 'all') {
-        newExpenses = await db.getExpensesPaginated(page, PAGE_SIZE);
-      } else {
-        const [startDate, endDate] = calculateDateRange(
-          dateFilter,
-          selectedDate
-        );
-        newExpenses = await db.getExpensesByDateRangePaginated(
-          startDate,
-          endDate,
-          page,
-          PAGE_SIZE
-        );
-      }
-
-      if (page === 1) {
-        setExpenses(newExpenses as (Expense & { category_name: string })[]);
-      } else {
-        setExpenses((prev) => [
-          ...prev,
-          ...(newExpenses as (Expense & { category_name: string })[]),
-        ]);
-      }
-
-      setHasMoreData(newExpenses.length === PAGE_SIZE);
-      setCurrentPage(page);
-    } catch (error) {
-      console.error('Error loading expenses:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const loadCategories = async () => {
-    if (!db) return;
-
-    try {
-      const data = await db.getExpenseCategories();
-      setCategories(data);
-    } catch (error) {
-      console.error('Error loading categories:', error);
-    }
-  };
-
-  useEffect(() => {
-    if (isReady) {
-      loadExpenses(1);
-      loadCategories();
-    }
-  }, [isReady, db, refreshTrigger]);
-
   const onRefresh = () => {
-    setRefreshing(true);
-    loadExpenses(1);
-    loadCategories();
+    refetchExpenses();
   };
 
-  const loadMore = () => {
-    if (hasMoreData && !loading) {
-      loadExpenses(currentPage + 1);
-    }
-  };
+  // Note: Pagination and load more functionality would need to be implemented
+  // with React Query's useInfiniteQuery for better performance
 
   const handleAddExpense = async () => {
-    if (!db) return;
-
     if (!formCategory) {
       Alert.alert(t('common.error'), t('expenses.selectCategory'));
       return;
@@ -196,25 +149,24 @@ export default function Expenses() {
 
     try {
       if (editingExpense) {
-        await db.updateExpense(
-          editingExpense.id,
-          formCategory,
-          Number(formAmount),
-          formDescription,
-          formDate.toISOString()
-        );
+        await updateExpense.mutateAsync({
+          id: editingExpense.id,
+          category_id: formCategory,
+          amount: Number(formAmount),
+          description: formDescription,
+          date: formDate.toISOString(),
+        });
       } else {
-        await db.addExpense(
-          formCategory,
-          Number(formAmount),
-          formDescription,
-          formDate.toISOString()
-        );
+        await addExpense.mutateAsync({
+          category_id: formCategory,
+          amount: Number(formAmount),
+          description: formDescription,
+          date: formDate.toISOString(),
+        });
       }
 
       setShowAddModal(false);
       resetForm();
-      triggerRefresh();
 
       // Show success toast
       showToast(
@@ -230,8 +182,6 @@ export default function Expenses() {
   };
 
   const handleDeleteExpense = async (id: number) => {
-    if (!db) return;
-
     Alert.alert(t('expenses.confirmDelete'), t('expenses.areYouSureDelete'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
@@ -239,8 +189,7 @@ export default function Expenses() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await db.deleteExpense(id);
-            triggerRefresh();
+            await deleteExpense.mutateAsync(id);
             showToast(t('expenses.expenseDeleted'), 'success');
           } catch (error) {
             console.error('Error deleting expense:', error);
@@ -275,27 +224,28 @@ export default function Expenses() {
   };
 
   const handleAddCategory = async () => {
-    if (!db) return;
-
     if (!categoryName.trim()) {
       Alert.alert(t('common.error'), t('categories.enterCategoryName'));
       return;
     }
 
     try {
+      const categoryData = {
+        name: categoryName,
+        description: categoryDescription,
+      };
+
       if (editingCategory) {
-        await db.updateExpenseCategory(
-          editingCategory.id,
-          categoryName,
-          categoryDescription
-        );
+        await updateExpenseCategory.mutateAsync({
+          id: editingCategory.id,
+          name: categoryName,
+          description: categoryDescription,
+        });
       } else {
-        await db.addExpenseCategory(categoryName, categoryDescription);
+        await addExpenseCategory.mutateAsync(categoryData);
       }
 
       resetCategoryForm();
-      loadCategories();
-      triggerRefresh();
 
       // Show success toast
       showToast(
@@ -317,8 +267,6 @@ export default function Expenses() {
   };
 
   const handleDeleteCategory = async (id: number) => {
-    if (!db) return;
-
     // Find the category name for better error messages
     const category = categories.find((c) => c.id === id);
     const categoryName = category?.name || 'this category';
@@ -352,36 +300,19 @@ export default function Expenses() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await db.deleteExpenseCategory(id);
-              loadCategories();
-              triggerRefresh();
+              await deleteExpenseCategory.mutateAsync(id);
               setShowCategoryModal(false);
               setTimeout(() => {
                 showToast(t('categories.categoryDeleted'), 'success');
               }, 300);
             } catch (error: any) {
               console.error('Error deleting category:', error);
-              // Check if it's a foreign key constraint error
-              if (
-                error.message &&
-                (error.message.includes('FOREIGN KEY constraint') ||
-                  error.message.includes('foreign key constraint') ||
-                  error.message.includes('constraint failed'))
-              ) {
-                showToast(
-                  `${t('categories.cannotDelete')} "${categoryName}" - ${t(
-                    'categories.expensesStillUse'
-                  )}`,
-                  'error'
-                );
-              } else {
-                showToast(
-                  `${t('categories.failedToSave')} "${categoryName}". ${t(
-                    'common.error'
-                  )}.`,
-                  'error'
-                );
-              }
+              showToast(
+                `${t('categories.failedToSave')} "${categoryName}". ${t(
+                  'common.error'
+                )}.`,
+                'error'
+              );
             }
           },
         },
@@ -399,12 +330,12 @@ export default function Expenses() {
   };
 
   // Reload expenses when date filter changes
-  useEffect(() => {
-    if (isReady) {
-      setCurrentPage(1);
-      loadExpenses(1);
-    }
-  }, [dateFilter, selectedDate]);
+  // useEffect(() => {
+  //   if (isReady) {
+  //     setCurrentPage(1);
+  //     loadExpenses(1);
+  //   }
+  // }, [dateFilter, selectedDate]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -450,7 +381,7 @@ export default function Expenses() {
       <ScrollView
         style={styles.scrollView}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
         }
         onScroll={({ nativeEvent }) => {
           const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
@@ -459,7 +390,10 @@ export default function Expenses() {
             layoutMeasurement.height + contentOffset.y >=
             contentSize.height - paddingToBottom
           ) {
-            loadMore();
+            // Load more data if available and not already fetching
+            if (hasNextPage && !isFetchingNextPage) {
+              fetchNextPage();
+            }
           }
         }}
         scrollEventThrottle={400}
@@ -533,7 +467,7 @@ export default function Expenses() {
           </View>
         </View>
 
-        {loading && expenses.length === 0 ? (
+        {isLoading && expenses.length === 0 ? (
           <LoadingSpinner />
         ) : expenses.length === 0 ? (
           <Card>
@@ -548,7 +482,10 @@ export default function Expenses() {
                 <View style={styles.expenseHeader}>
                   <View>
                     <Text style={styles.expenseCategory}>
-                      {expense.category_name}
+                      {
+                        //@ts-ignore
+                        expense.category_name
+                      }
                     </Text>
                     <Text style={styles.expenseDate}>
                       {formatDate(expense.date)}
@@ -568,6 +505,7 @@ export default function Expenses() {
                 <View style={styles.expenseActions}>
                   <TouchableOpacity
                     style={styles.actionButton}
+                    //@ts-ignore
                     onPress={() => handleEditExpense(expense)}
                   >
                     <Edit size={16} color="#3B82F6" />
@@ -587,7 +525,15 @@ export default function Expenses() {
               </Card>
             ))}
 
-            {loading && <LoadingSpinner />}
+            {/* Loading indicator for fetching more data */}
+            {isFetchingNextPage && (
+              <View style={styles.loadMoreContainer}>
+                <LoadingSpinner />
+                <Text style={styles.loadMoreText}>
+                  {t('common.loadingMore')}
+                </Text>
+              </View>
+            )}
           </>
         )}
       </ScrollView>
@@ -1437,5 +1383,16 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     color: '#374151',
     textAlign: 'center',
+  },
+  loadMoreContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  loadMoreText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+    marginTop: 8,
   },
 });

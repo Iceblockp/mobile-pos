@@ -1,11 +1,5 @@
-import React, { useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Animated,
-  TouchableOpacity,
-} from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import { X } from 'lucide-react-native';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -23,7 +17,7 @@ export const Toast: React.FC<ToastProps> = ({
   onClose,
   duration = 3000,
 }) => {
-  const opacity = new Animated.Value(0);
+  const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     // Fade in

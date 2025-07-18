@@ -19,13 +19,9 @@ export default function TabLayout() {
   const router = useRouter();
   const { t } = useTranslation();
 
-  console.log('LicenseGuard - loading:', loading);
-  console.log('LicenseGuard - isLicenseValid:', isLicenseValid());
-
   useEffect(() => {
     if (!loading && !isLicenseValid()) {
       // Redirect to the root page if license is not valid
-      console.log('goess');
       router.replace('/');
     }
   }, [loading, isLicenseValid]);

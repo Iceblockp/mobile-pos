@@ -15,7 +15,13 @@ import {
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { useDatabase } from '@/context/DatabaseContext';
+import {
+  useProducts,
+  useCategories,
+  useSuppliers,
+  useProductMutations,
+  useCategoryMutations,
+} from '@/hooks/useQueries';
 import { Product, Category, Supplier } from '@/services/database';
 import {
   Plus,
@@ -43,12 +49,8 @@ interface ProductsManagerProps {
 }
 
 export default function Products({ compact = false }: ProductsManagerProps) {
-  const { db, isReady, refreshTrigger, triggerRefresh } = useDatabase();
-  const [products, setProducts] = useState<Product[]>([]);
   const { showToast } = useToast();
   const { t } = useTranslation();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showAddForm, setShowAddForm] = useState(false);
@@ -57,11 +59,29 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   const [showSearchScanner, setShowSearchScanner] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [sortBy, setSortBy] = useState<'name' | 'updated_at'>('name'); // Add sorting state
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc'); // Add sort order state
-  const [showSortOptions, setShowSortOptions] = useState(false); // Add state for sort dropdown
+  const [sortBy, setSortBy] = useState<'name' | 'updated_at'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [showSortOptions, setShowSortOptions] = useState(false);
+
+  // Use React Query for optimized data fetching
+  const {
+    data: products = [],
+    isLoading: productsLoading,
+    isRefetching: productsRefetching,
+    refetch: refetchProducts,
+  } = useProducts();
+
+  const { data: categories = [], isLoading: categoriesLoading } =
+    useCategories();
+
+  const { data: suppliers = [], isLoading: suppliersLoading } = useSuppliers();
+
+  const { addProduct, updateProduct, deleteProduct } = useProductMutations();
+  const { addCategory, updateCategory, deleteCategory } =
+    useCategoryMutations();
+
+  const isLoading = productsLoading || categoriesLoading || suppliersLoading;
+  const isRefreshing = productsRefetching;
 
   const [formData, setFormData] = useState({
     name: '',
@@ -80,45 +100,9 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     description: '',
   });
 
-  const loadData = async () => {
-    if (!db) return;
-
-    try {
-      setLoading(true);
-      const [productsData, categoriesData, suppliersData] = await Promise.all([
-        db.getProducts(),
-        db.getCategories(),
-        db.getSuppliers(),
-      ]);
-
-      setProducts(productsData);
-      setCategories(categoriesData);
-      setSuppliers(suppliersData);
-    } catch (error) {
-      console.error('Error loading data:', error);
-    } finally {
-      setLoading(false);
-    }
+  const onRefresh = () => {
+    refetchProducts();
   };
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await loadData();
-      // showToast(t('common.dataRefreshed'), 'success');
-    } catch (error) {
-      console.error('Error refreshing data:', error);
-      // showToast(t('common.refreshFailed'), 'error');
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    if (isReady) {
-      loadData();
-    }
-  }, [isReady, db, refreshTrigger]); // Add refreshTrigger as a dependency
 
   const formatMMK = (amount: number) => {
     return (
@@ -300,8 +284,6 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   };
 
   const handleSubmit = async () => {
-    if (!db) return;
-
     if (
       !formData.name ||
       !formData.category ||
@@ -329,7 +311,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     try {
       const productData = {
         name: formData.name,
-        barcode: formData.barcode ? formData.barcode : undefined, // Convert empty string to null
+        barcode: formData.barcode ? formData.barcode : undefined,
         category: formData.category,
         price: price,
         cost: cost,
@@ -340,20 +322,15 @@ export default function Products({ compact = false }: ProductsManagerProps) {
       };
 
       if (editingProduct) {
-        await db.updateProduct(editingProduct.id, productData);
+        await updateProduct.mutateAsync({
+          id: editingProduct.id,
+          data: productData,
+        });
       } else {
-        await db.addProduct(productData);
+        await addProduct.mutateAsync(productData);
       }
 
-      await loadData();
       resetForm();
-      triggerRefresh();
-      // Alert.alert(
-      //   'Success',
-      //   editingProduct
-      //     ? 'Product updated successfully'
-      //     : 'Product added successfully'
-      // );
       showToast(
         editingProduct
           ? t('products.productUpdated')
@@ -367,8 +344,6 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   };
 
   const handleCategorySubmit = async () => {
-    if (!db) return;
-
     if (!categoryFormData.name) {
       Alert.alert(t('common.error'), t('products.enterCategoryName'));
       return;
@@ -376,12 +351,20 @@ export default function Products({ compact = false }: ProductsManagerProps) {
 
     try {
       if (editingCategory) {
-        await db.updateCategory(editingCategory.id, categoryFormData);
+        await updateCategory.mutateAsync({
+          id: editingCategory.id,
+          data: {
+            name: categoryFormData.name,
+            description: categoryFormData.description,
+          },
+        });
       } else {
-        await db.addCategory(categoryFormData);
+        await addCategory.mutateAsync({
+          ...categoryFormData,
+          created_at: new Date().toISOString(),
+        });
       }
 
-      await loadData();
       resetCategoryForm();
       showToast(
         editingCategory
@@ -431,10 +414,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
           style: 'destructive',
           onPress: async () => {
             try {
-              await db?.deleteProduct(product.id);
-              await loadData();
-              // Add this line to trigger refresh for other components
-              triggerRefresh();
+              await deleteProduct.mutateAsync(product.id);
               showToast(t('products.productDeleted'), 'success');
             } catch (error) {
               Alert.alert(t('common.error'), t('products.failedToSave'));
@@ -478,8 +458,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
           style: 'destructive',
           onPress: async () => {
             try {
-              await db?.deleteCategory(category.id);
-              await loadData();
+              await deleteCategory.mutateAsync(category.id);
               // Close modal first, then show success toast
               setShowCategoryModal(false);
               setTimeout(() => {
@@ -522,7 +501,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     return supplier ? supplier.name : t('products.unknown');
   };
 
-  if (!isReady || (loading && !refreshing)) {
+  if (isLoading && !isRefreshing) {
     return <LoadingSpinner />;
   }
 
@@ -958,7 +937,10 @@ export default function Products({ compact = false }: ProductsManagerProps) {
       <ScrollView
         style={styles.productsList}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={productsRefetching}
+            onRefresh={onRefresh}
+          />
         }
       >
         {filteredProducts.map((product) => (

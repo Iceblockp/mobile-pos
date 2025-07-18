@@ -35,9 +35,6 @@ const Index = () => {
   } = useLicense();
   const { t } = useTranslation();
 
-  console.log('Index component - loading:', loading);
-  console.log('Index component - licenseStatus:', licenseStatus);
-
   const [selectedDuration, setSelectedDuration] = useState('trial');
   const [modalVisible, setModalVisible] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
@@ -82,7 +79,6 @@ const Index = () => {
     ? isLicenseExpired(licenseStatus.expiryDate)
     : true;
 
-  console.log('first', licenseStatus?.expiryDate);
   // Check if license is about to expire (within 10 days)
   const isAboutToExpire = () => {
     if (!licenseStatus?.expiryDate) return false;

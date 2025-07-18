@@ -18,6 +18,16 @@ import {
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import {
+  useProducts,
+  useCategories,
+  useSaleMutations,
+  useSaleItems,
+} from '@/hooks/useQueries';
+import {
+  useInfiniteSales,
+  useInfiniteSalesByDateRange,
+} from '@/hooks/useInfiniteQueries';
 import { useDatabase } from '@/context/DatabaseContext';
 import { Product, Category } from '@/services/database';
 import {
@@ -56,41 +66,29 @@ const { width: screenWidth } = Dimensions.get('window');
 const isSmallScreen = screenWidth < 400;
 
 export default function Sales() {
-  const { db, isReady, triggerRefresh } = useDatabase();
   const [cart, setCart] = useState<CartItem[]>([]);
   const { showToast } = useToast();
   const { t } = useTranslation();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showProductDialog, setShowProductDialog] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false); // Add this line
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  const loadData = async () => {
-    if (!db) return;
+  // Use React Query for optimized data fetching
+  const {
+    data: products = [],
+    isLoading: productsLoading,
+    error: productsError,
+  } = useProducts();
 
-    try {
-      const [productsData, categoriesData] = await Promise.all([
-        db.getProducts(),
-        db.getCategories(),
-      ]);
-      setProducts(productsData);
-      setCategories(categoriesData);
-    } catch (error) {
-      console.error('Error loading data:', error);
-    }
-  };
+  const { data: categories = [], isLoading: categoriesLoading } =
+    useCategories();
 
-  useEffect(() => {
-    if (isReady) {
-      loadData();
-    }
-  }, [isReady, db]);
+  const { addSale } = useSaleMutations();
 
   useEffect(() => {
     const newTotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
@@ -107,10 +105,8 @@ export default function Sales() {
   };
 
   const handleBarcodeScanned = async (barcode: string) => {
-    if (!db) return;
-
     try {
-      const product = await db.getProductByBarcode(barcode);
+      const product = products.find((p) => p.barcode === barcode);
       if (product) {
         addToCart(product);
         setShowScanner(false);
@@ -202,7 +198,7 @@ export default function Sales() {
   };
 
   const processSale = async (paymentMethod: string) => {
-    if (!db || cart.length === 0) return;
+    if (cart.length === 0) return;
 
     try {
       setLoading(true);
@@ -220,12 +216,10 @@ export default function Sales() {
         subtotal: item.subtotal,
       }));
 
-      await db.addSale(saleData, saleItems);
+      await addSale.mutateAsync({ saleData, saleItems });
 
       showToast(t('sales.saleCompleted'), 'success');
       clearCart();
-      await loadData(); // Refresh products in this component
-      triggerRefresh(); // Add this line to notify other components
     } catch (error) {
       Alert.alert(t('common.error'), t('common.error'));
       console.error('Error processing sale:', error);
@@ -382,7 +376,7 @@ export default function Sales() {
     );
   };
 
-  if (!isReady) {
+  if (productsLoading || categoriesLoading) {
     return <LoadingSpinner />;
   }
 
@@ -698,28 +692,20 @@ export default function Sales() {
 
 // Enhanced Sales History Component with Sale Details and Mobile Export
 const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { db, triggerRefresh } = useDatabase();
   const { showToast } = useToast();
   const { t } = useTranslation();
-  const [sales, setSales] = useState<any[]>([]);
-  const [filteredSales, setFilteredSales] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedSale, setSelectedSale] = useState<any>(null);
-  const [saleItems, setSaleItems] = useState<any[]>([]);
   const [showSaleDetail, setShowSaleDetail] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [allSaleItems, setAllSaleItems] = useState<any[]>([]);
   const [loadingAllItems, setLoadingAllItems] = useState(false);
   const saleDetailRef = useRef(null);
   const [capturing, setCapturing] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMoreData, setHasMoreData] = useState(true);
-  const PAGE_SIZE = 50;
 
   const formatMMK = (amount: number) => {
     return (
@@ -843,129 +829,51 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     return [startDate, endDate];
   };
 
-  const loadSales = async (page = 1) => {
-    if (!db) return;
+  // Calculate date range for React Query
+  const [startDate, endDate] = calculateDateRange(dateFilter, selectedDate);
 
-    try {
-      setLoading(true);
-      let salesData;
+  // Use React Query for sales data
+  const {
+    data: salesPages,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: salesLoading,
+  } = dateFilter === 'all'
+    ? useInfiniteSales()
+    : useInfiniteSalesByDateRange(startDate, endDate);
 
-      if (dateFilter === 'all') {
-        salesData = await db.getSalesPaginated(page, PAGE_SIZE);
-      } else {
-        const [startDate, endDate] = calculateDateRange(
-          dateFilter,
-          selectedDate
-        );
-        salesData = await db.getSalesByDateRangePaginated(
-          startDate,
-          endDate,
-          page,
-          PAGE_SIZE
-        );
-      }
+  // Flatten the paginated data
+  const sales = salesPages?.pages.flatMap((page) => page.data) || [];
 
-      if (salesData.length < PAGE_SIZE) {
-        setHasMoreData(false);
-      }
+  // Filter sales based on search query
+  const filteredSales = sales.filter((sale) => {
+    if (!searchQuery) return true;
+    return (
+      sale.id.toString().includes(searchQuery) ||
+      sale.payment_method.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
 
-      if (page === 1) {
-        setSales(salesData);
-        setFilteredSales(salesData);
-      } else {
-        setSales((prev) => [...prev, ...salesData]);
-        setFilteredSales((prev) => [...prev, ...salesData]);
-      }
+  // Use React Query for sale items
+  const { data: saleItems = [], isLoading: saleItemsLoading } = useSaleItems(
+    selectedSale?.id || 0
+  );
 
-      setCurrentPage(page);
-    } catch (error) {
-      console.error('Error loading sales:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use mutations and database context
+  const { deleteSale } = useSaleMutations();
+  const { db } = useDatabase();
 
   const loadMore = () => {
-    if (!loading && hasMoreData) {
-      loadSales(currentPage + 1);
+    if (!isFetchingNextPage && hasNextPage) {
+      fetchNextPage();
     }
   };
 
-  const loadSaleItems = async (saleId: number) => {
-    if (!db) return;
-
-    try {
-      const items = await db.getSaleItems(saleId);
-      setSaleItems(items);
-    } catch (error) {
-      console.error('Error loading sale items:', error);
-    }
-  };
-
-  const handleSalePress = async (sale: any) => {
+  const handleSalePress = (sale: any) => {
     setSelectedSale(sale);
-    await loadSaleItems(sale.id);
     setShowSaleDetail(true);
   };
-
-  useEffect(() => {
-    loadSales();
-  }, [db]);
-
-  useEffect(() => {
-    let filtered = sales;
-
-    // Apply date filter
-    if (dateFilter !== 'all') {
-      const now = new Date();
-      const filterDate = new Date();
-
-      switch (dateFilter) {
-        case 'today':
-          filterDate.setHours(0, 0, 0, 0);
-          filtered = filtered.filter((sale) => {
-            const saleDate = new Date(sale.created_at);
-            saleDate.setHours(0, 0, 0, 0);
-            return saleDate.getTime() === filterDate.getTime();
-          });
-          break;
-        case 'week':
-          filterDate.setDate(now.getDate() - 7);
-          filtered = filtered.filter(
-            (sale) => new Date(sale.created_at) >= filterDate
-          );
-          break;
-        case 'month':
-          filterDate.setMonth(now.getMonth() - 1);
-          filtered = filtered.filter(
-            (sale) => new Date(sale.created_at) >= filterDate
-          );
-          break;
-        case 'custom':
-          const customDate = new Date(selectedDate);
-          customDate.setHours(0, 0, 0, 0);
-          const nextDay = new Date(customDate);
-          nextDay.setDate(customDate.getDate() + 1);
-
-          filtered = filtered.filter((sale) => {
-            const saleDate = new Date(sale.created_at);
-            return saleDate >= customDate && saleDate < nextDay;
-          });
-          break;
-      }
-    }
-
-    // Apply search filter
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (sale) =>
-          sale.id.toString().includes(searchQuery) ||
-          sale.payment_method.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    setFilteredSales(filtered);
-  }, [sales, dateFilter, searchQuery, selectedDate]);
 
   // Reset allSaleItems when filters change
   useEffect(() => {
@@ -982,13 +890,14 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   // New function to load all sale items for the filtered sales
   const loadAllSaleItems = async () => {
-    if (!db || filteredSales.length === 0) return [];
+    if (filteredSales.length === 0 || !db) return [];
 
     setLoadingAllItems(true);
     try {
       const allItems: any[] = [];
 
       for (const sale of filteredSales) {
+        // Use the database directly for bulk operations during export
         const items = await db.getSaleItems(sale.id);
         // Add sale information to each item
         const itemsWithSaleInfo = items.map((item) => ({
@@ -1067,7 +976,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   // Handle deleting a sale
   const handleDeleteSale = async () => {
-    if (!db || !selectedSale) return;
+    if (!selectedSale) return;
 
     Alert.alert(
       t('sales.deleteSale'),
@@ -1079,17 +988,12 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              setLoading(true);
-              await db.deleteSale(selectedSale.id);
+              await deleteSale.mutateAsync(selectedSale.id);
               setShowSaleDetail(false);
-              await loadSales(); // Refresh the sales list
-              triggerRefresh(); // Notify other components (like analytics)
               showToast(t('sales.saleDeletedSuccessfully'), 'success');
             } catch (error) {
               console.error('Error deleting sale:', error);
               Alert.alert(t('common.error'), t('sales.failedToDeleteSale'));
-            } finally {
-              setLoading(false);
             }
           },
         },
@@ -1131,38 +1035,38 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         const totalProfit = totalRevenue - totalCost;
 
         excelData.push({
-          'Sale ID': '',
+          'Sale ID': 0,
           Date: '',
           'Payment Method': '',
-          'Total Amount': '',
+          'Total Amount': 0,
         });
         excelData.push({
-          'Sale ID': 'SUMMARY',
-          Date: '',
+          'Sale ID': 0,
+          Date: 'SUMMARY',
           'Payment Method': '',
-          'Total Amount': '',
+          'Total Amount': 0,
         });
         excelData.push({
-          'Sale ID': 'Total Sales',
-          Date: totalSales.toString(),
-          'Payment Method': '',
-          'Total Amount': '',
+          'Sale ID': 0,
+          Date: 'Total Sales',
+          'Payment Method': totalSales.toString(),
+          'Total Amount': 0,
         });
         excelData.push({
-          'Sale ID': 'Total Revenue',
-          Date: '',
+          'Sale ID': 0,
+          Date: 'Total Revenue',
           'Payment Method': '',
           'Total Amount': totalRevenue,
         });
         excelData.push({
-          'Sale ID': 'Total Cost',
-          Date: '',
+          'Sale ID': 0,
+          Date: 'Total Cost',
           'Payment Method': '',
           'Total Amount': totalCost,
         });
         excelData.push({
-          'Sale ID': 'Total Profit',
-          Date: '',
+          'Sale ID': 0,
+          Date: 'Total Profit',
           'Payment Method': '',
           'Total Amount': totalProfit,
         });
@@ -1229,45 +1133,51 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       );
       const totalProfit = totalRevenue - totalCost;
 
-      //@ts-ignore
-      excelData.push({});
       excelData.push({
-        'Sale ID': 'SUMMARY',
+        'Sale ID': 0,
         Date: '',
-        'Total Amount': '',
+        'Total Amount': 0,
         'Total Amount (MMK)': '',
         'Payment Method': '',
         Day: '',
       });
       excelData.push({
-        'Sale ID': 'Total Sales',
-        Date: totalSales.toString(),
-        'Total Amount': '',
+        'Sale ID': 0,
+        Date: 'SUMMARY',
+        'Total Amount': 0,
         'Total Amount (MMK)': '',
         'Payment Method': '',
         Day: '',
       });
       excelData.push({
-        'Sale ID': 'Total Revenue',
-        Date: formatMMK(totalRevenue),
+        'Sale ID': 0,
+        Date: 'Total Sales',
+        'Total Amount': 0,
+        'Total Amount (MMK)': '',
+        'Payment Method': totalSales.toString(),
+        Day: '',
+      });
+      excelData.push({
+        'Sale ID': 0,
+        Date: 'Total Revenue',
         'Total Amount': totalRevenue,
-        'Total Amount (MMK)': '',
+        'Total Amount (MMK)': formatMMK(totalRevenue),
         'Payment Method': '',
         Day: '',
       });
       excelData.push({
-        'Sale ID': 'Total Cost',
-        Date: formatMMK(totalCost),
+        'Sale ID': 0,
+        Date: 'Total Cost',
         'Total Amount': totalCost,
-        'Total Amount (MMK)': '',
+        'Total Amount (MMK)': formatMMK(totalCost),
         'Payment Method': '',
         Day: '',
       });
       excelData.push({
-        'Sale ID': 'Total Profit',
-        Date: formatMMK(totalProfit),
+        'Sale ID': 0,
+        Date: 'Total Profit',
         'Total Amount': totalProfit,
-        'Total Amount (MMK)': '',
+        'Total Amount (MMK)': formatMMK(totalProfit),
         'Payment Method': '',
         Day: '',
       });
@@ -1357,59 +1267,64 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           0
         );
         const totalProfit = totalSales - totalCost;
-        //@ts-ignore
-        excelData.push({});
         excelData.push({
-          'Sale ID': 'SUMMARY',
+          'Sale ID': 0,
           Date: '',
           Product: '',
-          Quantity: '',
-          'Sale Price': '',
-          'Cost Price': '',
-          Subtotal: '',
-          //@ts-ignore
-          Profit: '',
+          Quantity: 0,
+          'Sale Price': 0,
+          'Cost Price': 0,
+          Subtotal: 0,
+          Profit: 0,
         });
         excelData.push({
-          'Sale ID': 'Total Items',
+          'Sale ID': 0,
           Date: '',
-          Product: '',
+          Product: 'SUMMARY',
+          Quantity: 0,
+          'Sale Price': 0,
+          'Cost Price': 0,
+          Subtotal: 0,
+          Profit: 0,
+        });
+        excelData.push({
+          'Sale ID': 0,
+          Date: '',
+          Product: 'Total Items',
           Quantity: totalQuantity,
-          'Sale Price': '',
-          'Cost Price': '',
-          Subtotal: '',
-          //@ts-ignore
-          Profit: '',
+          'Sale Price': 0,
+          'Cost Price': 0,
+          Subtotal: 0,
+          Profit: 0,
         });
         excelData.push({
-          'Sale ID': 'Total Sales',
+          'Sale ID': 0,
           Date: '',
-          Product: '',
-          Quantity: '',
-          'Sale Price': '',
-          'Cost Price': '',
+          Product: 'Total Sales',
+          Quantity: 0,
+          'Sale Price': 0,
+          'Cost Price': 0,
           Subtotal: totalSales,
-          //@ts-ignore
-          Profit: '',
+          Profit: 0,
         });
         excelData.push({
-          'Sale ID': 'Total Cost',
+          'Sale ID': 0,
           Date: '',
-          Product: '',
-          Quantity: '',
-          'Sale Price': '',
-          'Cost Price': '',
-          Subtotal: '',
+          Product: 'Total Cost',
+          Quantity: 0,
+          'Sale Price': 0,
+          'Cost Price': 0,
+          Subtotal: 0,
           Profit: totalCost,
         });
         excelData.push({
-          'Sale ID': 'Total Profit',
+          'Sale ID': 0,
           Date: '',
-          Product: '',
-          Quantity: '',
-          'Sale Price': '',
-          'Cost Price': '',
-          Subtotal: '',
+          Product: 'Total Profit',
+          Quantity: 0,
+          'Sale Price': 0,
+          'Cost Price': 0,
+          Subtotal: 0,
           Profit: totalProfit,
         });
 
@@ -1486,77 +1401,86 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       );
       const totalProfit = totalSales - totalCost;
 
-      //@ts-ignore
-      excelData.push({});
       excelData.push({
-        'Sale ID': 'SUMMARY',
+        'Sale ID': 0,
         Date: '',
         Product: '',
-        Quantity: '',
-        'Sale Price': '',
+        Quantity: 0,
+        'Sale Price': 0,
         'Sale Price (MMK)': '',
-        'Cost Price': '',
+        'Cost Price': 0,
         'Cost Price (MMK)': '',
-        Subtotal: '',
+        Subtotal: 0,
         'Subtotal (MMK)': '',
-        //@ts-ignore
-        Profit: '',
+        Profit: 0,
         'Profit (MMK)': '',
       });
       excelData.push({
-        'Sale ID': 'Total Items',
+        'Sale ID': 0,
         Date: '',
-        Product: '',
+        Product: 'SUMMARY',
+        Quantity: 0,
+        'Sale Price': 0,
+        'Sale Price (MMK)': '',
+        'Cost Price': 0,
+        'Cost Price (MMK)': '',
+        Subtotal: 0,
+        'Subtotal (MMK)': '',
+        Profit: 0,
+        'Profit (MMK)': '',
+      });
+      excelData.push({
+        'Sale ID': 0,
+        Date: '',
+        Product: 'Total Items',
         Quantity: totalQuantity,
-        'Sale Price': '',
+        'Sale Price': 0,
         'Sale Price (MMK)': '',
-        'Cost Price': '',
+        'Cost Price': 0,
         'Cost Price (MMK)': '',
-        Subtotal: '',
+        Subtotal: 0,
         'Subtotal (MMK)': '',
-        //@ts-ignore
-        Profit: '',
+        Profit: 0,
         'Profit (MMK)': '',
       });
       excelData.push({
-        'Sale ID': 'Total Sales',
+        'Sale ID': 0,
         Date: '',
-        Product: '',
-        Quantity: '',
-        'Sale Price': '',
+        Product: 'Total Sales',
+        Quantity: 0,
+        'Sale Price': 0,
         'Sale Price (MMK)': '',
-        'Cost Price': '',
+        'Cost Price': 0,
         'Cost Price (MMK)': '',
         Subtotal: totalSales,
         'Subtotal (MMK)': formatMMK(totalSales),
-        //@ts-ignore
-        Profit: '',
+        Profit: 0,
         'Profit (MMK)': '',
       });
       excelData.push({
-        'Sale ID': 'Total Cost',
+        'Sale ID': 0,
         Date: '',
-        Product: '',
-        Quantity: '',
-        'Sale Price': '',
+        Product: 'Total Cost',
+        Quantity: 0,
+        'Sale Price': 0,
         'Sale Price (MMK)': '',
-        'Cost Price': '',
+        'Cost Price': 0,
         'Cost Price (MMK)': '',
-        Subtotal: '',
+        Subtotal: 0,
         'Subtotal (MMK)': '',
         Profit: totalCost,
         'Profit (MMK)': formatMMK(totalCost),
       });
       excelData.push({
-        'Sale ID': 'Total Profit',
+        'Sale ID': 0,
         Date: '',
-        Product: '',
-        Quantity: '',
-        'Sale Price': '',
+        Product: 'Total Profit',
+        Quantity: 0,
+        'Sale Price': 0,
         'Sale Price (MMK)': '',
-        'Cost Price': '',
+        'Cost Price': 0,
         'Cost Price (MMK)': '',
-        Subtotal: '',
+        Subtotal: 0,
         'Subtotal (MMK)': '',
         Profit: totalProfit,
         'Profit (MMK)': formatMMK(totalProfit),
@@ -1801,10 +1725,24 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </View>
         </View>
 
-        {loading ? (
+        {salesLoading ? (
           <LoadingSpinner />
         ) : (
-          <ScrollView style={styles.salesList}>
+          <ScrollView
+            style={styles.salesList}
+            onScroll={({ nativeEvent }) => {
+              const { layoutMeasurement, contentOffset, contentSize } =
+                nativeEvent;
+              const paddingToBottom = 20;
+              if (
+                layoutMeasurement.height + contentOffset.y >=
+                contentSize.height - paddingToBottom
+              ) {
+                loadMore();
+              }
+            }}
+            scrollEventThrottle={400}
+          >
             {filteredSales.map((sale) => (
               <TouchableOpacity
                 key={sale.id}
@@ -1834,6 +1772,16 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 </Card>
               </TouchableOpacity>
             ))}
+
+            {/* Loading indicator for pagination */}
+            {isFetchingNextPage && (
+              <View style={styles.loadingMore}>
+                <ActivityIndicator size="small" color="#059669" />
+                <Text style={styles.loadingMoreText}>
+                  {t('common.loadingMore')}
+                </Text>
+              </View>
+            )}
 
             {filteredSales.length === 0 && (
               <View style={styles.emptyState}>
@@ -2844,6 +2792,18 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     fontSize: 14,
     marginLeft: 6,
+  },
+  loadingMore: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  loadingMoreText: {
+    marginLeft: 8,
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
   },
   exportImageButton: {
     backgroundColor: '#007AFF',

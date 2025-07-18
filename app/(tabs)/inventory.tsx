@@ -13,7 +13,12 @@ import {
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { useDatabase } from '@/context/DatabaseContext';
+import {
+  useProducts,
+  useSuppliers,
+  useLowStockProducts,
+  useProductMutations,
+} from '@/hooks/useQueries';
 import { Product, Supplier } from '@/services/database';
 import {
   TriangleAlert as AlertTriangle,
@@ -30,58 +35,39 @@ import ProductsManager from '@/components/ProductsManager';
 type InventoryTab = 'overview' | 'products';
 
 export default function Inventory() {
-  const { db, isReady, refreshTrigger } = useDatabase();
   const { showToast } = useToast();
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<InventoryTab>('overview');
-  const [products, setProducts] = useState<Product[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [adjustmentQuantity, setAdjustmentQuantity] = useState('');
   const [showAdjustment, setShowAdjustment] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
 
-  const loadData = async () => {
-    if (!db) return;
+  // Use React Query for optimized data fetching
+  const {
+    data: products = [],
+    isLoading: productsLoading,
+    isRefetching: productsRefetching,
+    refetch: refetchProducts,
+  } = useProducts();
 
-    try {
-      setLoading(true);
-      const [productsData, suppliersData, lowStockData] = await Promise.all([
-        db.getProducts(),
-        db.getSuppliers(),
-        db.getLowStockProducts(),
-      ]);
+  const { data: suppliers = [], isLoading: suppliersLoading } = useSuppliers();
 
-      setProducts(productsData);
-      setSuppliers(suppliersData);
-      setLowStockProducts(lowStockData);
-    } catch (error) {
-      console.error('Error loading data:', error);
-    } finally {
-      setLoading(false);
-    }
+  const {
+    data: lowStockProducts = [],
+    isLoading: lowStockLoading,
+    isRefetching: lowStockRefetching,
+    refetch: refetchLowStock,
+  } = useLowStockProducts();
+
+  const { updateProduct } = useProductMutations();
+
+  const onRefresh = () => {
+    refetchProducts();
+    refetchLowStock();
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await loadData();
-      // showToast(t('common.dataRefreshed'), 'success');
-    } catch (error) {
-      console.error('Error refreshing data:', error);
-      // showToast(t('common.refreshFailed'), 'error');
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    if (isReady) {
-      loadData();
-    }
-  }, [isReady, db, refreshTrigger]); // Add refreshTrigger as a dependency
+  const isLoading = productsLoading || suppliersLoading || lowStockLoading;
+  const isRefreshing = productsRefetching || lowStockRefetching;
 
   const formatMMK = (amount: number) => {
     return (
@@ -104,7 +90,7 @@ export default function Inventory() {
   };
 
   const processAdjustment = async (type: 'add' | 'remove') => {
-    if (!db || !selectedProduct) return;
+    if (!selectedProduct) return;
 
     const quantity = parseInt(adjustmentQuantity);
     if (isNaN(quantity) || quantity <= 0) {
@@ -118,16 +104,15 @@ export default function Inventory() {
           ? selectedProduct.quantity + quantity
           : Math.max(0, selectedProduct.quantity - quantity);
 
-      await db.updateProduct(selectedProduct.id, { quantity: newQuantity });
-      await loadData();
+      await updateProduct.mutateAsync({
+        id: selectedProduct.id,
+        data: { quantity: newQuantity },
+      });
+
       setShowAdjustment(false);
       setSelectedProduct(null);
       setAdjustmentQuantity('');
 
-      // Alert.alert(
-      //   'Success',
-      //   `Stock ${type === 'add' ? 'added' : 'removed'} successfully`
-      // );
       showToast(
         type === 'add'
           ? t('inventory.stockAddedSuccessfully')
@@ -165,7 +150,10 @@ export default function Inventory() {
         <ScrollView
           style={styles.content}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl
+              refreshing={productsRefetching}
+              onRefresh={onRefresh}
+            />
           }
         >
           <View style={styles.summaryCards}>
@@ -321,7 +309,7 @@ export default function Inventory() {
     );
   };
 
-  if (!isReady || (loading && !refreshing)) {
+  if (isLoading && !isRefreshing) {
     return <LoadingSpinner />;
   }
 

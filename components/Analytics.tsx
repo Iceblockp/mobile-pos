@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { useDatabase } from '@/context/DatabaseContext';
+import { useCustomAnalytics, useSalesByDateRange } from '@/hooks/useQueries';
 import { Sale } from '@/services/database';
 import {
   ChartBar as BarChart3,
@@ -42,14 +42,10 @@ interface DateFilter {
 }
 
 export default function Analytics() {
-  const { db, isReady, refreshTrigger } = useDatabase();
   const { t } = useTranslation();
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [recentSales, setRecentSales] = useState<Sale[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
+
   // Initialize with today as default
   const today = new Date();
   const [dateFilter, setDateFilter] = useState<DateFilter>({
@@ -61,78 +57,63 @@ export default function Analytics() {
     endDate: today,
   });
 
-  const onRefresh = () => loadAnalytics();
-
-  const loadAnalytics = async () => {
-    if (!db) return;
-
-    try {
-      setRefreshing ? setRefreshing(true) : setLoading(true);
-      let analyticsData;
-      let salesData;
-
-      if (dateFilter.mode === 'day') {
-        // Single day filter
-        const startOfDay = new Date(dateFilter.selectedDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(dateFilter.selectedDate);
-        endOfDay.setHours(23, 59, 59, 999);
-
-        analyticsData = await db.getCustomAnalyticsWithExpenses(
-          startOfDay,
-          endOfDay
-        );
-        salesData = await db.getSalesByDateRange(startOfDay, endOfDay, 50);
-      } else if (dateFilter.mode === 'month') {
-        // Monthly filter
-        const startOfMonth = new Date(
-          dateFilter.selectedYear,
-          dateFilter.selectedMonth,
-          1
-        );
-        const endOfMonth = new Date(
-          dateFilter.selectedYear,
-          dateFilter.selectedMonth + 1,
-          0,
-          23,
-          59,
-          59,
-          999
-        );
-
-        analyticsData = await db.getCustomAnalyticsWithExpenses(
-          startOfMonth,
-          endOfMonth
-        );
-        salesData = await db.getSalesByDateRange(startOfMonth, endOfMonth, 100);
-      } else {
-        // Custom range filter
-        analyticsData = await db.getCustomAnalyticsWithExpenses(
-          dateFilter.startDate,
-          dateFilter.endDate
-        );
-        salesData = await db.getSalesByDateRange(
-          dateFilter.startDate,
-          dateFilter.endDate,
-          100
-        );
-      }
-
-      setAnalytics(analyticsData);
-      setRecentSales(salesData);
-    } catch (error) {
-      console.error('Error loading analytics:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+  // Calculate date range based on filter mode
+  const getDateRange = () => {
+    if (dateFilter.mode === 'day') {
+      const startOfDay = new Date(dateFilter.selectedDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(dateFilter.selectedDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      return { startDate: startOfDay, endDate: endOfDay, limit: 50 };
+    } else if (dateFilter.mode === 'month') {
+      const startOfMonth = new Date(
+        dateFilter.selectedYear,
+        dateFilter.selectedMonth,
+        1
+      );
+      const endOfMonth = new Date(
+        dateFilter.selectedYear,
+        dateFilter.selectedMonth + 1,
+        0,
+        23,
+        59,
+        59,
+        999
+      );
+      return { startDate: startOfMonth, endDate: endOfMonth, limit: 100 };
+    } else {
+      return {
+        startDate: dateFilter.startDate,
+        endDate: dateFilter.endDate,
+        limit: 100,
+      };
     }
   };
 
-  useEffect(() => {
-    if (isReady) {
-      loadAnalytics();
-    }
-  }, [isReady, db, dateFilter, refreshTrigger]);
+  const { startDate, endDate, limit } = getDateRange();
+
+  // Use React Query for optimized data fetching
+  const {
+    data: analytics,
+    isLoading: analyticsLoading,
+    isRefetching: analyticsRefetching,
+    refetch: refetchAnalytics,
+  } = useCustomAnalytics(startDate, endDate);
+
+  const {
+    data: recentSales = [],
+    isLoading: salesLoading,
+    isRefetching: salesRefetching,
+    refetch: refetchSales,
+  } = useSalesByDateRange(startDate, endDate, limit);
+
+  const onRefresh = () => {
+    refetchAnalytics();
+    refetchSales();
+  };
+
+  const isLoading = analyticsLoading || salesLoading;
+  const isRefreshing = analyticsRefetching || salesRefetching;
 
   const formatMMK = (amount: number) => {
     return (
@@ -450,7 +431,7 @@ export default function Analytics() {
     });
   };
 
-  if (!isReady || (loading && !refreshing)) {
+  if (isLoading && !isRefreshing) {
     return <LoadingSpinner />;
   }
 
@@ -622,27 +603,6 @@ export default function Analytics() {
                 <Text style={styles.metricLabel}>
                   {t('analytics.totalRevenue')}
                 </Text>
-                {analytics?.revenueGrowth && (
-                  <View style={styles.growthIndicator}>
-                    {analytics.revenueGrowth.isPositive ? (
-                      <TrendingUp size={12} color="#10B981" />
-                    ) : (
-                      <TrendingDown size={12} color="#EF4444" />
-                    )}
-                    <Text
-                      style={[
-                        styles.growthText,
-                        {
-                          color: analytics.revenueGrowth.isPositive
-                            ? '#10B981'
-                            : '#EF4444',
-                        },
-                      ]}
-                    >
-                      {analytics.revenueGrowth.percentage.toFixed(1)}%
-                    </Text>
-                  </View>
-                )}
               </View>
             </View>
           </Card>
@@ -834,8 +794,8 @@ export default function Analytics() {
           <Text style={styles.sectionTitle}>
             {t('analytics.topPerformingProducts')}
           </Text>
-          {analytics?.topProducts?.length > 0 ? (
-            analytics.topProducts.map((product: any, index: number) => (
+          {analytics?.topProducts && analytics?.topProducts.length > 0 ? (
+            analytics?.topProducts.map((product: any, index: number) => (
               <View key={index} style={styles.productRank}>
                 <View style={styles.rankNumber}>
                   <Text style={styles.rankText}>{index + 1}</Text>
