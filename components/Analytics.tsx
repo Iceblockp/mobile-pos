@@ -392,7 +392,9 @@ export default function Analytics() {
     currentWeekStart.setDate(today.getDate() - daysToMonday);
     currentWeekStart.setHours(0, 0, 0, 0);
 
-    const currentWeekEnd = new Date(today);
+    // Calculate the end of the week (Sunday) - same logic as handleQuickFilter
+    const currentWeekEnd = new Date(currentWeekStart);
+    currentWeekEnd.setDate(currentWeekStart.getDate() + 6); // Monday + 6 days = Sunday
     currentWeekEnd.setHours(23, 59, 59, 999);
 
     // Check if the filter dates match the current week
@@ -404,7 +406,7 @@ export default function Analytics() {
 
     return (
       filterStart.getTime() === currentWeekStart.getTime() &&
-      filterEnd.toDateString() === currentWeekEnd.toDateString()
+      filterEnd.getTime() === currentWeekEnd.getTime()
     );
   };
 

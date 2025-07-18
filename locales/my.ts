@@ -35,6 +35,8 @@ export const my: TranslationKeys = {
     stock: 'လက်ကျန်',
     yes: 'ဟုတ်ကဲ့',
     no: 'မဟုတ်ပါ',
+    dataRefreshed: 'အချက်အလက်များအောင်မြင်စွာပြန်လည်ဖွင့်ပါပြီ',
+    refreshFailed: 'အချက်အလက်များပြန်လည်ဖွင့်ရန်မအောင်မြင်ပါ',
   },
   navigation: {
     dashboard: 'သုံးသပ်ချက်',

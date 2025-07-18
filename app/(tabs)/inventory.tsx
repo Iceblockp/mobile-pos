@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Alert,
   TextInput,
+  RefreshControl,
 } from 'react-native';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -40,6 +41,7 @@ export default function Inventory() {
   const [adjustmentQuantity, setAdjustmentQuantity] = useState('');
   const [showAdjustment, setShowAdjustment] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadData = async () => {
     if (!db) return;
@@ -59,6 +61,19 @@ export default function Inventory() {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadData();
+      // showToast(t('common.dataRefreshed'), 'success');
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      // showToast(t('common.refreshFailed'), 'error');
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -147,7 +162,12 @@ export default function Inventory() {
   const renderOverviewContent = () => {
     return (
       <>
-        <ScrollView style={styles.content}>
+        <ScrollView
+          style={styles.content}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
           <View style={styles.summaryCards}>
             <Card style={styles.summaryCard}>
               <View style={styles.summaryContent}>
@@ -224,10 +244,10 @@ export default function Inventory() {
                     <Text style={styles.productCategory}>
                       {product.category}
                     </Text>
-                    <Text style={styles.productSupplier}>
+                    {/* <Text style={styles.productSupplier}>
                       {t('inventory.supplier')}:{' '}
                       {getSupplierName(product.supplier_id)}
-                    </Text>
+                    </Text> */}
                     <Text style={styles.productPrice}>
                       {t('inventory.price')}: {formatMMK(product.price)}
                     </Text>
@@ -301,7 +321,7 @@ export default function Inventory() {
     );
   };
 
-  if (!isReady || loading) {
+  if (!isReady || (loading && !refreshing)) {
     return <LoadingSpinner />;
   }
 

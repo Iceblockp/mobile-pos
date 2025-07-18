@@ -33,6 +33,8 @@ export const en = {
     stock: 'Stock',
     yes: 'Yes',
     no: 'No',
+    dataRefreshed: 'Data refreshed successfully',
+    refreshFailed: 'Failed to refresh data',
   },
   navigation: {
     dashboard: 'Dashboard',

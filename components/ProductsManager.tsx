@@ -10,6 +10,7 @@ import {
   Alert,
   Modal,
   Image,
+  RefreshControl,
 } from 'react-native';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -57,6 +58,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'updated_at'>('name'); // Add sorting state
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc'); // Add sort order state
   const [showSortOptions, setShowSortOptions] = useState(false); // Add state for sort dropdown
@@ -96,6 +98,19 @@ export default function Products({ compact = false }: ProductsManagerProps) {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadData();
+      // showToast(t('common.dataRefreshed'), 'success');
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      // showToast(t('common.refreshFailed'), 'error');
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -332,6 +347,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
 
       await loadData();
       resetForm();
+      triggerRefresh();
       // Alert.alert(
       //   'Success',
       //   editingProduct
@@ -506,7 +522,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     return supplier ? supplier.name : t('products.unknown');
   };
 
-  if (!isReady || loading) {
+  if (!isReady || (loading && !refreshing)) {
     return <LoadingSpinner />;
   }
 
@@ -939,7 +955,12 @@ export default function Products({ compact = false }: ProductsManagerProps) {
         )}
       </View>
 
-      <ScrollView style={styles.productsList}>
+      <ScrollView
+        style={styles.productsList}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {filteredProducts.map((product) => (
           <Card key={product.id} style={styles.productCard}>
             <View style={styles.productHeader}>
