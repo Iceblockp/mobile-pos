@@ -81,9 +81,6 @@ export class DatabaseService {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
 
-      CREATE INDEX IF NOT EXISTS idx_sales_created_at ON sales(created_at);
-CREATE INDEX IF NOT EXISTS idx_sale_items_sale_id ON sale_items(sale_id);
-
       CREATE TABLE IF NOT EXISTS suppliers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
@@ -149,6 +146,8 @@ CREATE INDEX IF NOT EXISTS idx_sale_items_sale_id ON sale_items(sale_id);
       
       CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
       CREATE INDEX IF NOT EXISTS idx_expenses_category_id ON expenses(category_id);
+      CREATE INDEX IF NOT EXISTS idx_sales_created_at ON sales(created_at);
+      CREATE INDEX IF NOT EXISTS idx_sale_items_sale_id ON sale_items(sale_id);
     `);
 
     // Add description column to categories if it doesn't exist

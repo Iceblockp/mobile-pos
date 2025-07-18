@@ -34,7 +34,7 @@ export default function Help() {
   };
 
   const handleEmailContact = () => {
-    Linking.openURL('mailto:support@mobilepos.com');
+    Linking.openURL('mailto:phonyo126@gmail.com');
   };
 
   const ContactCard = () => (
@@ -61,7 +61,7 @@ export default function Help() {
         </View>
         <View style={styles.contactDetails}>
           <Text style={styles.contactLabel}>{t('help.supportEmail')}</Text>
-          <Text style={styles.contactValue}>support@mobilepos.com</Text>
+          <Text style={styles.contactValue}>phonyo126@gmail.com</Text>
         </View>
         <ChevronRight size={16} color="#9CA3AF" />
       </TouchableOpacity>
