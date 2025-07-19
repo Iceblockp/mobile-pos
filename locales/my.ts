@@ -179,6 +179,12 @@ export const my: TranslationKeys = {
     positionBarcode: 'စကင်ရန် ဘားကုဒ်ကို ဘောင်အတွင်းတွင် နေရာချပါ',
     scanAnother: 'နောက်တစ်ခုစကင်မည်',
   },
+  scanner: {
+    scanProductName: 'ကုန်ပစ္စည်းအမည်စကင်မည်',
+    alignTextInFrame:
+      'ကုန်ပစ္စည်းအမည်စာသားကို ဘောင်အတွင်းတွင် ညှိပြီး ဓာတ်ပုံရိုက်ပါ',
+    cameraPermissionRequired: 'စာသားစကင်ရန် ကင်မရာခွင့်ပြုချက်လိုအပ်သည်',
+  },
   inventory: {
     title: 'ကုန်စာရင်း',
     subtitle: 'ကုန်လက်ကျန်စီမံခန့်ခွဲမှုနှင့် ကုန်ပစ္စည်းစာရင်း',

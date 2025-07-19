@@ -174,6 +174,12 @@ export const en = {
     positionBarcode: 'Position the barcode within the frame to scan',
     scanAnother: 'Scan Another',
   },
+  scanner: {
+    scanProductName: 'Scan Product Name',
+    alignTextInFrame:
+      'Align the product name text within the frame and tap capture',
+    cameraPermissionRequired: 'Camera permission is required to scan text',
+  },
   inventory: {
     title: 'Inventory',
     subtitle: 'Stock management and product catalog',

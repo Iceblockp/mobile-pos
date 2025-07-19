@@ -39,6 +39,7 @@ import {
   ArrowDownAZ,
 } from 'lucide-react-native';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
+import TextScanner from '@/components/TextScanner';
 import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
 import * as ImagePicker from 'expo-image-picker';
@@ -57,6 +58,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [showSearchScanner, setShowSearchScanner] = useState(false);
+  const [showTextScanner, setShowTextScanner] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [sortBy, setSortBy] = useState<'name' | 'updated_at'>('name');
@@ -191,6 +193,22 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     } else {
       showToast(t('messages.noProductWithBarcode'), 'error');
     }
+  };
+
+  const handleTextScanned = (text: string) => {
+    // Clean up the scanned text - remove extra whitespace, newlines, and special characters
+    let cleanedText = text
+      .trim()
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .replace(/[^\w\s\-\.]/g, '') // Keep only letters, numbers, spaces, hyphens, and dots
+      .substring(0, 100); // Limit length to 100 characters
+
+    // Capitalize first letter of each word for better presentation
+    cleanedText = cleanedText.replace(/\b\w/g, (l) => l.toUpperCase());
+
+    setFormData({ ...formData, name: cleanedText });
+    setShowTextScanner(false);
+    showToast(`Product name scanned: ${cleanedText}`, 'success');
   };
 
   const validatePricing = (value: string) => {
@@ -1107,14 +1125,22 @@ export default function Products({ compact = false }: ProductsManagerProps) {
               <Text style={styles.inputLabel}>
                 {t('products.productName')} *
               </Text>
-              <TextInput
-                style={styles.input}
-                placeholder={t('products.productNamePlaceholder')}
-                value={formData.name}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, name: text })
-                }
-              />
+              <View style={styles.barcodeContainer}>
+                <TextInput
+                  style={[styles.input, styles.barcodeInput]}
+                  placeholder={t('products.productNamePlaceholder')}
+                  value={formData.name}
+                  onChangeText={(text) =>
+                    setFormData({ ...formData, name: text })
+                  }
+                />
+                <TouchableOpacity
+                  style={styles.scanTextButton}
+                  onPress={() => setShowTextScanner(true)}
+                >
+                  <Camera size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <View style={styles.inputContainer}>
@@ -1278,6 +1304,15 @@ export default function Products({ compact = false }: ProductsManagerProps) {
             <BarcodeScanner
               onBarcodeScanned={handleBarcodeScanned}
               onClose={() => setShowBarcodeScanner(false)}
+            />
+          )}
+
+          {/* Text Scanner inside the form modal */}
+          {showTextScanner && (
+            <TextScanner
+              visible={showTextScanner}
+              onTextDetected={handleTextScanned}
+              onClose={() => setShowTextScanner(false)}
             />
           )}
         </SafeAreaView>
@@ -1850,6 +1885,14 @@ const styles = StyleSheet.create({
   },
   scanBarcodeButton: {
     backgroundColor: '#3B82F6',
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanTextButton: {
+    backgroundColor: '#10B981',
     width: 48,
     height: 48,
     borderRadius: 8,

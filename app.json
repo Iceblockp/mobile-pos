@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mini POS",
     "slug": "pos",
-    "version": "2.0.0",
+    "version": "2.3.0",
     "orientation": "portrait",
     "icon": "./assets/images/pos.png",
     "scheme": "pos",
@@ -11,8 +11,8 @@
     "ios": {
       "supportsTablet": true,
       "icon": "./assets/images/pos.png",
-      "bundleIdentifier": "com.james_marcus.pos",
-      "buildNumber": "2",
+      "bundleIdentifier": "com.pyaephyonyo.pos",
+      "buildNumber": "3",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -43,16 +43,16 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "11201d06-8b4f-4d90-a500-4687e80f99e0"
+        "projectId": "74480d35-2bb3-4772-bf62-dfed94231f6c"
       }
     },
     "android": {
-      "package": "com.james_marcus.pos",
+      "package": "com.pyaephyonyo.pos",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/pos.png",
         "backgroundColor": "#ffffff"
       },
-      "versionCode": 2
+      "versionCode": 3
     }
   }
 }
