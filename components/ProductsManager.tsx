@@ -1133,6 +1133,8 @@ export default function Products({ compact = false }: ProductsManagerProps) {
                   onChangeText={(text) =>
                     setFormData({ ...formData, name: text })
                   }
+                  multiline={true}
+                  numberOfLines={4}
                 />
                 <TouchableOpacity
                   style={styles.scanTextButton}

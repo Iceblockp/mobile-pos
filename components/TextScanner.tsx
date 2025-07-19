@@ -12,6 +12,7 @@ import { Camera, CameraView } from 'expo-camera';
 import { X, Camera as CameraIcon } from 'lucide-react-native';
 import { useLocalization } from '../context/LocalizationContext';
 import TextRecognition from '@react-native-ml-kit/text-recognition';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 interface TextScannerProps {
   visible: boolean;
@@ -40,21 +41,129 @@ export default function TextScanner({
     setHasPermission(status === 'granted');
   };
 
+  const cropImageToFrame = async (imageUri: string) => {
+    try {
+      // First, get the actual image dimensions
+      const imageInfo = await ImageManipulator.manipulateAsync(imageUri, [], {
+        format: ImageManipulator.SaveFormat.JPEG,
+      });
+      const imageWidth = imageInfo.width;
+      const imageHeight = imageInfo.height;
+
+      console.log('Image dimensions:', { imageWidth, imageHeight });
+      console.log('Screen dimensions:', { width, height });
+
+      // Calculate the frame position and size relative to screen
+      const screenFrameWidth = width * 0.8;
+      const screenFrameHeight = 200;
+      const screenFrameX = width * 0.1; // 10% margin on each side
+
+      // Calculate frame Y position based on the overlay structure
+      const availableHeight = height - 200; // Subtract the fixed middle row height
+      const topOverlayHeight = availableHeight / 2; // Since both overlays have flex: 1
+      const screenFrameY = topOverlayHeight;
+
+      // Convert screen coordinates to image coordinates
+      // The camera might have a different aspect ratio than the screen
+      const scaleX = imageWidth / width;
+      const scaleY = imageHeight / height;
+
+      // Add padding to make the crop area smaller than the visual frame
+      // This ensures we only capture text strictly within the green frame
+      const horizontalPadding = screenFrameWidth * 0.05; // 5% padding on each side
+      const verticalPadding = screenFrameHeight * 0.05; // 5% padding on top and bottom
+
+      const imageFrameX = (screenFrameX + horizontalPadding) * scaleX;
+      const imageFrameY = (screenFrameY + verticalPadding) * scaleY;
+      const imageFrameWidth =
+        (screenFrameWidth - horizontalPadding * 2) * scaleX;
+      const imageFrameHeight =
+        (screenFrameHeight - verticalPadding * 2) * scaleY;
+
+      console.log('Screen frame coordinates:', {
+        screenFrameX,
+        screenFrameY,
+        screenFrameWidth,
+        screenFrameHeight,
+      });
+
+      console.log('Image frame coordinates:', {
+        imageFrameX,
+        imageFrameY,
+        imageFrameWidth,
+        imageFrameHeight,
+        scaleX,
+        scaleY,
+      });
+
+      // Ensure crop coordinates are within image bounds
+      const cropX = Math.max(
+        0,
+        Math.min(imageFrameX, imageWidth - imageFrameWidth)
+      );
+      const cropY = Math.max(
+        0,
+        Math.min(imageFrameY, imageHeight - imageFrameHeight)
+      );
+      const cropWidth = Math.min(imageFrameWidth, imageWidth - cropX);
+      const cropHeight = Math.min(imageFrameHeight, imageHeight - cropY);
+
+      console.log('Final crop coordinates:', {
+        cropX,
+        cropY,
+        cropWidth,
+        cropHeight,
+      });
+
+      // Crop the image to only the frame area
+      const croppedImage = await ImageManipulator.manipulateAsync(
+        imageUri,
+        [
+          {
+            crop: {
+              originX: cropX,
+              originY: cropY,
+              width: cropWidth,
+              height: cropHeight,
+            },
+          },
+        ],
+        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+      );
+
+      console.log('Cropped image dimensions:', {
+        width: croppedImage.width,
+        height: croppedImage.height,
+      });
+
+      return croppedImage.uri;
+    } catch (error) {
+      console.error('Error cropping image:', error);
+      // If cropping fails, return original image
+      return imageUri;
+    }
+  };
+
   const handleTextRecognition = async (imageUri: string) => {
     try {
       console.log('Processing image for text recognition:', imageUri);
 
-      // Use ML Kit to recognize text from the image
-      const result = await TextRecognition.recognize(imageUri);
+      // First crop the image to only the frame area
+      const croppedImageUri = await cropImageToFrame(imageUri);
+      console.log('Using cropped image for text recognition:', croppedImageUri);
+
+      // Use ML Kit to recognize text from the cropped image
+      const result = await TextRecognition.recognize(croppedImageUri);
 
       if (result.text && result.text.trim()) {
         // Clean up the recognized text
         const cleanedText = result.text.trim().replace(/\s+/g, ' ');
         onTextDetected(cleanedText);
+        onClose(); // Close the scanner after successful recognition
       } else {
         Alert.alert(
           'No Text Found',
-          'No text was detected in the image. Please try again with clearer text.'
+          'No text was detected within the frame. Please try again with clearer text positioned within the green frame.'
         );
       }
     } catch (error) {
