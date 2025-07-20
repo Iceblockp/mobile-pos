@@ -68,10 +68,10 @@ export default function TextScanner({
       const scaleX = imageWidth / width;
       const scaleY = imageHeight / height;
 
-      // Add padding to make the crop area smaller than the visual frame
-      // This ensures we only capture text strictly within the green frame
-      const horizontalPadding = screenFrameWidth * 0.05; // 5% padding on each side
-      const verticalPadding = screenFrameHeight * 0.05; // 5% padding on top and bottom
+      // Add extremely aggressive padding to make the area much smaller than the visual frame
+      // This ensures we only capture text strictly within the green frame center
+      const horizontalPadding = screenFrameWidth * 0.15; // 20% padding on each side (very aggressive)
+      const verticalPadding = screenFrameHeight * 0.0; // 10% padding on top and bottom
 
       const imageFrameX = (screenFrameX + horizontalPadding) * scaleX;
       const imageFrameY = (screenFrameY + verticalPadding) * scaleY;
