@@ -53,7 +53,9 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   const { showToast } = useToast();
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedCategory, setSelectedCategory] = useState<string | number>(
+    'All'
+  );
   const [showAddForm, setShowAddForm] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
@@ -88,7 +90,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   const [formData, setFormData] = useState({
     name: '',
     barcode: '',
-    category: '',
+    category_id: 0,
     price: '',
     cost: '',
     quantity: '0', // Default to 0
@@ -121,7 +123,10 @@ export default function Products({ compact = false }: ProductsManagerProps) {
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.barcode?.includes(searchQuery);
       const matchesCategory =
-        selectedCategory === 'All' || product.category === selectedCategory;
+        selectedCategory === 'All' ||
+        (typeof selectedCategory === 'string'
+          ? product.category === selectedCategory
+          : product.category_id === selectedCategory);
       return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
@@ -155,7 +160,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     setFormData({
       name: '',
       barcode: '',
-      category: '',
+      category_id: 0,
       price: '',
       cost: '',
       quantity: '0', // Default to 0
@@ -304,7 +309,8 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   const handleSubmit = async () => {
     if (
       !formData.name ||
-      !formData.category ||
+      !formData.category_id ||
+      formData.category_id === 0 ||
       !formData.price ||
       !formData.cost
     ) {
@@ -330,7 +336,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
       const productData = {
         name: formData.name,
         barcode: formData.barcode ? formData.barcode : undefined,
-        category: formData.category,
+        category_id: formData.category_id,
         price: price,
         cost: cost,
         quantity: parseInt(formData.quantity) || 0,
@@ -400,7 +406,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     setFormData({
       name: product.name,
       barcode: product.barcode || '',
-      category: product.category,
+      category_id: product.category_id,
       price: product.price.toString(),
       cost: product.cost.toString(),
       quantity: product.quantity.toString(),
@@ -447,7 +453,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   const handleDeleteCategory = async (category: Category) => {
     // First check if there are products using this category
     const productsInCategory = products.filter(
-      (p) => p.category === category.name
+      (p) => p.category_id === category.id
     );
 
     if (productsInCategory.length > 0) {
@@ -869,22 +875,22 @@ export default function Products({ compact = false }: ProductsManagerProps) {
               </TouchableOpacity>
               {categories.map((category) => {
                 const categoryCount = products.filter(
-                  (p) => p.category === category.name
+                  (p) => p.category_id === category.id
                 ).length;
                 return (
                   <TouchableOpacity
                     key={category.id}
                     style={[
                       styles.categoryChip,
-                      selectedCategory === category.name &&
+                      selectedCategory === category.id &&
                         styles.categoryChipActive,
                     ]}
-                    onPress={() => setSelectedCategory(category.name)}
+                    onPress={() => setSelectedCategory(category.id)}
                   >
                     <Text
                       style={[
                         styles.categoryChipText,
-                        selectedCategory === category.name &&
+                        selectedCategory === category.id &&
                           styles.categoryChipTextActive,
                       ]}
                     >
@@ -924,7 +930,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
             </TouchableOpacity>
             {categories.map((category) => {
               const categoryCount = products.filter(
-                (p) => p.category === category.name
+                (p) => p.category_id === category.id
               ).length;
               return (
                 <TouchableOpacity
@@ -1179,17 +1185,17 @@ export default function Products({ compact = false }: ProductsManagerProps) {
                     key={category.id}
                     style={[
                       styles.categoryPickerItem,
-                      formData.category === category.name &&
+                      formData.category_id === category.id &&
                         styles.categoryPickerItemActive,
                     ]}
                     onPress={() =>
-                      setFormData({ ...formData, category: category.name })
+                      setFormData({ ...formData, category_id: category.id })
                     }
                   >
                     <Text
                       style={[
                         styles.categoryPickerText,
-                        formData.category === category.name &&
+                        formData.category_id === category.id &&
                           styles.categoryPickerTextActive,
                       ]}
                     >

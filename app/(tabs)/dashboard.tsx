@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   RefreshControl,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -190,6 +191,13 @@ export default function Dashboard() {
                 <View style={styles.productRank}>
                   <Text style={styles.rankNumber}>{index + 1}</Text>
                 </View>
+                {product.imageUrl && (
+                  <Image
+                    source={{ uri: product.imageUrl }}
+                    style={styles.productImage}
+                    resizeMode="cover"
+                  />
+                )}
                 <View style={styles.productInfo}>
                   <Text style={styles.productName}>{product.name}</Text>
                   <Text style={styles.productStats}>
@@ -406,6 +414,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+  },
+  productImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: '#F9FAFB',
   },
   rankNumber: {
     fontSize: 12,

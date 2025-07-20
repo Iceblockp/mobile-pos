@@ -4,7 +4,8 @@ export interface Product {
   id: number;
   name: string;
   barcode?: string; // Make barcode optional
-  category: string;
+  category_id: number; // Changed from category string to category_id number
+  category?: string; // Optional category name for joined queries
   price: number;
   cost: number;
   quantity: number;
@@ -95,7 +96,7 @@ export class DatabaseService {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         barcode TEXT, /* Removed UNIQUE constraint */
-        category TEXT NOT NULL,
+        category_id INTEGER NOT NULL,
         price INTEGER NOT NULL,
         cost INTEGER NOT NULL,
         quantity INTEGER NOT NULL DEFAULT 0,
@@ -104,6 +105,7 @@ export class DatabaseService {
         imageUrl TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (category_id) REFERENCES categories (id),
         FOREIGN KEY (supplier_id) REFERENCES suppliers (id)
       );
 
@@ -200,8 +202,83 @@ export class DatabaseService {
         );
         console.log('Added imageUrl column to products table');
       }
+
+      // CRITICAL MIGRATION: Convert category TEXT to category_id INTEGER
+      const productTableInfo = await this.db.getAllAsync(
+        'PRAGMA table_info(products)'
+      );
+      const hasCategoryIdColumn = productTableInfo.some(
+        (column: any) => column.name === 'category_id'
+      );
+
+      if (!hasCategoryIdColumn) {
+        console.log('Starting category relationship migration...');
+
+        // Step 1: Add category_id column
+        await this.db.execAsync(
+          'ALTER TABLE products ADD COLUMN category_id INTEGER'
+        );
+
+        // Step 2: Update category_id based on existing category names
+        const categories = await this.db.getAllAsync(
+          'SELECT id, name FROM categories'
+        );
+
+        for (const category of categories as { id: number; name: string }[]) {
+          await this.db.runAsync(
+            'UPDATE products SET category_id = ? WHERE category = ?',
+            [category.id, category.name]
+          );
+        }
+
+        // Step 3: Set default category for products without valid category
+        const defaultCategory = (await this.db.getFirstAsync(
+          'SELECT id FROM categories LIMIT 1'
+        )) as { id: number } | null;
+
+        if (defaultCategory) {
+          await this.db.runAsync(
+            'UPDATE products SET category_id = ? WHERE category_id IS NULL',
+            [defaultCategory.id]
+          );
+        }
+
+        // Step 4: Create new products table with proper foreign key
+        await this.db.execAsync(`
+          CREATE TABLE products_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            barcode TEXT,
+            category_id INTEGER NOT NULL,
+            price INTEGER NOT NULL,
+            cost INTEGER NOT NULL,
+            quantity INTEGER NOT NULL DEFAULT 0,
+            min_stock INTEGER NOT NULL DEFAULT 10,
+            supplier_id INTEGER,
+            imageUrl TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (category_id) REFERENCES categories (id),
+            FOREIGN KEY (supplier_id) REFERENCES suppliers (id)
+          );
+        `);
+
+        // Step 5: Copy data to new table
+        await this.db.execAsync(`
+          INSERT INTO products_new (id, name, barcode, category_id, price, cost, quantity, min_stock, supplier_id, imageUrl, created_at, updated_at)
+          SELECT id, name, barcode, category_id, price, cost, quantity, min_stock, supplier_id, imageUrl, created_at, updated_at
+          FROM products
+          WHERE category_id IS NOT NULL;
+        `);
+
+        // Step 6: Drop old table and rename new table
+        await this.db.execAsync('DROP TABLE products');
+        await this.db.execAsync('ALTER TABLE products_new RENAME TO products');
+
+        console.log('Category relationship migration completed successfully!');
+      }
     } catch (error) {
-      console.log('Migration completed or column already exists');
+      console.log('Migration completed or column already exists:', error);
     }
   }
 
@@ -342,11 +419,21 @@ export class DatabaseService {
 
     // Only seed products if no products exist yet
     if (!hasProducts) {
+      // Get category IDs for seeding products
+      const categoryMap = new Map<string, number>();
+      const categoriesForSeeding = (await this.db.getAllAsync(
+        'SELECT id, name FROM categories'
+      )) as { id: number; name: string }[];
+
+      categoriesForSeeding.forEach((cat) => {
+        categoryMap.set(cat.name, cat.id);
+      });
+
       const products = [
         {
           name: 'ရှမ်းဆန် ၅ ကီလို',
           barcode: '1234567890123',
-          category: 'ဆန်နှင့် ကောက်ပဲသီးနှံများ',
+          category_name: 'ဆန်နှင့် ကောက်ပဲသီးနှံများ',
           price: 8500,
           cost: 6000,
           quantity: 40,
@@ -356,7 +443,7 @@ export class DatabaseService {
         {
           name: 'ကြက်သား ၁ ကီလို',
           barcode: '2345678901234',
-          category: 'အသားနှင့် ငါးများ',
+          category_name: 'အသားနှင့် ငါးများ',
           price: 4500,
           cost: 3200,
           quantity: 25,
@@ -366,7 +453,7 @@ export class DatabaseService {
         {
           name: 'ငွေ့ကောင်းသီး ၁ ကီလို',
           barcode: '3456789012345',
-          category: 'ဟင်းသီးဟင်းရွက်များ',
+          category_name: 'ဟင်းသီးဟင်းရွက်များ',
           price: 1500,
           cost: 800,
           quantity: 100,
@@ -376,7 +463,7 @@ export class DatabaseService {
         {
           name: 'မုန့်ဟင်းခါး',
           barcode: '4567890123456',
-          category: 'မုန့်နှင့် အချိုများ',
+          category_name: 'မုန့်နှင့် အချိုများ',
           price: 800,
           cost: 500,
           quantity: 50,
@@ -386,7 +473,7 @@ export class DatabaseService {
         {
           name: 'ကော်ကာကိုလာ ၅၀၀ မီလီ',
           barcode: '5678901234567',
-          category: 'ယမကာများ',
+          category_name: 'ယမကာများ',
           price: 1200,
           cost: 700,
           quantity: 80,
@@ -396,7 +483,7 @@ export class DatabaseService {
         {
           name: 'ငါးပိ ၁ ပုံး',
           barcode: '6789012345678',
-          category: 'ငါးပိနှင့် ဟင်းခတ်အမွှေးများ',
+          category_name: 'ငါးပိနှင့် ဟင်းခတ်အမွှေးများ',
           price: 2500,
           cost: 1800,
           quantity: 30,
@@ -406,7 +493,7 @@ export class DatabaseService {
         {
           name: 'လက်ဖက်ရည်ခြောက် ၁ ပက်ကက်',
           barcode: '7890123456789',
-          category: 'လက်ဖက်ရည်နှင့် ကော်ဖီ',
+          category_name: 'လက်ဖက်ရည်နှင့် ကော်ဖီ',
           price: 3500,
           cost: 2200,
           quantity: 40,
@@ -416,7 +503,7 @@ export class DatabaseService {
         {
           name: 'ဆပ်ပြာ ၁ လုံး',
           barcode: '8901234567890',
-          category: 'ကိုယ်ရေးကိုယ်တာ စောင့်ရှောက်မှု',
+          category_name: 'ကိုယ်ရေးကိုယ်တာ စောင့်ရှောက်မှု',
           price: 1800,
           cost: 1200,
           quantity: 60,
@@ -426,41 +513,44 @@ export class DatabaseService {
       ];
 
       for (const product of products) {
-        await this.db.runAsync(
-          'INSERT INTO products (name, barcode, category, price, cost, quantity, min_stock, supplier_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          [
-            product.name,
-            product.barcode,
-            product.category,
-            product.price,
-            product.cost,
-            product.quantity,
-            product.min_stock,
-            product.supplier_id,
-          ]
-        );
+        const categoryId = categoryMap.get(product.category_name);
+        if (categoryId) {
+          await this.db.runAsync(
+            'INSERT INTO products (name, barcode, category_id, price, cost, quantity, min_stock, supplier_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [
+              product.name,
+              product.barcode,
+              categoryId,
+              product.price,
+              product.cost,
+              product.quantity,
+              product.min_stock,
+              product.supplier_id,
+            ]
+          );
+        }
       }
     }
   }
 
   async getProducts(): Promise<Product[]> {
     const result = await this.db.getAllAsync(
-      'SELECT * FROM products ORDER BY name'
+      'SELECT p.*, c.name as category FROM products p LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.name'
     );
     return result as Product[];
   }
 
-  async getProductsByCategory(category: string): Promise<Product[]> {
+  async getProductsByCategory(categoryId: number): Promise<Product[]> {
     const result = await this.db.getAllAsync(
-      'SELECT * FROM products WHERE category = ? ORDER BY name',
-      [category]
+      'SELECT p.*, c.name as category FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.category_id = ? ORDER BY p.name',
+      [categoryId]
     );
     return result as Product[];
   }
 
   async getProductByBarcode(barcode: string): Promise<Product | null> {
     const result = await this.db.getFirstAsync(
-      'SELECT * FROM products WHERE barcode = ?',
+      'SELECT p.*, c.name as category FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.barcode = ?',
       [barcode]
     );
     return result as Product | null;
@@ -470,11 +560,11 @@ export class DatabaseService {
     product: Omit<Product, 'id' | 'created_at' | 'updated_at'>
   ): Promise<number> {
     const result = await this.db.runAsync(
-      'INSERT INTO products (name, barcode, category, price, cost, quantity, min_stock, supplier_id, imageUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO products (name, barcode, category_id, price, cost, quantity, min_stock, supplier_id, imageUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         product.name,
         product.barcode || null, // Handle empty barcode
-        product.category,
+        product.category_id,
         product.price,
         product.cost,
         product.quantity,
@@ -504,7 +594,7 @@ export class DatabaseService {
 
   async getLowStockProducts(): Promise<Product[]> {
     const result = await this.db.getAllAsync(
-      'SELECT * FROM products WHERE quantity <= min_stock ORDER BY quantity ASC'
+      'SELECT p.*, c.name as category FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.quantity <= p.min_stock ORDER BY p.quantity ASC'
     );
     return result as Product[];
   }
@@ -560,7 +650,7 @@ export class DatabaseService {
   async deleteCategory(id: number): Promise<void> {
     // Check if category is being used by products
     const productsUsingCategory = (await this.db.getFirstAsync(
-      'SELECT COUNT(*) as count FROM products p JOIN categories c ON p.category = c.name WHERE c.id = ?',
+      'SELECT COUNT(*) as count FROM products WHERE category_id = ?',
       [id]
     )) as { count: number };
 
@@ -709,6 +799,7 @@ export class DatabaseService {
     totalItemsSold: number;
     topProducts: {
       name: string;
+      imageUrl?: string;
       quantity: number;
       revenue: number;
       profit: number;
@@ -753,6 +844,7 @@ export class DatabaseService {
     const topProductsResult = (await this.db.getAllAsync(
       `SELECT 
         p.name, 
+        p.imageUrl,
         SUM(si.quantity) as quantity, 
         SUM(si.subtotal) as revenue,
         SUM(si.quantity * p.cost) as cost,
@@ -825,6 +917,7 @@ export class DatabaseService {
     totalItemsSold: number;
     topProducts: {
       name: string;
+      imageUrl?: string;
       quantity: number;
       revenue: number;
       profit: number;
@@ -867,6 +960,7 @@ export class DatabaseService {
     const topProductsResult = (await this.db.getAllAsync(
       `SELECT 
         COALESCE(p.name, "[Deleted Product]") as name, 
+        p.imageUrl,
         SUM(si.quantity) as quantity, 
         SUM(si.subtotal) as revenue,
         SUM(si.quantity * COALESCE(p.cost, si.cost)) as cost,

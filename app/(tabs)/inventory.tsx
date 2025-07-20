@@ -9,6 +9,7 @@ import {
   Alert,
   TextInput,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -25,7 +26,10 @@ import {
   TrendingUp,
   Package,
   List,
+  Search,
+  Scan,
 } from 'lucide-react-native';
+import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
 
@@ -41,6 +45,8 @@ export default function Inventory() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [adjustmentQuantity, setAdjustmentQuantity] = useState('');
   const [showAdjustment, setShowAdjustment] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
 
   // Use React Query for optimized data fetching
   const {
@@ -81,6 +87,22 @@ export default function Inventory() {
   const getSupplierName = (supplierId: number) => {
     const supplier = suppliers.find((s) => s.id === supplierId);
     return supplier ? supplier.name : t('inventory.unknown');
+  };
+
+  const handleBarcodeScanned = async (barcode: string) => {
+    try {
+      const product = products.find((p) => p.barcode === barcode);
+      if (product) {
+        setSearchQuery(product.name);
+        setShowScanner(false);
+        showToast(`Found: ${product.name}`, 'success');
+      } else {
+        Alert.alert('Product Not Found', 'No product found with this barcode');
+      }
+    } catch (error) {
+      console.error('Error finding product:', error);
+      Alert.alert('Error', 'Failed to find product');
+    }
   };
 
   const handleStockAdjustment = (product: Product) => {
@@ -132,6 +154,15 @@ export default function Inventory() {
       return { text: t('inventory.lowStock'), color: '#F59E0B' };
     return { text: t('inventory.inStock'), color: '#10B981' };
   };
+
+  // Filter products based on search query
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch =
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.barcode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.category?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
+  });
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -199,6 +230,13 @@ export default function Inventory() {
               </Text>
               {lowStockProducts.map((product) => (
                 <View key={product.id} style={styles.alertItem}>
+                  {product.imageUrl && (
+                    <Image
+                      source={{ uri: product.imageUrl }}
+                      style={styles.alertProductImage}
+                      resizeMode="cover"
+                    />
+                  )}
                   <View style={styles.alertInfo}>
                     <Text style={styles.alertProductName}>{product.name}</Text>
                     <Text style={styles.alertProductDetails}>
@@ -220,44 +258,95 @@ export default function Inventory() {
           )}
 
           <Card>
-            <Text style={styles.sectionTitle}>
-              {t('inventory.allProducts')}
-            </Text>
-            {products.map((product) => {
-              const status = getStockStatus(product);
-              return (
-                <View key={product.id} style={styles.productItem}>
-                  <View style={styles.productInfo}>
-                    <Text style={styles.productName}>{product.name}</Text>
-                    <Text style={styles.productCategory}>
-                      {product.category}
-                    </Text>
-                    {/* <Text style={styles.productSupplier}>
+            <View style={styles.searchHeader}>
+              <Text style={styles.sectionTitle}>
+                {t('inventory.allProducts')}
+              </Text>
+              <View style={styles.searchContainer}>
+                <View style={styles.searchInputContainer}>
+                  <Search size={20} color="#6B7280" style={styles.searchIcon} />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search products, barcode, category..."
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    placeholderTextColor="#9CA3AF"
+                  />
+                  {searchQuery.length > 0 && (
+                    <TouchableOpacity
+                      onPress={() => setSearchQuery('')}
+                      style={styles.clearButton}
+                    >
+                      <Text style={styles.clearButtonText}>×</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <TouchableOpacity
+                  style={styles.scanButton}
+                  onPress={() => setShowScanner(true)}
+                >
+                  <Scan size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            </View>
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((product) => {
+                const status = getStockStatus(product);
+                return (
+                  <View key={product.id} style={styles.productItem}>
+                    {product.imageUrl && (
+                      <Image
+                        source={{ uri: product.imageUrl }}
+                        style={styles.productImage}
+                        resizeMode="cover"
+                      />
+                    )}
+                    <View style={styles.productInfo}>
+                      <Text style={styles.productName}>{product.name}</Text>
+                      <Text style={styles.productCategory}>
+                        {product.category}
+                      </Text>
+                      {/* <Text style={styles.productSupplier}>
                       {t('inventory.supplier')}:{' '}
                       {getSupplierName(product.supplier_id)}
                     </Text> */}
-                    <Text style={styles.productPrice}>
-                      {t('inventory.price')}: {formatMMK(product.price)}
-                    </Text>
-                  </View>
-
-                  <View style={styles.productStock}>
-                    <Text style={styles.stockQuantity}>{product.quantity}</Text>
-                    <Text style={[styles.stockStatus, { color: status.color }]}>
-                      {status.text}
-                    </Text>
-                    <TouchableOpacity
-                      style={styles.adjustButton}
-                      onPress={() => handleStockAdjustment(product)}
-                    >
-                      <Text style={styles.adjustButtonText}>
-                        {t('inventory.adjust')}
+                      <Text style={styles.productPrice}>
+                        {t('inventory.price')}: {formatMMK(product.price)}
                       </Text>
-                    </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.productStock}>
+                      <Text style={styles.stockQuantity}>
+                        {product.quantity}
+                      </Text>
+                      <Text
+                        style={[styles.stockStatus, { color: status.color }]}
+                      >
+                        {status.text}
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.adjustButton}
+                        onPress={() => handleStockAdjustment(product)}
+                      >
+                        <Text style={styles.adjustButtonText}>
+                          {t('inventory.adjust')}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
-              );
-            })}
+                );
+              })
+            ) : (
+              <View style={styles.emptyState}>
+                <Package size={32} color="#9CA3AF" />
+                <Text style={styles.emptyStateText}>No products found</Text>
+                <Text style={styles.emptyStateSubtext}>
+                  {searchQuery
+                    ? 'Try adjusting your search terms'
+                    : 'No products available'}
+                </Text>
+              </View>
+            )}
           </Card>
         </ScrollView>
 
@@ -304,6 +393,13 @@ export default function Inventory() {
               </View>
             </View>
           </View>
+        )}
+
+        {showScanner && (
+          <BarcodeScanner
+            onBarcodeScanned={handleBarcodeScanned}
+            onClose={() => setShowScanner(false)}
+          />
         )}
       </>
     );
@@ -486,6 +582,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#FEF3C7',
   },
+  alertProductImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: '#F9FAFB',
+  },
   alertInfo: {
     flex: 1,
   },
@@ -517,6 +620,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+  },
+  productImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: '#F9FAFB',
   },
   productInfo: {
     flex: 1,
@@ -630,5 +740,67 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     flex: 0.3,
+  },
+  searchHeader: {
+    marginBottom: 16,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginRight: 8,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#111827',
+  },
+  clearButton: {
+    padding: 4,
+  },
+  clearButtonText: {
+    fontSize: 20,
+    color: '#6B7280',
+    fontWeight: 'bold',
+  },
+  scanButton: {
+    backgroundColor: '#059669',
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+    marginTop: 12,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#9CA3AF',
+    marginTop: 4,
+    textAlign: 'center',
   },
 });

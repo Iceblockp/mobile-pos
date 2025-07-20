@@ -429,6 +429,13 @@ export default function Sales() {
             >
               {cart.map((item) => (
                 <View key={item.product.id} style={styles.cartItem}>
+                  {item.product.imageUrl && (
+                    <Image
+                      source={{ uri: item.product.imageUrl }}
+                      style={styles.cartItemImage}
+                      resizeMode="cover"
+                    />
+                  )}
                   <View style={styles.cartItemInfo}>
                     <Text
                       style={styles.cartItemName}
@@ -2278,7 +2285,7 @@ const styles = StyleSheet.create({
   },
   cartItems: {
     flex: 1,
-    maxHeight: isSmallScreen ? 200 : 300,
+    maxHeight: isSmallScreen ? 400 : 500,
   },
   cartItem: {
     flexDirection: isSmallScreen ? 'column' : 'row',
@@ -2287,6 +2294,13 @@ const styles = StyleSheet.create({
     paddingVertical: isSmallScreen ? 8 : 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+  },
+  cartItemImage: {
+    width: isSmallScreen ? 40 : 50,
+    height: isSmallScreen ? 40 : 50,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: '#F9FAFB',
   },
   cartItemInfo: {
     flex: 1,
