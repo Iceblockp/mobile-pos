@@ -713,6 +713,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [loadingAllItems, setLoadingAllItems] = useState(false);
   const saleDetailRef = useRef(null);
   const [capturing, setCapturing] = useState(false);
+  const [isCustomerVoucher, setIsCustomerVoucher] = useState(false);
 
   const formatMMK = (amount: number) => {
     return (
@@ -1835,29 +1836,56 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             {selectedSale && (
               <ScrollView style={styles.saleDetailContent}>
                 <View style={styles.saleDetailActions}>
+                  {/* Toggle between Internal View and Customer Voucher */}
                   <TouchableOpacity
-                    style={styles.deleteSaleButton}
-                    onPress={handleDeleteSale}
+                    style={[
+                      styles.voucherToggleButton,
+                      isCustomerVoucher && styles.voucherToggleButtonActive,
+                    ]}
+                    onPress={() => setIsCustomerVoucher(!isCustomerVoucher)}
                   >
-                    <Trash2 size={16} color="#FFFFFF" />
-                    <Text style={styles.deleteSaleButtonText}>
-                      {t('sales.deleteSale')}
+                    <FileText
+                      size={16}
+                      color={isCustomerVoucher ? '#FFFFFF' : '#059669'}
+                    />
+                    <Text
+                      style={[
+                        styles.voucherToggleButtonText,
+                        isCustomerVoucher &&
+                          styles.voucherToggleButtonTextActive,
+                      ]}
+                    >
+                      {isCustomerVoucher ? 'Customer Receipt' : 'Internal View'}
                     </Text>
                   </TouchableOpacity>
 
-                  {/* Add Export as Image button */}
-                  <TouchableOpacity
-                    style={styles.exportImageButton}
-                    onPress={captureSaleDetail}
-                    disabled={capturing}
-                  >
-                    <ImageIcon size={16} color="#FFFFFF" />
-                    <Text style={styles.exportImageButtonText}>
-                      {capturing
-                        ? t('sales.exporting')
-                        : t('sales.exportAsImage')}
-                    </Text>
-                  </TouchableOpacity>
+                  <View style={styles.actionButtonsRow}>
+                    <TouchableOpacity
+                      style={styles.deleteSaleButton}
+                      onPress={handleDeleteSale}
+                    >
+                      <Trash2 size={16} color="#FFFFFF" />
+                      <Text style={styles.deleteSaleButtonText}>
+                        {t('sales.deleteSale')}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* Add Export as Image button */}
+                    <TouchableOpacity
+                      style={styles.exportImageButton}
+                      onPress={captureSaleDetail}
+                      disabled={capturing}
+                    >
+                      <ImageIcon size={16} color="#FFFFFF" />
+                      <Text style={styles.exportImageButtonText}>
+                        {capturing
+                          ? t('sales.exporting')
+                          : isCustomerVoucher
+                          ? 'Print Receipt'
+                          : t('sales.exportAsImage')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 {/* Wrap the content to be captured in a View with ref */}
@@ -1905,39 +1933,44 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                       </Text>
                     </View>
 
-                    {/* Add Total Cost and Profit Information */}
-                    <View style={styles.saleDetailRow}>
-                      <Text style={styles.saleDetailLabel}>
-                        {t('sales.totalCost')}
-                      </Text>
-                      <Text style={styles.saleDetailValue}>
-                        {formatMMK(
-                          saleItems.reduce(
-                            (sum, item) => sum + item.cost * item.quantity,
-                            0
-                          )
-                        )}
-                      </Text>
-                    </View>
-                    <View style={styles.saleDetailRow}>
-                      <Text style={styles.saleDetailLabel}>
-                        {t('sales.totalProfit')}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.saleDetailValue,
-                          styles.saleDetailProfit,
-                        ]}
-                      >
-                        {formatMMK(
-                          selectedSale.total -
-                            saleItems.reduce(
-                              (sum, item) => sum + item.cost * item.quantity,
-                              0
-                            )
-                        )}
-                      </Text>
-                    </View>
+                    {/* Add Total Cost and Profit Information - Only show in internal view */}
+                    {!isCustomerVoucher && (
+                      <>
+                        <View style={styles.saleDetailRow}>
+                          <Text style={styles.saleDetailLabel}>
+                            {t('sales.totalCost')}
+                          </Text>
+                          <Text style={styles.saleDetailValue}>
+                            {formatMMK(
+                              saleItems.reduce(
+                                (sum, item) => sum + item.cost * item.quantity,
+                                0
+                              )
+                            )}
+                          </Text>
+                        </View>
+                        <View style={styles.saleDetailRow}>
+                          <Text style={styles.saleDetailLabel}>
+                            {t('sales.totalProfit')}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.saleDetailValue,
+                              styles.saleDetailProfit,
+                            ]}
+                          >
+                            {formatMMK(
+                              selectedSale.total -
+                                saleItems.reduce(
+                                  (sum, item) =>
+                                    sum + item.cost * item.quantity,
+                                  0
+                                )
+                            )}
+                          </Text>
+                        </View>
+                      </>
+                    )}
                   </Card>
 
                   <Card style={styles.saleDetailCard}>
@@ -1958,12 +1991,15 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                           <Text style={styles.saleItemSubtotal}>
                             {formatMMK(item.subtotal)}
                           </Text>
-                          <Text style={styles.saleItemProfit}>
-                            {t('sales.profit')}{' '}
-                            {formatMMK(
-                              item.subtotal - item.cost * item.quantity
-                            )}
-                          </Text>
+                          {/* Only show profit in internal view */}
+                          {!isCustomerVoucher && (
+                            <Text style={styles.saleItemProfit}>
+                              {t('sales.profit')}{' '}
+                              {formatMMK(
+                                item.subtotal - item.cost * item.quantity
+                              )}
+                            </Text>
+                          )}
                         </View>
                       </View>
                     ))}
@@ -2788,10 +2824,14 @@ const styles = StyleSheet.create({
     color: '#10B981',
   },
   saleDetailActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     marginBottom: 12,
     paddingHorizontal: 4,
+    gap: 12,
+  },
+  actionButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
   },
   deleteSaleButton: {
     flexDirection: 'row',
@@ -2832,6 +2872,30 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontFamily: 'Inter-Medium',
     fontSize: 14,
+  },
+  voucherToggleButton: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#059669',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
+  voucherToggleButtonActive: {
+    backgroundColor: '#059669',
+    borderColor: '#059669',
+  },
+  voucherToggleButtonText: {
+    color: '#059669',
+    marginLeft: 6,
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+  },
+  voucherToggleButtonTextActive: {
+    color: '#FFFFFF',
   },
   captureContainer: {
     backgroundColor: '#FFFFFF',
