@@ -289,101 +289,103 @@ export class DatabaseService {
     );
     const hasProducts = (existingProducts as { count: number }).count > 0;
 
-    // Only seed categories and suppliers if needed
-    const categories = [
-      {
-        name: 'ဆန်နှင့် ကောက်ပဲသီးနှံများ',
-        description: 'ဆန်၊ ကောက်ညှင်း၊ ပဲများနှင့် ကောက်ပဲသီးနှံများ',
-      },
-      {
-        name: 'အသားနှင့် ငါးများ',
-        description: 'အသားတပ်၊ ကြက်သား၊ ဝက်သားနှင့် ငါးများ',
-      },
-      {
-        name: 'ဟင်းသီးဟင်းရွက်များ',
-        description: 'လတ်ဆတ်သော ဟင်းသီးဟင်းရွက်နှင့် သစ်သီးများ',
-      },
-      {
-        name: 'မုန့်နှင့် အချိုများ',
-        description: 'မုန့်များ၊ အချိုများနှင့် မုန့်ဖုတ်ပစ္စည်းများ',
-      },
-      {
-        name: 'ယမကာများ',
-        description: 'အချိုရည်များ၊ ရေများနှင့် ယမကာများ',
-      },
-      {
-        name: 'ငါးပိနှင့် ဟင်းခတ်အမွှေးများ',
-        description: 'ငါးပိ၊ ဆား၊ ဆီနှင့် ဟင်းခတ်အမွှေးများ',
-      },
-      {
-        name: 'လက်ဖက်ရည်နှင့် ကော်ဖီ',
-        description: 'လက်ဖက်ရည်၊ ကော်ဖီနှင့် ပူဖျော်ယမကာများ',
-      },
-      {
-        name: 'အိမ်သုံးပစ္စည်းများ',
-        description: 'သန့်ရှင်းရေးပစ္စည်းများနှင့် အိမ်သုံးလိုအပ်ချက်များ',
-      },
-      {
-        name: 'ကိုယ်ရေးကိုယ်တာ စောင့်ရှောက်မှု',
-        description:
-          'ရေချိုးဆပ်ပြာ၊ သွားတိုက်ဆေးနှင့် ကိုယ်ရေးကိုယ်တာ ပစ္စည်းများ',
-      },
-      {
-        name: 'အခြားပစ္စည်းများ',
-        description: 'အခြားအမျိုးမျိုးသော ကုန်ပစ္စည်းများ',
-      },
-    ];
+    // Only seed categories and suppliers if no products exist
+    if (!hasProducts) {
+      const categories = [
+        {
+          name: 'ဆန်နှင့် ကောက်ပဲသီးနှံများ',
+          description: 'ဆန်၊ ကောက်ညှင်း၊ ပဲများနှင့် ကောက်ပဲသီးနှံများ',
+        },
+        {
+          name: 'အသားနှင့် ငါးများ',
+          description: 'အသားတပ်၊ ကြက်သား၊ ဝက်သားနှင့် ငါးများ',
+        },
+        {
+          name: 'ဟင်းသီးဟင်းရွက်များ',
+          description: 'လတ်ဆတ်သော ဟင်းသီးဟင်းရွက်နှင့် သစ်သီးများ',
+        },
+        {
+          name: 'မုန့်နှင့် အချိုများ',
+          description: 'မုန့်များ၊ အချိုများနှင့် မုန့်ဖုတ်ပစ္စည်းများ',
+        },
+        {
+          name: 'ယမကာများ',
+          description: 'အချိုရည်များ၊ ရေများနှင့် ယမကာများ',
+        },
+        {
+          name: 'ငါးပိနှင့် ဟင်းခတ်အမွှေးများ',
+          description: 'ငါးပိ၊ ဆား၊ ဆီနှင့် ဟင်းခတ်အမွှေးများ',
+        },
+        {
+          name: 'လက်ဖက်ရည်နှင့် ကော်ဖီ',
+          description: 'လက်ဖက်ရည်၊ ကော်ဖီနှင့် ပူဖျော်ယမကာများ',
+        },
+        {
+          name: 'အိမ်သုံးပစ္စည်းများ',
+          description: 'သန့်ရှင်းရေးပစ္စည်းများနှင့် အိမ်သုံးလိုအပ်ချက်များ',
+        },
+        {
+          name: 'ကိုယ်ရေးကိုယ်တာ စောင့်ရှောက်မှု',
+          description:
+            'ရေချိုးဆပ်ပြာ၊ သွားတိုက်ဆေးနှင့် ကိုယ်ရေးကိုယ်တာ ပစ္စည်းများ',
+        },
+        {
+          name: 'အခြားပစ္စည်းများ',
+          description: 'အခြားအမျိုးမျိုးသော ကုန်ပစ္စည်းများ',
+        },
+      ];
 
-    for (const category of categories) {
-      try {
+      for (const category of categories) {
+        try {
+          await this.db.runAsync(
+            'INSERT OR IGNORE INTO categories (name, description) VALUES (?, ?)',
+            [category.name, category.description]
+          );
+        } catch (error) {
+          // Fallback for databases without description column
+          await this.db.runAsync(
+            'INSERT OR IGNORE INTO categories (name) VALUES (?)',
+            [category.name]
+          );
+        }
+      }
+
+      const suppliers = [
+        {
+          name: 'Myanmar Fresh Foods',
+          contact_name: 'Thant Zin',
+          phone: '09-123-456-789',
+          email: 'thant@myanmarfresh.com',
+          address: 'Yangon, Myanmar',
+        },
+        {
+          name: 'Golden Valley Dairy',
+          contact_name: 'Khin Maung',
+          phone: '09-987-654-321',
+          email: 'khin@goldenvalley.com',
+          address: 'Mandalay, Myanmar',
+        },
+        {
+          name: 'Ayeyarwady Beverages',
+          contact_name: 'Moe Aung',
+          phone: '09-456-789-123',
+          email: 'moe@ayeyarwady.com',
+          address: 'Bago, Myanmar',
+        },
+      ];
+
+      for (const supplier of suppliers) {
         await this.db.runAsync(
-          'INSERT OR IGNORE INTO categories (name, description) VALUES (?, ?)',
-          [category.name, category.description]
-        );
-      } catch (error) {
-        // Fallback for databases without description column
-        await this.db.runAsync(
-          'INSERT OR IGNORE INTO categories (name) VALUES (?)',
-          [category.name]
+          'INSERT OR IGNORE INTO suppliers (name, contact_name, phone, email, address) VALUES (?, ?, ?, ?, ?)',
+          [
+            supplier.name,
+            supplier.contact_name,
+            supplier.phone,
+            supplier.email,
+            supplier.address,
+          ]
         );
       }
-    }
-
-    const suppliers = [
-      {
-        name: 'Myanmar Fresh Foods',
-        contact_name: 'Thant Zin',
-        phone: '09-123-456-789',
-        email: 'thant@myanmarfresh.com',
-        address: 'Yangon, Myanmar',
-      },
-      {
-        name: 'Golden Valley Dairy',
-        contact_name: 'Khin Maung',
-        phone: '09-987-654-321',
-        email: 'khin@goldenvalley.com',
-        address: 'Mandalay, Myanmar',
-      },
-      {
-        name: 'Ayeyarwady Beverages',
-        contact_name: 'Moe Aung',
-        phone: '09-456-789-123',
-        email: 'moe@ayeyarwady.com',
-        address: 'Bago, Myanmar',
-      },
-    ];
-
-    for (const supplier of suppliers) {
-      await this.db.runAsync(
-        'INSERT OR IGNORE INTO suppliers (name, contact_name, phone, email, address) VALUES (?, ?, ?, ?, ?)',
-        [
-          supplier.name,
-          supplier.contact_name,
-          supplier.phone,
-          supplier.email,
-          supplier.address,
-        ]
-      );
     }
 
     // Seed expense categories if needed
