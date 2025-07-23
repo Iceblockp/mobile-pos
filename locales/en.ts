@@ -493,7 +493,7 @@ export const en = {
     sunday: 'Sunday: Closed',
     // Quick Start Guide
     quickStartTitle: 'Getting Started with Mobile POS',
-    step1Title: '1. License Verification',
+    step1Title: '1. License Verification (no longer need)',
     step1Description:
       'Verify your license to unlock all POS features. Contact admin if you need help with license codes.',
     step2Title: '2. Add Products',

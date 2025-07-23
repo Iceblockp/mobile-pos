@@ -256,7 +256,7 @@ const Index = () => {
           <Text style={styles.welcomeMessage}>{t('license.systemReady')}</Text>
 
           <TouchableOpacity
-            onPress={() => router.push('/(tabs)/dashboard')}
+            onPress={() => router.push('/(tabs)')}
             style={styles.getStartedButton}
           >
             <Text style={styles.getStartedButtonText}>

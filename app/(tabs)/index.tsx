@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import {
 import { router } from 'expo-router';
 import { useTranslation } from '@/context/LocalizationContext';
 import { LanguageIconButton } from '@/components/LanguageIconButton';
+import { SplashScreen } from '@/components/SplashScreen';
 
 export default function Dashboard() {
   const { t } = useTranslation();

@@ -10,21 +10,32 @@ import {
 
 // Add the expenses icon import
 import { DollarSign } from 'lucide-react-native';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLicense } from '@/hooks/useLicense';
 import { useTranslation } from '@/context/LocalizationContext';
+import { SplashScreen } from '@/components/SplashScreen';
 
 export default function TabLayout() {
   const { isLicenseValid, loading } = useLicense();
   const router = useRouter();
   const { t } = useTranslation();
+  const [showSplash, setShowSplash] = useState(true);
 
-  useEffect(() => {
-    if (!loading && !isLicenseValid()) {
-      // Redirect to the root page if license is not valid
-      router.replace('/');
-    }
-  }, [loading, isLicenseValid]);
+  // useEffect(() => {
+  //   if (!loading && !isLicenseValid()) {
+  //     // Redirect to the root page if license is not valid
+  //     router.replace('/');
+  //   }
+  // }, [loading, isLicenseValid]);
+
+  // Handle splash screen animation finish
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+  };
+
+  if (showSplash) {
+    return <SplashScreen onAnimationFinish={handleSplashFinish} />;
+  }
 
   return (
     <Tabs
@@ -56,7 +67,7 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="dashboard"
+        name="index"
         options={{
           title: t('navigation.dashboard'),
           tabBarIcon: ({ size, color }) => <Home size={size} color={color} />,
