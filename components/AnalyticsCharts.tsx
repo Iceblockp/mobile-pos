@@ -7,12 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import {
-  LineChart,
-  BarChart,
-  PieChart,
-  StackedBarChart,
-} from 'react-native-chart-kit';
+import { LineChart, PieChart, StackedBarChart } from 'react-native-chart-kit';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import {
@@ -76,26 +71,43 @@ export default function AnalyticsCharts({
   };
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
     const days = Math.ceil(
       (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
     );
 
     if (days <= 1) {
-      // Hourly format
+      // Hourly format - dateStr is like "2024-01-15 14:00:00"
+      const [datePart, timePart] = dateStr.split(' ');
+      const [year, month, day] = datePart.split('-').map(Number);
+      const [hour] = timePart.split(':').map(Number);
+
+      // Create date in local timezone to avoid timezone offset issues
+      const date = new Date(year, month - 1, day, hour);
       return date.toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
       });
     } else if (days <= 31) {
-      // Daily format
+      // Daily format - dateStr is like "2024-01-15"
+      const [year, month, day] = dateStr.split('-').map(Number);
+
+      // Create date in local timezone to avoid timezone offset issues
+      const date = new Date(year, month - 1, day);
       return date.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
       });
     } else {
-      // Weekly format
-      return `W${Math.ceil(date.getDate() / 7)}`;
+      // Weekly format - dateStr is like "2024-W03"
+      if (dateStr.includes('W')) {
+        const weekMatch = dateStr.match(/(\d{4})-W(\d+)/);
+        if (weekMatch) {
+          const [, year, week] = weekMatch;
+          return `W${week}`;
+        }
+      }
+      // Fallback for unexpected format
+      return dateStr;
     }
   };
 
@@ -118,6 +130,9 @@ export default function AnalyticsCharts({
       strokeDasharray: '',
       stroke: '#E5E7EB',
       strokeWidth: 1,
+    },
+    propsForLabels: {
+      fontSize: 10,
     },
   };
 
@@ -226,7 +241,7 @@ export default function AnalyticsCharts({
         <LineChart
           data={chartData}
           width={chartWidth}
-          height={220}
+          height={250}
           chartConfig={{
             ...chartConfig,
             color: (opacity = 1) => `rgba(139, 92, 246, ${opacity})`,
@@ -237,7 +252,7 @@ export default function AnalyticsCharts({
             },
           }}
           style={styles.chart}
-          verticalLabelRotation={30}
+          verticalLabelRotation={0}
           formatYLabel={(value) => `${parseFloat(value).toFixed(1)}%`}
         />
       </View>
@@ -406,6 +421,10 @@ const styles = StyleSheet.create({
   chart: {
     marginVertical: 8,
     borderRadius: 16,
+    marginBottom: 20,
+  },
+  profitChart: {
+    // Additional styles for profit margin chart if needed
   },
   noDataContainer: {
     height: 200,

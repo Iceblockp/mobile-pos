@@ -1171,15 +1171,15 @@ export class DatabaseService {
     if (days <= 1) {
       // Hourly for single day
       dateFormat = '%Y-%m-%d %H:00:00';
-      groupBy = "strftime('%Y-%m-%d %H:00:00', s.created_at)";
+      groupBy = "strftime('%Y-%m-%d %H:00:00', s.created_at, 'localtime')";
     } else if (days <= 31) {
       // Daily for up to a month
       dateFormat = '%Y-%m-%d';
-      groupBy = 'date(s.created_at)';
+      groupBy = "date(s.created_at, 'localtime')";
     } else {
       // Weekly for longer periods
       dateFormat = '%Y-W%W';
-      groupBy = "strftime('%Y-W%W', s.created_at)";
+      groupBy = "strftime('%Y-W%W', s.created_at, 'localtime')";
     }
 
     // Get revenue data
@@ -1189,7 +1189,7 @@ export class DatabaseService {
         SUM(s.total) as revenue,
         COUNT(s.id) as sales_count
        FROM sales s
-       WHERE date(s.created_at) >= ? AND date(s.created_at) <= ?
+       WHERE date(s.created_at, 'localtime') >= ? AND date(s.created_at, 'localtime') <= ?
        GROUP BY ${groupBy}
        ORDER BY date`,
       [startDateStr, endDateStr]
@@ -1198,11 +1198,15 @@ export class DatabaseService {
     // Get expense data
     const expenseData = (await this.db.getAllAsync(
       `SELECT 
-        ${groupBy.replace('s.created_at', 'e.date')} as date,
+        ${groupBy
+          .replace('s.created_at', 'e.date')
+          .replace(", 'localtime'", '')} as date,
         SUM(e.amount) as expenses
        FROM expenses e
        WHERE date(e.date) >= ? AND date(e.date) <= ?
-       GROUP BY ${groupBy.replace('s.created_at', 'e.date')}
+       GROUP BY ${groupBy
+         .replace('s.created_at', 'e.date')
+         .replace(", 'localtime'", '')}
        ORDER BY date`,
       [startDateStr, endDateStr]
     )) as { date: string; expenses: number }[];
@@ -1262,11 +1266,11 @@ export class DatabaseService {
     let groupBy: string;
 
     if (days <= 1) {
-      groupBy = "strftime('%Y-%m-%d %H:00:00', s.created_at)";
+      groupBy = "strftime('%Y-%m-%d %H:00:00', s.created_at, 'localtime')";
     } else if (days <= 31) {
-      groupBy = 'date(s.created_at)';
+      groupBy = "date(s.created_at, 'localtime')";
     } else {
-      groupBy = "strftime('%Y-W%W', s.created_at)";
+      groupBy = "strftime('%Y-W%W', s.created_at, 'localtime')";
     }
 
     const result = (await this.db.getAllAsync(
@@ -1278,7 +1282,7 @@ export class DatabaseService {
        FROM sales s
        JOIN sale_items si ON s.id = si.sale_id
        LEFT JOIN products p ON si.product_id = p.id
-       WHERE date(s.created_at) >= ? AND date(s.created_at) <= ?
+       WHERE date(s.created_at, 'localtime') >= ? AND date(s.created_at, 'localtime') <= ?
        GROUP BY ${groupBy}
        ORDER BY date`,
       [startDateStr, endDateStr]
