@@ -421,6 +421,13 @@ export const my: TranslationKeys = {
     october: 'အောက်တိုဘာ',
     november: 'နိုဝင်ဘာ',
     december: 'ဒီဇင်ဘာ',
+    // Chart translations
+    performanceCharts: 'စွမ်းဆောင်ရည် ဇယားများ',
+    revenueVsExpenses: 'ဝင်ငွေ နှင့် ကုန်ကျစရိတ်',
+    expenseBreakdown: 'ကုန်ကျစရိတ် ခွဲခြမ်းစိတ်ဖြာမှု',
+    revenue: 'ဝင်ငွေ',
+    expenses: 'ကုန်ကျစရိတ်',
+    noChartData: 'ဤကာလအတွက် ဇယားဒေတာ မရှိပါ',
     // Short month names
     jan: 'ဇန်',
     feb: 'ဖေ',

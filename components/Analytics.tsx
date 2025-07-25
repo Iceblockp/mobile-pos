@@ -13,6 +13,7 @@ import {
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useCustomAnalytics, useSalesByDateRange } from '@/hooks/useQueries';
+import AnalyticsCharts from '@/components/AnalyticsCharts';
 import { Sale } from '@/services/database';
 import {
   ChartBar as BarChart3,
@@ -444,14 +445,14 @@ export default function Analytics() {
 
       <ScrollView
         style={styles.content}
-        // refreshControl={
-        //   <RefreshControl
-        //     refreshing={refreshing}
-        //     onRefresh={onRefresh}
-        //     colors={['#059669']}
-        //     tintColor={'#059669'}
-        //   />
-        // }
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            colors={['#059669']}
+            tintColor={'#059669'}
+          />
+        }
       >
         {/* Enhanced Period Selector */}
         <Card style={styles.periodCard}>
@@ -788,6 +789,13 @@ export default function Analytics() {
             </Text>
           )}
         </Card>
+
+        {/* Analytics Charts */}
+        <AnalyticsCharts
+          startDate={startDate}
+          endDate={endDate}
+          analytics={analytics}
+        />
 
         {/* Top Performing Products */}
         <Card>

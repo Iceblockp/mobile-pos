@@ -1145,6 +1145,158 @@ export class DatabaseService {
     await this.db.runAsync('DELETE FROM expenses WHERE id = ?', [id]);
   }
 
+  // Chart data methods
+  async getRevenueExpensesTrend(
+    startDate: Date,
+    endDate: Date
+  ): Promise<
+    {
+      date: string;
+      revenue: number;
+      expenses: number;
+      netProfit: number;
+      salesCount: number;
+    }[]
+  > {
+    const startDateStr = startDate.toISOString().split('T')[0];
+    const endDateStr = endDate.toISOString().split('T')[0];
+
+    // Determine granularity based on date range
+    const days = Math.ceil(
+      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    let dateFormat: string;
+    let groupBy: string;
+
+    if (days <= 1) {
+      // Hourly for single day
+      dateFormat = '%Y-%m-%d %H:00:00';
+      groupBy = "strftime('%Y-%m-%d %H:00:00', s.created_at)";
+    } else if (days <= 31) {
+      // Daily for up to a month
+      dateFormat = '%Y-%m-%d';
+      groupBy = 'date(s.created_at)';
+    } else {
+      // Weekly for longer periods
+      dateFormat = '%Y-W%W';
+      groupBy = "strftime('%Y-W%W', s.created_at)";
+    }
+
+    // Get revenue data
+    const revenueData = (await this.db.getAllAsync(
+      `SELECT 
+        ${groupBy} as date,
+        SUM(s.total) as revenue,
+        COUNT(s.id) as sales_count
+       FROM sales s
+       WHERE date(s.created_at) >= ? AND date(s.created_at) <= ?
+       GROUP BY ${groupBy}
+       ORDER BY date`,
+      [startDateStr, endDateStr]
+    )) as { date: string; revenue: number; sales_count: number }[];
+
+    // Get expense data
+    const expenseData = (await this.db.getAllAsync(
+      `SELECT 
+        ${groupBy.replace('s.created_at', 'e.date')} as date,
+        SUM(e.amount) as expenses
+       FROM expenses e
+       WHERE date(e.date) >= ? AND date(e.date) <= ?
+       GROUP BY ${groupBy.replace('s.created_at', 'e.date')}
+       ORDER BY date`,
+      [startDateStr, endDateStr]
+    )) as { date: string; expenses: number }[];
+
+    // Merge revenue and expense data
+    const expenseMap = new Map(
+      expenseData.map((item) => [item.date, item.expenses])
+    );
+    const revenueMap = new Map(
+      revenueData.map((item) => [
+        item.date,
+        { revenue: item.revenue, sales_count: item.sales_count },
+      ])
+    );
+
+    // Get all unique dates
+    const allDates = new Set([...revenueMap.keys(), ...expenseMap.keys()]);
+
+    const result = Array.from(allDates)
+      .map((date) => {
+        const revenueInfo = revenueMap.get(date) || {
+          revenue: 0,
+          sales_count: 0,
+        };
+        const expenses = expenseMap.get(date) || 0;
+
+        return {
+          date,
+          revenue: revenueInfo.revenue,
+          expenses,
+          netProfit: revenueInfo.revenue - expenses,
+          salesCount: revenueInfo.sales_count,
+        };
+      })
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    return result;
+  }
+
+  async getProfitMarginTrend(
+    startDate: Date,
+    endDate: Date
+  ): Promise<
+    {
+      date: string;
+      profitMargin: number;
+      revenue: number;
+      profit: number;
+    }[]
+  > {
+    const startDateStr = startDate.toISOString().split('T')[0];
+    const endDateStr = endDate.toISOString().split('T')[0];
+
+    const days = Math.ceil(
+      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    let groupBy: string;
+
+    if (days <= 1) {
+      groupBy = "strftime('%Y-%m-%d %H:00:00', s.created_at)";
+    } else if (days <= 31) {
+      groupBy = 'date(s.created_at)';
+    } else {
+      groupBy = "strftime('%Y-W%W', s.created_at)";
+    }
+
+    const result = (await this.db.getAllAsync(
+      `SELECT 
+        ${groupBy} as date,
+        SUM(s.total) as revenue,
+        SUM(si.quantity * COALESCE(p.cost, si.cost)) as total_cost,
+        (SUM(s.total) - SUM(si.quantity * COALESCE(p.cost, si.cost))) as profit
+       FROM sales s
+       JOIN sale_items si ON s.id = si.sale_id
+       LEFT JOIN products p ON si.product_id = p.id
+       WHERE date(s.created_at) >= ? AND date(s.created_at) <= ?
+       GROUP BY ${groupBy}
+       ORDER BY date`,
+      [startDateStr, endDateStr]
+    )) as {
+      date: string;
+      revenue: number;
+      total_cost: number;
+      profit: number;
+    }[];
+
+    return result.map((item) => ({
+      date: item.date,
+      profitMargin: item.revenue > 0 ? (item.profit / item.revenue) * 100 : 0,
+      revenue: item.revenue,
+      profit: item.profit,
+    }));
+  }
+
   // Analytics with expenses
   async getCustomAnalyticsWithExpenses(
     startDate: Date,

@@ -84,6 +84,20 @@ export const queryKeys = {
         endDate.toISOString(),
       ] as const,
     dashboard: () => [...queryKeys.analytics.all, 'dashboard'] as const,
+    revenueExpensesTrend: (startDate: Date, endDate: Date) =>
+      [
+        ...queryKeys.analytics.all,
+        'revenueExpensesTrend',
+        startDate.toISOString(),
+        endDate.toISOString(),
+      ] as const,
+    profitMarginTrend: (startDate: Date, endDate: Date) =>
+      [
+        ...queryKeys.analytics.all,
+        'profitMarginTrend',
+        startDate.toISOString(),
+        endDate.toISOString(),
+      ] as const,
   },
 
   // Expenses
@@ -250,6 +264,30 @@ export const useCustomAnalytics = (startDate: Date, endDate: Date) => {
     queryFn: () => db!.getCustomAnalyticsWithExpenses(startDate, endDate),
     enabled: isReady && !!db,
     staleTime: 3 * 60 * 1000, // 3 minutes
+    gcTime: 10 * 60 * 1000,
+  });
+};
+
+export const useRevenueExpensesTrend = (startDate: Date, endDate: Date) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.analytics.revenueExpensesTrend(startDate, endDate),
+    queryFn: () => db!.getRevenueExpensesTrend(startDate, endDate),
+    enabled: isReady && !!db,
+    staleTime: 2 * 60 * 1000, // 2 minutes - shorter for real-time updates
+    gcTime: 10 * 60 * 1000,
+  });
+};
+
+export const useProfitMarginTrend = (startDate: Date, endDate: Date) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.analytics.profitMarginTrend(startDate, endDate),
+    queryFn: () => db!.getProfitMarginTrend(startDate, endDate),
+    enabled: isReady && !!db,
+    staleTime: 2 * 60 * 1000, // 2 minutes - shorter for real-time updates
     gcTime: 10 * 60 * 1000,
   });
 };
@@ -440,22 +478,34 @@ export const useSaleMutations = () => {
       saleItems: any[];
     }) => db!.addSale(saleData, saleItems),
     onSuccess: () => {
-      // Invalidate all related queries
+      // Invalidate all related queries including chart data
       queryClient.invalidateQueries({ queryKey: queryKeys.sales.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.analytics.all });
+
+      // Force refresh chart data immediately
+      queryClient.refetchQueries({
+        queryKey: queryKeys.analytics.all,
+        type: 'active',
+      });
     },
   });
 
   const deleteSale = useMutation({
     mutationFn: (saleId: number) => db!.deleteSale(saleId),
     onSuccess: () => {
-      // Invalidate all related queries
+      // Invalidate all related queries including chart data
       queryClient.invalidateQueries({ queryKey: queryKeys.sales.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.analytics.all });
+
+      // Force refresh chart data immediately
+      queryClient.refetchQueries({
+        queryKey: queryKeys.analytics.all,
+        type: 'active',
+      });
     },
   });
 
@@ -481,6 +531,12 @@ export const useExpenseMutations = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.expenses.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.analytics.all });
+
+      // Force refresh chart data immediately
+      queryClient.refetchQueries({
+        queryKey: queryKeys.analytics.all,
+        type: 'active',
+      });
     },
   });
 
@@ -501,6 +557,12 @@ export const useExpenseMutations = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.expenses.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.analytics.all });
+
+      // Force refresh chart data immediately
+      queryClient.refetchQueries({
+        queryKey: queryKeys.analytics.all,
+        type: 'active',
+      });
     },
   });
 
@@ -509,6 +571,12 @@ export const useExpenseMutations = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.expenses.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.analytics.all });
+
+      // Force refresh chart data immediately
+      queryClient.refetchQueries({
+        queryKey: queryKeys.analytics.all,
+        type: 'active',
+      });
     },
   });
 

@@ -361,6 +361,7 @@ export const en = {
     dailyAverageRevenue: 'Daily Average Sale Value',
     dailyAverageProfit: 'Daily Average Profit',
     costOfGoodsSold: 'Cost of Goods Sold',
+    cogs: 'COGS',
     profitMargin: 'Profit Margin',
     itemsSold: 'Items Sold',
     units: 'units',
@@ -412,6 +413,13 @@ export const en = {
     october: 'October',
     november: 'November',
     december: 'December',
+    // Chart translations
+    performanceCharts: 'Performance Charts',
+    revenueVsExpenses: 'Revenue vs Expenses',
+    expenseBreakdown: 'Expense Breakdown',
+    revenue: 'Revenue',
+    expenses: 'Expenses',
+    noChartData: 'No chart data available for this period',
     // Short month names
     jan: 'Jan',
     feb: 'Feb',
