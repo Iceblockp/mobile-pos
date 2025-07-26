@@ -21,6 +21,7 @@ export const useLicense = () => {
   );
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
+  console.log('first', licenseStatus);
 
   useEffect(() => {
     initializeLicense();
@@ -32,13 +33,14 @@ export const useLicense = () => {
       .toString(36)
       .substring(2, 8)}`;
     const expiryDate = new Date();
-    expiryDate.setMinutes(expiryDate.getMinutes() + 5); // 5 minutes validity for testing
-    // expiryDate.setDate(expiryDate.getDate() + 1); // 1 day validity
+    // expiryDate.setMinutes(expiryDate.getMinutes() + 5); // 5 minutes validity for testing
+    expiryDate.setDate(expiryDate.getDate() + 1); // 1 day validity
 
+    // For testing with minutes, we need to include time information
     const expiryString = expiryDate
       .toISOString()
-      .split('T')[0]
-      .replace(/-/g, '');
+      .replace(/[-:T]/g, '')
+      .substring(0, 14); // YYYYMMDDHHMMSS format
     const random = Math.random().toString(36).substring(2, 10).toUpperCase();
 
     const fullChallenge = `${deviceId}|${expiryString}|${random}`;
@@ -187,9 +189,26 @@ export const useLicense = () => {
   const getExpiryDate = (): string | null => {
     if (!licenseStatus?.expiryDate) return null;
 
-    const year = parseInt(licenseStatus.expiryDate.substring(0, 4));
-    const month = parseInt(licenseStatus.expiryDate.substring(4, 6));
-    const day = parseInt(licenseStatus.expiryDate.substring(6, 8));
+    const dateString = licenseStatus.expiryDate;
+    const year = parseInt(dateString.substring(0, 4));
+    const month = parseInt(dateString.substring(4, 6));
+    const day = parseInt(dateString.substring(6, 8));
+
+    if (dateString.length === 14) {
+      // Include time for detailed format
+      const hour = parseInt(dateString.substring(8, 10));
+      const minute = parseInt(dateString.substring(10, 12));
+      const second = parseInt(dateString.substring(12, 14));
+
+      return new Date(
+        year,
+        month - 1,
+        day,
+        hour,
+        minute,
+        second
+      ).toLocaleString();
+    }
 
     return new Date(year, month - 1, day).toLocaleDateString();
   };

@@ -362,6 +362,7 @@ export const my: TranslationKeys = {
     subtitle: 'လုပ်ငန်းစွမ်းဆောင်ရည်သုံးသပ်မှုများ',
     analysisPeriod: 'ခွဲခြမ်းစိတ်ဖြာမှုကာလ',
     currentPeriod: 'လက်ရှိကာလ',
+    cogs: 'COGS',
     totalRevenue: 'စုစုပေါင်းရောင်းရငွေ',
     totalProfit: 'စုစုပေါင်းအမြတ်အစွန်း',
     totalSales: 'စုစုပေါင်းရောင်းချမှု',
@@ -510,7 +511,7 @@ export const my: TranslationKeys = {
     sunday: 'တနင်္ဂနွေ: ပိတ်',
     // Quick Start Guide
     quickStartTitle: 'မိုဘိုင်း POS ဖြင့် စတင်ခြင်း',
-    step1Title: '၁. လိုင်စင်အတည်ပြုခြင်း (မလိုတော့ပါ)',
+    step1Title: '၁. လိုင်စင်အတည်ပြုခြင်း ',
     step1Description:
       'POS လုပ်ဆောင်ချက်များအားလုံးကို ဖွင့်ရန် သင့်လိုင်စင်ကို အတည်ပြုပါ။ လိုင်စင်ကုဒ်များနှင့် ပတ်သက်၍ အကူအညီလိုအပ်ပါက အက်ဒမင်ကို ဆက်သွယ်ပါ။',
     step2Title: '၂. ကုန်ပစ္စည်းများထည့်ခြင်း',
