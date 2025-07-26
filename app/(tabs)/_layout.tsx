@@ -21,12 +21,12 @@ export default function TabLayout() {
   const { t } = useTranslation();
   const [showSplash, setShowSplash] = useState(true);
 
-  // useEffect(() => {
-  //   if (!loading && !isLicenseValid()) {
-  //     // Redirect to the root page if license is not valid
-  //     router.replace('/');
-  //   }
-  // }, [loading, isLicenseValid]);
+  useEffect(() => {
+    if (!loading && !isLicenseValid()) {
+      // Redirect to the root page if license is not valid
+      router.replace('/');
+    }
+  }, [loading, isLicenseValid]);
 
   // Handle splash screen animation finish
   const handleSplashFinish = () => {
