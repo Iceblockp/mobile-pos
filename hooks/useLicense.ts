@@ -32,7 +32,8 @@ export const useLicense = () => {
       .toString(36)
       .substring(2, 8)}`;
     const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 1); // 1 day validity
+    expiryDate.setMinutes(expiryDate.getMinutes() + 5); // 5 minutes validity for testing
+    // expiryDate.setDate(expiryDate.getDate() + 1); // 1 day validity
 
     const expiryString = expiryDate
       .toISOString()

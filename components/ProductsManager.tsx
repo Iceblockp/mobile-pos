@@ -389,7 +389,13 @@ export default function Products({ compact = false }: ProductsManagerProps) {
         });
       }
 
-      resetCategoryForm();
+      // Reset form but keep modal open
+      setCategoryFormData({
+        name: '',
+        description: '',
+      });
+      setEditingCategory(null);
+
       showToast(
         editingCategory
           ? t('products.categoryUpdated')
@@ -483,11 +489,8 @@ export default function Products({ compact = false }: ProductsManagerProps) {
           onPress: async () => {
             try {
               await deleteCategory.mutateAsync(category.id);
-              // Close modal first, then show success toast
-              setShowCategoryModal(false);
-              setTimeout(() => {
-                showToast(t('categories.categoryDeleted'), 'success');
-              }, 300); // Small delay for smooth transition
+              // Keep modal open after deletion
+              showToast(t('categories.categoryDeleted'), 'success');
             } catch (error: any) {
               console.error('Error deleting category:', error);
               // Check if it's a foreign key constraint error
@@ -1342,15 +1345,13 @@ export default function Products({ compact = false }: ProductsManagerProps) {
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            style={styles.formScrollView}
-            contentContainerStyle={styles.formContent}
-          >
+          {/* Sticky Category Form - Not in ScrollView */}
+          <View style={styles.stickyFormContainer}>
             <Card style={styles.categoryFormCard}>
               <Text style={styles.formTitle}>
                 {editingCategory
-                  ? t('products.addNewCategory')
-                  : t('products.editCategory')}
+                  ? t('products.editCategory')
+                  : t('products.addNewCategory')}
               </Text>
 
               <View style={styles.inputContainer}>
@@ -1400,37 +1401,46 @@ export default function Products({ compact = false }: ProductsManagerProps) {
                 />
               </View>
             </Card>
+          </View>
 
+          {/* Scrollable Categories List */}
+          <View style={styles.categoriesListContainer}>
             <Text style={styles.sectionTitle}>
               {t('categories.existingCategories')}
             </Text>
-            {categories.map((category) => (
-              <Card key={category.id} style={styles.categoryCard}>
-                <View style={styles.categoryHeader}>
-                  <View style={styles.categoryInfo}>
-                    <Text style={styles.categoryName}>{category.name}</Text>
-                    <Text style={styles.categoryDescription}>
-                      {category.description}
-                    </Text>
+            <ScrollView
+              style={styles.categoriesScrollView}
+              contentContainerStyle={styles.categoriesContent}
+              showsVerticalScrollIndicator={true}
+            >
+              {categories.map((category) => (
+                <Card key={category.id} style={styles.categoryCard}>
+                  <View style={styles.categoryHeader}>
+                    <View style={styles.categoryInfo}>
+                      <Text style={styles.categoryName}>{category.name}</Text>
+                      <Text style={styles.categoryDescription}>
+                        {category.description}
+                      </Text>
+                    </View>
+                    <View style={styles.categoryActions}>
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => handleEditCategory(category)}
+                      >
+                        <Edit size={18} color="#6B7280" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => handleDeleteCategory(category)}
+                      >
+                        <Trash2 size={18} color="#EF4444" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                  <View style={styles.categoryActions}>
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={() => handleEditCategory(category)}
-                    >
-                      <Edit size={18} color="#6B7280" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={() => handleDeleteCategory(category)}
-                    >
-                      <Trash2 size={18} color="#EF4444" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </Card>
-            ))}
-          </ScrollView>
+                </Card>
+              ))}
+            </ScrollView>
+          </View>
         </SafeAreaView>
       </Modal>
     </View>
@@ -1855,6 +1865,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
     color: '#10B981',
+  },
+  stickyFormContainer: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    padding: 16,
+  },
+  categoriesListContainer: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  categoriesScrollView: {
+    flex: 1,
+  },
+  categoriesContent: {
+    padding: 16,
+    paddingBottom: 100, // Extra padding for safe scrolling
   },
   formScrollView: {
     flex: 1,

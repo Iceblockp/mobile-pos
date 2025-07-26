@@ -301,10 +301,8 @@ export default function Expenses() {
           onPress: async () => {
             try {
               await deleteExpenseCategory.mutateAsync(id);
-              setShowCategoryModal(false);
-              setTimeout(() => {
-                showToast(t('categories.categoryDeleted'), 'success');
-              }, 300);
+              // Keep modal open after deletion
+              showToast(t('categories.categoryDeleted'), 'success');
             } catch (error: any) {
               console.error('Error deleting category:', error);
               showToast(
@@ -792,10 +790,8 @@ export default function Expenses() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            style={styles.formScrollView}
-            contentContainerStyle={styles.formContent}
-          >
+          {/* Sticky Category Form - Not in ScrollView */}
+          <View style={styles.stickyFormContainer}>
             <Card style={styles.categoryFormCard}>
               <Text style={styles.formTitle}>
                 {editingCategory
@@ -833,39 +829,48 @@ export default function Expenses() {
                 />
               </View>
             </Card>
+          </View>
 
+          {/* Scrollable Categories List */}
+          <View style={styles.categoriesListContainer}>
             <Text style={styles.sectionTitle}>
               {t('categories.existingCategories')}
             </Text>
-            {categories.map((category) => (
-              <Card key={category.id} style={styles.categoryCard}>
-                <View style={styles.categoryHeader}>
-                  <View style={styles.categoryInfo}>
-                    <Text style={styles.categoryName}>{category.name}</Text>
-                    {category.description && (
-                      <Text style={styles.categoryDescription}>
-                        {category.description}
-                      </Text>
-                    )}
+            <ScrollView
+              style={styles.categoriesScrollView}
+              contentContainerStyle={styles.categoriesContent}
+              showsVerticalScrollIndicator={true}
+            >
+              {categories.map((category) => (
+                <Card key={category.id} style={styles.categoryCard}>
+                  <View style={styles.categoryHeader}>
+                    <View style={styles.categoryInfo}>
+                      <Text style={styles.categoryName}>{category.name}</Text>
+                      {category.description && (
+                        <Text style={styles.categoryDescription}>
+                          {category.description}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={styles.categoryActions}>
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => handleEditCategory(category)}
+                      >
+                        <Edit size={18} color="#6B7280" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => handleDeleteCategory(category.id)}
+                      >
+                        <Trash2 size={18} color="#EF4444" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                  <View style={styles.categoryActions}>
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={() => handleEditCategory(category)}
-                    >
-                      <Edit size={18} color="#6B7280" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={() => handleDeleteCategory(category.id)}
-                    >
-                      <Trash2 size={18} color="#EF4444" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </Card>
-            ))}
-          </ScrollView>
+                </Card>
+              ))}
+            </ScrollView>
+          </View>
         </SafeAreaView>
       </Modal>
 
@@ -1016,6 +1021,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#3B82F6',
     fontWeight: '500',
+  },
+  stickyFormContainer: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    padding: 16,
+  },
+  categoriesListContainer: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  categoriesScrollView: {
+    flex: 1,
+  },
+  categoriesContent: {
+    padding: 16,
+    paddingBottom: 100, // Extra padding for safe scrolling
   },
   formScrollView: {
     flex: 1,
