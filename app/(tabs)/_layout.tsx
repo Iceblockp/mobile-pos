@@ -19,7 +19,7 @@ export default function TabLayout() {
   const { isLicenseValid, loading } = useLicense();
   const router = useRouter();
   const { t } = useTranslation();
-  const [showSplash, setShowSplash] = useState(true);
+  // const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     if (!loading && !isLicenseValid()) {
@@ -29,13 +29,13 @@ export default function TabLayout() {
   }, [loading, isLicenseValid]);
 
   // Handle splash screen animation finish
-  const handleSplashFinish = () => {
-    setShowSplash(false);
-  };
+  // const handleSplashFinish = () => {
+  //   setShowSplash(false);
+  // };
 
-  if (showSplash) {
-    return <SplashScreen onAnimationFinish={handleSplashFinish} />;
-  }
+  // if (showSplash) {
+  //   return <SplashScreen onAnimationFinish={handleSplashFinish} />;
+  // }
 
   return (
     <Tabs
@@ -67,7 +67,7 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="dashboard"
         options={{
           title: t('navigation.dashboard'),
           tabBarIcon: ({ size, color }) => <Home size={size} color={color} />,
