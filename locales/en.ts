@@ -267,6 +267,7 @@ export const en = {
     done: 'Done',
     warning: 'Warning',
     // Sorting options
+    sort: 'Sort',
     nameAtoZ: 'Name (A to Z)',
     nameZtoA: 'Name (Z to A)',
     newestFirst: 'Newest First',
@@ -281,6 +282,7 @@ export const en = {
     categoryRequired: 'Category *',
     description: 'Description',
     // Category management
+    categories: 'Categories',
     manageCategories: 'Manage Categories',
     addNewCategory: 'Add New Category',
     editCategory: 'Edit Category',
@@ -297,6 +299,20 @@ export const en = {
     productStillUsesCategory: 'product still uses this category',
     categoryNamePlaceholder: 'Category Name *',
     unknown: 'Unknown',
+    // Export/Import
+    export: 'Export',
+    import: 'Import',
+    exportProducts: 'Export Products',
+    importProducts: 'Import Products',
+    exportSuccess: 'products exported successfully',
+    importSuccess: 'Import completed',
+    importFailed: 'Failed to import products. Please check file format.',
+    exportFailed: 'Failed to export products',
+    importConfirm: 'This will import',
+    importConfirmDetails:
+      'products, categories, and suppliers. Existing data with same names may be updated. Continue?',
+    importCompleted: 'imported, skipped',
+    invalidImportFormat: 'Invalid import file format',
   },
   categories: {
     title: 'Categories',

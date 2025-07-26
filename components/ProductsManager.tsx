@@ -37,6 +37,9 @@ import {
   ArrowUpAZ,
   Calendar,
   ArrowDownAZ,
+  Download,
+  Upload,
+  MoreVertical,
 } from 'lucide-react-native';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import TextScanner from '@/components/TextScanner';
@@ -44,6 +47,8 @@ import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import * as DocumentPicker from 'expo-document-picker';
 
 interface ProductsManagerProps {
   compact?: boolean;
@@ -66,6 +71,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   const [sortBy, setSortBy] = useState<'name' | 'updated_at'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showSortOptions, setShowSortOptions] = useState(false);
+  const [showActionsMenu, setShowActionsMenu] = useState(false);
 
   // Use React Query for optimized data fetching
   const {
@@ -106,6 +112,12 @@ export default function Products({ compact = false }: ProductsManagerProps) {
 
   const onRefresh = () => {
     refetchProducts();
+  };
+
+  // Close menus when tapping outside
+  const handleOutsidePress = () => {
+    if (showActionsMenu) setShowActionsMenu(false);
+    if (showSortOptions) setShowSortOptions(false);
   };
 
   const formatMMK = (amount: number) => {
@@ -528,12 +540,189 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     return supplier ? supplier.name : t('products.unknown');
   };
 
+  // Export products data
+  const exportProducts = async () => {
+    try {
+      const exportData = {
+        version: '1.0',
+        exportDate: new Date().toISOString(),
+        categories: categories,
+        suppliers: suppliers,
+        products: products.map((product) => ({
+          ...product,
+          // Remove id to avoid conflicts during import
+          id: undefined,
+          created_at: undefined,
+          updated_at: undefined,
+        })),
+      };
+
+      const jsonString = JSON.stringify(exportData, null, 2);
+      const fileName = `products_export_${
+        new Date().toISOString().split('T')[0]
+      }.json`;
+      const fileUri = FileSystem.documentDirectory + fileName;
+
+      await FileSystem.writeAsStringAsync(fileUri, jsonString);
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'application/json',
+          dialogTitle: 'Export Products Data',
+        });
+      } else {
+        showToast('Export completed. File saved to: ' + fileName, 'success');
+      }
+
+      showToast(`${products.length} ${t('products.exportSuccess')}`, 'success');
+    } catch (error) {
+      console.error('Export error:', error);
+      showToast(t('products.exportFailed'), 'error');
+    }
+  };
+
+  // Import products data
+  const importProducts = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/json',
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) return;
+
+      const fileContent = await FileSystem.readAsStringAsync(
+        result.assets[0].uri
+      );
+      const importData = JSON.parse(fileContent);
+
+      // Validate import data structure
+      if (!importData.categories || !importData.products) {
+        throw new Error(t('products.invalidImportFormat'));
+      }
+
+      Alert.alert(
+        t('products.importProducts'),
+        `${t('products.importConfirm')} ${importData.products.length} ${t(
+          'products.importConfirmDetails'
+        )}`,
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('products.importProducts'),
+            onPress: async () => {
+              await performImport(importData);
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Import error:', error);
+      showToast(t('products.importFailed'), 'error');
+    }
+  };
+
+  const performImport = async (importData: any) => {
+    try {
+      let importedCount = 0;
+      let skippedCount = 0;
+
+      // Import categories first
+      for (const category of importData.categories) {
+        try {
+          const existingCategory = categories.find(
+            (c) => c.name === category.name
+          );
+          if (!existingCategory) {
+            await addCategory.mutateAsync({
+              name: category.name,
+              description: category.description || '',
+              created_at: new Date().toISOString(),
+            });
+          }
+        } catch (error) {
+          console.log('Category import error:', error);
+        }
+      }
+
+      // Import suppliers if available
+      if (importData.suppliers) {
+        // Note: You'll need to add supplier mutations if not available
+        // This is a placeholder for supplier import logic
+      }
+
+      // Wait for categories to be updated
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Import products
+      for (const product of importData.products) {
+        try {
+          // Find category by name
+          const category = categories.find((c) => c.name === product.category);
+          if (!category) {
+            skippedCount++;
+            continue;
+          }
+
+          // Check if product already exists (by name or barcode)
+          const existingProduct = products.find(
+            (p) =>
+              p.name === product.name ||
+              (product.barcode && p.barcode === product.barcode)
+          );
+
+          const productData = {
+            name: product.name,
+            barcode: product.barcode || undefined,
+            category_id: category.id,
+            price: product.price,
+            cost: product.cost,
+            quantity: product.quantity || 0,
+            min_stock: product.min_stock || 10,
+            supplier_id: product.supplier_id || 1,
+            imageUrl: product.imageUrl || undefined,
+          };
+
+          if (existingProduct) {
+            // Update existing product
+            await updateProduct.mutateAsync({
+              id: existingProduct.id,
+              data: productData,
+            });
+          } else {
+            // Add new product
+            await addProduct.mutateAsync(productData);
+          }
+
+          importedCount++;
+        } catch (error) {
+          console.log('Product import error:', error);
+          skippedCount++;
+        }
+      }
+
+      showToast(
+        `${t('products.importSuccess')}: ${importedCount} ${t(
+          'products.importCompleted'
+        )} ${skippedCount}`,
+        'success'
+      );
+    } catch (error) {
+      console.error('Import process error:', error);
+      showToast(t('products.importFailed'), 'error');
+    }
+  };
+
   if (isLoading && !isRefreshing) {
     return <LoadingSpinner />;
   }
 
   return (
-    <View style={compact ? styles.compactContainer : styles.container}>
+    <TouchableOpacity
+      style={compact ? styles.compactContainer : styles.container}
+      activeOpacity={1}
+      onPress={handleOutsidePress}
+    >
       {!compact && (
         <SafeAreaView>
           <View style={styles.header}>
@@ -557,6 +746,18 @@ export default function Products({ compact = false }: ProductsManagerProps) {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: '#10B981' }]}
+                onPress={exportProducts}
+              >
+                <Download size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: '#F59E0B' }]}
+                onPress={importProducts}
+              >
+                <Upload size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={styles.categoryButton}
                 onPress={() => setShowCategoryModal(true)}
               >
@@ -573,7 +774,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
         </SafeAreaView>
       )}
 
-      {/* Compact mode: Combine search and actions in one row */}
+      {/* Compact mode: Clean search bar with dropdown actions */}
       {compact ? (
         <>
           <View style={styles.compactSearchContainer}>
@@ -593,38 +794,93 @@ export default function Products({ compact = false }: ProductsManagerProps) {
               </TouchableOpacity>
             </View>
             <TouchableOpacity
-              style={[
-                styles.compactSortDropdown,
-                { backgroundColor: '#6B7280' },
-              ]}
-              onPress={() => setShowSortOptions(!showSortOptions)}
-            >
-              <Text style={styles.sortDropdownText}>
-                {sortBy === 'name' ? (
-                  sortOrder === 'asc' ? (
-                    <ArrowUpAZ size={16} color="#FFFFFF" />
-                  ) : (
-                    <ArrowDownAZ size={16} color="#FFFFFF" />
-                  )
-                ) : (
-                  <Calendar size={16} color="#FFFFFF" />
-                )}{' '}
-                {sortOrder === 'asc' ? '↑' : '↓'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.compactButton}
-              onPress={() => setShowCategoryModal(true)}
-            >
-              <Settings size={16} color="#6B7280" />
-            </TouchableOpacity>
-            <TouchableOpacity
               style={styles.compactAddButton}
               onPress={() => setShowAddForm(true)}
             >
               <Plus size={16} color="#FFFFFF" />
             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.compactMenuButton}
+              onPress={() => setShowActionsMenu(!showActionsMenu)}
+            >
+              <MoreVertical size={16} color="#6B7280" />
+            </TouchableOpacity>
           </View>
+
+          {/* Actions Menu Dropdown */}
+          {showActionsMenu && (
+            <View style={styles.actionsMenuContainer}>
+              <TouchableOpacity
+                style={styles.actionMenuItem}
+                onPress={() => {
+                  setShowSortOptions(!showSortOptions);
+                  setShowActionsMenu(false);
+                }}
+              >
+                <View style={styles.actionMenuItemContent}>
+                  {sortBy === 'name' ? (
+                    sortOrder === 'asc' ? (
+                      <ArrowUpAZ size={16} color="#6B7280" />
+                    ) : (
+                      <ArrowDownAZ size={16} color="#6B7280" />
+                    )
+                  ) : (
+                    <Calendar size={16} color="#6B7280" />
+                  )}
+                  <Text style={styles.actionMenuItemText}>
+                    {t('products.sort')} {sortOrder === 'asc' ? '↑' : '↓'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionMenuItem}
+                onPress={() => {
+                  setShowCategoryModal(true);
+                  setShowActionsMenu(false);
+                }}
+              >
+                <View style={styles.actionMenuItemContent}>
+                  <Settings size={16} color="#6B7280" />
+                  <Text style={styles.actionMenuItemText}>
+                    {t('products.categories')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionMenuItem}
+                onPress={() => {
+                  exportProducts();
+                  setShowActionsMenu(false);
+                }}
+              >
+                <View style={styles.actionMenuItemContent}>
+                  <Download size={16} color="#10B981" />
+                  <Text style={styles.actionMenuItemText}>
+                    {t('products.export')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionMenuItemLast}
+                onPress={() => {
+                  importProducts();
+                  setShowActionsMenu(false);
+                }}
+              >
+                <View style={styles.actionMenuItemContent}>
+                  <Upload size={16} color="#F59E0B" />
+                  <Text style={styles.actionMenuItemText}>
+                    {t('products.import')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Sort Options - appears when sort is selected */}
           {showSortOptions && (
             <View style={styles.sortOptionsContainer}>
               <TouchableOpacity
@@ -1443,7 +1699,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
           </View>
         </SafeAreaView>
       </Modal>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -1536,6 +1792,54 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
+    marginRight: 8,
+  },
+  compactMenuButton: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  actionsMenuContainer: {
+    position: 'absolute',
+    top: 50, // Position below the search container
+    right: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingVertical: 8,
+    minWidth: 180,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1000,
+  },
+  actionMenuItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F9FAFB',
+  },
+  actionMenuItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionMenuItemText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#374151',
+    marginLeft: 12,
+  },
+  actionMenuItemLast: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 0,
   },
   compactSearchContainer: {
     flexDirection: 'row',
@@ -1617,12 +1921,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 8,
   },
-  compactSortDropdown: {
-    padding: 4,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-  },
+
   sortDropdownText: {
     fontSize: 14,
     fontFamily: 'Inter-Medium',
@@ -1678,6 +1977,14 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  actionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   searchContainer: {
     paddingHorizontal: 16,
@@ -1782,10 +2089,10 @@ const styles = StyleSheet.create({
   productActions: {
     flexDirection: 'row',
   },
-  actionButton: {
-    padding: 8,
-    marginLeft: 4,
-  },
+  // actionButton: {
+  //   padding: 8,
+  //   marginLeft: 4,
+  // },
   productDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',

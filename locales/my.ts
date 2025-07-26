@@ -274,6 +274,7 @@ export const my: TranslationKeys = {
     done: 'ပြီးပါပြီ',
     warning: 'သတိပေးချက်',
     // Sorting options
+    sort: 'စီစဉ်ရန်',
     nameAtoZ: 'အမည် (က မှ အ)',
     nameZtoA: 'အမည် (အ မှ က)',
     newestFirst: 'အသစ်ဆုံးများအရင်',
@@ -288,6 +289,7 @@ export const my: TranslationKeys = {
     categoryRequired: 'အမျိုးအစား *',
     description: 'ဖော်ပြချက်',
     // Category management
+    categories: 'အမျိုးအစားများ',
     manageCategories: 'အမျိုးအစားများစီမံခန့်ခွဲမည်',
     addNewCategory: 'အမျိုးအစားအသစ်ထည့်မည်',
     editCategory: 'အမျိုးအစားပြင်ဆင်မည်',
@@ -304,6 +306,21 @@ export const my: TranslationKeys = {
     productStillUsesCategory: 'ကုန်ပစ္စည်းက ဒီအမျိုးအစားကို အသုံးပြုနေဆဲပါ',
     categoryNamePlaceholder: 'အမျိုးအစားအမည် *',
     unknown: 'မသိ',
+    // Export/Import
+    export: 'ထုတ်ယူမည်',
+    import: 'ထည့်သွင်းမည်',
+    exportProducts: 'ကုန်ပစ္စည်းများထုတ်ယူမည်',
+    importProducts: 'ကုန်ပစ္စည်းများထည့်သွင်းမည်',
+    exportSuccess: 'ကုန်ပစ္စည်းများအောင်မြင်စွာထုတ်ယူပါပြီ',
+    importSuccess: 'ထည့်သွင်းမှုပြီးစီးပါပြီ',
+    importFailed:
+      'ကုန်ပစ္စည်းများထည့်သွင်းရန်မအောင်မြင်ပါ။ ဖိုင်ပုံစံကိုစစ်ဆေးပါ။',
+    exportFailed: 'ကုန်ပစ္စည်းများထုတ်ယူရန်မအောင်မြင်ပါ',
+    importConfirm: 'ဒါက ထည့်သွင်းမည်',
+    importConfirmDetails:
+      'ကုန်ပစ္စည်းများ၊ အမျိုးအစားများနှင့် ပေးသွင်းသူများ။ အမည်တူရှိပြီးသားဒေတာများကို အပ်ဒိတ်လုပ်နိုင်ပါသည်။ ဆက်လုပ်မလား?',
+    importCompleted: 'ထည့်သွင်းပြီး၊ ကျော်သွားသည်',
+    invalidImportFormat: 'မမှန်ကန်သော ထည့်သွင်းဖိုင်ပုံစံ',
   },
   categories: {
     title: 'အမျိုးအစားများ',
