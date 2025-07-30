@@ -718,11 +718,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   }
 
   return (
-    <TouchableOpacity
-      style={compact ? styles.compactContainer : styles.container}
-      activeOpacity={1}
-      onPress={handleOutsidePress}
-    >
+    <View style={compact ? styles.compactContainer : styles.container}>
       {!compact && (
         <SafeAreaView>
           <View style={styles.header}>
@@ -806,6 +802,15 @@ export default function Products({ compact = false }: ProductsManagerProps) {
               <MoreVertical size={16} color="#6B7280" />
             </TouchableOpacity>
           </View>
+
+          {/* Overlay for closing menus */}
+          {(showActionsMenu || showSortOptions) && (
+            <TouchableOpacity
+              style={styles.menuOverlay}
+              activeOpacity={1}
+              onPress={handleOutsidePress}
+            />
+          )}
 
           {/* Actions Menu Dropdown */}
           {showActionsMenu && (
@@ -1219,12 +1224,14 @@ export default function Products({ compact = false }: ProductsManagerProps) {
 
       <ScrollView
         style={styles.productsList}
+        contentContainerStyle={styles.productsListContent}
         refreshControl={
           <RefreshControl
             refreshing={productsRefetching}
             onRefresh={onRefresh}
           />
         }
+        showsVerticalScrollIndicator={true}
       >
         {filteredProducts.map((product) => (
           <Card key={product.id} style={styles.productCard}>
@@ -1701,7 +1708,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
           </View>
         </SafeAreaView>
       </Modal>
-    </TouchableOpacity>
+    </View>
   );
 }
 
@@ -1802,6 +1809,14 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 6,
   },
+  menuOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+  },
   actionsMenuContainer: {
     position: 'absolute',
     top: 50, // Position below the search container
@@ -1810,6 +1825,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    zIndex: 2,
     paddingVertical: 8,
     minWidth: 180,
     shadowColor: '#000',
@@ -1820,7 +1836,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 8,
-    zIndex: 1000,
+    // zIndex: 1000,
   },
   actionMenuItem: {
     paddingHorizontal: 16,
@@ -2051,6 +2067,9 @@ const styles = StyleSheet.create({
   productsList: {
     flex: 1,
     paddingHorizontal: 20,
+  },
+  productsListContent: {
+    paddingBottom: 20,
   },
   productCard: {
     marginBottom: 16,
