@@ -1661,9 +1661,11 @@ export default function Products({ compact = false }: ProductsManagerProps) {
 
           {/* Scrollable Categories List */}
           <View style={styles.categoriesListContainer}>
-            <Text style={styles.sectionTitle}>
-              {t('categories.existingCategories')}
-            </Text>
+            <View style={styles.sectionTitleContainer}>
+              <Text style={styles.sectionTitle}>
+                {t('categories.existingCategories')}
+              </Text>
+            </View>
             <ScrollView
               style={styles.categoriesScrollView}
               contentContainerStyle={styles.categoriesContent}
@@ -2177,7 +2179,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
-    padding: 16,
+    padding: 12,
   },
   categoriesListContainer: {
     flex: 1,
@@ -2187,8 +2189,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoriesContent: {
-    padding: 16,
-    paddingBottom: 100, // Extra padding for safe scrolling
+    padding: 12,
+    paddingBottom: 80, // Extra padding for safe scrolling
   },
   formScrollView: {
     flex: 1,
@@ -2198,22 +2200,22 @@ const styles = StyleSheet.create({
     paddingBottom: 100, // Extra padding for safe scrolling
   },
   formTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: 'Inter-SemiBold',
     color: '#111827',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   input: {
     backgroundColor: '#F9FAFB',
     borderWidth: 1,
     borderColor: '#E5E7EB',
     borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
     fontFamily: 'Inter-Regular',
     color: '#111827',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   barcodeContainer: {
     flexDirection: 'row',
@@ -2245,13 +2247,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   inputContainer: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   inputLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'Inter-Medium',
     color: '#374151',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   pickerLabel: {
     fontSize: 16,
@@ -2308,19 +2310,25 @@ const styles = StyleSheet.create({
   formButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 16,
+    marginTop: 12,
   },
   formButton: {
     flex: 0.48,
   },
   categoryFormCard: {
-    marginBottom: 24,
+    marginBottom: 0,
+  },
+  sectionTitleContainer: {
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 8,
+    backgroundColor: '#F9FAFB',
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: 'Inter-SemiBold',
     color: '#111827',
-    marginBottom: 16,
+    marginBottom: 0,
   },
   categoryCard: {
     marginBottom: 12,

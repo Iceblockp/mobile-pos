@@ -372,7 +372,7 @@ export default function Expenses() {
               setShowAddModal(true);
             }}
           >
-            <Plus size={24} color="#FFFFFF" />
+            <Plus size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </View>
@@ -932,8 +932,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#3B82F6',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    padding: 8,
     borderRadius: 8,
   },
   addButtonText: {

@@ -1855,7 +1855,9 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                           styles.voucherToggleButtonTextActive,
                       ]}
                     >
-                      {isCustomerVoucher ? 'Customer Receipt' : 'Internal View'}
+                      {isCustomerVoucher
+                        ? t('sales.customerReceipt')
+                        : t('sales.internalView')}
                     </Text>
                   </TouchableOpacity>
 
@@ -1881,7 +1883,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         {capturing
                           ? t('sales.exporting')
                           : isCustomerVoucher
-                          ? 'Print Receipt'
+                          ? t('sales.printReceipt')
                           : t('sales.exportAsImage')}
                       </Text>
                     </TouchableOpacity>

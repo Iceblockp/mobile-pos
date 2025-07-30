@@ -155,6 +155,10 @@ export const en = {
     sharingNotAvailable: 'Sharing not available',
     sharingNotAvailableOnDevice: 'Sharing is not available on this device',
     failedToExportSaleDetail: 'Failed to export sale detail',
+    // Customer receipt
+    customerReceipt: 'Customer Receipt',
+    internalView: 'Internal View',
+    printReceipt: 'Print Receipt',
     // Barcode scanning
     productNotFound: 'Product Not Found',
     noProductFoundWithBarcode: 'No product found with this barcode',

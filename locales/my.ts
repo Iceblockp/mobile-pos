@@ -160,6 +160,10 @@ export const my: TranslationKeys = {
     sharingNotAvailable: 'မျှဝေခြင်းမရရှိနိုင်ပါ',
     sharingNotAvailableOnDevice: 'ဒီစက်ပေါ်မှာ မျှဝေခြင်းမရရှိနိုင်ပါ',
     failedToExportSaleDetail: 'ရောင်းချမှုအသေးစိတ်တင်ပို့ရန်မအောင်မြင်ပါ',
+    // Customer receipt
+    customerReceipt: 'ဖောက်သည်ဘောင်ချာ',
+    internalView: 'အတွင်းပိုင်းကြည့်ရှုမှု',
+    printReceipt: 'ဘောင်ချာပုံနှိပ်မည်',
     // Barcode scanning
     productNotFound: 'ကုန်ပစ္စည်းမတွေ့ပါ',
     noProductFoundWithBarcode: 'ဒီဘားကုဒ်နှင့် ကုန်ပစ္စည်းမတွေ့ပါ',
