@@ -10,6 +10,7 @@ import {
   TextInput,
   Alert,
   RefreshControl,
+  FlatList,
 } from 'react-native';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -47,7 +48,7 @@ export default function Expenses() {
     useState<ExpenseCategory | null>(null);
 
   // Date filtering state (similar to sales.tsx)
-  const [dateFilter, setDateFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('today');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showFormDatePicker, setShowFormDatePicker] = useState(false);
@@ -353,8 +354,124 @@ export default function Expenses() {
     );
   };
 
+  const renderExpenseItem = ({ item }: { item: Expense }) => (
+    <Card key={item.id} style={styles.expenseCard}>
+      <View style={styles.expenseHeader}>
+        <View>
+          <Text style={styles.expenseCategory}>
+            {
+              //@ts-ignore
+              item.category_name
+            }
+          </Text>
+          <Text style={styles.expenseDate}>{formatDate(item.date)}</Text>
+        </View>
+        <Text style={styles.expenseAmount}>{formatMMK(item.amount)}</Text>
+      </View>
+
+      {item.description ? (
+        <Text style={styles.expenseDescription}>{item.description}</Text>
+      ) : null}
+
+      <View style={styles.expenseActions}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          //@ts-ignore
+          onPress={() => handleEditExpense(item)}
+        >
+          <Edit size={16} color="#3B82F6" />
+          <Text style={styles.actionText}>{t('common.edit')}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => handleDeleteExpense(item.id)}
+        >
+          <Trash2 size={16} color="#EF4444" />
+          <Text style={[styles.actionText, { color: '#EF4444' }]}>
+            {t('common.delete')}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </Card>
+  );
+
+  const renderListHeader = () => (
+    <View style={styles.filtersContainer}>
+      {/* Horizontal Date Filter Chips */}
+      <FlatList
+        data={[
+          { key: 'all', label: t('common.all') },
+          { key: 'today', label: t('common.today') },
+          { key: 'week', label: t('common.thisWeek') },
+          { key: 'month', label: t('common.thisMonth') },
+          { key: 'custom', label: t('common.selectDate') },
+        ]}
+        keyExtractor={(item) => item.key}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            key={item.key}
+            style={[
+              styles.dateFilterChip,
+              dateFilter === item.key && styles.dateFilterChipActive,
+            ]}
+            onPress={() => {
+              if (item.key === 'custom') {
+                setShowDatePicker(true);
+              } else {
+                setDateFilter(item.key);
+              }
+            }}
+          >
+            <Text
+              style={[
+                styles.dateFilterText,
+                dateFilter === item.key && styles.dateFilterTextActive,
+              ]}
+            >
+              {item.label}
+            </Text>
+          </TouchableOpacity>
+        )}
+        style={styles.dateFilters}
+      />
+
+      {/* Custom Date Picker */}
+      {dateFilter === 'custom' && (
+        <View style={styles.customDateContainer}>
+          <TouchableOpacity
+            style={styles.customDateButton}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Calendar size={16} color="#6B7280" />
+            <Text style={styles.customDateText}>
+              {selectedDate.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+              })}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Summary */}
+      <View style={styles.summaryContainer}>
+        <Text style={styles.summaryText}>
+          {expenses.length} {t('expenses.title').toLowerCase()} •{' '}
+          {t('common.total')}:{' '}
+          {formatMMK(
+            expenses.reduce((sum, expense) => sum + expense.amount, 0)
+          )}
+        </Text>
+      </View>
+    </View>
+  );
+
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{t('expenses.title')}</Text>
         <View style={styles.headerButtons}>
@@ -376,7 +493,7 @@ export default function Expenses() {
           </TouchableOpacity>
         </View>
       </View>
-      <ScrollView
+      {/* <ScrollView
         style={styles.scrollView}
         refreshControl={
           <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
@@ -388,7 +505,7 @@ export default function Expenses() {
             layoutMeasurement.height + contentOffset.y >=
             contentSize.height - paddingToBottom
           ) {
-            // Load more data if available and not already fetching
+          
             if (hasNextPage && !isFetchingNextPage) {
               fetchNextPage();
             }
@@ -396,7 +513,7 @@ export default function Expenses() {
         }}
         scrollEventThrottle={400}
       >
-        {/* Date Filter Chips (similar to sales.tsx) */}
+       
         <View style={styles.filtersContainer}>
           <ScrollView
             horizontal
@@ -523,7 +640,7 @@ export default function Expenses() {
               </Card>
             ))}
 
-            {/* Loading indicator for fetching more data */}
+           
             {isFetchingNextPage && (
               <View style={styles.loadMoreContainer}>
                 <LoadingSpinner />
@@ -534,7 +651,47 @@ export default function Expenses() {
             )}
           </>
         )}
-      </ScrollView>
+      </ScrollView> */}
+
+      <FlatList
+        data={expenses}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderExpenseItem}
+        ListHeaderComponent={renderListHeader}
+        ListEmptyComponent={
+          isLoading ? (
+            <LoadingSpinner />
+          ) : (
+            <Card>
+              <Text style={styles.emptyText}>
+                {t('expenses.noExpensesFound')}
+              </Text>
+            </Card>
+          )
+        }
+        ListFooterComponent={
+          isFetchingNextPage ? (
+            <View style={styles.loadMoreContainer}>
+              <LoadingSpinner />
+              <Text style={styles.loadMoreText}>{t('common.loadingMore')}</Text>
+            </View>
+          ) : (
+            <View style={{ height: 300 }}></View>
+          )
+        }
+        refreshControl={
+          <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
+        }
+        onEndReachedThreshold={0.1}
+        onEndReached={() => {
+          if (hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+          }
+        }}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        style={styles.scrollView}
+      />
 
       {/* Add/Edit Expense Modal */}
       <Modal
@@ -899,7 +1056,7 @@ export default function Expenses() {
           }}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

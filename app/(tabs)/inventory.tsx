@@ -10,6 +10,7 @@ import {
   TextInput,
   RefreshControl,
   Image,
+  FlatList,
 } from 'react-native';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -84,10 +85,10 @@ export default function Inventory() {
     );
   };
 
-  const getSupplierName = (supplierId: number) => {
-    const supplier = suppliers.find((s) => s.id === supplierId);
-    return supplier ? supplier.name : t('inventory.unknown');
-  };
+  // const getSupplierName = (supplierId: number) => {
+  //   const supplier = suppliers.find((s) => s.id === supplierId);
+  //   return supplier ? supplier.name : t('inventory.unknown');
+  // };
 
   const handleBarcodeScanned = async (barcode: string) => {
     try {
@@ -147,29 +148,29 @@ export default function Inventory() {
     }
   };
 
-  const getStockStatus = (product: Product) => {
-    if (product.quantity <= 0)
-      return { text: t('inventory.outOfStock'), color: '#EF4444' };
-    if (product.quantity <= product.min_stock)
-      return { text: t('inventory.lowStock'), color: '#F59E0B' };
-    return { text: t('inventory.inStock'), color: '#10B981' };
-  };
+  // const getStockStatus = (product: Product) => {
+  //   if (product.quantity <= 0)
+  //     return { text: t('inventory.outOfStock'), color: '#EF4444' };
+  //   if (product.quantity <= product.min_stock)
+  //     return { text: t('inventory.lowStock'), color: '#F59E0B' };
+  //   return { text: t('inventory.inStock'), color: '#10B981' };
+  // };
 
   // Filter products based on search query
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.barcode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
-  });
+  // const filteredProducts = products.filter((product) => {
+  //   const matchesSearch =
+  //     product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //     product.barcode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //     product.category?.toLowerCase().includes(searchQuery.toLowerCase());
+  //   return matchesSearch;
+  // });
 
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
         return renderOverviewContent();
       case 'products':
-        return <ProductsManager />;
+        return <ProductsManager compact={true} />;
       default:
         return renderOverviewContent();
     }
@@ -178,15 +179,7 @@ export default function Inventory() {
   const renderOverviewContent = () => {
     return (
       <>
-        <ScrollView
-          style={styles.content}
-          refreshControl={
-            <RefreshControl
-              refreshing={productsRefetching}
-              onRefresh={onRefresh}
-            />
-          }
-        >
+        <View style={styles.content}>
           <View style={styles.summaryCards}>
             <Card style={styles.summaryCard}>
               <View style={styles.summaryContent}>
@@ -228,36 +221,47 @@ export default function Inventory() {
               <Text style={styles.sectionTitle}>
                 {t('inventory.lowStockAlert')}
               </Text>
-              {lowStockProducts.map((product) => (
-                <View key={product.id} style={styles.alertItem}>
-                  {product.imageUrl && (
-                    <Image
-                      source={{ uri: product.imageUrl }}
-                      style={styles.alertProductImage}
-                      resizeMode="cover"
-                    />
-                  )}
-                  <View style={styles.alertInfo}>
-                    <Text style={styles.alertProductName}>{product.name}</Text>
-                    <Text style={styles.alertProductDetails}>
-                      {t('inventory.stock')}: {product.quantity} |{' '}
-                      {t('inventory.min')}: {product.min_stock}
-                    </Text>
+
+              <FlatList
+                data={lowStockProducts}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => (
+                  <View style={styles.alertItem}>
+                    {item.imageUrl && (
+                      <Image
+                        source={{ uri: item.imageUrl }}
+                        style={styles.alertProductImage}
+                        resizeMode="cover"
+                      />
+                    )}
+                    <View style={styles.alertInfo}>
+                      <Text style={styles.alertProductName}>{item.name}</Text>
+                      <Text style={styles.alertProductDetails}>
+                        {t('inventory.stock')}: {item.quantity} |{' '}
+                        {t('inventory.min')}: {item.min_stock}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.adjustButton}
+                      onPress={() => handleStockAdjustment(item)}
+                    >
+                      <Text style={styles.adjustButtonText}>
+                        {t('inventory.adjust')}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    style={styles.adjustButton}
-                    onPress={() => handleStockAdjustment(product)}
-                  >
-                    <Text style={styles.adjustButtonText}>
-                      {t('inventory.adjust')}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
+                )}
+                ListFooterComponent={() => (
+                  <View style={{ height: 300 }}></View>
+                )}
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={5}
+              />
             </Card>
           )}
 
-          <Card>
+          {/* <Card>
             <View style={styles.searchHeader}>
               <Text style={styles.sectionTitle}>
                 {t('inventory.allProducts')}
@@ -290,52 +294,54 @@ export default function Inventory() {
               </View>
             </View>
             {filteredProducts.length > 0 ? (
-              filteredProducts.map((product) => {
-                const status = getStockStatus(product);
-                return (
-                  <View key={product.id} style={styles.productItem}>
-                    {product.imageUrl && (
-                      <Image
-                        source={{ uri: product.imageUrl }}
-                        style={styles.productImage}
-                        resizeMode="cover"
-                      />
-                    )}
-                    <View style={styles.productInfo}>
-                      <Text style={styles.productName}>{product.name}</Text>
-                      <Text style={styles.productCategory}>
-                        {product.category}
-                      </Text>
-                      {/* <Text style={styles.productSupplier}>
-                      {t('inventory.supplier')}:{' '}
-                      {getSupplierName(product.supplier_id)}
-                    </Text> */}
-                      <Text style={styles.productPrice}>
-                        {t('inventory.price')}: {formatMMK(product.price)}
-                      </Text>
-                    </View>
-
-                    <View style={styles.productStock}>
-                      <Text style={styles.stockQuantity}>
-                        {product.quantity}
-                      </Text>
-                      <Text
-                        style={[styles.stockStatus, { color: status.color }]}
-                      >
-                        {status.text}
-                      </Text>
-                      <TouchableOpacity
-                        style={styles.adjustButton}
-                        onPress={() => handleStockAdjustment(product)}
-                      >
-                        <Text style={styles.adjustButtonText}>
-                          {t('inventory.adjust')}
+              
+              <FlatList
+                data={filteredProducts}
+                keyExtractor={(item) => item.id.toString()}
+                scrollEnabled={false} // Since inside ScrollView
+                renderItem={({ item }) => {
+                  const status = getStockStatus(item);
+                  return (
+                    <View style={styles.productItem}>
+                      {item.imageUrl && (
+                        <Image
+                          source={{ uri: item.imageUrl }}
+                          style={styles.productImage}
+                          resizeMode="cover"
+                        />
+                      )}
+                      <View style={styles.productInfo}>
+                        <Text style={styles.productName}>{item.name}</Text>
+                        <Text style={styles.productCategory}>
+                          {item.category}
                         </Text>
-                      </TouchableOpacity>
+                        <Text style={styles.productPrice}>
+                          {t('inventory.price')}: {formatMMK(item.price)}
+                        </Text>
+                      </View>
+
+                      <View style={styles.productStock}>
+                        <Text style={styles.stockQuantity}>
+                          {item.quantity}
+                        </Text>
+                        <Text
+                          style={[styles.stockStatus, { color: status.color }]}
+                        >
+                          {status.text}
+                        </Text>
+                        <TouchableOpacity
+                          style={styles.adjustButton}
+                          onPress={() => handleStockAdjustment(item)}
+                        >
+                          <Text style={styles.adjustButtonText}>
+                            {t('inventory.adjust')}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
-                );
-              })
+                  );
+                }}
+              />
             ) : (
               <View style={styles.emptyState}>
                 <Package size={32} color="#9CA3AF" />
@@ -347,8 +353,8 @@ export default function Inventory() {
                 </Text>
               </View>
             )}
-          </Card>
-        </ScrollView>
+          </Card> */}
+        </View>
 
         {showAdjustment && selectedProduct && (
           <View style={styles.modal}>
@@ -456,12 +462,12 @@ export default function Inventory() {
       </View>
 
       {/* Tab Content */}
-      {activeTab === 'products' ? (
+      {/* {activeTab === 'products' ? (
         // For products tab, render full screen without additional container
         <ProductsManager compact={true} />
       ) : (
-        <View style={styles.tabContent}>{renderTabContent()}</View>
-      )}
+      )} */}
+      <View style={styles.tabContent}>{renderTabContent()}</View>
     </SafeAreaView>
   );
 }
@@ -529,7 +535,7 @@ const styles = StyleSheet.create({
   summaryCards: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 28,
+    marginBottom: 0,
   },
   summaryCard: {
     flex: 0.48,

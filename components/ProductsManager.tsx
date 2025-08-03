@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Modal,
   Image,
   RefreshControl,
+  FlatList,
 } from 'react-native';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -129,32 +130,33 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     );
   };
 
-  const filteredProducts = [...products]
-    .filter((product) => {
-      const matchesSearch =
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.barcode?.includes(searchQuery);
-      const matchesCategory =
-        selectedCategory === 'All' ||
-        (typeof selectedCategory === 'string'
-          ? product.category === selectedCategory
-          : product.category_id === selectedCategory);
-      return matchesSearch && matchesCategory;
-    })
-    .sort((a, b) => {
-      if (sortBy === 'name') {
-        return sortOrder === 'asc'
-          ? a.name.localeCompare(b.name)
-          : b.name.localeCompare(a.name);
-      } else {
-        // sort by updated_at
-        return sortOrder === 'asc'
-          ? new Date(a.updated_at || 0).getTime() -
-              new Date(b.updated_at || 0).getTime()
-          : new Date(b.updated_at || 0).getTime() -
-              new Date(a.updated_at || 0).getTime();
-      }
-    });
+  const filteredProducts = useMemo(() => {
+    return [...products]
+      .filter((product) => {
+        const matchesSearch =
+          product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          product.barcode?.includes(searchQuery);
+        const matchesCategory =
+          selectedCategory === 'All' ||
+          (typeof selectedCategory === 'string'
+            ? product.category === selectedCategory
+            : product.category_id === selectedCategory);
+        return matchesSearch && matchesCategory;
+      })
+      .sort((a, b) => {
+        if (sortBy === 'name') {
+          return sortOrder === 'asc'
+            ? a.name.localeCompare(b.name)
+            : b.name.localeCompare(a.name);
+        } else {
+          return sortOrder === 'asc'
+            ? new Date(a.updated_at || 0).getTime() -
+                new Date(b.updated_at || 0).getTime()
+            : new Date(b.updated_at || 0).getTime() -
+                new Date(a.updated_at || 0).getTime();
+        }
+      });
+  }, [products, searchQuery, selectedCategory, sortBy, sortOrder]);
 
   // Function to toggle sort order or change sort field
   const handleSort = (field: 'name' | 'updated_at') => {
@@ -535,10 +537,10 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     );
   };
 
-  const getSupplierName = (supplierId: number) => {
-    const supplier = suppliers.find((s) => s.id === supplierId);
-    return supplier ? supplier.name : t('products.unknown');
-  };
+  // const getSupplierName = (supplierId: number) => {
+  //   const supplier = suppliers.find((s) => s.id === supplierId);
+  //   return supplier ? supplier.name : t('products.unknown');
+  // };
 
   // Export products data
   const exportProducts = async () => {
@@ -550,7 +552,6 @@ export default function Products({ compact = false }: ProductsManagerProps) {
         suppliers: suppliers,
         products: products.map((product) => ({
           ...product,
-          // Remove id to avoid conflicts during import
           id: undefined,
           created_at: undefined,
           updated_at: undefined,
@@ -641,7 +642,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
             });
           }
         } catch (error) {
-          console.log('Category import error:', error);
+          // console.log('Category import error:', error);
         }
       }
 
@@ -696,7 +697,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
 
           importedCount++;
         } catch (error) {
-          console.log('Product import error:', error);
+          // console.log('Product import error:', error);
           skippedCount++;
         }
       }
@@ -716,6 +717,81 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   if (isLoading && !isRefreshing) {
     return <LoadingSpinner />;
   }
+
+  const ProductCard = React.memo(({ product }: { product: Product }) => {
+    return (
+      <Card key={product.id} style={styles.productCard}>
+        <View style={styles.productHeader}>
+          {product.imageUrl && (
+            <Image
+              source={{ uri: product.imageUrl }}
+              style={styles.productImage}
+              resizeMode="cover"
+            />
+          )}
+
+          <View style={styles.productInfo}>
+            <Text style={styles.productName}>{product.name}</Text>
+            <Text style={styles.productCategory}>{product.category}</Text>
+            {/* <Text style={styles.productSupplier}>
+              {t('products.supplier')}: {getSupplierName(product.supplier_id)}
+            </Text> */}
+          </View>
+
+          <View style={styles.productActions}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => handleEdit(product)}
+            >
+              <Edit size={18} color="#6B7280" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => handleDelete(product)}
+            >
+              <Trash2 size={18} color="#EF4444" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.productDetails}>
+          <View style={styles.productDetailItem}>
+            <Text style={styles.productDetailLabel}>{t('products.price')}</Text>
+            <Text style={styles.productDetailValue}>
+              {formatMMK(product.price)}
+            </Text>
+          </View>
+          <View style={styles.productDetailItem}>
+            <Text style={styles.productDetailLabel}>{t('products.stock')}</Text>
+            <Text
+              style={[
+                styles.productDetailValue,
+                product.quantity <= product.min_stock && styles.lowStockText,
+              ]}
+            >
+              {product.quantity}
+            </Text>
+          </View>
+          <View style={styles.productDetailItem}>
+            <Text style={styles.productDetailLabel}>
+              {t('products.profit')}
+            </Text>
+            <Text style={[styles.productDetailValue, styles.profitText]}>
+              {formatMMK(product.price - product.cost)}
+            </Text>
+          </View>
+        </View>
+
+        {product.barcode && (
+          <View style={styles.barcodeDisplay}>
+            <Text style={styles.barcodeLabel}>
+              {t('products.barcodeLabel')} {product.barcode}
+            </Text>
+          </View>
+        )}
+      </Card>
+    );
+  });
 
   return (
     <View style={compact ? styles.compactContainer : styles.container}>
@@ -1222,95 +1298,11 @@ export default function Products({ compact = false }: ProductsManagerProps) {
         )}
       </View>
 
-      <ScrollView
-        style={styles.productsList}
-        contentContainerStyle={styles.productsListContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={productsRefetching}
-            onRefresh={onRefresh}
-          />
-        }
-        showsVerticalScrollIndicator={true}
-      >
-        {filteredProducts.map((product) => (
-          <Card key={product.id} style={styles.productCard}>
-            <View style={styles.productHeader}>
-              {product.imageUrl && (
-                <Image
-                  source={{ uri: product.imageUrl }}
-                  style={styles.productImage}
-                  resizeMode="cover"
-                />
-              )}
-              <View style={styles.productInfo}>
-                <Text style={styles.productName}>{product.name}</Text>
-                <Text style={styles.productCategory}>{product.category}</Text>
-                {/* <Text style={styles.productSupplier}>
-                  {t('products.supplier')}:{' '}
-                  {getSupplierName(product.supplier_id)}
-                </Text> */}
-              </View>
-              <View style={styles.productActions}>
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => handleEdit(product)}
-                >
-                  <Edit size={18} color="#6B7280" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => handleDelete(product)}
-                >
-                  <Trash2 size={18} color="#EF4444" />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.productDetails}>
-              <View style={styles.productDetailItem}>
-                <Text style={styles.productDetailLabel}>
-                  {t('products.price')}
-                </Text>
-                <Text style={styles.productDetailValue}>
-                  {formatMMK(product.price)}
-                </Text>
-              </View>
-              <View style={styles.productDetailItem}>
-                <Text style={styles.productDetailLabel}>
-                  {t('products.stock')}
-                </Text>
-                <Text
-                  style={[
-                    styles.productDetailValue,
-                    product.quantity <= product.min_stock &&
-                      styles.lowStockText,
-                  ]}
-                >
-                  {product.quantity}
-                </Text>
-              </View>
-              <View style={styles.productDetailItem}>
-                <Text style={styles.productDetailLabel}>
-                  {t('products.profit')}
-                </Text>
-                <Text style={[styles.productDetailValue, styles.profitText]}>
-                  {formatMMK(product.price - product.cost)}
-                </Text>
-              </View>
-            </View>
-
-            {product.barcode && (
-              <View style={styles.barcodeDisplay}>
-                <Text style={styles.barcodeLabel}>
-                  {t('products.barcodeLabel')} {product.barcode}
-                </Text>
-              </View>
-            )}
-          </Card>
-        ))}
-
-        {filteredProducts.length === 0 && (
+      <FlatList
+        data={filteredProducts}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => <ProductCard product={item} />}
+        ListEmptyComponent={() => (
           <View style={styles.emptyState}>
             <Package size={48} color="#9CA3AF" />
             <Text style={styles.emptyStateText}>
@@ -1323,7 +1315,24 @@ export default function Products({ compact = false }: ProductsManagerProps) {
             </Text>
           </View>
         )}
-      </ScrollView>
+        contentContainerStyle={
+          filteredProducts.length === 0
+            ? styles.productsListEmptyContent
+            : styles.productsListContent
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={productsRefetching}
+            onRefresh={onRefresh}
+          />
+        }
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={true}
+        showsVerticalScrollIndicator={true}
+        style={styles.productsList}
+      />
 
       {showSearchScanner && (
         <BarcodeScanner
@@ -2169,6 +2178,12 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     marginTop: 8,
     textAlign: 'center',
+  },
+  productsListEmptyContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
   },
   modalContainer: {
     flex: 1,

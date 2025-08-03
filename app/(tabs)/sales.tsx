@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   PixelRatio,
   Image,
+  FlatList,
 } from 'react-native';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -237,14 +238,18 @@ export default function Sales() {
     setShowPaymentModal(true);
   };
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.barcode?.includes(searchQuery);
-    const matchesCategory =
-      selectedCategory === 'All' || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      const matchesSearch =
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.barcode?.includes(searchQuery);
+
+      const matchesCategory =
+        selectedCategory === 'All' || product.category === selectedCategory;
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, searchQuery, selectedCategory]);
 
   const renderPaymentMethodModal = () => {
     return (
@@ -596,7 +601,7 @@ export default function Sales() {
             </View>
 
             {/* Products List */}
-            <ScrollView
+            {/* <ScrollView
               style={styles.dialogProductsList}
               showsVerticalScrollIndicator={false}
             >
@@ -678,7 +683,92 @@ export default function Sales() {
                   </Text>
                 </View>
               )}
-            </ScrollView>
+            </ScrollView> */}
+            <FlatList
+              data={filteredProducts}
+              keyExtractor={(item) => item.id.toString()}
+              style={styles.dialogProductsList}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item: product }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.dialogProductItem,
+                    product.quantity <= 0 && styles.dialogProductItemDisabled,
+                  ]}
+                  onPress={() => addToCart(product)}
+                  disabled={product.quantity <= 0}
+                >
+                  {product.imageUrl && (
+                    <Image
+                      source={{ uri: product.imageUrl }}
+                      style={styles.dialogProductImage}
+                      resizeMode="cover"
+                    />
+                  )}
+                  <View style={styles.dialogProductInfo}>
+                    <Text
+                      style={[
+                        styles.dialogProductName,
+                        product.quantity <= 0 &&
+                          styles.dialogProductNameDisabled,
+                      ]}
+                    >
+                      {product.name}
+                    </Text>
+                    <Text style={styles.dialogProductCategory}>
+                      {product.category}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.dialogProductStock,
+                        product.quantity <= 0
+                          ? styles.outOfStock
+                          : product.quantity <= product.min_stock
+                          ? styles.lowStock
+                          : styles.inStock,
+                      ]}
+                    >
+                      {t('sales.stock')}: {product.quantity}
+                      {product.quantity <= product.min_stock &&
+                        product.quantity > 0 &&
+                        ` ${t('sales.low')}`}
+                      {product.quantity <= 0 && ` ${t('sales.out')}`}
+                    </Text>
+                  </View>
+                  <View style={styles.dialogProductPriceContainer}>
+                    <Text
+                      style={[
+                        styles.dialogProductPrice,
+                        product.quantity <= 0 &&
+                          styles.dialogProductPriceDisabled,
+                      ]}
+                    >
+                      {formatMMK(product.price)}
+                    </Text>
+                    {product.quantity > 0 && (
+                      <View style={styles.addToCartIndicator}>
+                        <Plus size={16} color="#10B981" />
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyProductsState}>
+                  <Text style={styles.emptyProductsText}>
+                    {t('sales.noProductsFound')}
+                  </Text>
+                  <Text style={styles.emptyProductsSubtext}>
+                    {searchQuery || selectedCategory !== 'All'
+                      ? t('sales.adjustSearch')
+                      : t('sales.noProductsAvailable')}
+                  </Text>
+                </View>
+              }
+              initialNumToRender={10}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+            />
           </View>
         </SafeAreaView>
       </Modal>
@@ -702,7 +792,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { showToast } = useToast();
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
-  const [dateFilter, setDateFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('today');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedSale, setSelectedSale] = useState<any>(null);
@@ -1733,7 +1823,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </View>
         </View>
 
-        {salesLoading ? (
+        {/* {salesLoading ? (
           <LoadingSpinner />
         ) : (
           <ScrollView
@@ -1781,7 +1871,6 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               </TouchableOpacity>
             ))}
 
-            {/* Loading indicator for pagination */}
             {isFetchingNextPage && (
               <View style={styles.loadingMore}>
                 <ActivityIndicator size="small" color="#059669" />
@@ -1805,7 +1894,65 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               </View>
             )}
           </ScrollView>
-        )}
+        )} */}
+        <FlatList
+          data={filteredSales}
+          keyExtractor={(item) => item.id.toString()}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            isFetchingNextPage ? (
+              <View style={styles.loadingMore}>
+                <ActivityIndicator size="small" color="#059669" />
+                <Text style={styles.loadingMoreText}>
+                  {t('common.loadingMore')}
+                </Text>
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={() => (
+            <View style={styles.emptyState}>
+              <History size={48} color="#9CA3AF" />
+              <Text style={styles.emptyStateText}>
+                {t('sales.noSalesFound')}
+              </Text>
+              <Text style={styles.emptyStateSubtext}>
+                {searchQuery || dateFilter !== 'all'
+                  ? t('sales.tryAdjustingFilters')
+                  : t('sales.noSalesMadeYet')}
+              </Text>
+            </View>
+          )}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          renderItem={({ item: sale }) => (
+            <TouchableOpacity onPress={() => handleSalePress(sale)}>
+              <Card style={styles.saleCard}>
+                <View style={styles.saleHeader}>
+                  <View style={styles.saleInfo}>
+                    <Text style={styles.saleId}>
+                      {t('sales.saleNumber')} {sale.id}
+                    </Text>
+                    <Text style={styles.saleDate}>
+                      {formatDate(sale.created_at)}
+                    </Text>
+                    <Text style={styles.salePayment}>
+                      {t('sales.payment')} {sale.payment_method.toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={styles.saleAmountContainer}>
+                    <Text style={styles.saleTotal}>
+                      {formatMMK(sale.total)}
+                    </Text>
+                    <Eye size={16} color="#6B7280" />
+                  </View>
+                </View>
+              </Card>
+            </TouchableOpacity>
+          )}
+          contentContainerStyle={{ paddingBottom: 20 }}
+        />
 
         {/* Date Picker */}
         {showDatePicker && (

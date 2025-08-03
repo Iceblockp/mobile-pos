@@ -19,23 +19,12 @@ export default function TabLayout() {
   const { isLicenseValid, loading } = useLicense();
   const router = useRouter();
   const { t } = useTranslation();
-  // const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     if (!loading && !isLicenseValid()) {
-      // Redirect to the root page if license is not valid
       router.replace('/');
     }
   }, [loading, isLicenseValid]);
-
-  // Handle splash screen animation finish
-  // const handleSplashFinish = () => {
-  //   setShowSplash(false);
-  // };
-
-  // if (showSplash) {
-  //   return <SplashScreen onAnimationFinish={handleSplashFinish} />;
-  // }
 
   return (
     <Tabs
@@ -43,6 +32,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarActiveTintColor: '#059669',
         tabBarInactiveTintColor: '#6B7280',
+        lazy: true,
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,

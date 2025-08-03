@@ -21,7 +21,6 @@ export const useLicense = () => {
   );
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
-  console.log('first', licenseStatus);
 
   useEffect(() => {
     initializeLicense();
