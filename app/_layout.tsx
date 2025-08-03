@@ -16,6 +16,10 @@ import { LocalizationProvider } from '@/context/LocalizationContext';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
+import { enableScreens, enableFreeze } from 'react-native-screens';
+
+enableScreens(); // Enables native screens (required)
+enableFreeze(); // Enables auto freeze on blur
 
 SplashScreen.preventAutoHideAsync();
 

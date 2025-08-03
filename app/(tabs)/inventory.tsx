@@ -461,13 +461,23 @@ export default function Inventory() {
         </TouchableOpacity>
       </View>
 
-      {/* Tab Content */}
-      {/* {activeTab === 'products' ? (
-        // For products tab, render full screen without additional container
+      <View
+        style={{
+          display: activeTab == 'products' ? 'contents' : 'none',
+        }}
+      >
         <ProductsManager compact={true} />
-      ) : (
-      )} */}
-      <View style={styles.tabContent}>{renderTabContent()}</View>
+      </View>
+      <View
+        style={[
+          styles.tabContent,
+          {
+            display: activeTab == 'overview' ? 'contents' : 'none',
+          },
+        ]}
+      >
+        {renderOverviewContent()}
+      </View>
     </SafeAreaView>
   );
 }

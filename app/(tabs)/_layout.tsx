@@ -1,4 +1,5 @@
 import { router, Tabs, useRouter } from 'expo-router';
+import { enableFreeze } from 'react-native-screens';
 import {
   Chrome as Home,
   Package,
@@ -61,6 +62,7 @@ export default function TabLayout() {
         options={{
           title: t('navigation.dashboard'),
           tabBarIcon: ({ size, color }) => <Home size={size} color={color} />,
+          freezeOnBlur: true,
         }}
       />
       <Tabs.Screen
@@ -70,6 +72,7 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <ShoppingCart size={size} color={color} />
           ),
+          freezeOnBlur: true,
         }}
       />
       <Tabs.Screen
@@ -79,6 +82,7 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <Package size={size} color={color} />
           ),
+          freezeOnBlur: true,
         }}
       />
       <Tabs.Screen
@@ -88,6 +92,7 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <BarChart3 size={size} color={color} />
           ),
+          freezeOnBlur: true,
         }}
       />
       <Tabs.Screen
@@ -97,6 +102,7 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <HelpCircle size={size} color={color} />
           ),
+          freezeOnBlur: true,
         }}
       />
     </Tabs>
