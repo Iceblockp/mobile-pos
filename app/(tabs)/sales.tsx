@@ -795,6 +795,9 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [dateFilter, setDateFilter] = useState('today');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [showMonthYearPicker, setShowMonthYearPicker] = useState(false);
   const [selectedSale, setSelectedSale] = useState<any>(null);
   const [showSaleDetail, setShowSaleDetail] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -860,19 +863,19 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       case 'today':
         filename += `_${formatDateForFilename(now)}`;
         break;
-      case 'week':
-        const weekStart = new Date(now);
-        weekStart.setDate(now.getDate() - 7);
-        filename += `_${formatDateForFilename(
-          weekStart
-        )}_to_${formatDateForFilename(now)}`;
-        break;
       case 'month':
-        const monthStart = new Date(now);
-        monthStart.setMonth(now.getMonth() - 1);
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
         filename += `_${formatDateForFilename(
           monthStart
-        )}_to_${formatDateForFilename(now)}`;
+        )}_to_${formatDateForFilename(monthEnd)}`;
+        break;
+      case 'selectedMonth':
+        const selectedMonthStart = new Date(selectedYear, selectedMonth, 1);
+        const selectedMonthEnd = new Date(selectedYear, selectedMonth + 1, 0);
+        filename += `_${formatDateForFilename(
+          selectedMonthStart
+        )}_to_${formatDateForFilename(selectedMonthEnd)}`;
         break;
       case 'custom':
         filename += `_${formatDateForFilename(selectedDate)}`;
@@ -900,14 +903,18 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         startDate.setHours(0, 0, 0, 0);
         endDate.setHours(23, 59, 59, 999);
         break;
-      case 'week':
-        startDate.setDate(now.getDate() - 7);
+      case 'month':
+        // Current month from 1st to last day
+        startDate.setDate(1);
         startDate.setHours(0, 0, 0, 0);
+        endDate.setMonth(now.getMonth() + 1, 0); // Last day of current month
         endDate.setHours(23, 59, 59, 999);
         break;
-      case 'month':
-        startDate.setMonth(now.getMonth() - 1);
+      case 'selectedMonth':
+        // Selected month and year
+        startDate.setFullYear(selectedYear, selectedMonth, 1);
         startDate.setHours(0, 0, 0, 0);
+        endDate.setFullYear(selectedYear, selectedMonth + 1, 0); // Last day of selected month
         endDate.setHours(23, 59, 59, 999);
         break;
       case 'custom':
@@ -976,7 +983,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   // Reset allSaleItems when filters change
   useEffect(() => {
     setAllSaleItems([]);
-  }, [dateFilter, searchQuery, selectedDate]);
+  }, [dateFilter, searchQuery, selectedDate, selectedMonth, selectedYear]);
 
   const onDateChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === 'ios');
@@ -1765,8 +1772,8 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             {[
               { key: 'all', label: t('sales.all') },
               { key: 'today', label: t('sales.today') },
-              { key: 'week', label: t('sales.thisWeek') },
               { key: 'month', label: t('sales.thisMonth') },
+              { key: 'selectedMonth', label: t('sales.selectMonth') },
               { key: 'custom', label: t('sales.selectDate') },
             ].map((filter) => (
               <TouchableOpacity
@@ -1778,6 +1785,8 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 onPress={() => {
                   if (filter.key === 'custom') {
                     setShowDatePicker(true);
+                  } else if (filter.key === 'selectedMonth') {
+                    setShowMonthYearPicker(true);
                   } else {
                     setDateFilter(filter.key);
                   }
@@ -1808,6 +1817,26 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     month: 'short',
                     day: 'numeric',
                   })}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {dateFilter === 'selectedMonth' && (
+            <View style={styles.customDateContainer}>
+              <TouchableOpacity
+                style={styles.customDateButton}
+                onPress={() => setShowMonthYearPicker(true)}
+              >
+                <Calendar size={16} color="#6B7280" />
+                <Text style={styles.customDateText}>
+                  {new Date(selectedYear, selectedMonth).toLocaleDateString(
+                    'en-US',
+                    {
+                      month: 'long',
+                      year: 'numeric',
+                    }
+                  )}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1964,6 +1993,120 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             maximumDate={new Date()}
           />
         )}
+
+        {/* Month/Year Picker Modal */}
+        <Modal
+          visible={showMonthYearPicker}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowMonthYearPicker(false)}
+        >
+          <View style={[styles.monthPickerOverlay]}>
+            <View style={styles.monthPickerContainer}>
+              <View style={styles.monthPickerHeader}>
+                <Text style={styles.monthPickerTitle}>
+                  {t('sales.selectMonthYear')}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowMonthYearPicker(false)}
+                  style={styles.monthPickerCloseButton}
+                >
+                  <X size={20} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Year Selector */}
+
+              {/* Month Selector */}
+              <View style={styles.monthSelectorContainer}>
+                <Text style={styles.yearSelectorLabel}>{t('sales.year')}</Text>
+                <View style={{ height: 40 }}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={[styles.yearSelector]}
+                  >
+                    {Array.from(
+                      { length: 5 },
+                      (_, i) => new Date().getFullYear() - i
+                    ).map((year) => (
+                      <View>
+                        <TouchableOpacity
+                          key={year}
+                          style={[
+                            styles.yearOption,
+                            selectedYear === year && styles.yearOptionActive,
+                          ]}
+                          onPress={() => setSelectedYear(year)}
+                        >
+                          <Text
+                            style={[
+                              styles.yearOptionText,
+                              selectedYear === year &&
+                                styles.yearOptionTextActive,
+                            ]}
+                          >
+                            {year}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                <Text style={[styles.monthSelectorLabel]}>
+                  {t('sales.month')}
+                </Text>
+                <View style={styles.monthGrid}>
+                  {Array.from({ length: 12 }, (_, i) => i).map((month) => (
+                    <TouchableOpacity
+                      key={month}
+                      style={[
+                        styles.monthOption,
+                        selectedMonth === month && styles.monthOptionActive,
+                      ]}
+                      onPress={() => setSelectedMonth(month)}
+                    >
+                      <Text
+                        style={[
+                          styles.monthOptionText,
+                          selectedMonth === month &&
+                            styles.monthOptionTextActive,
+                        ]}
+                      >
+                        {new Date(2024, month).toLocaleDateString('en-US', {
+                          month: 'short',
+                        })}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.monthPickerActions}>
+                <TouchableOpacity
+                  style={styles.monthPickerCancelButton}
+                  onPress={() => setShowMonthYearPicker(false)}
+                >
+                  <Text style={styles.monthPickerCancelText}>
+                    {t('common.cancel')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.monthPickerConfirmButton}
+                  onPress={() => {
+                    setDateFilter('selectedMonth');
+                    setShowMonthYearPicker(false);
+                  }}
+                >
+                  <Text style={styles.monthPickerConfirmText}>
+                    {t('common.confirm')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
         {/* Sale Detail Modal */}
         <Modal
@@ -3053,5 +3196,129 @@ const styles = StyleSheet.create({
   deleteButton: {
     marginRight: 15,
     padding: 8,
+  },
+  // Month/Year Picker Styles
+  monthPickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  monthPickerContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 24,
+    margin: 20,
+    minWidth: 320,
+    maxWidth: 400,
+  },
+  monthPickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  monthPickerTitle: {
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+  },
+  monthPickerCloseButton: {
+    padding: 4,
+  },
+  yearSelectorContainer: {
+    marginBottom: 20,
+  },
+  yearSelectorLabel: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  yearSelector: {
+    flexDirection: 'row',
+  },
+  yearOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    marginRight: 8,
+  },
+  yearOptionActive: {
+    backgroundColor: '#10B981',
+  },
+  yearOptionText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  yearOptionTextActive: {
+    color: '#FFFFFF',
+  },
+  monthSelectorContainer: {
+    marginBottom: 20,
+  },
+  monthSelectorLabel: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  monthGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  monthOption: {
+    width: '30%',
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  monthOptionActive: {
+    backgroundColor: '#10B981',
+  },
+  monthOptionText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  monthOptionTextActive: {
+    color: '#FFFFFF',
+  },
+  monthPickerActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+  },
+  monthPickerCancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    marginRight: 8,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  monthPickerCancelText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  monthPickerConfirmButton: {
+    flex: 1,
+    paddingVertical: 12,
+    marginLeft: 8,
+    borderRadius: 8,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+  },
+  monthPickerConfirmText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#FFFFFF',
   },
 });
