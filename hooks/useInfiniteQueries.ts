@@ -80,6 +80,46 @@ export const useInfiniteExpenses = (filter: string, selectedDate?: Date) => {
   });
 };
 
+// Infinite query for expenses with date range
+export const useInfiniteExpensesByDateRange = (
+  startDate: Date,
+  endDate: Date
+) => {
+  const { db, isReady } = useDatabase();
+
+  return useInfiniteQuery({
+    queryKey: [
+      ...queryKeys.expenses.all,
+      'infinite',
+      'dateRange',
+      startDate.toISOString(),
+      endDate.toISOString(),
+    ],
+    queryFn: async ({ pageParam = 1 }) => {
+      if (!db) return { data: [], hasMore: false };
+
+      const PAGE_SIZE = 20;
+      const expenses = await db.getExpensesByDateRangePaginated(
+        startDate,
+        endDate,
+        pageParam,
+        PAGE_SIZE
+      );
+
+      return {
+        data: expenses,
+        hasMore: expenses.length === PAGE_SIZE,
+        nextPage: expenses.length === PAGE_SIZE ? pageParam + 1 : undefined,
+      };
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+    enabled: isReady && !!db,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 10 * 60 * 1000,
+  });
+};
+
 // Infinite query for sales history (all sales)
 export const useInfiniteSales = () => {
   const { db, isReady } = useDatabase();

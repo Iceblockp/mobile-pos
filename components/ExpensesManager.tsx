@@ -15,7 +15,10 @@ import {
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useExpenseCategories, useExpenseMutations } from '@/hooks/useQueries';
-import { useInfiniteExpenses } from '@/hooks/useInfiniteQueries';
+import {
+  useInfiniteExpenses,
+  useInfiniteExpensesByDateRange,
+} from '@/hooks/useInfiniteQueries';
 import { Expense, ExpenseCategory } from '@/services/database';
 import {
   Plus,
@@ -52,6 +55,9 @@ export default function Expenses() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showFormDatePicker, setShowFormDatePicker] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [showMonthYearPicker, setShowMonthYearPicker] = useState(false);
 
   // Form state
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -63,33 +69,7 @@ export default function Expenses() {
   // Category selector state
   const [showCategorySelector, setShowCategorySelector] = useState(false);
 
-  // Use infinite query for optimized data fetching with pagination
-  const {
-    data,
-    isLoading,
-    isRefetching,
-    refetch: refetchExpenses,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteExpenses(dateFilter, selectedDate);
-
-  // Flatten the paginated data
-  const expenses = data?.pages.flatMap((page) => page.data) || [];
-
-  const { data: categories = [], isLoading: categoriesLoading } =
-    useExpenseCategories();
-
-  const {
-    addExpense,
-    updateExpense,
-    deleteExpense,
-    addExpenseCategory,
-    updateExpenseCategory,
-    deleteExpenseCategory,
-  } = useExpenseMutations();
-
-  // Add the date range calculation function (from sales.tsx)
+  // Add the date range calculation function (updated like sales.tsx)
   const calculateDateRange = (
     dateFilterType: string,
     selectedDate: Date
@@ -103,14 +83,18 @@ export default function Expenses() {
         startDate.setHours(0, 0, 0, 0);
         endDate.setHours(23, 59, 59, 999);
         break;
-      case 'week':
-        startDate.setDate(now.getDate() - 7);
+      case 'month':
+        // Current month from 1st to last day
+        startDate.setDate(1);
         startDate.setHours(0, 0, 0, 0);
+        endDate.setMonth(now.getMonth() + 1, 0); // Last day of current month
         endDate.setHours(23, 59, 59, 999);
         break;
-      case 'month':
-        startDate.setMonth(now.getMonth() - 1);
+      case 'selectedMonth':
+        // Selected month and year
+        startDate.setFullYear(selectedYear, selectedMonth, 1);
         startDate.setHours(0, 0, 0, 0);
+        endDate.setFullYear(selectedYear, selectedMonth + 1, 0); // Last day of selected month
         endDate.setHours(23, 59, 59, 999);
         break;
       case 'custom':
@@ -129,6 +113,37 @@ export default function Expenses() {
 
     return [startDate, endDate];
   };
+
+  // Calculate date range for React Query (like sales.tsx)
+  const [startDate, endDate] = calculateDateRange(dateFilter, selectedDate);
+
+  // Use infinite query for optimized data fetching with pagination
+  const {
+    data,
+    isLoading,
+    isRefetching,
+    refetch: refetchExpenses,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = dateFilter === 'all'
+    ? useInfiniteExpenses(dateFilter, selectedDate)
+    : useInfiniteExpensesByDateRange(startDate, endDate);
+
+  // Flatten the paginated data
+  const expenses = data?.pages.flatMap((page) => page.data) || [];
+
+  const { data: categories = [], isLoading: categoriesLoading } =
+    useExpenseCategories();
+
+  const {
+    addExpense,
+    updateExpense,
+    deleteExpense,
+    addExpenseCategory,
+    updateExpenseCategory,
+    deleteExpenseCategory,
+  } = useExpenseMutations();
 
   const onRefresh = () => {
     refetchExpenses();
@@ -403,8 +418,8 @@ export default function Expenses() {
         data={[
           { key: 'all', label: t('common.all') },
           { key: 'today', label: t('common.today') },
-          { key: 'week', label: t('common.thisWeek') },
           { key: 'month', label: t('common.thisMonth') },
+          { key: 'selectedMonth', label: t('sales.selectMonth') },
           { key: 'custom', label: t('common.selectDate') },
         ]}
         keyExtractor={(item) => item.key}
@@ -420,6 +435,8 @@ export default function Expenses() {
             onPress={() => {
               if (item.key === 'custom') {
                 setShowDatePicker(true);
+              } else if (item.key === 'selectedMonth') {
+                setShowMonthYearPicker(true);
               } else {
                 setDateFilter(item.key);
               }
@@ -452,6 +469,27 @@ export default function Expenses() {
                 month: 'short',
                 day: 'numeric',
               })}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Selected Month Display */}
+      {dateFilter === 'selectedMonth' && (
+        <View style={styles.customDateContainer}>
+          <TouchableOpacity
+            style={styles.customDateButton}
+            onPress={() => setShowMonthYearPicker(true)}
+          >
+            <Calendar size={16} color="#6B7280" />
+            <Text style={styles.customDateText}>
+              {new Date(selectedYear, selectedMonth).toLocaleDateString(
+                'en-US',
+                {
+                  month: 'long',
+                  year: 'numeric',
+                }
+              )}
             </Text>
           </TouchableOpacity>
         </View>
@@ -493,165 +531,6 @@ export default function Expenses() {
           </TouchableOpacity>
         </View>
       </View>
-      {/* <ScrollView
-        style={styles.scrollView}
-        refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
-        }
-        onScroll={({ nativeEvent }) => {
-          const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
-          const paddingToBottom = 20;
-          if (
-            layoutMeasurement.height + contentOffset.y >=
-            contentSize.height - paddingToBottom
-          ) {
-          
-            if (hasNextPage && !isFetchingNextPage) {
-              fetchNextPage();
-            }
-          }
-        }}
-        scrollEventThrottle={400}
-      >
-       
-        <View style={styles.filtersContainer}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.dateFilters}
-          >
-            {[
-              { key: 'all', label: t('common.all') },
-              { key: 'today', label: t('common.today') },
-              { key: 'week', label: t('common.thisWeek') },
-              { key: 'month', label: t('common.thisMonth') },
-              { key: 'custom', label: t('common.selectDate') },
-            ].map((filter) => (
-              <TouchableOpacity
-                key={filter.key}
-                style={[
-                  styles.dateFilterChip,
-                  dateFilter === filter.key && styles.dateFilterChipActive,
-                ]}
-                onPress={() => {
-                  if (filter.key === 'custom') {
-                    setShowDatePicker(true);
-                  } else {
-                    setDateFilter(filter.key);
-                  }
-                }}
-              >
-                <Text
-                  style={[
-                    styles.dateFilterText,
-                    dateFilter === filter.key && styles.dateFilterTextActive,
-                  ]}
-                >
-                  {filter.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {dateFilter === 'custom' && (
-            <View style={styles.customDateContainer}>
-              <TouchableOpacity
-                style={styles.customDateButton}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <Calendar size={16} color="#6B7280" />
-                <Text style={styles.customDateText}>
-                  {selectedDate.toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          <View style={styles.summaryContainer}>
-            <Text style={styles.summaryText}>
-              {expenses.length} {t('expenses.title').toLowerCase()} •{' '}
-              {t('common.total')}:{' '}
-              {formatMMK(
-                expenses.reduce((sum, expense) => sum + expense.amount, 0)
-              )}
-            </Text>
-          </View>
-        </View>
-
-        {isLoading && expenses.length === 0 ? (
-          <LoadingSpinner />
-        ) : expenses.length === 0 ? (
-          <Card>
-            <Text style={styles.emptyText}>
-              {t('expenses.noExpensesFound')}
-            </Text>
-          </Card>
-        ) : (
-          <>
-            {expenses.map((expense) => (
-              <Card key={expense.id} style={styles.expenseCard}>
-                <View style={styles.expenseHeader}>
-                  <View>
-                    <Text style={styles.expenseCategory}>
-                      {
-                        //@ts-ignore
-                        expense.category_name
-                      }
-                    </Text>
-                    <Text style={styles.expenseDate}>
-                      {formatDate(expense.date)}
-                    </Text>
-                  </View>
-                  <Text style={styles.expenseAmount}>
-                    {formatMMK(expense.amount)}
-                  </Text>
-                </View>
-
-                {expense.description ? (
-                  <Text style={styles.expenseDescription}>
-                    {expense.description}
-                  </Text>
-                ) : null}
-
-                <View style={styles.expenseActions}>
-                  <TouchableOpacity
-                    style={styles.actionButton}
-                    //@ts-ignore
-                    onPress={() => handleEditExpense(expense)}
-                  >
-                    <Edit size={16} color="#3B82F6" />
-                    <Text style={styles.actionText}>{t('common.edit')}</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() => handleDeleteExpense(expense.id)}
-                  >
-                    <Trash2 size={16} color="#EF4444" />
-                    <Text style={[styles.actionText, { color: '#EF4444' }]}>
-                      {t('common.delete')}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </Card>
-            ))}
-
-           
-            {isFetchingNextPage && (
-              <View style={styles.loadMoreContainer}>
-                <LoadingSpinner />
-                <Text style={styles.loadMoreText}>
-                  {t('common.loadingMore')}
-                </Text>
-              </View>
-            )}
-          </>
-        )}
-      </ScrollView> */}
 
       <FlatList
         data={expenses}
@@ -1055,6 +934,144 @@ export default function Expenses() {
             }
           }}
         />
+      )}
+
+      {/* Month/Year Picker Overlay */}
+      {showMonthYearPicker && (
+        <View style={styles.monthPickerOverlay}>
+          <View style={styles.monthPickerContainer}>
+            <View style={styles.monthPickerHeader}>
+              <Text style={styles.monthPickerTitle}>
+                {t('sales.selectMonthYear')}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowMonthYearPicker(false)}
+                style={styles.monthPickerCloseButton}
+              >
+                <X size={20} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Year Selector */}
+            {/* <View style={styles.yearSelectorContainer}>
+              <Text style={styles.yearSelectorLabel}>{t('sales.year')}</Text>
+              <View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={[
+                    styles.yearSelector,
+                    { height: 40, backgroundColor: '#000' },
+                  ]}
+                >
+                  {Array.from(
+                    { length: 5 },
+                    (_, i) => new Date().getFullYear() - i
+                  ).map((year) => (
+                    <TouchableOpacity
+                      key={year}
+                      style={[
+                        styles.yearOption,
+                        selectedYear === year && styles.yearOptionActive,
+                      ]}
+                      onPress={() => setSelectedYear(year)}
+                    >
+                      <Text
+                        style={[
+                          styles.yearOptionText,
+                          selectedYear === year && styles.yearOptionTextActive,
+                        ]}
+                      >
+                        {year}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View> */}
+
+            {/* Month Selector */}
+            <View style={[styles.monthSelectorContainer, { maxHeight: 300 }]}>
+              <Text style={styles.yearSelectorLabel}>{t('sales.year')}</Text>
+              <View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={[styles.yearSelector, { height: 40 }]}
+                >
+                  {Array.from(
+                    { length: 5 },
+                    (_, i) => new Date().getFullYear() - i
+                  ).map((year) => (
+                    <TouchableOpacity
+                      key={year}
+                      style={[
+                        styles.yearOption,
+                        selectedYear === year && styles.yearOptionActive,
+                      ]}
+                      onPress={() => setSelectedYear(year)}
+                    >
+                      <Text
+                        style={[
+                          styles.yearOptionText,
+                          selectedYear === year && styles.yearOptionTextActive,
+                        ]}
+                      >
+                        {year}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+              <Text style={styles.monthSelectorLabel}>{t('sales.month')}</Text>
+              <View style={[styles.monthGrid]}>
+                {Array.from({ length: 12 }, (_, i) => i).map((month) => (
+                  <TouchableOpacity
+                    key={month}
+                    style={[
+                      styles.monthOption,
+                      selectedMonth === month && styles.monthOptionActive,
+                    ]}
+                    onPress={() => setSelectedMonth(month)}
+                  >
+                    <Text
+                      style={[
+                        styles.monthOptionText,
+                        selectedMonth === month && styles.monthOptionTextActive,
+                      ]}
+                    >
+                      {new Date(2024, month).toLocaleDateString('en-US', {
+                        month: 'short',
+                      })}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.monthPickerActions}>
+              <TouchableOpacity
+                style={styles.monthPickerCancelButton}
+                onPress={() => setShowMonthYearPicker(false)}
+              >
+                <Text style={styles.monthPickerCancelText}>
+                  {t('common.cancel')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.monthPickerConfirmButton}
+                onPress={() => {
+                  setDateFilter('selectedMonth');
+                  setShowMonthYearPicker(false);
+                }}
+              >
+                <Text style={styles.monthPickerConfirmText}>
+                  {t('common.confirm')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       )}
     </View>
   );
@@ -1572,5 +1589,133 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     color: '#6B7280',
     marginTop: 8,
+  },
+  // Month/Year Picker Styles
+  monthPickerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  monthPickerContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 24,
+    margin: 20,
+    minWidth: 320,
+    maxWidth: 400,
+  },
+  monthPickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  monthPickerTitle: {
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+  },
+  monthPickerCloseButton: {
+    padding: 4,
+  },
+  yearSelectorContainer: {
+    marginBottom: 20,
+  },
+  yearSelectorLabel: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  yearSelector: {
+    flexDirection: 'row',
+  },
+  yearOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    marginRight: 8,
+  },
+  yearOptionActive: {
+    backgroundColor: '#10B981',
+  },
+  yearOptionText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  yearOptionTextActive: {
+    color: '#FFFFFF',
+  },
+  monthSelectorContainer: {
+    marginBottom: 20,
+  },
+  monthSelectorLabel: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  monthGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  monthOption: {
+    width: '30%',
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  monthOptionActive: {
+    backgroundColor: '#10B981',
+  },
+  monthOptionText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  monthOptionTextActive: {
+    color: '#FFFFFF',
+  },
+  monthPickerActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+  },
+  monthPickerCancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    marginRight: 8,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  monthPickerCancelText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  monthPickerConfirmButton: {
+    flex: 1,
+    paddingVertical: 12,
+    marginLeft: 8,
+    borderRadius: 8,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+  },
+  monthPickerConfirmText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#FFFFFF',
   },
 });
