@@ -33,6 +33,7 @@ import {
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
+import { usePerformanceOptimization } from '@/hooks/usePerformanceOptimization';
 
 // Import the ProductsManager component
 import ProductsManager from '@/components/ProductsManager';
@@ -67,6 +68,12 @@ export default function Inventory() {
   } = useLowStockProducts();
 
   const { updateProduct } = useProductMutations();
+
+  // Performance monitoring
+  const { deferHeavyOperation } = usePerformanceOptimization(
+    products.length,
+    'InventoryPage'
+  );
 
   const onRefresh = () => {
     refetchProducts();
@@ -254,9 +261,17 @@ export default function Inventory() {
                 ListFooterComponent={() => (
                   <View style={{ height: 300 }}></View>
                 )}
-                initialNumToRender={10}
-                maxToRenderPerBatch={10}
+                // Performance optimizations
+                initialNumToRender={8}
+                maxToRenderPerBatch={8}
                 windowSize={5}
+                removeClippedSubviews={true}
+                updateCellsBatchingPeriod={50}
+                getItemLayout={(_, index) => ({
+                  length: 80, // Approximate height of alert item
+                  offset: 80 * index,
+                  index,
+                })}
               />
             </Card>
           )}

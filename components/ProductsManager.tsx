@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -46,6 +46,7 @@ import { BarcodeScanner } from '@/components/BarcodeScanner';
 import TextScanner from '@/components/TextScanner';
 import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
+import { useOptimizedList } from '@/hooks/useOptimizedList';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -130,33 +131,18 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     );
   };
 
-  const filteredProducts = useMemo(() => {
-    return [...products]
-      .filter((product) => {
-        const matchesSearch =
-          product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          product.barcode?.includes(searchQuery);
-        const matchesCategory =
-          selectedCategory === 'All' ||
-          (typeof selectedCategory === 'string'
-            ? product.category === selectedCategory
-            : product.category_id === selectedCategory);
-        return matchesSearch && matchesCategory;
-      })
-      .sort((a, b) => {
-        if (sortBy === 'name') {
-          return sortOrder === 'asc'
-            ? a.name.localeCompare(b.name)
-            : b.name.localeCompare(a.name);
-        } else {
-          return sortOrder === 'asc'
-            ? new Date(a.updated_at || 0).getTime() -
-                new Date(b.updated_at || 0).getTime()
-            : new Date(b.updated_at || 0).getTime() -
-                new Date(a.updated_at || 0).getTime();
-        }
-      });
-  }, [products, searchQuery, selectedCategory, sortBy, sortOrder]);
+  // Use optimized list hook for better performance with large datasets
+  const {
+    filteredData: filteredProducts,
+    keyExtractor,
+    getItemLayout,
+  } = useOptimizedList({
+    data: products,
+    searchQuery,
+    selectedCategory,
+    sortBy,
+    sortOrder,
+  });
 
   // Function to toggle sort order or change sort field
   const handleSort = (field: 'name' | 'updated_at') => {
@@ -718,80 +704,102 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     return <LoadingSpinner />;
   }
 
-  const ProductCard = React.memo(({ product }: { product: Product }) => {
-    return (
-      <Card key={product.id} style={styles.productCard}>
-        <View style={styles.productHeader}>
-          {product.imageUrl && (
-            <Image
-              source={{ uri: product.imageUrl }}
-              style={styles.productImage}
-              resizeMode="cover"
-            />
+  // Memoized callbacks for better performance
+  const handleEditCallback = useCallback((product: Product) => {
+    handleEdit(product);
+  }, []);
+
+  const handleDeleteCallback = useCallback((product: Product) => {
+    handleDelete(product);
+  }, []);
+
+  const ProductCard = React.memo(
+    ({ product }: { product: Product }) => {
+      return (
+        <Card style={styles.productCard}>
+          <View style={styles.productHeader}>
+            {product.imageUrl && (
+              <Image
+                source={{ uri: product.imageUrl }}
+                style={styles.productImage}
+                resizeMode="cover"
+              />
+            )}
+
+            <View style={styles.productInfo}>
+              <Text style={styles.productName}>{product.name}</Text>
+              <Text style={styles.productCategory}>{product.category}</Text>
+            </View>
+
+            <View style={styles.productActions}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => handleEditCallback(product)}
+              >
+                <Edit size={18} color="#6B7280" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => handleDeleteCallback(product)}
+              >
+                <Trash2 size={18} color="#EF4444" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.productDetails}>
+            <View style={styles.productDetailItem}>
+              <Text style={styles.productDetailLabel}>
+                {t('products.price')}
+              </Text>
+              <Text style={styles.productDetailValue}>
+                {formatMMK(product.price)}
+              </Text>
+            </View>
+            <View style={styles.productDetailItem}>
+              <Text style={styles.productDetailLabel}>
+                {t('products.stock')}
+              </Text>
+              <Text
+                style={[
+                  styles.productDetailValue,
+                  product.quantity <= product.min_stock && styles.lowStockText,
+                ]}
+              >
+                {product.quantity}
+              </Text>
+            </View>
+            <View style={styles.productDetailItem}>
+              <Text style={styles.productDetailLabel}>
+                {t('products.profit')}
+              </Text>
+              <Text style={[styles.productDetailValue, styles.profitText]}>
+                {formatMMK(product.price - product.cost)}
+              </Text>
+            </View>
+          </View>
+
+          {product.barcode && (
+            <View style={styles.barcodeDisplay}>
+              <Text style={styles.barcodeLabel}>
+                {t('products.barcodeLabel')} {product.barcode}
+              </Text>
+            </View>
           )}
-
-          <View style={styles.productInfo}>
-            <Text style={styles.productName}>{product.name}</Text>
-            <Text style={styles.productCategory}>{product.category}</Text>
-            {/* <Text style={styles.productSupplier}>
-              {t('products.supplier')}: {getSupplierName(product.supplier_id)}
-            </Text> */}
-          </View>
-
-          <View style={styles.productActions}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => handleEdit(product)}
-            >
-              <Edit size={18} color="#6B7280" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => handleDelete(product)}
-            >
-              <Trash2 size={18} color="#EF4444" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.productDetails}>
-          <View style={styles.productDetailItem}>
-            <Text style={styles.productDetailLabel}>{t('products.price')}</Text>
-            <Text style={styles.productDetailValue}>
-              {formatMMK(product.price)}
-            </Text>
-          </View>
-          <View style={styles.productDetailItem}>
-            <Text style={styles.productDetailLabel}>{t('products.stock')}</Text>
-            <Text
-              style={[
-                styles.productDetailValue,
-                product.quantity <= product.min_stock && styles.lowStockText,
-              ]}
-            >
-              {product.quantity}
-            </Text>
-          </View>
-          <View style={styles.productDetailItem}>
-            <Text style={styles.productDetailLabel}>
-              {t('products.profit')}
-            </Text>
-            <Text style={[styles.productDetailValue, styles.profitText]}>
-              {formatMMK(product.price - product.cost)}
-            </Text>
-          </View>
-        </View>
-
-        {product.barcode && (
-          <View style={styles.barcodeDisplay}>
-            <Text style={styles.barcodeLabel}>
-              {t('products.barcodeLabel')} {product.barcode}
-            </Text>
-          </View>
-        )}
-      </Card>
-    );
-  });
+        </Card>
+      );
+    },
+    (prevProps, nextProps) => {
+      // Custom comparison function for better memoization
+      return (
+        prevProps.product.id === nextProps.product.id &&
+        prevProps.product.name === nextProps.product.name &&
+        prevProps.product.price === nextProps.product.price &&
+        prevProps.product.quantity === nextProps.product.quantity &&
+        prevProps.product.updated_at === nextProps.product.updated_at
+      );
+    }
+  );
 
   return (
     <View style={compact ? styles.compactContainer : styles.container}>
@@ -1300,7 +1308,8 @@ export default function Products({ compact = false }: ProductsManagerProps) {
 
       <FlatList
         data={filteredProducts}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={keyExtractor}
+        getItemLayout={getItemLayout}
         renderItem={({ item }) => <ProductCard product={item} />}
         ListEmptyComponent={() => (
           <View style={styles.emptyState}>
@@ -1326,10 +1335,13 @@ export default function Products({ compact = false }: ProductsManagerProps) {
             onRefresh={onRefresh}
           />
         }
-        initialNumToRender={10}
-        maxToRenderPerBatch={10}
-        windowSize={5}
+        // Performance optimizations for large lists
+        initialNumToRender={15}
+        maxToRenderPerBatch={15}
+        windowSize={10}
         removeClippedSubviews={true}
+        updateCellsBatchingPeriod={50}
+        disableVirtualization={false}
         showsVerticalScrollIndicator={true}
         style={styles.productsList}
       />

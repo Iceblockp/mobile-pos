@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Stack, usePathname } from 'expo-router';
+import { useEffect } from 'react';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { useFonts } from 'expo-font';
@@ -14,7 +14,7 @@ import { DatabaseProvider } from '@/context/DatabaseContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { LocalizationProvider } from '@/context/LocalizationContext';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { enableScreens, enableFreeze } from 'react-native-screens';
 
@@ -32,8 +32,6 @@ export default function RootLayout() {
     'Inter-SemiBold': Inter_600SemiBold,
     'Inter-Bold': Inter_700Bold,
   });
-
-  const pathname = usePathname();
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
