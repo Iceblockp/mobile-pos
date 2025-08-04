@@ -762,7 +762,7 @@ export default function Expenses() {
                 <Text style={styles.label}>{t('common.date')}</Text>
                 <TouchableOpacity
                   style={styles.dateInput}
-                  onPress={() => setShowDatePicker(true)}
+                  onPress={() => setShowFormDatePicker(true)}
                 >
                   <Text>
                     {formDate.toLocaleDateString('en-US', {
@@ -774,20 +774,6 @@ export default function Expenses() {
                   <Calendar size={16} color="#000000" />
                 </TouchableOpacity>
               </View>
-
-              {showDatePicker && (
-                <DateTimePicker
-                  value={formDate}
-                  mode="date"
-                  display="default"
-                  onChange={(event, selectedDate) => {
-                    setShowDatePicker(false);
-                    if (selectedDate) {
-                      setFormDate(selectedDate);
-                    }
-                  }}
-                />
-              )}
 
               <View style={styles.formButtons}>
                 <Button
@@ -927,6 +913,7 @@ export default function Expenses() {
           value={formDate}
           mode="date"
           display="default"
+          maximumDate={new Date()} // Don't allow future dates for expenses
           onChange={(event, selectedDate) => {
             setShowFormDatePicker(false);
             if (selectedDate) {
