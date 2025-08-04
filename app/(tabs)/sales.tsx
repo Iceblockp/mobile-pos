@@ -722,7 +722,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [loadingAllItems, setLoadingAllItems] = useState(false);
   const saleDetailRef = useRef(null);
   const [capturing, setCapturing] = useState(false);
-  const [isCustomerVoucher, setIsCustomerVoucher] = useState(false);
+  const [isCustomerVoucher, setIsCustomerVoucher] = useState(true);
 
   const formatMMK = (amount: number) => {
     return (
@@ -1768,78 +1768,6 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </View>
         </View>
 
-        {/* {salesLoading ? (
-          <LoadingSpinner />
-        ) : (
-          <ScrollView
-            style={styles.salesList}
-            onScroll={({ nativeEvent }) => {
-              const { layoutMeasurement, contentOffset, contentSize } =
-                nativeEvent;
-              const paddingToBottom = 20;
-              if (
-                layoutMeasurement.height + contentOffset.y >=
-                contentSize.height - paddingToBottom
-              ) {
-                loadMore();
-              }
-            }}
-            scrollEventThrottle={400}
-          >
-            {filteredSales.map((sale) => (
-              <TouchableOpacity
-                key={sale.id}
-                onPress={() => handleSalePress(sale)}
-              >
-                <Card style={styles.saleCard}>
-                  <View style={styles.saleHeader}>
-                    <View style={styles.saleInfo}>
-                      <Text style={styles.saleId}>
-                        {t('sales.saleNumber')}
-                        {sale.id}
-                      </Text>
-                      <Text style={styles.saleDate}>
-                        {formatDate(sale.created_at)}
-                      </Text>
-                      <Text style={styles.salePayment}>
-                        {t('sales.payment')} {sale.payment_method.toUpperCase()}
-                      </Text>
-                    </View>
-                    <View style={styles.saleAmountContainer}>
-                      <Text style={styles.saleTotal}>
-                        {formatMMK(sale.total)}
-                      </Text>
-                      <Eye size={16} color="#6B7280" />
-                    </View>
-                  </View>
-                </Card>
-              </TouchableOpacity>
-            ))}
-
-            {isFetchingNextPage && (
-              <View style={styles.loadingMore}>
-                <ActivityIndicator size="small" color="#059669" />
-                <Text style={styles.loadingMoreText}>
-                  {t('common.loadingMore')}
-                </Text>
-              </View>
-            )}
-
-            {filteredSales.length === 0 && (
-              <View style={styles.emptyState}>
-                <History size={48} color="#9CA3AF" />
-                <Text style={styles.emptyStateText}>
-                  {t('sales.noSalesFound')}
-                </Text>
-                <Text style={styles.emptyStateSubtext}>
-                  {searchQuery || dateFilter !== 'all'
-                    ? t('sales.tryAdjustingFilters')
-                    : t('sales.noSalesMadeYet')}
-                </Text>
-              </View>
-            )}
-          </ScrollView>
-        )} */}
         <FlatList
           data={filteredSales}
           keyExtractor={(item) => item.id.toString()}
