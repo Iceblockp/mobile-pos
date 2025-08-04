@@ -317,6 +317,11 @@ export const en = {
       'products, categories, and suppliers. Existing data with same names may be updated. Continue?',
     importCompleted: 'imported, skipped',
     invalidImportFormat: 'Invalid import file format',
+    importingData: 'Importing Data',
+    importingCategories: 'Importing categories...',
+    importingProducts: 'Importing products...',
+    itemsProcessed: 'items processed',
+    pleaseWait: 'Please wait, this may take a few moments',
   },
   categories: {
     title: 'Categories',

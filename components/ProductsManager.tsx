@@ -74,6 +74,12 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
+  const [importProgress, setImportProgress] = useState({
+    isImporting: false,
+    current: 0,
+    total: 0,
+    stage: '',
+  });
 
   // Use React Query for optimized data fetching
   const {
@@ -622,8 +628,20 @@ export default function Products({ compact = false }: ProductsManagerProps) {
 
   const performImport = async (importData: any) => {
     try {
+      const totalProducts = importData.products.length;
+      const totalCategories = importData.categories.length;
+      const totalItems = totalCategories + totalProducts;
+
+      setImportProgress({
+        isImporting: true,
+        current: 0,
+        total: totalItems,
+        stage: t('products.importingCategories'),
+      });
+
       let importedCount = 0;
       let skippedCount = 0;
+      let currentProgress = 0;
 
       // Import categories first
       for (const category of importData.categories) {
@@ -638,8 +656,18 @@ export default function Products({ compact = false }: ProductsManagerProps) {
               created_at: new Date().toISOString(),
             });
           }
+          currentProgress++;
+          setImportProgress((prev) => ({
+            ...prev,
+            current: currentProgress,
+          }));
         } catch (error) {
           // console.log('Category import error:', error);
+          currentProgress++;
+          setImportProgress((prev) => ({
+            ...prev,
+            current: currentProgress,
+          }));
         }
       }
 
@@ -652,13 +680,25 @@ export default function Products({ compact = false }: ProductsManagerProps) {
       // Wait for categories to be updated
       await new Promise((resolve) => setTimeout(resolve, 500));
 
+      // Update stage to products
+      setImportProgress((prev) => ({
+        ...prev,
+        stage: t('products.importingProducts'),
+      }));
+
       // Import products
-      for (const product of importData.products) {
+      for (let i = 0; i < importData.products.length; i++) {
+        const product = importData.products[i];
         try {
           // Find category by name
           const category = categories.find((c) => c.name === product.category);
           if (!category) {
             skippedCount++;
+            currentProgress++;
+            setImportProgress((prev) => ({
+              ...prev,
+              current: currentProgress,
+            }));
             continue;
           }
 
@@ -693,11 +733,33 @@ export default function Products({ compact = false }: ProductsManagerProps) {
           }
 
           importedCount++;
+          currentProgress++;
+          setImportProgress((prev) => ({
+            ...prev,
+            current: currentProgress,
+          }));
+          // Small delay to make progress visible for each product
+          await new Promise((resolve) => setTimeout(resolve, 50));
         } catch (error) {
           // console.log('Product import error:', error);
           skippedCount++;
+          currentProgress++;
+          setImportProgress((prev) => ({
+            ...prev,
+            current: currentProgress,
+          }));
+          // Small delay to make progress visible
+          await new Promise((resolve) => setTimeout(resolve, 50));
         }
       }
+
+      // Complete the import
+      setImportProgress({
+        isImporting: false,
+        current: 0,
+        total: 0,
+        stage: '',
+      });
 
       showToast(
         `${t('products.importSuccess')}: ${importedCount} ${t(
@@ -707,6 +769,12 @@ export default function Products({ compact = false }: ProductsManagerProps) {
       );
     } catch (error) {
       console.error('Import process error:', error);
+      setImportProgress({
+        isImporting: false,
+        current: 0,
+        total: 0,
+        stage: '',
+      });
       showToast(t('products.importFailed'), 'error');
     }
   };
@@ -716,13 +784,13 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   }
 
   // Memoized callbacks for better performance
-  const handleEditCallback = useCallback((product: Product) => {
-    handleEdit(product);
-  }, []);
+  // const handleEditCallback = useCallback((product: Product) => {
+  //   handleEdit(product);
+  // }, []);
 
-  const handleDeleteCallback = useCallback((product: Product) => {
-    handleDelete(product);
-  }, []);
+  // const handleDeleteCallback = useCallback((product: Product) => {
+  //   handleDelete(product);
+  // }, []);
 
   const ProductCard = React.memo(
     ({ product }: { product: Product }) => {
@@ -745,13 +813,13 @@ export default function Products({ compact = false }: ProductsManagerProps) {
             <View style={styles.productActions}>
               <TouchableOpacity
                 style={styles.actionButton}
-                onPress={() => handleEditCallback(product)}
+                onPress={() => handleEdit(product)}
               >
                 <Edit size={18} color="#6B7280" />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.actionButton}
-                onPress={() => handleDeleteCallback(product)}
+                onPress={() => handleDelete(product)}
               >
                 <Trash2 size={18} color="#EF4444" />
               </TouchableOpacity>
@@ -1740,6 +1808,52 @@ export default function Products({ compact = false }: ProductsManagerProps) {
           </View>
         </SafeAreaView>
       </Modal>
+
+      {/* Import Progress Modal */}
+      <Modal
+        visible={importProgress.isImporting}
+        animationType="fade"
+        transparent={true}
+      >
+        <View style={styles.progressModalOverlay}>
+          <View style={styles.progressModalContainer}>
+            <Text style={styles.progressModalTitle}>
+              {t('products.importingData')}
+            </Text>
+
+            <Text style={styles.progressModalStage}>
+              {importProgress.stage}
+            </Text>
+
+            <View style={styles.progressBarContainer}>
+              <View style={styles.progressBarBackground}>
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    {
+                      width: `${
+                        importProgress.total > 0
+                          ? (importProgress.current / importProgress.total) *
+                            100
+                          : 0
+                      }%`,
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+
+            <Text style={styles.progressModalText}>
+              {importProgress.current} / {importProgress.total}{' '}
+              {t('products.itemsProcessed')}
+            </Text>
+
+            <Text style={styles.progressModalSubtext}>
+              {t('products.pleaseWait')}
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -2411,5 +2525,62 @@ const styles = StyleSheet.create({
   },
   categoryActions: {
     flexDirection: 'row',
+  },
+  progressModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 24,
+    margin: 20,
+    minWidth: 280,
+    alignItems: 'center',
+  },
+  progressModalTitle: {
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  progressModalStage: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  progressBarContainer: {
+    width: '100%',
+    marginBottom: 12,
+  },
+  progressBarBackground: {
+    width: '100%',
+    height: 8,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#10B981',
+    borderRadius: 4,
+  },
+  progressModalText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#111827',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  progressModalSubtext: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    textAlign: 'center',
   },
 });
