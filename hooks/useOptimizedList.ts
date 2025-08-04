@@ -5,7 +5,7 @@ interface UseOptimizedListProps {
   data: Product[];
   searchQuery: string;
   selectedCategory: string | number;
-  sortBy: 'name' | 'updated_at';
+  sortBy: 'name' | 'updated_at' | 'none';
   sortOrder: 'asc' | 'desc';
 }
 
@@ -43,11 +43,17 @@ export const useOptimizedList = ({
       );
     }
 
-    // Apply sorting
+    // Apply sorting only when user explicitly chooses to sort
+    if (sortBy === 'none') {
+      return filtered; // No sorting by default
+    }
+
     return filtered.sort((a, b) => {
       if (sortBy === 'name') {
-        const comparison = a.name.localeCompare(b.name);
-        return sortOrder === 'asc' ? comparison : -comparison;
+        // COMMENTED OUT: Name sorting is too slow for large datasets
+        // const comparison = a.name.localeCompare(b.name);
+        // return sortOrder === 'asc' ? comparison : -comparison;
+        return 0; // No sorting for name field currently
       } else {
         const aTime = new Date(a.updated_at || 0).getTime();
         const bTime = new Date(b.updated_at || 0).getTime();

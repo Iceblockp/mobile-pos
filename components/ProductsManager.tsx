@@ -46,11 +46,11 @@ import { BarcodeScanner } from '@/components/BarcodeScanner';
 import TextScanner from '@/components/TextScanner';
 import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
-import { useOptimizedList } from '@/hooks/useOptimizedList';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
+import { useOptimizedList } from '@/hooks/useOptimizedList';
 
 interface ProductsManagerProps {
   compact?: boolean;
@@ -70,7 +70,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   const [showTextScanner, setShowTextScanner] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [sortBy, setSortBy] = useState<'name' | 'updated_at'>('name');
+  const [sortBy, setSortBy] = useState<'name' | 'updated_at' | 'none'>('none');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
@@ -146,6 +146,13 @@ export default function Products({ compact = false }: ProductsManagerProps) {
 
   // Function to toggle sort order or change sort field
   const handleSort = (field: 'name' | 'updated_at') => {
+    // TEMPORARILY DISABLE NAME SORTING - too slow for large datasets
+    if (field === 'name') {
+      // Show toast or do nothing for name sorting
+      showToast('Name sorting temporarily disabled for performance', 'info');
+      return;
+    }
+
     if (sortBy === field) {
       // Toggle sort order if clicking the same field
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -154,6 +161,10 @@ export default function Products({ compact = false }: ProductsManagerProps) {
       setSortBy(field);
       setSortOrder('asc');
     }
+  };
+
+  const handleClearSort = () => {
+    setSortBy('none');
   };
 
   const resetForm = () => {
@@ -808,7 +819,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
           <View style={styles.header}>
             <Text style={styles.title}>{t('products.title')}</Text>
             <View style={styles.headerActions}>
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={[styles.sortDropdown, { backgroundColor: '#6B7280' }]}
                 onPress={() => setShowSortOptions(!showSortOptions)}
               >
@@ -824,7 +835,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
                   )}{' '}
                   {sortOrder === 'asc' ? '↑' : '↓'}
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
               <TouchableOpacity
                 style={[styles.actionButton, { backgroundColor: '#10B981' }]}
                 onPress={exportProducts}
@@ -972,7 +983,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
           {/* Sort Options - appears when sort is selected */}
           {showSortOptions && (
             <View style={styles.sortOptionsContainer}>
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={[
                   styles.sortOption,
                   sortBy === 'name' &&
@@ -1020,7 +1031,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
                 >
                   Name (Z to A)
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
 
               <TouchableOpacity
                 style={[
