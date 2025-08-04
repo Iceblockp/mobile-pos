@@ -630,126 +630,134 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     try {
       const totalProducts = importData.products.length;
       const totalCategories = importData.categories.length;
-      const totalItems = totalCategories + totalProducts;
+      const BATCH_SIZE = 25; // Larger batch size for better performance
 
       setImportProgress({
         isImporting: true,
         current: 0,
-        total: totalItems,
+        total: totalProducts + totalCategories,
         stage: t('products.importingCategories'),
       });
 
       let importedCount = 0;
       let skippedCount = 0;
-      let currentProgress = 0;
 
-      // Import categories first
-      for (const category of importData.categories) {
-        try {
-          const existingCategory = categories.find(
-            (c) => c.name === category.name
-          );
-          if (!existingCategory) {
-            await addCategory.mutateAsync({
-              name: category.name,
-              description: category.description || '',
-              created_at: new Date().toISOString(),
-            });
+      // Import categories first - process all at once since usually small number
+      if (totalCategories > 0) {
+        const categoryPromises = importData.categories.map(
+          async (category: any) => {
+            try {
+              const existingCategory = categories.find(
+                (c) => c.name === category.name
+              );
+              if (!existingCategory) {
+                await addCategory.mutateAsync({
+                  name: category.name,
+                  description: category.description || '',
+                  created_at: new Date().toISOString(),
+                });
+              }
+              return { success: true };
+            } catch (error) {
+              return { success: false };
+            }
           }
-          currentProgress++;
-          setImportProgress((prev) => ({
-            ...prev,
-            current: currentProgress,
-          }));
-        } catch (error) {
-          // console.log('Category import error:', error);
-          currentProgress++;
-          setImportProgress((prev) => ({
-            ...prev,
-            current: currentProgress,
-          }));
-        }
+        );
+
+        await Promise.all(categoryPromises);
+
+        // Update progress after categories
+        setImportProgress((prev) => ({
+          ...prev,
+          current: totalCategories,
+          stage: t('products.importingProducts'),
+        }));
+
+        // Brief wait for categories to be available
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      } else {
+        setImportProgress((prev) => ({
+          ...prev,
+          stage: t('products.importingProducts'),
+        }));
       }
 
-      // Import suppliers if available
-      if (importData.suppliers) {
-        // Note: You'll need to add supplier mutations if not available
-        // This is a placeholder for supplier import logic
-      }
+      // Pre-process products to avoid repeated lookups
+      const processedProducts = importData.products.map((product: any) => {
+        const category = categories.find((c) => c.name === product.category);
+        return {
+          ...product,
+          category_id: category?.id,
+          hasValidCategory: !!category,
+        };
+      });
 
-      // Wait for categories to be updated
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Process products in larger batches
+      for (let i = 0; i < processedProducts.length; i += BATCH_SIZE) {
+        const batch = processedProducts.slice(i, i + BATCH_SIZE);
 
-      // Update stage to products
-      setImportProgress((prev) => ({
-        ...prev,
-        stage: t('products.importingProducts'),
-      }));
+        const batchPromises = batch.map(async (product: any) => {
+          try {
+            if (!product.hasValidCategory) {
+              return { success: false, skipped: true };
+            }
 
-      // Import products
-      for (let i = 0; i < importData.products.length; i++) {
-        const product = importData.products[i];
-        try {
-          // Find category by name
-          const category = categories.find((c) => c.name === product.category);
-          if (!category) {
-            skippedCount++;
-            currentProgress++;
-            setImportProgress((prev) => ({
-              ...prev,
-              current: currentProgress,
-            }));
-            continue;
+            // Check if product already exists
+            const existingProduct = products.find(
+              (p) =>
+                p.name === product.name ||
+                (product.barcode && p.barcode === product.barcode)
+            );
+
+            const productData = {
+              name: product.name,
+              barcode: product.barcode || undefined,
+              category_id: product.category_id,
+              price: product.price,
+              cost: product.cost,
+              quantity: product.quantity || 0,
+              min_stock: product.min_stock || 10,
+              supplier_id: product.supplier_id || 1,
+              imageUrl: product.imageUrl || undefined,
+            };
+
+            if (existingProduct) {
+              await updateProduct.mutateAsync({
+                id: existingProduct.id,
+                data: productData,
+              });
+            } else {
+              await addProduct.mutateAsync(productData);
+            }
+
+            return { success: true, skipped: false };
+          } catch (error) {
+            return { success: false, skipped: false };
           }
+        });
 
-          // Check if product already exists (by name or barcode)
-          const existingProduct = products.find(
-            (p) =>
-              p.name === product.name ||
-              (product.barcode && p.barcode === product.barcode)
-          );
+        // Process batch
+        const batchResults = await Promise.all(batchPromises);
 
-          const productData = {
-            name: product.name,
-            barcode: product.barcode || undefined,
-            category_id: category.id,
-            price: product.price,
-            cost: product.cost,
-            quantity: product.quantity || 0,
-            min_stock: product.min_stock || 10,
-            supplier_id: product.supplier_id || 1,
-            imageUrl: product.imageUrl || undefined,
-          };
-
-          if (existingProduct) {
-            // Update existing product
-            await updateProduct.mutateAsync({
-              id: existingProduct.id,
-              data: productData,
-            });
+        // Update counters
+        batchResults.forEach((result) => {
+          if (result.success) {
+            importedCount++;
           } else {
-            // Add new product
-            await addProduct.mutateAsync(productData);
+            skippedCount++;
           }
+        });
 
-          importedCount++;
-          currentProgress++;
-          setImportProgress((prev) => ({
-            ...prev,
-            current: currentProgress,
-          }));
-          // Small delay to make progress visible for each product
-          await new Promise((resolve) => setTimeout(resolve, 50));
-        } catch (error) {
-          // console.log('Product import error:', error);
-          skippedCount++;
-          currentProgress++;
-          setImportProgress((prev) => ({
-            ...prev,
-            current: currentProgress,
-          }));
-          // Small delay to make progress visible
-          await new Promise((resolve) => setTimeout(resolve, 50));
+        // Update progress less frequently for better performance
+        const currentProgress = totalCategories + i + batch.length;
+        setImportProgress((prev) => ({
+          ...prev,
+          current: Math.min(currentProgress, prev.total),
+        }));
+
+        // Very minimal delay only between larger batches to keep UI responsive
+        if (i + BATCH_SIZE < processedProducts.length) {
+          await new Promise((resolve) => setTimeout(resolve, 10));
         }
       }
 
@@ -1851,6 +1859,21 @@ export default function Products({ compact = false }: ProductsManagerProps) {
             <Text style={styles.progressModalSubtext}>
               {t('products.pleaseWait')}
             </Text>
+
+            <TouchableOpacity
+              style={styles.skipAnimationButton}
+              onPress={() => {
+                // Remove all delays for maximum speed
+                setImportProgress((prev) => ({
+                  ...prev,
+                  current: prev.total, // Jump to completion
+                }));
+              }}
+            >
+              <Text style={styles.skipAnimationText}>
+                {t('products.skipAnimation')}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -2580,6 +2603,19 @@ const styles = StyleSheet.create({
   progressModalSubtext: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  skipAnimationButton: {
+    marginTop: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 6,
+  },
+  skipAnimationText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     textAlign: 'center',
   },

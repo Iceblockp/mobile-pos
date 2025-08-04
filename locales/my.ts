@@ -330,6 +330,7 @@ export const my: TranslationKeys = {
     importingProducts: 'ကုန်ပစ္စည်းများထည့်သွင်းနေသည်...',
     itemsProcessed: 'ပစ္စည်းများလုပ်ဆောင်ပြီး',
     pleaseWait: 'ကျေးဇူးပြု၍ စောင့်ပါ၊ ဒါက အချိန်အနည်းငယ်ကြာနိုင်ပါသည်',
+    skipAnimation: 'အဆုံးသို့ကျော်မည်',
   },
   categories: {
     title: 'အမျိုးအစားများ',

@@ -322,6 +322,7 @@ export const en = {
     importingProducts: 'Importing products...',
     itemsProcessed: 'items processed',
     pleaseWait: 'Please wait, this may take a few moments',
+    skipAnimation: 'Skip to end',
   },
   categories: {
     title: 'Categories',
