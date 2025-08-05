@@ -69,15 +69,15 @@ export default function More() {
       backgroundColor: '#F5F3FF',
       route: '/about',
     },
-    {
-      id: 'settings',
-      title: t('more.settings'),
-      subtitle: t('more.settingsSubtitle'),
-      icon: Settings,
-      color: '#6B7280',
-      backgroundColor: '#F9FAFB',
-      route: '/settings',
-    },
+    // {
+    //   id: 'settings',
+    //   title: t('more.settings'),
+    //   subtitle: t('more.settingsSubtitle'),
+    //   icon: Settings,
+    //   color: '#6B7280',
+    //   backgroundColor: '#F9FAFB',
+    //   route: '/settings',
+    // },
   ];
 
   const handleItemPress = (route: string) => {

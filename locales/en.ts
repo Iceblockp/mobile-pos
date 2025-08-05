@@ -379,7 +379,7 @@ export const en = {
   },
   reports: {
     title: 'Reports',
-    subtitle: 'Business insights and expense tracking',
+    subtitle: 'Business insights and analytics',
     analytics: 'Analytics',
     expenses: 'Expenses',
   },
