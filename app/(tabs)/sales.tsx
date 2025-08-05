@@ -56,6 +56,8 @@ import * as Sharing from 'expo-sharing';
 import { captureRef } from 'react-native-view-shot';
 import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
+import { PaymentModal } from '@/components/PaymentModal';
+import { PrintManager } from '@/components/PrintManager';
 
 interface CartItem {
   product: Product;
@@ -77,9 +79,10 @@ export default function Sales() {
   const [showScanner, setShowScanner] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPrintManager, setShowPrintManager] = useState(false);
+  const [receiptData, setReceiptData] = useState<any>(null);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [saleNote, setSaleNote] = useState('');
 
   // Use React Query for optimized data fetching
   const {
@@ -228,10 +231,13 @@ export default function Sales() {
 
   const clearCart = () => {
     setCart([]);
-    setSaleNote(''); // Clear sale note when clearing cart
   };
 
-  const processSale = async (paymentMethod: string) => {
+  const processSale = async (
+    paymentMethod: string,
+    note: string,
+    shouldPrint: boolean
+  ) => {
     if (cart.length === 0) return;
 
     try {
@@ -240,7 +246,7 @@ export default function Sales() {
       const saleData = {
         total,
         payment_method: paymentMethod,
-        note: saleNote.trim() || undefined, // Only include note if not empty
+        note: note || undefined,
       };
 
       const saleItems = cart.map((item) => ({
@@ -252,10 +258,27 @@ export default function Sales() {
         subtotal: item.subtotal,
       }));
 
-      await addSale.mutateAsync({ saleData, saleItems });
+      const result = await addSale.mutateAsync({ saleData, saleItems });
 
       showToast(t('sales.saleCompleted'), 'success');
+
+      // Handle receipt printing if requested
+      if (shouldPrint && result) {
+        const printData = {
+          saleId: result,
+          items: cart,
+          total,
+          paymentMethod,
+          note,
+          date: new Date(),
+        };
+
+        setReceiptData(printData);
+        setShowPrintManager(true);
+      }
+
       clearCart();
+      setShowPaymentModal(false);
     } catch (error) {
       Alert.alert(t('common.error'), t('common.error'));
       console.error('Error processing sale:', error);
@@ -285,150 +308,6 @@ export default function Sales() {
       return matchesSearch && matchesCategory;
     });
   }, [products, searchQuery, selectedCategory]);
-
-  const renderPaymentMethodModal = () => {
-    return (
-      <Modal
-        visible={showPaymentModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowPaymentModal(false)}
-      >
-        <View style={styles.paymentModalOverlay}>
-          <View style={styles.paymentModalContainer}>
-            <View style={styles.paymentModalHeader}>
-              <Text style={styles.paymentModalTitle}>
-                {t('sales.paymentMethod')}
-              </Text>
-              <TouchableOpacity
-                onPress={() => setShowPaymentModal(false)}
-                style={styles.paymentModalCloseButton}
-              >
-                <X size={20} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.paymentModalDescription}>
-              {t('sales.selectPaymentMethod')}
-            </Text>
-
-            <View style={styles.paymentOptionsContainer}>
-              <TouchableOpacity
-                style={styles.paymentOption}
-                onPress={() => {
-                  setShowPaymentModal(false);
-                  processSale('cash');
-                }}
-                disabled={loading}
-              >
-                <View
-                  style={[
-                    styles.paymentOptionIcon,
-                    { backgroundColor: '#ECFDF5' },
-                  ]}
-                >
-                  <Text style={{ fontSize: 24 }}>💵</Text>
-                </View>
-                <View style={styles.paymentOptionContent}>
-                  <Text style={styles.paymentOptionTitle}>
-                    {t('sales.cash')}
-                  </Text>
-                  <Text style={styles.paymentOptionDescription}>
-                    {t('sales.completeSaleCash')}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.paymentOption}
-                onPress={() => {
-                  setShowPaymentModal(false);
-                  processSale('card');
-                }}
-                disabled={loading}
-              >
-                <View
-                  style={[
-                    styles.paymentOptionIcon,
-                    { backgroundColor: '#EFF6FF' },
-                  ]}
-                >
-                  <Text style={{ fontSize: 24 }}>💳</Text>
-                </View>
-                <View style={styles.paymentOptionContent}>
-                  <Text style={styles.paymentOptionTitle}>
-                    {t('sales.card')}
-                  </Text>
-                  <Text style={styles.paymentOptionDescription}>
-                    {t('sales.completeSaleCard')}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.paymentOption}
-                onPress={() => {
-                  setShowPaymentModal(false);
-                  processSale('mobile');
-                }}
-                disabled={loading}
-              >
-                <View
-                  style={[
-                    styles.paymentOptionIcon,
-                    { backgroundColor: '#F0F9FF' },
-                  ]}
-                >
-                  <Text style={{ fontSize: 24 }}>📱</Text>
-                </View>
-                <View style={styles.paymentOptionContent}>
-                  <Text style={styles.paymentOptionTitle}>
-                    {t('sales.mobilePayment')}
-                  </Text>
-                  <Text style={styles.paymentOptionDescription}>
-                    {t('sales.completeSaleMobile')}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            {/* Sale Note Input */}
-            <View style={styles.saleNoteContainer}>
-              <Text style={styles.saleNoteLabel}>{t('sales.addNote')}</Text>
-              <TextInput
-                style={styles.saleNoteInput}
-                value={saleNote}
-                onChangeText={setSaleNote}
-                placeholder={t('sales.saleNote')}
-                multiline
-                numberOfLines={2}
-                maxLength={200}
-              />
-            </View>
-
-            {loading && (
-              <View style={styles.processingIndicator}>
-                <ActivityIndicator size="small" color="#059669" />
-                <Text style={styles.processingText}>
-                  {t('sales.processingSale')}
-                </Text>
-              </View>
-            )}
-
-            <TouchableOpacity
-              style={styles.paymentModalCancelButton}
-              onPress={() => setShowPaymentModal(false)}
-              disabled={loading}
-            >
-              <Text style={styles.paymentModalCancelText}>
-                {t('common.cancel')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    );
-  };
 
   if (productsLoading || categoriesLoading) {
     return <LoadingSpinner />;
@@ -772,7 +651,24 @@ export default function Sales() {
 
       {showHistory && <SalesHistory onClose={() => setShowHistory(false)} />}
 
-      {renderPaymentMethodModal()}
+      <PaymentModal
+        visible={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onConfirmSale={processSale}
+        total={total}
+        loading={loading}
+      />
+
+      {receiptData && (
+        <PrintManager
+          visible={showPrintManager}
+          onClose={() => {
+            setShowPrintManager(false);
+            setReceiptData(null);
+          }}
+          receiptData={receiptData}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -2291,119 +2187,6 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 };
 
 const styles = StyleSheet.create({
-  paymentModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  paymentModalContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    width: '100%',
-    maxWidth: 500,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  paymentModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  paymentModalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  paymentModalCloseButton: {
-    padding: 4,
-  },
-  paymentModalDescription: {
-    fontSize: 16,
-    color: '#4B5563',
-    marginBottom: 20,
-  },
-  paymentOptionsContainer: {
-    gap: 16,
-    marginBottom: 24,
-  },
-  paymentOption: {
-    flexDirection: 'row',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  paymentOptionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  paymentOptionContent: {
-    flex: 1,
-  },
-  paymentOptionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  paymentOptionDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  processingIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  processingText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#059669',
-  },
-  paymentModalCancelButton: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  paymentModalCancelText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  saleNoteContainer: {
-    marginTop: 16,
-    marginBottom: 16,
-  },
-  saleNoteLabel: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  saleNoteInput: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    backgroundColor: '#FFFFFF',
-    textAlignVertical: 'top',
-    minHeight: 60,
-  },
   exportModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
