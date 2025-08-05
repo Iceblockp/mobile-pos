@@ -619,7 +619,7 @@ export const my: TranslationKeys = {
     expensesSubtitle: 'လုပ်ငန်းကုန်ကျစရိတ်များခြေရာခံမည်',
     help: 'အကူအညီနှင့် ပံ့ပိုးမှု',
     helpSubtitle: 'အသုံးပြုသူလမ်းညွှန်နှင့် ဆက်သွယ်ရန်အချက်အလက်',
-    language: 'ဘာသာစကား',
+    language: 'ဘာသာစကားဆက်တင်များ',
     languageSubtitle: 'အက်ပ်ဘာသာစကားပြောင်းမည်',
     dataExport: 'အချက်အလက်တင်ပို့မှု',
     dataExportSubtitle: 'ရောင်းချမှုနှင့် ကုန်စာရင်းအချက်အလက်များတင်ပို့မည်',

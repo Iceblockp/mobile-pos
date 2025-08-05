@@ -597,7 +597,7 @@ export const en = {
     expensesSubtitle: 'Track business expenses',
     help: 'Help & Support',
     helpSubtitle: 'User manual and contact info',
-    language: 'Language',
+    language: 'Language Settings',
     languageSubtitle: 'Change app language',
     dataExport: 'Data Export',
     dataExportSubtitle: 'Export sales and inventory data',
