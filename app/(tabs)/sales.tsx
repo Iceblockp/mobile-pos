@@ -483,83 +483,85 @@ export default function Sales() {
             >
               {cart.map((item) => (
                 <View key={item.product.id} style={styles.cartItem}>
-                  {item.product.imageUrl && (
-                    <Image
-                      source={{ uri: item.product.imageUrl }}
-                      style={styles.cartItemImage}
-                      resizeMode="cover"
-                    />
-                  )}
-                  <View style={styles.cartItemInfo}>
-                    <Text
-                      style={styles.cartItemName}
-                      numberOfLines={isSmallScreen ? 1 : 2}
-                    >
-                      {item.product.name}
-                    </Text>
-                    <Text style={styles.cartItemPrice}>
-                      {formatMMK(item.product.price)} {t('sales.each')}
-                    </Text>
-                    {item.discount > 0 && (
-                      <Text style={styles.cartItemDiscount}>
-                        {t('sales.discount')}: -{formatMMK(item.discount)}
-                      </Text>
+                  {/* Product Image and Info Section */}
+                  <View style={styles.cartItemHeader}>
+                    {item.product.imageUrl && (
+                      <Image
+                        source={{ uri: item.product.imageUrl }}
+                        style={styles.cartItemImage}
+                        resizeMode="cover"
+                      />
                     )}
+                    <View style={styles.cartItemInfo}>
+                      <Text style={styles.cartItemName} numberOfLines={2}>
+                        {item.product.name}
+                      </Text>
+                      <Text style={styles.cartItemPrice}>
+                        {formatMMK(item.product.price)} {t('sales.each')}
+                      </Text>
+                      {item.discount > 0 && (
+                        <Text style={styles.cartItemDiscount}>
+                          {t('sales.discount')}: -{formatMMK(item.discount)}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={styles.cartItemSubtotalContainer}>
+                      <Text style={styles.cartItemSubtotal}>
+                        {formatMMK(item.subtotal)}
+                      </Text>
+                    </View>
                   </View>
 
-                  <View style={styles.cartItemActions}>
-                    <View style={styles.quantityControls}>
-                      <TouchableOpacity
-                        style={styles.quantityButton}
-                        onPress={() =>
-                          updateQuantity(item.product.id, item.quantity - 1)
-                        }
-                      >
-                        <Minus size={isSmallScreen ? 12 : 16} color="#6B7280" />
-                      </TouchableOpacity>
+                  {/* Controls Section */}
+                  <View style={styles.cartItemControls}>
+                    <View style={styles.cartItemActions}>
+                      <View style={styles.quantityControls}>
+                        <TouchableOpacity
+                          style={styles.quantityButton}
+                          onPress={() =>
+                            updateQuantity(item.product.id, item.quantity - 1)
+                          }
+                        >
+                          <Minus size={16} color="#6B7280" />
+                        </TouchableOpacity>
 
-                      <Text style={styles.quantity}>{item.quantity}</Text>
+                        <Text style={styles.quantity}>{item.quantity}</Text>
+
+                        <TouchableOpacity
+                          style={styles.quantityButton}
+                          onPress={() =>
+                            updateQuantity(item.product.id, item.quantity + 1)
+                          }
+                        >
+                          <Plus size={16} color="#6B7280" />
+                        </TouchableOpacity>
+                      </View>
 
                       <TouchableOpacity
-                        style={styles.quantityButton}
-                        onPress={() =>
-                          updateQuantity(item.product.id, item.quantity + 1)
-                        }
+                        style={styles.removeButton}
+                        onPress={() => removeFromCart(item.product.id)}
                       >
-                        <Plus size={isSmallScreen ? 12 : 16} color="#6B7280" />
+                        <Trash2 size={16} color="#EF4444" />
                       </TouchableOpacity>
                     </View>
 
-                    <TouchableOpacity
-                      style={styles.removeButton}
-                      onPress={() => removeFromCart(item.product.id)}
-                    >
-                      <Trash2 size={isSmallScreen ? 14 : 16} color="#EF4444" />
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Discount Input Section */}
-                  <View style={styles.cartItemDiscountSection}>
-                    <Text style={styles.discountLabel}>
-                      {t('sales.discount')}:
-                    </Text>
-                    <TextInput
-                      style={styles.discountInput}
-                      value={item.discount.toString()}
-                      onChangeText={(text) => {
-                        const discount = parseInt(text) || 0;
-                        updateDiscount(item.product.id, discount);
-                      }}
-                      keyboardType="numeric"
-                      placeholder="0"
-                    />
-                    <Text style={styles.discountUnit}>MMK</Text>
-                  </View>
-
-                  <View style={styles.cartItemSubtotalContainer}>
-                    <Text style={styles.cartItemSubtotal}>
-                      {formatMMK(item.subtotal)}
-                    </Text>
+                    {/* Discount Input Section */}
+                    <View style={styles.cartItemDiscountSection}>
+                      <Text style={styles.discountLabel}>
+                        {t('sales.discount')}:
+                      </Text>
+                      <TextInput
+                        style={styles.discountInput}
+                        value={item.discount.toString()}
+                        onChangeText={(text) => {
+                          const discount = parseInt(text) || 0;
+                          updateDiscount(item.product.id, discount);
+                        }}
+                        keyboardType="numeric"
+                        placeholder="0"
+                      />
+                      <Text style={styles.discountUnit}>MMK</Text>
+                    </View>
                   </View>
                 </View>
               ))}
@@ -2611,72 +2613,83 @@ const styles = StyleSheet.create({
     maxHeight: isSmallScreen ? 400 : 500,
   },
   cartItem: {
-    flexDirection: isSmallScreen ? 'column' : 'row',
-    justifyContent: 'space-between',
-    alignItems: isSmallScreen ? 'stretch' : 'center',
-    paddingVertical: isSmallScreen ? 8 : 12,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
+  },
+  cartItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   cartItemImage: {
-    width: isSmallScreen ? 40 : 50,
-    height: isSmallScreen ? 40 : 50,
+    width: 50,
+    height: 50,
     borderRadius: 8,
     marginRight: 12,
     backgroundColor: '#F9FAFB',
   },
   cartItemInfo: {
     flex: 1,
-    marginBottom: isSmallScreen ? 8 : 0,
+    paddingRight: 8,
   },
   cartItemName: {
-    fontSize: isSmallScreen ? 14 : 16,
+    fontSize: 16,
     fontFamily: 'Inter-Medium',
     color: '#111827',
+    marginBottom: 2,
   },
   cartItemPrice: {
-    fontSize: isSmallScreen ? 12 : 14,
+    fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
-    marginTop: 2,
+    marginBottom: 2,
+  },
+  cartItemControls: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   cartItemActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: isSmallScreen ? 'space-between' : 'flex-end',
-    marginBottom: isSmallScreen ? 8 : 0,
   },
   quantityControls: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   quantityButton: {
-    width: isSmallScreen ? 28 : 32,
-    height: isSmallScreen ? 28 : 32,
-    borderRadius: isSmallScreen ? 14 : 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
   },
   quantity: {
-    fontSize: isSmallScreen ? 14 : 16,
+    fontSize: 16,
     fontFamily: 'Inter-SemiBold',
     color: '#111827',
-    marginHorizontal: isSmallScreen ? 8 : 12,
-    minWidth: isSmallScreen ? 20 : 30,
+    marginHorizontal: 12,
+    minWidth: 30,
     textAlign: 'center',
   },
   removeButton: {
-    padding: isSmallScreen ? 6 : 8,
-    marginLeft: isSmallScreen ? 8 : 12,
+    padding: 8,
+    marginLeft: 12,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 8,
   },
   cartItemSubtotalContainer: {
-    alignItems: isSmallScreen ? 'flex-end' : 'center',
+    alignItems: 'flex-end',
+    minWidth: 80,
   },
   cartItemSubtotal: {
-    fontSize: isSmallScreen ? 14 : 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
+    fontSize: 16,
+    fontFamily: 'Inter-Bold',
+    color: '#059669',
   },
   cartItemDiscount: {
     fontSize: 12,
@@ -2687,19 +2700,18 @@ const styles = StyleSheet.create({
   cartItemDiscountSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   discountLabel: {
     fontSize: 12,
     fontFamily: 'Inter-Medium',
     color: '#6B7280',
-    marginRight: 8,
+    marginRight: 6,
   },
   discountInput: {
-    flex: 1,
     borderWidth: 1,
     borderColor: '#D1D5DB',
     borderRadius: 6,
@@ -2709,12 +2721,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     textAlign: 'center',
     backgroundColor: '#FFFFFF',
+    minWidth: 60,
   },
   discountUnit: {
     fontSize: 12,
     fontFamily: 'Inter-Medium',
     color: '#6B7280',
-    marginLeft: 8,
+    marginLeft: 6,
   },
   cartActions: {
     flexDirection: 'row',
