@@ -20,6 +20,7 @@ export interface Sale {
   id: number;
   total: number;
   payment_method: string;
+  note?: string; // Optional note field
   created_at: string;
 }
 
@@ -29,8 +30,9 @@ export interface SaleItem {
   product_id: number;
   quantity: number;
   price: number;
-  cost: number; // Add this line
-  subtotal: number;
+  cost: number;
+  discount: number; // Discount amount
+  subtotal: number; // (price * quantity) - discount
 }
 
 export interface Supplier {
@@ -276,6 +278,40 @@ export class DatabaseService {
         await this.db.execAsync('ALTER TABLE products_new RENAME TO products');
 
         console.log('Category relationship migration completed successfully!');
+      }
+
+      // Migration: Add note column to sales table
+      const salesTableInfo = await this.db.getAllAsync(
+        'PRAGMA table_info(sales)'
+      );
+      const hasNoteColumn = salesTableInfo.some(
+        (column: any) => column.name === 'note'
+      );
+
+      if (!hasNoteColumn) {
+        await this.db.execAsync('ALTER TABLE sales ADD COLUMN note TEXT');
+        console.log('Added note column to sales table');
+      }
+
+      // Migration: Add discount column to sale_items table
+      const saleItemsTableInfo = await this.db.getAllAsync(
+        'PRAGMA table_info(sale_items)'
+      );
+      const hasDiscountColumn = saleItemsTableInfo.some(
+        (column: any) => column.name === 'discount'
+      );
+
+      if (!hasDiscountColumn) {
+        await this.db.execAsync(
+          'ALTER TABLE sale_items ADD COLUMN discount INTEGER DEFAULT 0'
+        );
+        console.log('Added discount column to sale_items table');
+
+        // Update existing records to have 0 discount
+        await this.db.execAsync(
+          'UPDATE sale_items SET discount = 0 WHERE discount IS NULL'
+        );
+        console.log('Updated existing sale_items with default discount value');
       }
     } catch (error) {
       console.log('Migration completed or column already exists:', error);
@@ -675,21 +711,22 @@ export class DatabaseService {
     items: Omit<SaleItem, 'id' | 'sale_id'>[]
   ): Promise<number> {
     const saleResult = await this.db.runAsync(
-      'INSERT INTO sales (total, payment_method) VALUES (?, ?)',
-      [sale.total, sale.payment_method]
+      'INSERT INTO sales (total, payment_method, note) VALUES (?, ?, ?)',
+      [sale.total, sale.payment_method, sale.note || null]
     );
 
     const saleId = saleResult.lastInsertRowId;
 
     for (const item of items) {
       await this.db.runAsync(
-        'INSERT INTO sale_items (sale_id, product_id, quantity, price, cost, subtotal) VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO sale_items (sale_id, product_id, quantity, price, cost, discount, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [
           saleId,
           item.product_id,
           item.quantity,
           item.price,
           item.cost,
+          item.discount || 0,
           item.subtotal,
         ]
       );

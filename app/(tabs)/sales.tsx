@@ -60,7 +60,8 @@ import { useTranslation } from '@/context/LocalizationContext';
 interface CartItem {
   product: Product;
   quantity: number;
-  subtotal: number;
+  discount: number; // Discount amount for this item
+  subtotal: number; // (price * quantity) - discount
 }
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -78,6 +79,7 @@ export default function Sales() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [saleNote, setSaleNote] = useState('');
 
   // Use React Query for optimized data fetching
   const {
@@ -144,7 +146,7 @@ export default function Sales() {
             ? {
                 ...item,
                 quantity: item.quantity + 1,
-                subtotal: (item.quantity + 1) * product.price,
+                subtotal: (item.quantity + 1) * product.price - item.discount,
               }
             : item
         )
@@ -155,6 +157,7 @@ export default function Sales() {
         {
           product,
           quantity: 1,
+          discount: 0, // Default discount is 0
           subtotal: product.price,
         },
       ]);
@@ -183,7 +186,36 @@ export default function Sales() {
           ? {
               ...item,
               quantity: newQuantity,
-              subtotal: newQuantity * item.product.price,
+              subtotal: newQuantity * item.product.price - item.discount,
+            }
+          : item
+      )
+    );
+  };
+
+  const updateDiscount = (productId: number, newDiscount: number) => {
+    const item = cart.find((item) => item.product.id === productId);
+    if (!item) return;
+
+    // Validate discount doesn't exceed item total
+    const itemTotal = item.quantity * item.product.price;
+    if (newDiscount > itemTotal) {
+      Alert.alert(t('common.error'), t('sales.discountTooHigh'));
+      return;
+    }
+
+    if (newDiscount < 0) {
+      Alert.alert(t('common.error'), t('sales.discountCannotBeNegative'));
+      return;
+    }
+
+    setCart(
+      cart.map((item) =>
+        item.product.id === productId
+          ? {
+              ...item,
+              discount: newDiscount,
+              subtotal: item.quantity * item.product.price - newDiscount,
             }
           : item
       )
@@ -196,6 +228,7 @@ export default function Sales() {
 
   const clearCart = () => {
     setCart([]);
+    setSaleNote(''); // Clear sale note when clearing cart
   };
 
   const processSale = async (paymentMethod: string) => {
@@ -207,6 +240,7 @@ export default function Sales() {
       const saleData = {
         total,
         payment_method: paymentMethod,
+        note: saleNote.trim() || undefined, // Only include note if not empty
       };
 
       const saleItems = cart.map((item) => ({
@@ -214,6 +248,7 @@ export default function Sales() {
         quantity: item.quantity,
         price: item.product.price,
         cost: item.product.cost,
+        discount: item.discount,
         subtotal: item.subtotal,
       }));
 
@@ -357,6 +392,20 @@ export default function Sales() {
               </TouchableOpacity>
             </View>
 
+            {/* Sale Note Input */}
+            <View style={styles.saleNoteContainer}>
+              <Text style={styles.saleNoteLabel}>{t('sales.addNote')}</Text>
+              <TextInput
+                style={styles.saleNoteInput}
+                value={saleNote}
+                onChangeText={setSaleNote}
+                placeholder={t('sales.saleNote')}
+                multiline
+                numberOfLines={2}
+                maxLength={200}
+              />
+            </View>
+
             {loading && (
               <View style={styles.processingIndicator}>
                 <ActivityIndicator size="small" color="#059669" />
@@ -451,6 +500,11 @@ export default function Sales() {
                     <Text style={styles.cartItemPrice}>
                       {formatMMK(item.product.price)} {t('sales.each')}
                     </Text>
+                    {item.discount > 0 && (
+                      <Text style={styles.cartItemDiscount}>
+                        {t('sales.discount')}: -{formatMMK(item.discount)}
+                      </Text>
+                    )}
                   </View>
 
                   <View style={styles.cartItemActions}>
@@ -482,6 +536,24 @@ export default function Sales() {
                     >
                       <Trash2 size={isSmallScreen ? 14 : 16} color="#EF4444" />
                     </TouchableOpacity>
+                  </View>
+
+                  {/* Discount Input Section */}
+                  <View style={styles.cartItemDiscountSection}>
+                    <Text style={styles.discountLabel}>
+                      {t('sales.discount')}:
+                    </Text>
+                    <TextInput
+                      style={styles.discountInput}
+                      value={item.discount.toString()}
+                      onChangeText={(text) => {
+                        const discount = parseInt(text) || 0;
+                        updateDiscount(item.product.id, discount);
+                      }}
+                      keyboardType="numeric"
+                      placeholder="0"
+                    />
+                    <Text style={styles.discountUnit}>MMK</Text>
                   </View>
 
                   <View style={styles.cartItemSubtotalContainer}>
@@ -1041,6 +1113,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           Date: formatDate(sale.created_at),
           'Payment Method': sale.payment_method.toUpperCase(),
           'Total Amount': sale.total,
+          Note: sale.note || '',
         }));
 
         // Calculate summary data using the same method as exportSalesItemsData
@@ -1060,36 +1133,42 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           Date: '',
           'Payment Method': '',
           'Total Amount': 0,
+          Note: '',
         });
         excelData.push({
           'Sale ID': 0,
           Date: 'SUMMARY',
           'Payment Method': '',
           'Total Amount': 0,
+          Note: '',
         });
         excelData.push({
           'Sale ID': 0,
           Date: 'Total Sales',
           'Payment Method': totalSales.toString(),
           'Total Amount': 0,
+          Note: '',
         });
         excelData.push({
           'Sale ID': 0,
           Date: 'Total Revenue',
           'Payment Method': '',
           'Total Amount': totalRevenue,
+          Note: '',
         });
         excelData.push({
           'Sale ID': 0,
           Date: 'Total Cost',
           'Payment Method': '',
           'Total Amount': totalCost,
+          Note: '',
         });
         excelData.push({
           'Sale ID': 0,
           Date: 'Total Profit',
           'Payment Method': '',
           'Total Amount': totalProfit,
+          Note: '',
         });
 
         // Create worksheet and workbook
@@ -1142,6 +1221,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Total Amount': sale.total,
         'Total Amount (MMK)': formatMMK(sale.total),
         'Payment Method': sale.payment_method.toUpperCase(),
+        Note: sale.note || '',
         Day: formatDateOnly(sale.created_at),
       }));
 
@@ -1160,6 +1240,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Total Amount': 0,
         'Total Amount (MMK)': '',
         'Payment Method': '',
+        Note: '',
         Day: '',
       });
       excelData.push({
@@ -1168,6 +1249,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Total Amount': 0,
         'Total Amount (MMK)': '',
         'Payment Method': '',
+        Note: '',
         Day: '',
       });
       excelData.push({
@@ -1176,6 +1258,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Total Amount': 0,
         'Total Amount (MMK)': '',
         'Payment Method': totalSales.toString(),
+        Note: '',
         Day: '',
       });
       excelData.push({
@@ -1184,6 +1267,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Total Amount': totalRevenue,
         'Total Amount (MMK)': formatMMK(totalRevenue),
         'Payment Method': '',
+        Note: '',
         Day: '',
       });
       excelData.push({
@@ -1192,6 +1276,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Total Amount': totalCost,
         'Total Amount (MMK)': formatMMK(totalCost),
         'Payment Method': '',
+        Note: '',
         Day: '',
       });
       excelData.push({
@@ -1200,6 +1285,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Total Amount': totalProfit,
         'Total Amount (MMK)': formatMMK(totalProfit),
         'Payment Method': '',
+        Note: '',
         Day: '',
       });
 
@@ -1272,7 +1358,8 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           Product: item.product_name,
           Quantity: item.quantity,
           'Sale Price': item.price,
-          'Cost Price': item.cost || 0, // Assuming cost is available or default to 0
+          'Cost Price': item.cost || 0,
+          Discount: item.discount || 0,
           Subtotal: item.subtotal,
           Profit: item.subtotal - (item.cost || 0) * item.quantity,
         }));
@@ -1295,6 +1382,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           Quantity: 0,
           'Sale Price': 0,
           'Cost Price': 0,
+          Discount: 0,
           Subtotal: 0,
           Profit: 0,
         });
@@ -1305,6 +1393,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           Quantity: 0,
           'Sale Price': 0,
           'Cost Price': 0,
+          Discount: 0,
           Subtotal: 0,
           Profit: 0,
         });
@@ -1315,6 +1404,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           Quantity: totalQuantity,
           'Sale Price': 0,
           'Cost Price': 0,
+          Discount: 0,
           Subtotal: 0,
           Profit: 0,
         });
@@ -1325,6 +1415,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           Quantity: 0,
           'Sale Price': 0,
           'Cost Price': 0,
+          Discount: 0,
           Subtotal: totalSales,
           Profit: 0,
         });
@@ -1335,6 +1426,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           Quantity: 0,
           'Sale Price': 0,
           'Cost Price': 0,
+          Discount: 0,
           Subtotal: 0,
           Profit: totalCost,
         });
@@ -1345,6 +1437,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           Quantity: 0,
           'Sale Price': 0,
           'Cost Price': 0,
+          Discount: 0,
           Subtotal: 0,
           Profit: totalProfit,
         });
@@ -1405,6 +1498,8 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Sale Price (MMK)': formatMMK(item.price),
         'Cost Price': item.cost || 0,
         'Cost Price (MMK)': formatMMK(item.cost || 0),
+        Discount: item.discount || 0,
+        'Discount (MMK)': formatMMK(item.discount || 0),
         Subtotal: item.subtotal,
         'Subtotal (MMK)': formatMMK(item.subtotal),
         Profit: item.subtotal - (item.cost || 0) * item.quantity,
@@ -1431,6 +1526,8 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Sale Price (MMK)': '',
         'Cost Price': 0,
         'Cost Price (MMK)': '',
+        Discount: 0,
+        'Discount (MMK)': '',
         Subtotal: 0,
         'Subtotal (MMK)': '',
         Profit: 0,
@@ -1445,6 +1542,8 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Sale Price (MMK)': '',
         'Cost Price': 0,
         'Cost Price (MMK)': '',
+        Discount: 0,
+        'Discount (MMK)': '',
         Subtotal: 0,
         'Subtotal (MMK)': '',
         Profit: 0,
@@ -1459,6 +1558,8 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Sale Price (MMK)': '',
         'Cost Price': 0,
         'Cost Price (MMK)': '',
+        Discount: 0,
+        'Discount (MMK)': '',
         Subtotal: 0,
         'Subtotal (MMK)': '',
         Profit: 0,
@@ -1473,6 +1574,8 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Sale Price (MMK)': '',
         'Cost Price': 0,
         'Cost Price (MMK)': '',
+        Discount: 0,
+        'Discount (MMK)': '',
         Subtotal: totalSales,
         'Subtotal (MMK)': formatMMK(totalSales),
         Profit: 0,
@@ -1487,6 +1590,8 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Sale Price (MMK)': '',
         'Cost Price': 0,
         'Cost Price (MMK)': '',
+        Discount: 0,
+        'Discount (MMK)': '',
         Subtotal: 0,
         'Subtotal (MMK)': '',
         Profit: totalCost,
@@ -1501,6 +1606,8 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Sale Price (MMK)': '',
         'Cost Price': 0,
         'Cost Price (MMK)': '',
+        Discount: 0,
+        'Discount (MMK)': '',
         Subtotal: 0,
         'Subtotal (MMK)': '',
         Profit: totalProfit,
@@ -1813,6 +1920,11 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     <Text style={styles.salePayment}>
                       {t('sales.payment')} {sale.payment_method.toUpperCase()}
                     </Text>
+                    {sale.note && (
+                      <Text style={styles.saleNote} numberOfLines={1}>
+                        {t('sales.saleNote')}: {sale.note}
+                      </Text>
+                    )}
                   </View>
                   <View style={styles.saleAmountContainer}>
                     <Text style={styles.saleTotal}>
@@ -1873,8 +1985,8 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     {Array.from(
                       { length: 5 },
                       (_, i) => new Date().getFullYear() - i
-                    ).map((year) => (
-                      <View>
+                    ).map((year, index) => (
+                      <View key={index}>
                         <TouchableOpacity
                           key={year}
                           style={[
@@ -2058,6 +2170,16 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         {selectedSale.payment_method.toUpperCase()}
                       </Text>
                     </View>
+                    {selectedSale.note && (
+                      <View style={styles.saleDetailRow}>
+                        <Text style={styles.saleDetailLabel}>
+                          {t('sales.saleNote')}
+                        </Text>
+                        <Text style={styles.saleDetailValue}>
+                          {selectedSale.note}
+                        </Text>
+                      </View>
+                    )}
                     <View style={styles.saleDetailRow}>
                       <Text style={styles.saleDetailLabel}>
                         {t('sales.totalAmount')}
@@ -2121,6 +2243,13 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                           </Text>
                           <Text style={styles.saleItemDetails}>
                             {item.quantity} × {formatMMK(item.price)}
+                            {item.discount > 0 && (
+                              <Text style={styles.saleItemDiscount}>
+                                {' '}
+                                - {formatMMK(item.discount)}{' '}
+                                {t('sales.discount')}
+                              </Text>
+                            )}
                           </Text>
                         </View>
                         <View style={styles.saleItemPricing}>
@@ -2250,6 +2379,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6B7280',
     fontWeight: '500',
+  },
+  saleNoteContainer: {
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  saleNoteLabel: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  saleNoteInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    backgroundColor: '#FFFFFF',
+    textAlignVertical: 'top',
+    minHeight: 60,
   },
   exportModalOverlay: {
     flex: 1,
@@ -2526,6 +2677,44 @@ const styles = StyleSheet.create({
     fontSize: isSmallScreen ? 14 : 16,
     fontFamily: 'Inter-SemiBold',
     color: '#111827',
+  },
+  cartItemDiscount: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#EF4444',
+    marginTop: 2,
+  },
+  cartItemDiscountSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  discountLabel: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+    marginRight: 8,
+  },
+  discountInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    textAlign: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  discountUnit: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+    marginLeft: 8,
   },
   cartActions: {
     flexDirection: 'row',
@@ -2836,6 +3025,13 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     marginTop: 2,
   },
+  saleNote: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    marginTop: 2,
+    fontStyle: 'italic',
+  },
   saleAmountContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2925,6 +3121,10 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
+  },
+  saleItemDiscount: {
+    color: '#EF4444',
+    fontWeight: '500',
   },
   saleItemSubtotal: {
     fontSize: 16,

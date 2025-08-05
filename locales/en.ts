@@ -166,6 +166,12 @@ export const en = {
     productNotFound: 'Product Not Found',
     noProductFoundWithBarcode: 'No product found with this barcode',
     failedToFindProduct: 'Failed to find product',
+    // Discount validation
+    discountTooHigh: 'Discount cannot be higher than item total',
+    discountCannotBeNegative: 'Discount cannot be negative',
+    discount: 'Discount',
+    saleNote: 'Sale Note',
+    addNote: 'Add Note (Optional)',
   },
   barcodeScanner: {
     title: 'Scan Barcode',

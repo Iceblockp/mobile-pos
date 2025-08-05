@@ -171,6 +171,12 @@ export const my: TranslationKeys = {
     productNotFound: 'ကုန်ပစ္စည်းမတွေ့ပါ',
     noProductFoundWithBarcode: 'ဒီဘားကုဒ်နှင့် ကုန်ပစ္စည်းမတွေ့ပါ',
     failedToFindProduct: 'ကုန်ပစ္စည်းရှာရန်မအောင်မြင်ပါ',
+    // Discount validation
+    discountTooHigh: 'လျှော့စျေးသည် ပစ္စည်းစုစုပေါင်းထက် မပိုနိုင်ပါ',
+    discountCannotBeNegative: 'လျှော့စျေးသည် အနုတ်လက္ခဏာမဖြစ်နိုင်ပါ',
+    discount: 'လျှော့စျေး',
+    saleNote: 'ရောင်းချမှုမှတ်စု',
+    addNote: 'မှတ်စုထည့်မည် (ရွေးချယ်ခွင့်)',
   },
   barcodeScanner: {
     title: 'ဘားကုဒ်စကင်မည်',
