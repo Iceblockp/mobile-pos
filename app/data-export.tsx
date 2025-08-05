@@ -21,6 +21,7 @@ import {
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useToast } from '@/context/ToastContext';
+import { useDatabase } from '@/context/DatabaseContext';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 
@@ -38,6 +39,7 @@ export default function DataExport() {
   const router = useRouter();
   const { t } = useTranslation();
   const { showToast } = useToast();
+  const { db } = useDatabase();
   const [isExporting, setIsExporting] = useState<string | null>(null);
 
   const exportOptions: ExportOption[] = [
@@ -79,54 +81,143 @@ export default function DataExport() {
     },
   ];
 
+  // Helper function to get all sales with items
+  const getAllSalesWithItems = async () => {
+    if (!db) throw new Error('Database not available');
+
+    // Get sales from a very early date to get all records
+    const startDate = new Date('2020-01-01');
+    const endDate = new Date();
+    const sales = await db.getSalesByDateRange(startDate, endDate, 10000); // Large limit to get all
+
+    // Get sale items for each sale
+    const salesWithItems = await Promise.all(
+      sales.map(async (sale) => {
+        if (!db) throw new Error('Database not available');
+        const items = await db.getSaleItems(sale.id);
+        return {
+          ...sale,
+          items,
+        };
+      })
+    );
+
+    return salesWithItems;
+  };
+
+  // Helper function to get all expenses
+  const getAllExpenses = async () => {
+    if (!db) throw new Error('Database not available');
+
+    // Get expenses from a very early date to get all records
+    const startDate = new Date('2020-01-01');
+    const endDate = new Date();
+    return await db.getExpensesByDateRange(startDate, endDate, 10000); // Large limit to get all
+  };
+
   const handleExport = async (option: ExportOption) => {
+    if (!db) {
+      showToast('Database not ready', 'error');
+      return;
+    }
+
     setIsExporting(option.id);
 
     try {
       let data: any = {};
       let filename = '';
+      const timestamp = new Date().toISOString().split('T')[0];
 
       switch (option.dataType) {
         case 'sales':
-          // In a real implementation, you'd fetch sales data
-          data = { sales: [], message: 'Sales data export' };
-          filename = `sales_export_${
-            new Date().toISOString().split('T')[0]
-          }.json`;
-          break;
-        case 'products':
+          // Fetch all sales data with items
+          const salesWithItems = await getAllSalesWithItems();
+
           data = {
-            products: [],
-            categories: [],
-            message: 'Products data export',
-          };
-          filename = `products_export_${
-            new Date().toISOString().split('T')[0]
-          }.json`;
-          break;
-        case 'expenses':
-          data = {
-            expenses: [],
-            categories: [],
-            message: 'Expenses data export',
-          };
-          filename = `expenses_export_${
-            new Date().toISOString().split('T')[0]
-          }.json`;
-          break;
-        case 'all':
-          data = {
-            sales: [],
-            products: [],
-            expenses: [],
-            categories: [],
-            settings: {},
+            sales: salesWithItems,
             exportDate: new Date().toISOString(),
-            message: 'Complete data backup',
+            totalRecords: salesWithItems.length,
+            totalRevenue: salesWithItems.reduce(
+              (sum, sale) => sum + sale.total,
+              0
+            ),
+            message: 'Sales data export with transaction details',
           };
-          filename = `complete_backup_${
-            new Date().toISOString().split('T')[0]
-          }.json`;
+          filename = `sales_export_${timestamp}.json`;
+          break;
+
+        case 'products':
+          // Fetch products, categories, and suppliers
+          const products = await db.getProducts();
+          const categories = await db.getCategories();
+          const suppliers = await db.getSuppliers();
+
+          data = {
+            products,
+            categories,
+            suppliers,
+            exportDate: new Date().toISOString(),
+            totalProducts: products.length,
+            totalCategories: categories.length,
+            totalSuppliers: suppliers.length,
+            message: 'Complete products and inventory data export',
+          };
+          filename = `products_export_${timestamp}.json`;
+          break;
+
+        case 'expenses':
+          // Fetch expenses and expense categories
+          const expenses = await getAllExpenses();
+          const expenseCategories = await db.getExpenseCategories();
+
+          data = {
+            expenses,
+            expenseCategories,
+            exportDate: new Date().toISOString(),
+            totalExpenses: expenses.length,
+            totalCategories: expenseCategories.length,
+            totalAmount: expenses.reduce((sum, exp) => sum + exp.amount, 0),
+            message: 'Complete expenses data export',
+          };
+          filename = `expenses_export_${timestamp}.json`;
+          break;
+
+        case 'all':
+          // Fetch all data for complete backup
+          const allSalesWithItems = await getAllSalesWithItems();
+          const allProducts = await db.getProducts();
+          const allCategories = await db.getCategories();
+          const allSuppliers = await db.getSuppliers();
+          const allExpenses = await getAllExpenses();
+          const allExpenseCategories = await db.getExpenseCategories();
+
+          data = {
+            sales: allSalesWithItems,
+            products: allProducts,
+            categories: allCategories,
+            suppliers: allSuppliers,
+            expenses: allExpenses,
+            expenseCategories: allExpenseCategories,
+            exportDate: new Date().toISOString(),
+            summary: {
+              totalSales: allSalesWithItems.length,
+              totalProducts: allProducts.length,
+              totalCategories: allCategories.length,
+              totalSuppliers: allSuppliers.length,
+              totalExpenses: allExpenses.length,
+              totalExpenseCategories: allExpenseCategories.length,
+              totalRevenue: allSalesWithItems.reduce(
+                (sum, sale) => sum + sale.total,
+                0
+              ),
+              totalExpenseAmount: allExpenses.reduce(
+                (sum, exp) => sum + exp.amount,
+                0
+              ),
+            },
+            message: 'Complete Mobile POS data backup',
+          };
+          filename = `complete_backup_${timestamp}.json`;
           break;
       }
 

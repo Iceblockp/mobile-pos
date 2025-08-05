@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mini POS",
     "slug": "pos",
-    "version": "4.0.0",
+    "version": "4.1.0",
     "orientation": "portrait",
     "jsEngine": "hermes",
     "icon": "./assets/images/pos.png",
@@ -13,7 +13,7 @@
       "supportsTablet": true,
       "icon": "./assets/images/pos.png",
       "bundleIdentifier": "com.pyaephyonyo.pos",
-      "buildNumber": "8",
+      "buildNumber": "9",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -53,7 +53,7 @@
         "foregroundImage": "./assets/images/pos.png",
         "backgroundColor": "#ffffff"
       },
-      "versionCode": 8
+      "versionCode": 9
     }
   }
 }

@@ -765,7 +765,7 @@ export const en = {
     title: 'About',
     subtitle: 'App information and version',
     appName: 'Mobile POS',
-    version: 'Version 1.0.0',
+    version: 'Version 4.1.0',
     keyFeatures: 'Key Features',
     completeSales: '• Complete sales management system',
     inventoryTracking: '• Inventory tracking and management',

@@ -817,7 +817,7 @@ export const my: TranslationKeys = {
     title: 'အကြောင်း',
     subtitle: 'အက်ပ်အချက်အလက်နှင့် ဗားရှင်း',
     appName: 'Mobile POS',
-    version: 'ဗားရှင်း 1.0.0',
+    version: 'ဗားရှင်း 4.1.0',
     keyFeatures: 'အဓိကလုပ်ဆောင်ချက်များ',
     completeSales: '• ပြီးပြည့်စုံသော ရောင်းချမှုစီမံခန့်ခွဲမှုစနစ်',
     inventoryTracking: '• ကုန်စာရင်းခြေရာခံမှုနှင့် စီမံခန့်ခွဲမှု',
