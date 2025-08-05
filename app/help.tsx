@@ -22,6 +22,8 @@ import {
   Camera,
   Globe,
   ChevronRight,
+  DollarSign,
+  Download,
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import { LanguageIconButton } from '@/components/LanguageIconButton';
@@ -191,6 +193,38 @@ export default function Help() {
         </View>
         <Text style={styles.featureText}>{t('help.multiLanguageFeature')}</Text>
       </View>
+
+      <View style={styles.featureItem}>
+        <View style={[styles.featureIcon, { backgroundColor: '#FEF2F2' }]}>
+          <DollarSign size={16} color="#EF4444" />
+        </View>
+        <Text style={styles.featureText}>
+          {t('help.expenseTrackingFeature')}
+        </Text>
+      </View>
+
+      <View style={styles.featureItem}>
+        <View style={[styles.featureIcon, { backgroundColor: '#FFFBEB' }]}>
+          <Download size={16} color="#F59E0B" />
+        </View>
+        <Text style={styles.featureText}>{t('help.dataExportFeature')}</Text>
+      </View>
+
+      <View style={styles.featureItem}>
+        <View style={[styles.featureIcon, { backgroundColor: '#F0F9FF' }]}>
+          <ChevronRight size={16} color="#0EA5E9" />
+        </View>
+        <Text style={styles.featureText}>{t('help.salesHistoryFeature')}</Text>
+      </View>
+
+      <View style={styles.featureItem}>
+        <View style={[styles.featureIcon, { backgroundColor: '#F5F3FF' }]}>
+          <Settings size={16} color="#8B5CF6" />
+        </View>
+        <Text style={styles.featureText}>
+          {t('help.productManagementFeature')}
+        </Text>
+      </View>
     </View>
   );
 
@@ -209,6 +243,8 @@ export default function Help() {
         <Text style={styles.howToStep}>{t('help.howToSellStep3')}</Text>
         <Text style={styles.howToStep}>{t('help.howToSellStep4')}</Text>
         <Text style={styles.howToStep}>{t('help.howToSellStep5')}</Text>
+        <Text style={styles.howToNote}>{t('help.sellTip1')}</Text>
+        <Text style={styles.howToNote}>{t('help.sellTip2')}</Text>
       </View>
 
       {/* How to Manage Inventory */}
@@ -219,16 +255,116 @@ export default function Help() {
         <Text style={styles.howToStep}>{t('help.howToInventoryStep3')}</Text>
         <Text style={styles.howToStep}>{t('help.howToInventoryStep4')}</Text>
         <Text style={styles.howToStep}>{t('help.howToInventoryStep5')}</Text>
+        <Text style={styles.howToNote}>{t('help.inventoryTip1')}</Text>
+        <Text style={styles.howToNote}>{t('help.inventoryTip2')}</Text>
+      </View>
+
+      {/* How to Use Barcode Scanner */}
+      <View style={styles.howToSection}>
+        <Text style={styles.howToTitle}>{t('help.howToUseBarcode')}</Text>
+        <Text style={styles.howToStep}>{t('help.howToBarcodeStep1')}</Text>
+        <Text style={styles.howToStep}>{t('help.howToBarcodeStep2')}</Text>
+        <Text style={styles.howToStep}>{t('help.howToBarcodeStep3')}</Text>
+        <Text style={styles.howToStep}>{t('help.howToBarcodeStep4')}</Text>
+        <Text style={styles.howToStep}>{t('help.howToBarcodeStep5')}</Text>
+        <Text style={styles.howToNote}>{t('help.howToBarcodeNote')}</Text>
+      </View>
+
+      {/* How to Manage Expenses */}
+      <View style={styles.howToSection}>
+        <Text style={styles.howToTitle}>{t('help.howToManageExpenses')}</Text>
+        <Text style={styles.howToStep}>{t('help.howToExpensesStep1')}</Text>
+        <Text style={styles.howToStep}>{t('help.howToExpensesStep2')}</Text>
+        <Text style={styles.howToStep}>{t('help.howToExpensesStep3')}</Text>
+        <Text style={styles.howToStep}>{t('help.howToExpensesStep4')}</Text>
+        <Text style={styles.howToStep}>{t('help.howToExpensesStep5')}</Text>
+        <Text style={styles.howToNote}>{t('help.howToExpensesNote')}</Text>
       </View>
 
       {/* How to View Reports */}
       <View style={styles.howToSection}>
         <Text style={styles.howToTitle}>{t('help.howToViewReports')}</Text>
         <Text style={styles.howToStep}>{t('help.howToReportsStep1')}</Text>
-        <Text style={styles.howToStep}>{t('help.howToReportsStep2')}</Text>
-        <Text style={styles.howToStep}>{t('help.howToReportsStep3')}</Text>
-        <Text style={styles.howToStep}>{t('help.howToReportsStep4')}</Text>
-        <Text style={styles.howToStep}>{t('help.howToReportsStep5')}</Text>
+        <Text style={styles.howToStep}>
+          2. View analytics with different time periods
+        </Text>
+        <Text style={styles.howToStep}>
+          3. Use filter options (Today, This Month, This Week)
+        </Text>
+        <Text style={styles.howToStep}>
+          4. Navigate between periods using arrow buttons
+        </Text>
+        <Text style={styles.howToStep}>
+          5. View charts, top products, and expense breakdown
+        </Text>
+        <Text style={styles.howToNote}>{t('help.reportsTip')}</Text>
+      </View>
+
+      {/* How to Export Data */}
+      <View style={styles.howToSection}>
+        <Text style={styles.howToTitle}>{t('help.howToExportData')}</Text>
+        <Text style={styles.howToStep}>{t('help.howToExportStep1')}</Text>
+        <Text style={styles.howToStep}>{t('help.howToExportStep2')}</Text>
+        <Text style={styles.howToStep}>{t('help.howToExportStep3')}</Text>
+        <Text style={styles.howToStep}>{t('help.howToExportStep4')}</Text>
+        <Text style={styles.howToStep}>{t('help.howToExportStep5')}</Text>
+        <Text style={styles.howToNote}>{t('help.howToExportNote')}</Text>
+      </View>
+
+      {/* How to Change Language */}
+      <View style={styles.howToSection}>
+        <Text style={styles.howToTitle}>{t('help.howToChangeLanguage')}</Text>
+        <Text style={styles.howToStep}>{t('help.howToLanguageStep1')}</Text>
+        <Text style={styles.howToStep}>{t('help.howToLanguageStep2')}</Text>
+        <Text style={styles.howToStep}>{t('help.howToLanguageStep3')}</Text>
+        <Text style={styles.howToStep}>{t('help.howToLanguageStep4')}</Text>
+        <Text style={styles.howToNote}>{t('help.howToLanguageNote')}</Text>
+      </View>
+    </View>
+  );
+
+  const TipsAndTricks = () => (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Zap size={20} color="#F59E0B" />
+        <Text style={styles.cardTitle}>{t('help.tipsAndTricks')}</Text>
+      </View>
+
+      <Text style={styles.sectionSubtitle}>{t('help.tipsSubtitle')}</Text>
+
+      <View style={styles.tipItem}>
+        <Text style={styles.tipTitle}>{t('help.quickActions')}</Text>
+        <Text style={styles.tipText}>{t('help.quickActionsTip1')}</Text>
+        <Text style={styles.tipText}>{t('help.quickActionsTip2')}</Text>
+        <Text style={styles.tipText}>{t('help.quickActionsTip3')}</Text>
+      </View>
+
+      <View style={styles.tipItem}>
+        <Text style={styles.tipTitle}>{t('help.betterAnalytics')}</Text>
+        <Text style={styles.tipText}>{t('help.analyticsTip1')}</Text>
+        <Text style={styles.tipText}>{t('help.analyticsTip2')}</Text>
+        <Text style={styles.tipText}>{t('help.analyticsTip3')}</Text>
+      </View>
+
+      <View style={styles.tipItem}>
+        <Text style={styles.tipTitle}>{t('help.salesOptimization')}</Text>
+        <Text style={styles.tipText}>{t('help.salesOptTip1')}</Text>
+        <Text style={styles.tipText}>{t('help.salesOptTip2')}</Text>
+        <Text style={styles.tipText}>{t('help.salesOptTip3')}</Text>
+      </View>
+
+      <View style={styles.tipItem}>
+        <Text style={styles.tipTitle}>{t('help.maintenance')}</Text>
+        <Text style={styles.tipText}>{t('help.maintenanceTip1')}</Text>
+        <Text style={styles.tipText}>{t('help.maintenanceTip2')}</Text>
+        <Text style={styles.tipText}>{t('help.maintenanceTip3')}</Text>
+      </View>
+
+      <View style={styles.tipItem}>
+        <Text style={styles.tipTitle}>{t('help.performance')}</Text>
+        <Text style={styles.tipText}>{t('help.performanceTip1')}</Text>
+        <Text style={styles.tipText}>{t('help.performanceTip2')}</Text>
+        <Text style={styles.tipText}>{t('help.performanceTip3')}</Text>
       </View>
     </View>
   );
@@ -275,6 +411,42 @@ export default function Help() {
           {t('help.performanceIssueSolution')}
         </Text>
       </View>
+
+      <View style={styles.troubleshootItem}>
+        <Text style={styles.troubleshootTitle}>
+          {t('help.salesNotShowing')}
+        </Text>
+        <Text style={styles.troubleshootSolution}>
+          {t('help.salesNotShowingSolution')}
+        </Text>
+      </View>
+
+      <View style={styles.troubleshootItem}>
+        <Text style={styles.troubleshootTitle}>
+          {t('help.imagesNotLoading')}
+        </Text>
+        <Text style={styles.troubleshootSolution}>
+          {t('help.imagesNotLoadingSolution')}
+        </Text>
+      </View>
+
+      <View style={styles.troubleshootItem}>
+        <Text style={styles.troubleshootTitle}>
+          {t('help.exportNotWorking')}
+        </Text>
+        <Text style={styles.troubleshootSolution}>
+          {t('help.exportNotWorkingSolution')}
+        </Text>
+      </View>
+
+      <View style={styles.troubleshootItem}>
+        <Text style={styles.troubleshootTitle}>
+          {t('help.languageNotChanging')}
+        </Text>
+        <Text style={styles.troubleshootSolution}>
+          {t('help.languageNotChangingSolution')}
+        </Text>
+      </View>
     </View>
   );
 
@@ -296,6 +468,7 @@ export default function Help() {
         <QuickStartGuide />
         <FeaturesOverview />
         <HowToUse />
+        <TipsAndTricks />
         <Troubleshooting />
 
         <View style={styles.bottomPadding} />
@@ -483,6 +656,35 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 4,
     paddingLeft: 8,
+  },
+  howToNote: {
+    fontSize: 13,
+    color: '#059669',
+    lineHeight: 18,
+    marginTop: 8,
+    marginBottom: 4,
+    paddingLeft: 8,
+    fontStyle: 'italic',
+  },
+
+  // Tips and Tricks Styles
+  tipItem: {
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  tipTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  tipText: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+    marginBottom: 2,
   },
 
   // Troubleshooting Styles

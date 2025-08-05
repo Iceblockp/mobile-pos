@@ -590,6 +590,105 @@ export const en = {
     howToReportsStep3: '3. Select time period for analysis',
     howToReportsStep4: '4. View top products and trends',
     howToReportsStep5: '5. Track expenses in Expenses section',
+    // Additional help sections
+    howToUseBarcode: 'How to Use Barcode Scanner',
+    howToBarcodeStep1: '1. Tap the scan button in Sales or Inventory',
+    howToBarcodeStep2: '2. Allow camera permissions when prompted',
+    howToBarcodeStep3: '3. Point camera at barcode within the frame',
+    howToBarcodeStep4: '4. Wait for automatic detection and scan sound',
+    howToBarcodeStep5:
+      '5. Product will be found or added to cart automatically',
+    howToBarcodeNote:
+      '💡 Tip: Use flashlight button for better scanning in low light',
+
+    howToManageExpenses: 'How to Track Expenses',
+    howToExpensesStep1: '1. Go to More → Expenses',
+    howToExpensesStep2: '2. Tap "Add Expense" to record new expense',
+    howToExpensesStep3: '3. Select category and enter amount',
+    howToExpensesStep4: '4. Add description for better tracking',
+    howToExpensesStep5: '5. View expense summary in Reports → Analytics',
+    howToExpensesNote:
+      '💡 Tip: Create expense categories first for better organization',
+
+    howToExportData: 'How to Export Data',
+    howToExportStep1: '1. Go to More → Data Export',
+    howToExportStep2:
+      '2. Choose what to export (Sales, Products, Expenses, or Complete Backup)',
+    howToExportStep3: '3. Tap export option and wait for processing',
+    howToExportStep4: '4. Share via email, cloud storage, or messaging apps',
+    howToExportStep5: '5. Data is exported in JSON format for easy backup',
+    howToExportNote:
+      '⚠️ Important: Store exports securely as they contain business data',
+
+    howToChangeLanguage: 'How to Change Language',
+    howToLanguageStep1: '1. Go to More → Language Settings',
+    howToLanguageStep2: '2. Select your preferred language (English/Myanmar)',
+    howToLanguageStep3: '3. Language changes take effect immediately',
+    howToLanguageStep4:
+      '4. All app content will be displayed in selected language',
+    howToLanguageNote:
+      '💡 Tip: You can also use the language button in the top-right corner',
+
+    // Tips for existing sections
+    sellTip1: '💡 Tip: Use the barcode scanner for quick product lookup',
+    sellTip2: '💡 Tip: You can add discounts to individual items in the cart',
+    inventoryTip1: '💡 Tip: Add product images for easier identification',
+    inventoryTip2: '💡 Tip: Use categories to organize your products',
+    reportsTip: '💡 Tip: Pull down to refresh data in any screen',
+
+    // Tips and Tricks section
+    tipsAndTricks: 'Tips & Tricks',
+    tipsSubtitle: 'Pro tips to use Mobile POS more efficiently',
+    quickActions: '🚀 Quick Actions',
+    quickActionsTip1: '• Pull down on any screen to refresh data',
+    quickActionsTip2: '• Long press on products for quick actions',
+    quickActionsTip3: '• Use search in product selection for faster checkout',
+
+    betterAnalytics: '📊 Better Analytics',
+    analyticsTip1: '• Set minimum stock levels to get low stock alerts',
+    analyticsTip2: '• Use expense categories for better profit tracking',
+    analyticsTip3: '• Export data regularly for backup and analysis',
+
+    salesOptimization: '💰 Sales Optimization',
+    salesOptTip1: '• Add product images for easier identification',
+    salesOptTip2: '• Use barcode scanner for faster product lookup',
+    salesOptTip3: '• Apply discounts directly in the shopping cart',
+
+    maintenance: '🔧 Maintenance',
+    maintenanceTip1: '• Regularly update product stock levels',
+    maintenanceTip2: '• Review and clean up old expense categories',
+    maintenanceTip3: '• Export data monthly for backup purposes',
+
+    performance: '📱 Performance',
+    performanceTip1: '• Close other apps when using barcode scanner',
+    performanceTip2: '• Keep product images reasonably sized',
+    performanceTip3: '• Restart app if it becomes slow or unresponsive',
+
+    // Additional troubleshooting
+    salesNotShowing: 'Sales Not Showing in Reports',
+    salesNotShowingSolution:
+      "Check the date filter in Reports. Sales are filtered by date, so ensure you're viewing the correct time period. Pull down to refresh data if needed.",
+
+    imagesNotLoading: 'Product Images Not Loading',
+    imagesNotLoadingSolution:
+      "Product images are stored locally. If images don't appear, try re-adding them from the product edit screen. Ensure you have sufficient storage space.",
+
+    exportNotWorking: 'Export Not Working',
+    exportNotWorkingSolution:
+      'Ensure you have sufficient storage space and sharing permissions. Try exporting smaller data sets if complete backup fails. Check if sharing apps are available.',
+
+    languageNotChanging: 'Language Not Changing',
+    languageNotChangingSolution:
+      "Language changes should be immediate. If not working, try restarting the app. Ensure you're using the language selector in More → Language Settings.",
+
+    // Additional features
+    expenseTrackingFeature:
+      'Expense Tracking - Monitor business expenses by category',
+    dataExportFeature: 'Data Export - Backup and export all business data',
+    salesHistoryFeature:
+      'Sales History - View detailed transaction records with export options',
+    productManagementFeature:
+      'Product Management - Add images, categories, and track stock levels',
   },
   more: {
     title: 'More',
