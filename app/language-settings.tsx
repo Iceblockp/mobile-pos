@@ -33,8 +33,8 @@ export default function LanguageSettings() {
           <ArrowLeft size={24} color="#111827" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.title}>{t('more.language')}</Text>
-          <Text style={styles.subtitle}>{t('more.languageSubtitle')}</Text>
+          <Text style={styles.title}>{t('languageSettings.title')}</Text>
+          <Text style={styles.subtitle}>{t('languageSettings.subtitle')}</Text>
         </View>
       </View>
 
@@ -43,10 +43,12 @@ export default function LanguageSettings() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Globe size={20} color="#6B7280" />
-            <Text style={styles.sectionTitle}>Current Language</Text>
+            <Text style={styles.sectionTitle}>
+              {t('languageSettings.currentLanguage')}
+            </Text>
           </View>
           <Text style={styles.sectionDescription}>
-            Select your preferred language for the app interface
+            {t('languageSettings.selectLanguage')}
           </Text>
         </View>
 
@@ -77,34 +79,42 @@ export default function LanguageSettings() {
 
         {/* Information Section */}
         <View style={styles.infoSection}>
-          <Text style={styles.infoTitle}>Language Information</Text>
+          <Text style={styles.infoTitle}>
+            {t('languageSettings.languageInfo')}
+          </Text>
           <View style={styles.infoCard}>
             <Text style={styles.infoText}>
-              • Language changes take effect immediately
+              {t('languageSettings.changesTakeEffect')}
             </Text>
             <Text style={styles.infoText}>
-              • Your preference is saved automatically
+              {t('languageSettings.preferenceSaved')}
             </Text>
             <Text style={styles.infoText}>
-              • All app content will be displayed in the selected language
+              {t('languageSettings.allContentDisplayed')}
             </Text>
             <Text style={styles.infoText}>
-              • Numbers and currency formats will adapt accordingly
+              {t('languageSettings.numbersAdapt')}
             </Text>
           </View>
         </View>
 
         {/* Supported Languages */}
         <View style={styles.supportedSection}>
-          <Text style={styles.supportedTitle}>Supported Languages</Text>
+          <Text style={styles.supportedTitle}>
+            {t('languageSettings.supportedLanguages')}
+          </Text>
           <View style={styles.supportedList}>
             <View style={styles.supportedItem}>
               <Text style={styles.supportedFlag}>🇺🇸</Text>
-              <Text style={styles.supportedName}>English</Text>
+              <Text style={styles.supportedName}>
+                {t('languageSettings.english')}
+              </Text>
             </View>
             <View style={styles.supportedItem}>
               <Text style={styles.supportedFlag}>🇲🇲</Text>
-              <Text style={styles.supportedName}>မြန်မာ (Myanmar)</Text>
+              <Text style={styles.supportedName}>
+                {t('languageSettings.myanmar')}
+              </Text>
             </View>
           </View>
         </View>

@@ -115,8 +115,8 @@ export default function Settings() {
           <ArrowLeft size={24} color="#111827" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.title}>{t('more.settings')}</Text>
-          <Text style={styles.subtitle}>{t('more.settingsSubtitle')}</Text>
+          <Text style={styles.title}>{t('settings.title')}</Text>
+          <Text style={styles.subtitle}>{t('settings.subtitle')}</Text>
         </View>
       </View>
 
@@ -125,7 +125,9 @@ export default function Settings() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <SettingsIcon size={20} color="#6B7280" />
-            <Text style={styles.sectionTitle}>App Preferences</Text>
+            <Text style={styles.sectionTitle}>
+              {t('settings.appPreferences')}
+            </Text>
           </View>
         </View>
 
@@ -134,9 +136,11 @@ export default function Settings() {
             <View style={styles.settingInfo}>
               <Bell size={20} color="#6B7280" />
               <View style={styles.settingText}>
-                <Text style={styles.settingTitle}>Notifications</Text>
+                <Text style={styles.settingTitle}>
+                  {t('settings.notifications')}
+                </Text>
                 <Text style={styles.settingDescription}>
-                  Receive alerts for low stock and important updates
+                  {t('settings.notificationsDesc')}
                 </Text>
               </View>
             </View>
@@ -152,9 +156,11 @@ export default function Settings() {
             <View style={styles.settingInfo}>
               <Moon size={20} color="#6B7280" />
               <View style={styles.settingText}>
-                <Text style={styles.settingTitle}>Dark Mode</Text>
+                <Text style={styles.settingTitle}>
+                  {t('settings.darkMode')}
+                </Text>
                 <Text style={styles.settingDescription}>
-                  Use dark theme for better viewing in low light
+                  {t('settings.darkModeDesc')}
                 </Text>
               </View>
             </View>
@@ -170,9 +176,11 @@ export default function Settings() {
             <View style={styles.settingInfo}>
               <Vibrate size={20} color="#6B7280" />
               <View style={styles.settingText}>
-                <Text style={styles.settingTitle}>Haptic Feedback</Text>
+                <Text style={styles.settingTitle}>
+                  {t('settings.hapticFeedback')}
+                </Text>
                 <Text style={styles.settingDescription}>
-                  Feel vibrations when interacting with the app
+                  {t('settings.hapticFeedbackDesc')}
                 </Text>
               </View>
             </View>
@@ -188,9 +196,11 @@ export default function Settings() {
             <View style={styles.settingInfo}>
               <Volume2 size={20} color="#6B7280" />
               <View style={styles.settingText}>
-                <Text style={styles.settingTitle}>Sound Effects</Text>
+                <Text style={styles.settingTitle}>
+                  {t('settings.soundEffects')}
+                </Text>
                 <Text style={styles.settingDescription}>
-                  Play sounds for actions and notifications
+                  {t('settings.soundEffectsDesc')}
                 </Text>
               </View>
             </View>

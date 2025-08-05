@@ -1,20 +1,15 @@
-import { router, Tabs, useRouter } from 'expo-router';
-import { enableFreeze } from 'react-native-screens';
+import { Tabs, useRouter } from 'expo-router';
 import {
   Chrome as Home,
   Package,
   ShoppingCart,
   ChartBar as BarChart3,
-  TrendingUp,
-  HelpCircle,
+  Settings,
+  MoreHorizontal,
 } from 'lucide-react-native';
-
-// Add the expenses icon import
-import { DollarSign } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useLicense } from '@/hooks/useLicense';
 import { useTranslation } from '@/context/LocalizationContext';
-import { SplashScreen } from '@/components/SplashScreen';
 
 export default function TabLayout() {
   const { isLicenseValid, loading } = useLicense();
@@ -96,11 +91,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="help"
+        name="more"
         options={{
-          title: t('navigation.help'),
+          title: t('navigation.more'),
           tabBarIcon: ({ size, color }) => (
-            <HelpCircle size={size} color={color} />
+            <MoreHorizontal size={size} color={color} />
           ),
           freezeOnBlur: true,
         }}

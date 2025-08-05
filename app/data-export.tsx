@@ -43,9 +43,8 @@ export default function DataExport() {
   const exportOptions: ExportOption[] = [
     {
       id: 'sales',
-      title: 'Sales Data',
-      description:
-        'Export all sales transactions, payment methods, and customer receipts',
+      title: t('dataExport.salesData'),
+      description: t('dataExport.salesDataDesc'),
       icon: DollarSign,
       color: '#10B981',
       backgroundColor: '#ECFDF5',
@@ -53,9 +52,8 @@ export default function DataExport() {
     },
     {
       id: 'products',
-      title: 'Products & Inventory',
-      description:
-        'Export product catalog, stock levels, categories, and pricing',
+      title: t('dataExport.productsInventory'),
+      description: t('dataExport.productsInventoryDesc'),
       icon: Package,
       color: '#3B82F6',
       backgroundColor: '#EFF6FF',
@@ -63,8 +61,8 @@ export default function DataExport() {
     },
     {
       id: 'expenses',
-      title: 'Expenses Data',
-      description: 'Export business expenses, categories, and expense tracking',
+      title: t('dataExport.expensesData'),
+      description: t('dataExport.expensesDataDesc'),
       icon: FileText,
       color: '#EF4444',
       backgroundColor: '#FEF2F2',
@@ -72,9 +70,8 @@ export default function DataExport() {
     },
     {
       id: 'complete',
-      title: 'Complete Backup',
-      description:
-        'Export all data including sales, products, expenses, and settings',
+      title: t('dataExport.completeBackup'),
+      description: t('dataExport.completeBackupDesc'),
       icon: Database,
       color: '#8B5CF6',
       backgroundColor: '#F5F3FF',
@@ -146,13 +143,16 @@ export default function DataExport() {
           mimeType: 'application/json',
           dialogTitle: `Export ${option.title}`,
         });
-        showToast(`${option.title} exported successfully!`, 'success');
+        showToast(
+          `${option.title} ${t('dataExport.exportSuccess')}`,
+          'success'
+        );
       } else {
-        showToast('Sharing not available on this device', 'error');
+        showToast(t('dataExport.sharingNotAvailable'), 'error');
       }
     } catch (error) {
       console.error('Export error:', error);
-      showToast(`Failed to export ${option.title}`, 'error');
+      showToast(`${t('dataExport.exportFailed')} ${option.title}`, 'error');
     } finally {
       setIsExporting(null);
     }
@@ -160,9 +160,9 @@ export default function DataExport() {
 
   const showExportInfo = () => {
     Alert.alert(
-      'Export Information',
-      'Exported data will be saved as JSON files that can be:\n\n• Shared via email, messaging apps, or cloud storage\n• Imported back into the app\n• Used for backup purposes\n• Analyzed in external tools\n\nAll sensitive data is included, so handle exports securely.',
-      [{ text: 'Got it', style: 'default' }]
+      t('dataExport.exportInfoTitle'),
+      t('dataExport.exportInfoDesc'),
+      [{ text: t('dataExport.gotIt'), style: 'default' }]
     );
   };
 
@@ -177,8 +177,8 @@ export default function DataExport() {
           <ArrowLeft size={24} color="#111827" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.title}>{t('more.dataExport')}</Text>
-          <Text style={styles.subtitle}>{t('more.dataExportSubtitle')}</Text>
+          <Text style={styles.title}>{t('dataExport.title')}</Text>
+          <Text style={styles.subtitle}>{t('dataExport.subtitle')}</Text>
         </View>
         <TouchableOpacity style={styles.infoButton} onPress={showExportInfo}>
           <Text style={styles.infoButtonText}>?</Text>
@@ -190,10 +190,12 @@ export default function DataExport() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Download size={20} color="#6B7280" />
-            <Text style={styles.sectionTitle}>Export Options</Text>
+            <Text style={styles.sectionTitle}>
+              {t('dataExport.exportOptions')}
+            </Text>
           </View>
           <Text style={styles.sectionDescription}>
-            Choose what data you want to export from your POS system
+            {t('dataExport.chooseData')}
           </Text>
         </View>
 
@@ -230,7 +232,9 @@ export default function DataExport() {
                 <View style={styles.exportAction}>
                   {isCurrentlyExporting ? (
                     <View style={styles.loadingContainer}>
-                      <Text style={styles.loadingText}>Exporting...</Text>
+                      <Text style={styles.loadingText}>
+                        {t('dataExport.exporting')}
+                      </Text>
                     </View>
                   ) : (
                     <Share size={20} color="#9CA3AF" />
@@ -243,54 +247,49 @@ export default function DataExport() {
 
         {/* Export Information */}
         <View style={styles.infoSection}>
-          <Text style={styles.infoTitle}>Export Information</Text>
+          <Text style={styles.infoTitle}>{t('dataExport.exportInfo')}</Text>
           <View style={styles.infoCard}>
             <View style={styles.infoItem}>
               <CheckCircle size={16} color="#10B981" />
-              <Text style={styles.infoText}>
-                Data is exported in JSON format for easy import/backup
-              </Text>
+              <Text style={styles.infoText}>{t('dataExport.jsonFormat')}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <CheckCircle size={16} color="#10B981" />
+              <Text style={styles.infoText}>{t('dataExport.timestamped')}</Text>
             </View>
             <View style={styles.infoItem}>
               <CheckCircle size={16} color="#10B981" />
               <Text style={styles.infoText}>
-                Files include timestamps and can be shared securely
+                {t('dataExport.completeBackups')}
               </Text>
             </View>
             <View style={styles.infoItem}>
               <CheckCircle size={16} color="#10B981" />
-              <Text style={styles.infoText}>
-                Complete backups include all settings and configurations
-              </Text>
-            </View>
-            <View style={styles.infoItem}>
-              <CheckCircle size={16} color="#10B981" />
-              <Text style={styles.infoText}>
-                Exported data can be re-imported to restore information
-              </Text>
+              <Text style={styles.infoText}>{t('dataExport.canReimport')}</Text>
             </View>
           </View>
         </View>
 
         {/* Data Security Notice */}
         <View style={styles.securitySection}>
-          <Text style={styles.securityTitle}>🔒 Data Security</Text>
+          <Text style={styles.securityTitle}>
+            {t('dataExport.dataSecurity')}
+          </Text>
           <View style={styles.securityCard}>
             <Text style={styles.securityText}>
-              Exported files contain sensitive business data including sales
-              figures, product information, and expense details. Please:
+              {t('dataExport.securityWarning')}
             </Text>
             <Text style={styles.securityBullet}>
-              • Store exports in secure locations
+              {t('dataExport.storeSecure')}
             </Text>
             <Text style={styles.securityBullet}>
-              • Use encrypted storage when possible
+              {t('dataExport.useEncryption')}
             </Text>
             <Text style={styles.securityBullet}>
-              • Avoid sharing via unsecured channels
+              {t('dataExport.avoidUnsecured')}
             </Text>
             <Text style={styles.securityBullet}>
-              • Delete old exports regularly
+              {t('dataExport.deleteOld')}
             </Text>
           </View>
         </View>

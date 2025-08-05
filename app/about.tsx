@@ -39,8 +39,8 @@ export default function About() {
           <ArrowLeft size={24} color="#111827" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.title}>{t('more.about')}</Text>
-          <Text style={styles.subtitle}>{t('more.aboutSubtitle')}</Text>
+          <Text style={styles.title}>{t('about.title')}</Text>
+          <Text style={styles.subtitle}>{t('about.subtitle')}</Text>
         </View>
       </View>
 
@@ -51,8 +51,8 @@ export default function About() {
             <View style={styles.appLogo}>
               <Text style={styles.appLogoText}>POS</Text>
             </View>
-            <Text style={styles.appName}>Mobile POS</Text>
-            <Text style={styles.appVersion}>Version 4.0.0</Text>
+            <Text style={styles.appName}>{t('about.appName')}</Text>
+            <Text style={styles.appVersion}>{t('about.version')}</Text>
             <Text style={styles.appDescription}>
               {t('more.appDescription')}
             </Text>
@@ -61,69 +61,67 @@ export default function About() {
 
         {/* Features */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Key Features</Text>
+          <Text style={styles.sectionTitle}>{t('about.keyFeatures')}</Text>
           <View style={styles.featuresList}>
             <View style={styles.featureItem}>
               <Text style={styles.featureBullet}>•</Text>
+              <Text style={styles.featureText}>{t('about.completeSales')}</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Text style={styles.featureBullet}>•</Text>
               <Text style={styles.featureText}>
-                Complete sales management system
+                {t('about.inventoryTracking')}
               </Text>
             </View>
             <View style={styles.featureItem}>
               <Text style={styles.featureBullet}>•</Text>
               <Text style={styles.featureText}>
-                Inventory tracking and management
+                {t('about.businessAnalytics')}
               </Text>
             </View>
             <View style={styles.featureItem}>
               <Text style={styles.featureBullet}>•</Text>
               <Text style={styles.featureText}>
-                Business analytics and reporting
+                {t('about.expenseTracking')}
               </Text>
             </View>
             <View style={styles.featureItem}>
               <Text style={styles.featureBullet}>•</Text>
               <Text style={styles.featureText}>
-                Expense tracking and categorization
+                {t('about.barcodeSupport')}
               </Text>
             </View>
             <View style={styles.featureItem}>
               <Text style={styles.featureBullet}>•</Text>
-              <Text style={styles.featureText}>Barcode scanning support</Text>
+              <Text style={styles.featureText}>{t('about.multiLanguage')}</Text>
             </View>
             <View style={styles.featureItem}>
               <Text style={styles.featureBullet}>•</Text>
-              <Text style={styles.featureText}>
-                Multi-language support (English/Myanmar)
-              </Text>
-            </View>
-            <View style={styles.featureItem}>
-              <Text style={styles.featureBullet}>•</Text>
-              <Text style={styles.featureText}>
-                Data export and backup capabilities
-              </Text>
+              <Text style={styles.featureText}>{t('about.dataExportCap')}</Text>
             </View>
           </View>
         </View>
 
         {/* Technical Info */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Technical Information</Text>
+          <Text style={styles.sectionTitle}>{t('about.technicalInfo')}</Text>
           <View style={styles.infoCard}>
             <View style={styles.infoRow}>
               <Code size={16} color="#6B7280" />
-              <Text style={styles.infoLabel}>Built with:</Text>
-              <Text style={styles.infoValue}>React Native & Expo</Text>
+              <Text style={styles.infoLabel}>{t('about.builtWith')}</Text>
+              <Text style={styles.infoValue}>{t('about.reactNativeExpo')}</Text>
             </View>
             <View style={styles.infoRow}>
               <Shield size={16} color="#6B7280" />
-              <Text style={styles.infoLabel}>Data Storage:</Text>
-              <Text style={styles.infoValue}>Local SQLite Database</Text>
+              <Text style={styles.infoLabel}>{t('about.dataStorage')}</Text>
+              <Text style={styles.infoValue}>{t('about.localSqlite')}</Text>
             </View>
             <View style={styles.infoRow}>
               <Heart size={16} color="#6B7280" />
-              <Text style={styles.infoLabel}>License:</Text>
-              <Text style={styles.infoValue}>Commercial License</Text>
+              <Text style={styles.infoLabel}>{t('about.license')}</Text>
+              <Text style={styles.infoValue}>
+                {t('about.commercialLicense')}
+              </Text>
             </View>
           </View>
         </View>
