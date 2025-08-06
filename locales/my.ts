@@ -168,6 +168,7 @@ export const my: TranslationKeys = {
     customerReceipt: 'ဖောက်သည်ဘောင်ချာ',
     internalView: 'အတွင်းပိုင်းကြည့်ရှုမှု',
     printReceipt: 'ဘောင်ချာပုံနှိပ်မည်',
+    printCustomerReceipt: 'ဖောက်သည်ဘောင်ချာပုံနှိပ်မည်',
     // Barcode scanning
     productNotFound: 'ကုန်ပစ္စည်းမတွေ့ပါ',
     noProductFoundWithBarcode: 'ဒီဘားကုဒ်နှင့် ကုန်ပစ္စည်းမတွေ့ပါ',

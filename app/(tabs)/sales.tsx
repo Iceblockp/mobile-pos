@@ -47,6 +47,7 @@ import {
   FileSpreadsheet,
   Share as ShareIcon,
   Image as ImageIcon,
+  Printer,
 } from 'lucide-react-native';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -693,6 +694,8 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const saleDetailRef = useRef(null);
   const [capturing, setCapturing] = useState(false);
   const [isCustomerVoucher, setIsCustomerVoucher] = useState(true);
+  const [showPrintManager, setShowPrintManager] = useState(false);
+  const [receiptData, setReceiptData] = useState<any>(null);
 
   const formatMMK = (amount: number) => {
     return (
@@ -919,6 +922,41 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }
 
     setShowExportModal(true);
+  };
+
+  // Function to prepare receipt data for printing
+  const prepareReceiptData = () => {
+    if (!selectedSale || !saleItems) return null;
+
+    // Convert sale items to the format expected by EnhancedPrintManager
+    const formattedItems = saleItems.map((item) => ({
+      product: {
+        id: item.product_id,
+        name: item.product_name || 'Unknown Product',
+        price: item.price,
+      },
+      quantity: item.quantity,
+      discount: item.discount || 0,
+      subtotal: item.subtotal,
+    }));
+
+    return {
+      saleId: selectedSale.id,
+      items: formattedItems,
+      total: selectedSale.total,
+      paymentMethod: selectedSale.payment_method,
+      note: selectedSale.note || '',
+      date: new Date(selectedSale.created_at),
+    };
+  };
+
+  // Function to handle print receipt button
+  const handlePrintReceipt = () => {
+    const printData = prepareReceiptData();
+    if (printData) {
+      setReceiptData(printData);
+      setShowPrintManager(true);
+    }
   };
 
   // Add this function to capture and save the sale detail as an image
@@ -2016,18 +2054,26 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                       </Text>
                     </TouchableOpacity>
 
-                    {/* Add Export as Image button */}
+                    {/* Print Receipt / Export as Image button */}
                     <TouchableOpacity
                       style={styles.exportImageButton}
-                      onPress={captureSaleDetail}
+                      onPress={
+                        isCustomerVoucher
+                          ? handlePrintReceipt
+                          : captureSaleDetail
+                      }
                       disabled={capturing}
                     >
-                      <ImageIcon size={16} color="#FFFFFF" />
+                      {isCustomerVoucher ? (
+                        <Printer size={16} color="#FFFFFF" />
+                      ) : (
+                        <ImageIcon size={16} color="#FFFFFF" />
+                      )}
                       <Text style={styles.exportImageButtonText}>
                         {capturing
                           ? t('sales.exporting')
                           : isCustomerVoucher
-                          ? t('sales.printReceipt')
+                          ? t('sales.printCustomerReceipt')
                           : t('sales.exportAsImage')}
                       </Text>
                     </TouchableOpacity>
@@ -2181,6 +2227,18 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             )}
           </SafeAreaView>
         </Modal>
+
+        {/* Enhanced Print Manager for Sale Detail */}
+        {receiptData && (
+          <EnhancedPrintManager
+            visible={showPrintManager}
+            onClose={() => {
+              setShowPrintManager(false);
+              setReceiptData(null);
+            }}
+            receiptData={receiptData}
+          />
+        )}
       </SafeAreaView>
     </Modal>
   );

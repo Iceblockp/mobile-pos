@@ -163,6 +163,7 @@ export const en = {
     customerReceipt: 'Customer Receipt',
     internalView: 'Internal View',
     printReceipt: 'Print Receipt',
+    printCustomerReceipt: 'Print Customer Receipt',
     // Barcode scanning
     productNotFound: 'Product Not Found',
     noProductFoundWithBarcode: 'No product found with this barcode',
