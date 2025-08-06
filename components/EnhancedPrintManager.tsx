@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,14 +7,12 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  SafeAreaView,
   Linking,
   Platform,
 } from 'react-native';
 import {
   X,
   Printer,
-  FileText,
   Share,
   ExternalLink,
   Smartphone,
@@ -22,7 +20,13 @@ import {
 import { useTranslation } from '@/context/LocalizationContext';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import { ShopSettingsService } from '@/services/shopSettingsService';
+import {
+  TemplateEngine,
+  ReceiptData as TemplateReceiptData,
+} from '@/services/templateEngine';
+import { ShopSettings } from '@/services/database';
+import { initializeDatabase } from '@/services/database';
 
 interface CartItem {
   product: {
@@ -58,6 +62,35 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
   const { t } = useTranslation();
   const [isPrinting, setIsPrinting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [shopSettings, setShopSettings] = useState<ShopSettings | null>(null);
+  const [templateEngine, setTemplateEngine] = useState<TemplateEngine | null>(
+    null
+  );
+  const [shopSettingsService, setShopSettingsService] =
+    useState<ShopSettingsService | null>(null);
+
+  // Load shop settings when component mounts
+  useEffect(() => {
+    const loadShopSettings = async () => {
+      try {
+        const databaseService = await initializeDatabase();
+        const service = new ShopSettingsService(databaseService);
+        const settings = await service.getShopSettings();
+
+        setShopSettingsService(service);
+        setShopSettings(settings);
+        setTemplateEngine(new TemplateEngine());
+      } catch (error) {
+        console.error('Failed to load shop settings:', error);
+        // Continue with default template engine
+        setTemplateEngine(new TemplateEngine());
+      }
+    };
+
+    if (visible) {
+      loadShopSettings();
+    }
+  }, [visible]);
 
   const formatMMK = (amount: number) => {
     return (
@@ -79,126 +112,97 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
   };
 
   const generatePDFReceipt = async () => {
+    if (!templateEngine) {
+      throw new Error('Template engine not initialized');
+    }
+
+    try {
+      // Convert receipt data to template format
+      const templateReceiptData: TemplateReceiptData = {
+        saleId: receiptData.saleId,
+        items: receiptData.items,
+        total: receiptData.total,
+        paymentMethod: receiptData.paymentMethod,
+        note: receiptData.note,
+        date: receiptData.date,
+      };
+
+      // Get selected template (default to classic if no shop settings)
+      const templateId = shopSettings?.receiptTemplate || 'classic';
+
+      // Build template context with translations
+      const translations = {
+        mobilePOS: t('printing.mobilePOS'),
+        pointOfSaleSystem: t('printing.pointOfSaleSystem'),
+        thankYou: t('printing.thankYou'),
+        receiptNumber: t('printing.receiptNumber'),
+        date: t('common.date'),
+        paymentMethod: t('printing.paymentMethod'),
+        itemsPurchased: t('printing.itemsPurchased'),
+        discount: t('sales.discount'),
+        total: t('common.total'),
+        saleNote: t('sales.saleNote'),
+        generatedBy: t('printing.generatedBy'),
+      };
+
+      const context = templateEngine.buildTemplateContext(
+        shopSettings,
+        templateReceiptData,
+        translations
+      );
+
+      // Render receipt using template engine
+      const htmlContent = await templateEngine.renderReceipt(
+        templateId,
+        context
+      );
+      return htmlContent;
+    } catch (error) {
+      console.error('Failed to generate receipt with template engine:', error);
+
+      // Fallback to basic receipt if template engine fails
+      return generateFallbackReceipt();
+    }
+  };
+
+  // Fallback receipt generation (original method)
+  const generateFallbackReceipt = () => {
     const { saleId, items, total, paymentMethod, note, date } = receiptData;
 
-    const htmlContent = `
+    return `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8">
           <title>Receipt #${saleId}</title>
           <style>
-            body {
-              font-family: 'Courier New', monospace;
-              margin: 0;
-              padding: 20px;
-              font-size: 14px;
-              line-height: 1.4;
-              background: white;
-            }
-            .receipt {
-              max-width: 300px;
-              margin: 0 auto;
-              background: white;
-            }
-            .header {
-              text-align: center;
-              margin-bottom: 20px;
-              border-bottom: 2px solid #000;
-              padding-bottom: 10px;
-            }
-            .store-name {
-              font-size: 20px;
-              font-weight: bold;
-              margin-bottom: 5px;
-            }
-            .store-info {
-              font-size: 12px;
-              margin-bottom: 2px;
-            }
-            .receipt-info {
-              margin-bottom: 15px;
-            }
-            .receipt-info div {
-              margin-bottom: 3px;
-            }
-            .items {
-              margin-bottom: 15px;
-            }
-            .item {
-              margin-bottom: 8px;
-              border-bottom: 1px dashed #ccc;
-              padding-bottom: 5px;
-            }
-            .item-name {
-              font-weight: bold;
-              margin-bottom: 2px;
-            }
-            .item-details {
-              display: flex;
-              justify-content: space-between;
-              font-size: 12px;
-            }
-            .totals {
-              border-top: 2px solid #000;
-              padding-top: 10px;
-              margin-bottom: 15px;
-            }
-            .total-line {
-              display: flex;
-              justify-content: space-between;
-              margin-bottom: 5px;
-            }
-            .total-line.final {
-              font-weight: bold;
-              font-size: 18px;
-              border-top: 1px solid #000;
-              padding-top: 5px;
-            }
-            .footer {
-              text-align: center;
-              font-size: 12px;
-              margin-top: 20px;
-              border-top: 1px solid #ccc;
-              padding-top: 10px;
-            }
-            .note {
-              margin: 10px 0;
-              padding: 8px;
-              background-color: #f5f5f5;
-              border-left: 3px solid #007bff;
-              border-radius: 4px;
-            }
-            @media print {
-              body { margin: 0; padding: 10px; }
-              .receipt { max-width: none; }
-            }
+            body { font-family: 'Courier New', monospace; margin: 0; padding: 20px; font-size: 14px; }
+            .receipt { max-width: 300px; margin: 0 auto; }
+            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+            .store-name { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
+            .item { margin-bottom: 8px; border-bottom: 1px dashed #ccc; padding-bottom: 5px; }
+            .item-name { font-weight: bold; margin-bottom: 2px; }
+            .item-details { display: flex; justify-content: space-between; font-size: 12px; }
+            .total-line { display: flex; justify-content: space-between; font-weight: bold; font-size: 18px; }
           </style>
         </head>
         <body>
           <div class="receipt">
             <div class="header">
-              <div class="store-name">${t('printing.mobilePOS')}</div>
-              <div class="store-info">${t('printing.pointOfSaleSystem')}</div>
-              <div class="store-info">${t('printing.thankYou')}</div>
+              <div class="store-name">${
+                shopSettings?.shopName || t('printing.mobilePOS')
+              }</div>
+              ${
+                shopSettings?.address
+                  ? `<div>${shopSettings.address}</div>`
+                  : ''
+              }
+              ${shopSettings?.phone ? `<div>${shopSettings.phone}</div>` : ''}
             </div>
-
-            <div class="receipt-info">
-              <div><strong>${t(
-                'printing.receiptNumber'
-              )}</strong> ${saleId}</div>
-              <div><strong>${t('common.date')}:</strong> ${formatDate(
-      date
-    )}</div>
-              <div><strong>${t(
-                'printing.paymentMethod'
-              )}</strong> ${paymentMethod.toUpperCase()}</div>
-            </div>
-
-            <div class="items">
-              <div style="font-weight: bold; margin-bottom: 10px;">${t(
-                'printing.itemsPurchased'
-              )}</div>
+            <div><strong>Receipt #:</strong> ${saleId}</div>
+            <div><strong>Date:</strong> ${formatDate(date)}</div>
+            <div><strong>Payment:</strong> ${paymentMethod.toUpperCase()}</div>
+            <div style="margin: 15px 0;">
               ${items
                 .map(
                   (item) => `
@@ -214,7 +218,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
                     item.discount > 0
                       ? `
                     <div class="item-details" style="color: #dc3545;">
-                      <span>${t('sales.discount')}</span>
+                      <span>Discount</span>
                       <span>-${formatMMK(item.discount)}</span>
                     </div>
                   `
@@ -225,34 +229,24 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
                 )
                 .join('')}
             </div>
-
-            <div class="totals">
-              <div class="total-line final">
-                <span>${t('common.total').toUpperCase()}</span>
-                <span>${formatMMK(total)}</span>
-              </div>
+            <div class="total-line">
+              <span>TOTAL</span>
+              <span>${formatMMK(total)}</span>
             </div>
-
             ${
               note
-                ? `
-              <div class="note">
-                <strong>${t('sales.saleNote')}:</strong> ${note}
-              </div>
-            `
+                ? `<div style="margin: 10px 0; padding: 8px; background: #f5f5f5;"><strong>Note:</strong> ${note}</div>`
                 : ''
             }
-
-            <div class="footer">
-              <div>${t('printing.generatedBy')}</div>
-              <div>${formatDate(new Date())}</div>
+            <div style="text-align: center; margin-top: 20px; font-size: 12px;">
+              ${shopSettings?.thankYouMessage || t('printing.thankYou')}
+              <br>
+              ${shopSettings?.receiptFooter || ''}
             </div>
           </div>
         </body>
       </html>
     `;
-
-    return htmlContent;
   };
 
   const printReceipt = async () => {

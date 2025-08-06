@@ -18,10 +18,12 @@ import {
   Database,
   Share,
   CheckCircle,
+  Store,
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useToast } from '@/context/ToastContext';
 import { useDatabase } from '@/context/DatabaseContext';
+import { useShopSettings } from '@/context/ShopSettingsContext';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 
@@ -32,7 +34,7 @@ interface ExportOption {
   icon: any;
   color: string;
   backgroundColor: string;
-  dataType: 'sales' | 'products' | 'expenses' | 'all';
+  dataType: 'sales' | 'products' | 'expenses' | 'shopSettings' | 'all';
 }
 
 export default function DataExport() {
@@ -40,6 +42,7 @@ export default function DataExport() {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { db } = useDatabase();
+  const { shopSettings, shopSettingsService } = useShopSettings();
   const [isExporting, setIsExporting] = useState<string | null>(null);
 
   const exportOptions: ExportOption[] = [
@@ -69,6 +72,15 @@ export default function DataExport() {
       color: '#EF4444',
       backgroundColor: '#FEF2F2',
       dataType: 'expenses',
+    },
+    {
+      id: 'shopSettings',
+      title: 'Shop Settings',
+      description: 'Export shop information, branding, and receipt templates',
+      icon: Store,
+      color: '#059669',
+      backgroundColor: '#ECFDF5',
+      dataType: 'shopSettings',
     },
     {
       id: 'complete',
@@ -182,6 +194,31 @@ export default function DataExport() {
           filename = `expenses_export_${timestamp}.json`;
           break;
 
+        case 'shopSettings':
+          // Fetch shop settings and templates
+          const exportShopSettings = shopSettingsService
+            ? await shopSettingsService.getShopSettings()
+            : null;
+          const availableTemplates = shopSettingsService
+            ? shopSettingsService.getAvailableTemplates()
+            : [];
+
+          data = {
+            shopSettings: exportShopSettings,
+            availableTemplates: availableTemplates.map((template) => ({
+              id: template.id,
+              name: template.name,
+              description: template.description,
+            })),
+            exportDate: new Date().toISOString(),
+            hasShopSettings: exportShopSettings !== null,
+            shopName: exportShopSettings?.shopName || 'Not configured',
+            receiptTemplate: exportShopSettings?.receiptTemplate || 'classic',
+            message: 'Shop settings and branding configuration export',
+          };
+          filename = `shop_settings_export_${timestamp}.json`;
+          break;
+
         case 'all':
           // Fetch all data for complete backup
           const allSalesWithItems = await getAllSalesWithItems();
@@ -191,6 +228,11 @@ export default function DataExport() {
           const allExpenses = await getAllExpenses();
           const allExpenseCategories = await db.getExpenseCategories();
 
+          // Get shop settings
+          const currentShopSettings = shopSettingsService
+            ? await shopSettingsService.getShopSettings()
+            : null;
+
           data = {
             sales: allSalesWithItems,
             products: allProducts,
@@ -198,6 +240,7 @@ export default function DataExport() {
             suppliers: allSuppliers,
             expenses: allExpenses,
             expenseCategories: allExpenseCategories,
+            shopSettings: currentShopSettings,
             exportDate: new Date().toISOString(),
             summary: {
               totalSales: allSalesWithItems.length,
@@ -206,6 +249,8 @@ export default function DataExport() {
               totalSuppliers: allSuppliers.length,
               totalExpenses: allExpenses.length,
               totalExpenseCategories: allExpenseCategories.length,
+              hasShopSettings: currentShopSettings !== null,
+              shopName: currentShopSettings?.shopName || 'Not configured',
               totalRevenue: allSalesWithItems.reduce(
                 (sum, sale) => sum + sale.total,
                 0
@@ -215,7 +260,7 @@ export default function DataExport() {
                 0
               ),
             },
-            message: 'Complete Mobile POS data backup',
+            message: 'Complete Mobile POS data backup including shop settings',
           };
           filename = `complete_backup_${timestamp}.json`;
           break;

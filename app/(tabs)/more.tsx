@@ -15,6 +15,7 @@ import {
   Download,
   Info,
   Settings,
+  Store,
   ChevronRight,
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
@@ -24,6 +25,15 @@ export default function More() {
   const { t } = useTranslation();
 
   const menuItems = [
+    {
+      id: 'shopSettings',
+      title: t('more.shopSettings'),
+      subtitle: t('more.shopSettingsSubtitle'),
+      icon: Store,
+      color: '#059669',
+      backgroundColor: '#ECFDF5',
+      route: '/shop-settings',
+    },
     {
       id: 'expenses',
       title: t('more.expenses'),
