@@ -32,16 +32,7 @@ interface PaymentModalProps {
 
 type PaymentMethod = 'cash' | 'card' | 'mobile';
 
-const paymentMethods = [
-  { value: 'cash', label: 'Cash', icon: Banknote, color: '#10B981' },
-  { value: 'card', label: 'Card', icon: CreditCard, color: '#3B82F6' },
-  {
-    value: 'mobile',
-    label: 'Mobile Payment',
-    icon: Smartphone,
-    color: '#8B5CF6',
-  },
-];
+// Payment methods will be localized inside the component
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({
   visible,
@@ -55,6 +46,27 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     useState<PaymentMethod>('cash');
   const [saleNote, setSaleNote] = useState('');
   const [shouldPrintReceipt, setShouldPrintReceipt] = useState(false);
+
+  const paymentMethods = [
+    {
+      value: 'cash',
+      label: t('paymentModal.cash'),
+      icon: Banknote,
+      color: '#10B981',
+    },
+    {
+      value: 'card',
+      label: t('paymentModal.card'),
+      icon: CreditCard,
+      color: '#3B82F6',
+    },
+    {
+      value: 'mobile',
+      label: t('paymentModal.mobilePayment'),
+      icon: Smartphone,
+      color: '#8B5CF6',
+    },
+  ];
 
   const formatMMK = (amount: number) => {
     return (
@@ -89,7 +101,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Complete Sale</Text>
+            <Text style={styles.title}>{t('paymentModal.title')}</Text>
             <TouchableOpacity
               onPress={handleClose}
               style={styles.closeButton}
@@ -101,13 +113,17 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
           {/* Total Amount */}
           <View style={styles.totalSection}>
-            <Text style={styles.totalLabel}>Total Amount</Text>
+            <Text style={styles.totalLabel}>
+              {t('paymentModal.totalAmount')}
+            </Text>
             <Text style={styles.totalAmount}>{formatMMK(total)}</Text>
           </View>
 
           {/* Payment Method Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Payment Method</Text>
+            <Text style={styles.sectionTitle}>
+              {t('paymentModal.paymentMethod')}
+            </Text>
             <View style={styles.pickerContainer}>
               <Picker
                 selectedValue={selectedPaymentMethod}
@@ -130,12 +146,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
           {/* Sale Note */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Sale Note (Optional)</Text>
+            <Text style={styles.sectionTitle}>
+              {t('paymentModal.saleNote')}
+            </Text>
             <TextInput
               style={styles.noteInput}
               value={saleNote}
               onChangeText={setSaleNote}
-              placeholder="Add a note for this sale..."
+              placeholder={t('paymentModal.saleNotePlaceholder')}
               multiline
               numberOfLines={3}
               maxLength={200}
@@ -161,10 +179,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               <View style={styles.checkboxContent}>
                 <View style={styles.checkboxHeader}>
                   <Printer size={16} color="#6B7280" />
-                  <Text style={styles.checkboxLabel}>Print Receipt</Text>
+                  <Text style={styles.checkboxLabel}>
+                    {t('paymentModal.printReceipt')}
+                  </Text>
                 </View>
                 <Text style={styles.checkboxDescription}>
-                  Generate PDF receipt and open print options
+                  {t('paymentModal.printReceiptDesc')}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -177,7 +197,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               onPress={handleClose}
               disabled={loading}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.cancelButtonText}>
+                {t('paymentModal.cancel')}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -191,10 +213,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               {loading ? (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="small" color="#FFFFFF" />
-                  <Text style={styles.confirmButtonText}>Processing...</Text>
+                  <Text style={styles.confirmButtonText}>
+                    {t('paymentModal.processing')}
+                  </Text>
                 </View>
               ) : (
-                <Text style={styles.confirmButtonText}>Make Sale</Text>
+                <Text style={styles.confirmButtonText}>
+                  {t('paymentModal.makeSale')}
+                </Text>
               )}
             </TouchableOpacity>
           </View>

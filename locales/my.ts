@@ -217,6 +217,22 @@ export const my: TranslationKeys = {
     itemsPurchased: 'ဝယ်ယူသောပစ္စည်းများ',
     generatedBy: 'မိုဘိုင်း POS မှ ထုတ်လုပ်သည်',
   },
+  paymentModal: {
+    title: 'ရောင်းချမှုပြီးမြောက်စေမည်',
+    totalAmount: 'စုစုပေါင်းပမာဏ',
+    paymentMethod: 'ငွေပေးချေမှုနည်းလမ်း',
+    saleNote: 'ရောင်းချမှုမှတ်စု (ရွေးချယ်ခွင့်)',
+    saleNotePlaceholder: 'ဒီရောင်းချမှုအတွက် မှတ်စုထည့်ပါ...',
+    printReceipt: 'ဘောက်ချာပုံနှိပ်မည်',
+    printReceiptDesc:
+      'PDF ဘောက်ချာထုတ်လုပ်ပြီး ပုံနှိပ်ရွေးချယ်စရာများဖွင့်မည်',
+    cancel: 'ပယ်ဖျက်မည်',
+    makeSale: 'ရောင်းချမှုလုပ်မည်',
+    processing: 'လုပ်ဆောင်နေသည်...',
+    cash: 'လက်ငင်း',
+    card: 'ကတ်',
+    mobilePayment: 'မိုဘိုင်းငွေပေးချေမှု',
+  },
   barcodeScanner: {
     title: 'ဘားကုဒ်စကင်မည်',
     cameraNotAvailable: 'ကင်မရာမရရှိနိုင်ပါ',
