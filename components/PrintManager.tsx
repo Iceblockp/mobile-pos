@@ -15,19 +15,28 @@ import { useTranslation } from '@/context/LocalizationContext';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
-// Import Bluetooth printer library (will be conditionally used)
+// Note: This component is kept for reference but SimplePrintManager is currently used
+// Bluetooth printer library removed to avoid build issues
 let BluetoothManager: any = null;
 let BluetoothEscposPrinter: any = null;
+let isBluetoothLibraryAvailable = false;
 
-try {
-  if (Platform.OS !== 'web') {
-    const BluetoothPrinter = require('react-native-bluetooth-escpos-printer');
-    BluetoothManager = BluetoothPrinter.BluetoothManager;
-    BluetoothEscposPrinter = BluetoothPrinter.BluetoothEscposPrinter;
-  }
-} catch (error) {
-  console.log('Bluetooth printer library not available:', error);
-}
+// Bluetooth library disabled to prevent build issues
+// try {
+//   if (Platform.OS !== 'web') {
+//     const BluetoothPrinter = require('react-native-bluetooth-escpos-printer');
+//     BluetoothManager = BluetoothPrinter.BluetoothManager;
+//     BluetoothEscposPrinter = BluetoothPrinter.BluetoothEscposPrinter;
+//
+//     if (BluetoothManager && BluetoothEscposPrinter) {
+//       isBluetoothLibraryAvailable = true;
+//       console.log('Bluetooth printer library loaded successfully');
+//     }
+//   }
+// } catch (error) {
+//   console.log('Bluetooth printer library not available:', error);
+//   isBluetoothLibraryAvailable = false;
+// }
 
 interface CartItem {
   product: {
@@ -80,13 +89,16 @@ export const PrintManager: React.FC<PrintManagerProps> = ({
   const [bluetoothEnabled, setBluetoothEnabled] = useState(false);
 
   useEffect(() => {
-    if (visible && BluetoothManager) {
+    if (visible && isBluetoothLibraryAvailable && BluetoothManager) {
       checkBluetoothStatus();
     }
   }, [visible]);
 
   const checkBluetoothStatus = async () => {
-    if (!BluetoothManager) return;
+    if (!isBluetoothLibraryAvailable || !BluetoothManager) {
+      console.log('Bluetooth library not available, skipping Bluetooth check');
+      return;
+    }
 
     try {
       const enabled = await BluetoothManager.isBluetoothEnabled();
@@ -106,14 +118,21 @@ export const PrintManager: React.FC<PrintManagerProps> = ({
       }
     } catch (error) {
       console.error('Bluetooth check error:', error);
+      setBluetoothEnabled(false);
     }
   };
 
   const scanForDevices = async () => {
-    if (!BluetoothManager || !bluetoothEnabled) {
+    if (
+      !isBluetoothLibraryAvailable ||
+      !BluetoothManager ||
+      !bluetoothEnabled
+    ) {
       Alert.alert(
-        'Bluetooth Required',
-        'Please enable Bluetooth to scan for printers'
+        'Bluetooth Not Available',
+        isBluetoothLibraryAvailable
+          ? 'Please enable Bluetooth to scan for printers'
+          : 'Bluetooth printer library is not properly configured. Please use PDF printing instead.'
       );
       return;
     }
@@ -401,7 +420,15 @@ export const PrintManager: React.FC<PrintManagerProps> = ({
   };
 
   const printWithBluetooth = async () => {
-    if (!selectedDevice || !BluetoothEscposPrinter) {
+    if (!isBluetoothLibraryAvailable || !BluetoothEscposPrinter) {
+      Alert.alert(
+        'Bluetooth Not Available',
+        'Bluetooth printer library is not properly configured. Please use PDF printing instead.'
+      );
+      return;
+    }
+
+    if (!selectedDevice) {
       Alert.alert(
         'No Printer Selected',
         'Please select a Bluetooth printer first'
@@ -658,93 +685,120 @@ export const PrintManager: React.FC<PrintManagerProps> = ({
               </View>
             </TouchableOpacity>
 
-            {BluetoothManager && (
-              <TouchableOpacity
-                style={[
-                  styles.methodOption,
-                  selectedMethod === 'bluetooth' && styles.methodOptionSelected,
-                ]}
-                onPress={() => setSelectedMethod('bluetooth')}
-              >
-                <Bluetooth
-                  size={20}
-                  color={selectedMethod === 'bluetooth' ? '#059669' : '#6B7280'}
-                />
-                <View style={styles.methodContent}>
-                  <Text
-                    style={[
-                      styles.methodTitle,
-                      selectedMethod === 'bluetooth' &&
-                        styles.methodTitleSelected,
-                    ]}
-                  >
-                    Bluetooth Printer
-                  </Text>
-                  <Text style={styles.methodDescription}>
-                    Direct print to Bluetooth thermal printer
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={[
+                styles.methodOption,
+                selectedMethod === 'bluetooth' && styles.methodOptionSelected,
+                !isBluetoothLibraryAvailable && styles.methodOptionDisabled,
+              ]}
+              onPress={() => {
+                if (isBluetoothLibraryAvailable) {
+                  setSelectedMethod('bluetooth');
+                } else {
+                  Alert.alert(
+                    'Bluetooth Not Available',
+                    'Bluetooth printer library is not properly configured. Please use PDF printing instead.'
+                  );
+                }
+              }}
+              disabled={!isBluetoothLibraryAvailable}
+            >
+              <Bluetooth
+                size={20}
+                color={
+                  selectedMethod === 'bluetooth'
+                    ? '#059669'
+                    : !isBluetoothLibraryAvailable
+                    ? '#D1D5DB'
+                    : '#6B7280'
+                }
+              />
+              <View style={styles.methodContent}>
+                <Text
+                  style={[
+                    styles.methodTitle,
+                    selectedMethod === 'bluetooth' &&
+                      styles.methodTitleSelected,
+                    !isBluetoothLibraryAvailable && styles.methodTitleDisabled,
+                  ]}
+                >
+                  Bluetooth Printer
+                  {!isBluetoothLibraryAvailable && ' (Not Available)'}
+                </Text>
+                <Text
+                  style={[
+                    styles.methodDescription,
+                    !isBluetoothLibraryAvailable &&
+                      styles.methodDescriptionDisabled,
+                  ]}
+                >
+                  {isBluetoothLibraryAvailable
+                    ? 'Direct print to Bluetooth thermal printer'
+                    : 'Library not properly configured'}
+                </Text>
+              </View>
+            </TouchableOpacity>
           </View>
 
           {/* Bluetooth Device Selection */}
-          {selectedMethod === 'bluetooth' && BluetoothManager && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Select Printer</Text>
-                <TouchableOpacity
-                  style={styles.scanButton}
-                  onPress={scanForDevices}
-                  disabled={isScanning}
-                >
-                  {isScanning ? (
-                    <ActivityIndicator size="small" color="#059669" />
-                  ) : (
-                    <Text style={styles.scanButtonText}>Scan</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-
-              {!bluetoothEnabled && (
-                <Text style={styles.warningText}>
-                  Bluetooth is not enabled. Please enable Bluetooth to scan for
-                  printers.
-                </Text>
-              )}
-
-              <FlatList
-                data={bluetoothDevices}
-                keyExtractor={(item) => item.address}
-                style={styles.deviceList}
-                renderItem={({ item }) => (
+          {selectedMethod === 'bluetooth' &&
+            isBluetoothLibraryAvailable &&
+            BluetoothManager && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Select Printer</Text>
                   <TouchableOpacity
-                    style={[
-                      styles.deviceItem,
-                      selectedDevice?.address === item.address &&
-                        styles.deviceItemSelected,
-                    ]}
-                    onPress={() => setSelectedDevice(item)}
+                    style={styles.scanButton}
+                    onPress={scanForDevices}
+                    disabled={isScanning}
                   >
-                    <Printer size={16} color="#6B7280" />
-                    <View style={styles.deviceInfo}>
-                      <Text style={styles.deviceName}>
-                        {item.name || 'Unknown Device'}
-                      </Text>
-                      <Text style={styles.deviceAddress}>{item.address}</Text>
-                    </View>
+                    {isScanning ? (
+                      <ActivityIndicator size="small" color="#059669" />
+                    ) : (
+                      <Text style={styles.scanButtonText}>Scan</Text>
+                    )}
                   </TouchableOpacity>
-                )}
-                ListEmptyComponent={
-                  <Text style={styles.emptyText}>
-                    {isScanning
-                      ? 'Scanning for printers...'
-                      : 'No printers found. Tap "Scan" to search.'}
+                </View>
+
+                {!bluetoothEnabled && (
+                  <Text style={styles.warningText}>
+                    Bluetooth is not enabled. Please enable Bluetooth to scan
+                    for printers.
                   </Text>
-                }
-              />
-            </View>
-          )}
+                )}
+
+                <FlatList
+                  data={bluetoothDevices}
+                  keyExtractor={(item) => item.address}
+                  style={styles.deviceList}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={[
+                        styles.deviceItem,
+                        selectedDevice?.address === item.address &&
+                          styles.deviceItemSelected,
+                      ]}
+                      onPress={() => setSelectedDevice(item)}
+                    >
+                      <Printer size={16} color="#6B7280" />
+                      <View style={styles.deviceInfo}>
+                        <Text style={styles.deviceName}>
+                          {item.name || 'Unknown Device'}
+                        </Text>
+                        <Text style={styles.deviceAddress}>{item.address}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                  ListEmptyComponent={
+                    <Text style={styles.emptyText}>
+                      {isScanning
+                        ? 'Scanning for printers...'
+                        : 'No printers found. Tap "Scan" to search.'}
+                    </Text>
+                  }
+                />
+              </View>
+            )}
 
           {/* Action Buttons */}
           <View style={styles.actions}>
@@ -761,13 +815,14 @@ export const PrintManager: React.FC<PrintManagerProps> = ({
                 styles.printButton,
                 isPrinting && styles.printButtonDisabled,
                 selectedMethod === 'bluetooth' &&
-                  !selectedDevice &&
+                  (!selectedDevice || !isBluetoothLibraryAvailable) &&
                   styles.printButtonDisabled,
               ]}
               onPress={handlePrint}
               disabled={
                 isPrinting ||
-                (selectedMethod === 'bluetooth' && !selectedDevice)
+                (selectedMethod === 'bluetooth' &&
+                  (!selectedDevice || !isBluetoothLibraryAvailable))
               }
             >
               {isPrinting ? (
@@ -960,5 +1015,15 @@ const styles = StyleSheet.create({
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  methodOptionDisabled: {
+    opacity: 0.5,
+    backgroundColor: '#F3F4F6',
+  },
+  methodTitleDisabled: {
+    color: '#9CA3AF',
+  },
+  methodDescriptionDisabled: {
+    color: '#D1D5DB',
   },
 });

@@ -15,9 +15,7 @@
       "bundleIdentifier": "com.pyaephyonyo.pos",
       "buildNumber": "9",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false,
-        "NSBluetoothAlwaysUsageDescription": "This app needs Bluetooth access to print receipts to Bluetooth printers",
-        "NSBluetoothPeripheralUsageDescription": "This app needs Bluetooth access to print receipts to Bluetooth printers"
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "web": {
@@ -55,13 +53,7 @@
         "foregroundImage": "./assets/images/pos.png",
         "backgroundColor": "#ffffff"
       },
-      "versionCode": 9,
-      "permissions": [
-        "android.permission.BLUETOOTH",
-        "android.permission.BLUETOOTH_ADMIN",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
-      ]
+      "versionCode": 9
     }
   }
 }

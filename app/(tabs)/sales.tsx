@@ -57,7 +57,7 @@ import { captureRef } from 'react-native-view-shot';
 import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
 import { PaymentModal } from '@/components/PaymentModal';
-import { PrintManager } from '@/components/PrintManager';
+import { EnhancedPrintManager } from '@/components/EnhancedPrintManager';
 
 interface CartItem {
   product: Product;
@@ -660,7 +660,7 @@ export default function Sales() {
       />
 
       {receiptData && (
-        <PrintManager
+        <EnhancedPrintManager
           visible={showPrintManager}
           onClose={() => {
             setShowPrintManager(false);

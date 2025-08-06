@@ -1,8 +1,8 @@
-# 🖨️ Bluetooth Printing Setup Guide
+# 🖨️ Printing Setup Guide
 
 ## ✅ Implementation Complete!
 
-Your POS app now has comprehensive Bluetooth printing capabilities with both universal PDF printing and direct thermal printer support.
+Your POS app now has reliable printing capabilities with universal PDF printing that works with any printer, including Bluetooth printers.
 
 ## 🚀 What's Already Done
 
