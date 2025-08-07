@@ -69,18 +69,7 @@ export interface Expense {
   updated_at: string;
 }
 
-export interface ShopSettings {
-  id: number;
-  shopName: string;
-  address?: string;
-  phone?: string;
-  logoPath?: string;
-  receiptFooter?: string;
-  thankYouMessage?: string;
-  receiptTemplate: string;
-  createdAt: string;
-  updatedAt: string;
-}
+// ShopSettings moved to shopSettingsStorage.ts (using AsyncStorage instead of SQLite)
 
 export class DatabaseService {
   private db: SQLite.SQLiteDatabase;
@@ -161,18 +150,7 @@ export class DatabaseService {
         FOREIGN KEY (category_id) REFERENCES expense_categories (id)
       );
 
-      CREATE TABLE IF NOT EXISTS shop_settings (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        shop_name TEXT NOT NULL,
-        address TEXT,
-        phone TEXT,
-        logo_path TEXT,
-        receipt_footer TEXT,
-        thank_you_message TEXT,
-        receipt_template TEXT DEFAULT 'classic',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
+      -- shop_settings table removed (now using AsyncStorage)
       
       CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
       CREATE INDEX IF NOT EXISTS idx_expenses_category_id ON expenses(category_id);
@@ -340,28 +318,7 @@ export class DatabaseService {
         console.log('Updated existing sale_items with default discount value');
       }
 
-      // Migration: Check if shop_settings table exists
-      const shopSettingsTableExists = await this.db.getFirstAsync(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='shop_settings'"
-      );
-
-      if (!shopSettingsTableExists) {
-        await this.db.execAsync(`
-          CREATE TABLE shop_settings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            shop_name TEXT NOT NULL,
-            address TEXT,
-            phone TEXT,
-            logo_path TEXT,
-            receipt_footer TEXT,
-            thank_you_message TEXT,
-            receipt_template TEXT DEFAULT 'classic',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-          );
-        `);
-        console.log('Created shop_settings table');
-      }
+      // shop_settings table migration removed (now using AsyncStorage)
     } catch (error) {
       console.log('Migration completed or column already exists:', error);
     }
@@ -1459,97 +1416,7 @@ export class DatabaseService {
     };
   }
 
-  // Shop Settings Methods
-  async getShopSettings(): Promise<ShopSettings | null> {
-    const result = await this.db.getFirstAsync(
-      'SELECT * FROM shop_settings ORDER BY id DESC LIMIT 1'
-    );
-
-    if (!result) return null;
-
-    const settings = result as any;
-    return {
-      id: settings.id,
-      shopName: settings.shop_name,
-      address: settings.address,
-      phone: settings.phone,
-      logoPath: settings.logo_path,
-      receiptFooter: settings.receipt_footer,
-      thankYouMessage: settings.thank_you_message,
-      receiptTemplate: settings.receipt_template,
-      createdAt: settings.created_at,
-      updatedAt: settings.updated_at,
-    };
-  }
-
-  async saveShopSettings(
-    settings: Omit<ShopSettings, 'id' | 'createdAt' | 'updatedAt'>
-  ): Promise<number> {
-    const result = await this.db.runAsync(
-      'INSERT INTO shop_settings (shop_name, address, phone, logo_path, receipt_footer, thank_you_message, receipt_template) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [
-        settings.shopName,
-        settings.address || null,
-        settings.phone || null,
-        settings.logoPath || null,
-        settings.receiptFooter || null,
-        settings.thankYouMessage || null,
-        settings.receiptTemplate,
-      ]
-    );
-    return result.lastInsertRowId;
-  }
-
-  async updateShopSettings(
-    id: number,
-    settings: Partial<ShopSettings>
-  ): Promise<void> {
-    const updateFields: string[] = [];
-    const values: any[] = [];
-
-    if (settings.shopName !== undefined) {
-      updateFields.push('shop_name = ?');
-      values.push(settings.shopName);
-    }
-    if (settings.address !== undefined) {
-      updateFields.push('address = ?');
-      values.push(settings.address);
-    }
-    if (settings.phone !== undefined) {
-      updateFields.push('phone = ?');
-      values.push(settings.phone);
-    }
-    if (settings.logoPath !== undefined) {
-      updateFields.push('logo_path = ?');
-      values.push(settings.logoPath);
-    }
-    if (settings.receiptFooter !== undefined) {
-      updateFields.push('receipt_footer = ?');
-      values.push(settings.receiptFooter);
-    }
-    if (settings.thankYouMessage !== undefined) {
-      updateFields.push('thank_you_message = ?');
-      values.push(settings.thankYouMessage);
-    }
-    if (settings.receiptTemplate !== undefined) {
-      updateFields.push('receipt_template = ?');
-      values.push(settings.receiptTemplate);
-    }
-
-    if (updateFields.length > 0) {
-      updateFields.push('updated_at = CURRENT_TIMESTAMP');
-      values.push(id);
-
-      await this.db.runAsync(
-        `UPDATE shop_settings SET ${updateFields.join(', ')} WHERE id = ?`,
-        values
-      );
-    }
-  }
-
-  async deleteShopSettings(id: number): Promise<void> {
-    await this.db.runAsync('DELETE FROM shop_settings WHERE id = ?', [id]);
-  }
+  // Shop Settings Methods removed - now using AsyncStorage (see shopSettingsStorage.ts)
 }
 
 export const initializeDatabase = async (): Promise<DatabaseService> => {

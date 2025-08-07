@@ -1,30 +1,25 @@
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
-import { DatabaseService, ShopSettings } from './database';
 import { TemplateEngine, ReceiptTemplate } from './templateEngine';
+import {
+  ShopSettingsStorage,
+  ShopSettings,
+  ShopSettingsInput,
+  shopSettingsStorage,
+} from './shopSettingsStorage';
 
 export interface ValidationResult {
   isValid: boolean;
   errors: { [key: string]: string };
 }
 
-export interface ShopSettingsInput {
-  shopName: string;
-  address?: string;
-  phone?: string;
-  logoPath?: string;
-  receiptFooter?: string;
-  thankYouMessage?: string;
-  receiptTemplate: string;
-}
-
 export class ShopSettingsService {
-  private databaseService: DatabaseService;
+  private storage: ShopSettingsStorage;
   private logoDirectory: string;
   private templateEngine: TemplateEngine;
 
-  constructor(databaseService: DatabaseService) {
-    this.databaseService = databaseService;
+  constructor() {
+    this.storage = shopSettingsStorage;
     this.logoDirectory = `${FileSystem.documentDirectory}shop_logos/`;
     this.templateEngine = new TemplateEngine();
   }
@@ -43,18 +38,18 @@ export class ShopSettingsService {
     }
   }
 
-  // Get shop settings
+  // Get shop settings from AsyncStorage
   async getShopSettings(): Promise<ShopSettings | null> {
     try {
-      return await this.databaseService.getShopSettings();
+      return await this.storage.getShopSettings();
     } catch (error) {
-      console.error('Failed to get shop settings:', error);
-      throw new Error('Failed to retrieve shop settings');
+      console.error('Failed to get shop settings from AsyncStorage:', error);
+      return null;
     }
   }
 
   // Save new shop settings
-  async saveShopSettings(settings: ShopSettingsInput): Promise<number> {
+  async saveShopSettings(settings: ShopSettingsInput): Promise<void> {
     const validation = this.validateShopSettings(settings);
     if (!validation.isValid) {
       throw new Error(
@@ -63,7 +58,7 @@ export class ShopSettingsService {
     }
 
     try {
-      return await this.databaseService.saveShopSettings(settings);
+      await this.storage.saveShopSettings(settings);
     } catch (error) {
       console.error('Failed to save shop settings:', error);
       throw new Error('Failed to save shop settings');
@@ -71,12 +66,9 @@ export class ShopSettingsService {
   }
 
   // Update existing shop settings
-  async updateShopSettings(
-    id: number,
-    updates: Partial<ShopSettingsInput>
-  ): Promise<void> {
+  async updateShopSettings(updates: Partial<ShopSettingsInput>): Promise<void> {
     // Only validate fields that are being updated
-    const fieldsToValidate: ShopSettingsInput = {} as ShopSettingsInput;
+    const fieldsToValidate: Partial<ShopSettingsInput> = {};
     if (updates.shopName !== undefined)
       fieldsToValidate.shopName = updates.shopName;
     if (updates.phone !== undefined) fieldsToValidate.phone = updates.phone;
@@ -91,7 +83,7 @@ export class ShopSettingsService {
     }
 
     try {
-      await this.databaseService.updateShopSettings(id, updates);
+      await this.storage.updateShopSettings(updates);
     } catch (error) {
       console.error('Failed to update shop settings:', error);
       throw new Error('Failed to update shop settings');
@@ -99,15 +91,15 @@ export class ShopSettingsService {
   }
 
   // Delete shop settings
-  async deleteShopSettings(id: number): Promise<void> {
+  async deleteShopSettings(): Promise<void> {
     try {
       // Get current settings to delete logo file if exists
-      const currentSettings = await this.databaseService.getShopSettings();
+      const currentSettings = await this.storage.getShopSettings();
       if (currentSettings?.logoPath) {
         await this.deleteLogo(currentSettings.logoPath);
       }
 
-      await this.databaseService.deleteShopSettings(id);
+      await this.storage.clearShopSettings();
     } catch (error) {
       console.error('Failed to delete shop settings:', error);
       throw new Error('Failed to delete shop settings');
@@ -340,11 +332,35 @@ export class ShopSettingsService {
     shopSettings?: ShopSettings
   ): Promise<string> {
     try {
-      const settings = shopSettings || (await this.getShopSettings());
+      let settings: ShopSettings | null | undefined = shopSettings;
+
+      if (!settings) {
+        try {
+          settings = await this.getShopSettings();
+        } catch (error) {
+          console.warn(
+            'Failed to get shop settings for preview, using defaults:',
+            error
+          );
+          settings = null; // Will use default settings in template engine
+        }
+      }
+
       return await this.templateEngine.previewTemplate(templateId, settings);
     } catch (error) {
       console.error('Failed to preview template:', error);
-      throw new Error('Failed to generate template preview');
+
+      // Try with default settings as last resort
+      try {
+        console.warn('Attempting template preview with default settings');
+        return await this.templateEngine.previewTemplate(templateId, null);
+      } catch (fallbackError) {
+        console.error(
+          'Failed to generate template preview with defaults:',
+          fallbackError
+        );
+        throw new Error('Failed to generate template preview');
+      }
     }
   }
 }

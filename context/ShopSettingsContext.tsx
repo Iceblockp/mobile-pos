@@ -5,9 +5,8 @@ import React, {
   useEffect,
   ReactNode,
 } from 'react';
-import { ShopSettings } from '@/services/database';
+import { ShopSettings } from '@/services/shopSettingsStorage';
 import { ShopSettingsService } from '@/services/shopSettingsService';
-import { initializeDatabase } from '@/services/database';
 
 interface ShopSettingsContextType {
   shopSettings: ShopSettings | null;
@@ -41,14 +40,13 @@ export const ShopSettingsProvider: React.FC<ShopSettingsProviderProps> = ({
       setLoading(true);
       setError(null);
 
-      // Initialize database and service
-      const databaseService = await initializeDatabase();
-      const service = new ShopSettingsService(databaseService);
+      // Initialize service (no database dependency)
+      const service = new ShopSettingsService();
       await service.initialize();
 
       setShopSettingsService(service);
 
-      // Load existing shop settings
+      // Load existing shop settings (AsyncStorage is more reliable)
       const settings = await service.getShopSettings();
       setShopSettings(settings);
 
@@ -58,7 +56,10 @@ export const ShopSettingsProvider: React.FC<ShopSettingsProviderProps> = ({
       );
     } catch (err) {
       console.error('Failed to initialize shop settings:', err);
-      setError('Failed to load shop settings');
+      setError('Failed to load shop settings. Using default settings.');
+
+      // Continue with null settings to allow app to function
+      setShopSettings(null);
     } finally {
       setLoading(false);
     }
@@ -74,6 +75,7 @@ export const ShopSettingsProvider: React.FC<ShopSettingsProviderProps> = ({
     try {
       setError(null);
       const settings = await shopSettingsService.getShopSettings();
+      console.log('setting', settings);
       setShopSettings(settings);
       console.log('Shop settings refreshed');
     } catch (err) {
@@ -93,7 +95,7 @@ export const ShopSettingsProvider: React.FC<ShopSettingsProviderProps> = ({
 
       if (shopSettings) {
         // Update existing settings
-        await shopSettingsService.updateShopSettings(shopSettings.id, updates);
+        await shopSettingsService.updateShopSettings(updates);
       } else {
         // Create new settings
         const newSettings = {
@@ -108,7 +110,7 @@ export const ShopSettingsProvider: React.FC<ShopSettingsProviderProps> = ({
         await shopSettingsService.saveShopSettings(newSettings);
       }
 
-      // Refresh settings from database
+      // Refresh settings from AsyncStorage
       await refreshShopSettings();
       console.log('Shop settings updated successfully');
     } catch (err) {

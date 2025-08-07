@@ -25,8 +25,7 @@ import {
   TemplateEngine,
   ReceiptData as TemplateReceiptData,
 } from '@/services/templateEngine';
-import { ShopSettings } from '@/services/database';
-import { initializeDatabase } from '@/services/database';
+import { ShopSettings } from '@/services/shopSettingsStorage';
 
 interface CartItem {
   product: {
@@ -73,8 +72,8 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
   useEffect(() => {
     const loadShopSettings = async () => {
       try {
-        const databaseService = await initializeDatabase();
-        const service = new ShopSettingsService(databaseService);
+        const service = new ShopSettingsService();
+        await service.initialize();
         const settings = await service.getShopSettings();
 
         setShopSettingsService(service);
