@@ -2,7 +2,7 @@ import React from 'react';
 import { render, waitFor } from '@testing-library/react-native';
 import { ReceiptPreview } from '../ReceiptPreview';
 import { ShopSettingsService } from '@/services/shopSettingsService';
-import { ShopSettings } from '@/services/database';
+import { ShopSettings } from '@/services/shopSettingsStorage';
 
 // Mock dependencies
 jest.mock('@/context/LocalizationContext', () => ({

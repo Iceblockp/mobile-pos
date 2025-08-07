@@ -3,7 +3,7 @@ import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { ReceiptTemplateSelector } from '../ReceiptTemplateSelector';
 import { ShopSettingsService } from '@/services/shopSettingsService';
 import { ReceiptTemplate } from '@/services/templateEngine';
-import { ShopSettings } from '@/services/database';
+import { ShopSettings } from '@/services/shopSettingsStorage';
 
 // Mock dependencies
 jest.mock('@/context/LocalizationContext', () => ({

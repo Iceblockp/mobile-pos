@@ -14,7 +14,7 @@ import { useTranslation } from '@/context/LocalizationContext';
 import { useToast } from '@/context/ToastContext';
 import { ShopSettingsService } from '@/services/shopSettingsService';
 import { ReceiptTemplate } from '@/services/templateEngine';
-import { ShopSettings } from '@/services/database';
+import { ShopSettings } from '@/services/shopSettingsStorage';
 
 interface ReceiptTemplateSelectorProps {
   selectedTemplate: string;
@@ -66,7 +66,7 @@ export const ReceiptTemplateSelector: React.FC<
           try {
             const html = await shopSettingsService.previewTemplate(
               template.id,
-              shopSettings
+              shopSettings || undefined
             );
             previews[template.id] = html;
             setPreviewHtml((prev) => ({ ...prev, [template.id]: html }));

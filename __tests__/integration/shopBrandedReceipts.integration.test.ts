@@ -1,7 +1,10 @@
-import { DatabaseService, ShopSettings } from '@/services/database';
+import { ShopSettings } from '@/services/shopSettingsStorage';
 import { ShopSettingsService } from '@/services/shopSettingsService';
 import { TemplateEngine } from '@/services/templateEngine';
 import * as SQLite from 'expo-sqlite';
+import { DatabaseService } from '@/services/database';
+import { DatabaseService } from '@/services/database';
+import { DatabaseService } from '@/services/database';
 
 // Mock expo-sqlite
 jest.mock('expo-sqlite', () => ({
@@ -43,7 +46,7 @@ describe('Shop Branded Receipts Integration Tests', () => {
 
     // Initialize services
     databaseService = new DatabaseService(mockDb);
-    shopSettingsService = new ShopSettingsService(databaseService);
+    shopSettingsService = new ShopSettingsService();
     templateEngine = new TemplateEngine();
 
     // Mock file system for logo directory

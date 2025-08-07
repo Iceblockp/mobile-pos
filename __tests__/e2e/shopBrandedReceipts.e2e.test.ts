@@ -34,7 +34,7 @@ describe('Shop Branded Receipts - End-to-End Tests', () => {
 
     // Initialize services
     databaseService = new DatabaseService(mockDb);
-    shopSettingsService = new ShopSettingsService(databaseService);
+    shopSettingsService = new ShopSettingsService();
     templateEngine = new TemplateEngine();
 
     // Mock file system

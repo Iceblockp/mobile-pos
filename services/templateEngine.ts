@@ -1,4 +1,4 @@
-import { ShopSettings } from './database';
+import { ShopSettings } from './shopSettingsStorage';
 import * as FileSystem from 'expo-file-system';
 
 export interface ReceiptTemplate {

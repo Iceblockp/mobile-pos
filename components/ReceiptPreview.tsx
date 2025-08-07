@@ -9,7 +9,7 @@ import {
 import { WebView } from 'react-native-webview';
 import { useTranslation } from '@/context/LocalizationContext';
 import { ShopSettingsService } from '@/services/shopSettingsService';
-import { ShopSettings } from '@/services/database';
+import { ShopSettings } from '@/services/shopSettingsStorage';
 
 interface ReceiptPreviewProps {
   shopSettings: ShopSettings | null;
@@ -47,7 +47,7 @@ export const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({
       try {
         const html = await shopSettingsService.previewTemplate(
           templateId,
-          shopSettings
+          shopSettings || undefined
         );
         setPreviewHtml(html);
       } catch (err) {

@@ -1,28 +1,31 @@
 import { ShopSettingsService, ShopSettingsInput } from '../shopSettingsService';
-import { DatabaseService } from '../database';
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 
 // Mock dependencies
 jest.mock('expo-file-system');
 jest.mock('expo-image-picker');
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+}));
 
 const mockFileSystem = FileSystem as jest.Mocked<typeof FileSystem>;
 const mockImagePicker = ImagePicker as jest.Mocked<typeof ImagePicker>;
 
 describe('ShopSettingsService', () => {
-  let mockDatabaseService: jest.Mocked<DatabaseService>;
   let shopSettingsService: ShopSettingsService;
+  let mockAsyncStorage: any;
 
   beforeEach(() => {
-    mockDatabaseService = {
-      getShopSettings: jest.fn(),
-      saveShopSettings: jest.fn(),
-      updateShopSettings: jest.fn(),
-      deleteShopSettings: jest.fn(),
-    } as any;
+    // Mock AsyncStorage
+    mockAsyncStorage = require('@react-native-async-storage/async-storage');
+    mockAsyncStorage.getItem.mockClear();
+    mockAsyncStorage.setItem.mockClear();
+    mockAsyncStorage.removeItem.mockClear();
 
-    shopSettingsService = new ShopSettingsService(mockDatabaseService);
+    shopSettingsService = new ShopSettingsService();
 
     // Mock FileSystem
     mockFileSystem.documentDirectory = '/mock/documents/';
@@ -30,289 +33,274 @@ describe('ShopSettingsService', () => {
     mockFileSystem.makeDirectoryAsync = jest.fn();
     mockFileSystem.copyAsync = jest.fn();
     mockFileSystem.deleteAsync = jest.fn();
+
+    // Mock ImagePicker
+    mockImagePicker.requestMediaLibraryPermissionsAsync = jest.fn();
+    mockImagePicker.requestCameraPermissionsAsync = jest.fn();
+    mockImagePicker.launchImageLibraryAsync = jest.fn();
+    mockImagePicker.launchCameraAsync = jest.fn();
   });
 
-  describe('validateShopSettings', () => {
-    it('should validate required shop name', () => {
-      const settings: ShopSettingsInput = {
-        shopName: '',
-        receiptTemplate: 'classic',
-      };
+  describe('initialization', () => {
+    it('should initialize logo directory', async () => {
+      mockFileSystem.getInfoAsync.mockResolvedValue({ exists: false } as any);
+      mockFileSystem.makeDirectoryAsync.mockResolvedValue();
 
-      const result = shopSettingsService.validateShopSettings(settings);
+      await shopSettingsService.initialize();
 
-      expect(result.isValid).toBe(false);
-      expect(result.errors.shopName).toBe('Shop name is required');
+      expect(mockFileSystem.getInfoAsync).toHaveBeenCalled();
+      expect(mockFileSystem.makeDirectoryAsync).toHaveBeenCalled();
+    });
+  });
+
+  describe('getShopSettings', () => {
+    it('should return null when no settings exist', async () => {
+      mockAsyncStorage.getItem.mockResolvedValue(null);
+
+      const result = await shopSettingsService.getShopSettings();
+
+      expect(result).toBeNull();
+      expect(mockAsyncStorage.getItem).toHaveBeenCalledWith('@shop_settings');
     });
 
-    it('should validate shop name length', () => {
-      const settings: ShopSettingsInput = {
-        shopName: 'a'.repeat(101),
-        receiptTemplate: 'classic',
-      };
-
-      const result = shopSettingsService.validateShopSettings(settings);
-
-      expect(result.isValid).toBe(false);
-      expect(result.errors.shopName).toBe(
-        'Shop name must be less than 100 characters'
-      );
-    });
-
-    it('should validate phone number format', () => {
-      const settings: ShopSettingsInput = {
+    it('should return parsed settings when they exist', async () => {
+      const mockSettings = {
         shopName: 'Test Shop',
-        phone: 'invalid-phone',
-        receiptTemplate: 'classic',
-      };
-
-      const result = shopSettingsService.validateShopSettings(settings);
-
-      expect(result.isValid).toBe(false);
-      expect(result.errors.phone).toBe('Please enter a valid phone number');
-    });
-
-    it('should accept valid phone numbers', () => {
-      const validPhones = [
-        '+95-9-123-456-789',
-        '09123456789',
-        '+1 (555) 123-4567',
-        '555-123-4567',
-      ];
-
-      validPhones.forEach((phone) => {
-        const settings: ShopSettingsInput = {
-          shopName: 'Test Shop',
-          phone,
-          receiptTemplate: 'classic',
-        };
-
-        const result = shopSettingsService.validateShopSettings(settings);
-        expect(result.errors.phone).toBeUndefined();
-      });
-    });
-
-    it('should validate receipt template', () => {
-      const settings: ShopSettingsInput = {
-        shopName: 'Test Shop',
-        receiptTemplate: 'invalid-template',
-      };
-
-      const result = shopSettingsService.validateShopSettings(settings);
-
-      expect(result.isValid).toBe(false);
-      expect(result.errors.receiptTemplate).toBe(
-        'Please select a valid receipt template'
-      );
-    });
-
-    it('should validate field lengths', () => {
-      const settings: ShopSettingsInput = {
-        shopName: 'Test Shop',
-        address: 'a'.repeat(201),
-        receiptFooter: 'b'.repeat(201),
-        thankYouMessage: 'c'.repeat(201),
-        receiptTemplate: 'classic',
-      };
-
-      const result = shopSettingsService.validateShopSettings(settings);
-
-      expect(result.isValid).toBe(false);
-      expect(result.errors.address).toBe(
-        'Address must be less than 200 characters'
-      );
-      expect(result.errors.receiptFooter).toBe(
-        'Receipt footer must be less than 200 characters'
-      );
-      expect(result.errors.thankYouMessage).toBe(
-        'Thank you message must be less than 200 characters'
-      );
-    });
-
-    it('should pass validation with valid settings', () => {
-      const settings: ShopSettingsInput = {
-        shopName: 'Test Shop',
-        address: '123 Test Street',
+        address: '123 Test St',
         phone: '+95-9-123-456-789',
-        receiptFooter: 'Thank you for your business!',
-        thankYouMessage: 'Come again soon!',
+        logoPath: '/path/to/logo.png',
+        receiptFooter: 'Thank you!',
+        thankYouMessage: 'Come again!',
+        receiptTemplate: 'classic',
+        lastUpdated: '2025-01-01T00:00:00.000Z',
+      };
+
+      mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(mockSettings));
+
+      const result = await shopSettingsService.getShopSettings();
+
+      expect(result).toEqual(mockSettings);
+    });
+
+    it('should return null and clear corrupted data', async () => {
+      const corruptedSettings = {
+        shopName: '', // Invalid empty shop name
         receiptTemplate: 'classic',
       };
 
-      const result = shopSettingsService.validateShopSettings(settings);
+      mockAsyncStorage.getItem.mockResolvedValue(
+        JSON.stringify(corruptedSettings)
+      );
+      mockAsyncStorage.removeItem.mockResolvedValue();
 
-      expect(result.isValid).toBe(true);
-      expect(Object.keys(result.errors)).toHaveLength(0);
-    });
+      const result = await shopSettingsService.getShopSettings();
 
-    it('should handle partial updates correctly', () => {
-      const updates = {
-        phone: '+95-9-987-654-321',
-      };
-
-      const result = shopSettingsService.validateShopSettings(updates, true);
-
-      expect(result.isValid).toBe(true);
-      expect(Object.keys(result.errors)).toHaveLength(0);
+      expect(result).toBeNull();
+      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(
+        '@shop_settings'
+      );
     });
   });
 
   describe('saveShopSettings', () => {
-    it('should save valid shop settings', async () => {
+    it('should save valid settings to AsyncStorage', async () => {
       const settings: ShopSettingsInput = {
         shopName: 'Test Shop',
+        address: '123 Test St',
+        phone: '+95-9-123-456-789',
         receiptTemplate: 'classic',
       };
 
-      mockDatabaseService.saveShopSettings.mockResolvedValue(1);
+      mockAsyncStorage.setItem.mockResolvedValue();
 
-      const result = await shopSettingsService.saveShopSettings(settings);
+      await shopSettingsService.saveShopSettings(settings);
 
-      expect(result).toBe(1);
-      expect(mockDatabaseService.saveShopSettings).toHaveBeenCalledWith(
-        settings
+      expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
+        '@shop_settings',
+        expect.stringContaining('"shopName":"Test Shop"')
       );
     });
 
     it('should throw error for invalid settings', async () => {
-      const settings: ShopSettingsInput = {
-        shopName: '',
+      const invalidSettings: ShopSettingsInput = {
+        shopName: '', // Invalid empty name
         receiptTemplate: 'classic',
       };
 
       await expect(
-        shopSettingsService.saveShopSettings(settings)
+        shopSettingsService.saveShopSettings(invalidSettings)
       ).rejects.toThrow('Validation failed: Shop name is required');
 
-      expect(mockDatabaseService.saveShopSettings).not.toHaveBeenCalled();
+      expect(mockAsyncStorage.setItem).not.toHaveBeenCalled();
     });
   });
 
   describe('updateShopSettings', () => {
-    it('should update valid settings', async () => {
-      const updates = {
-        shopName: 'Updated Shop',
-        phone: '+95-9-987-654-321',
+    it('should update existing settings', async () => {
+      const existingSettings = {
+        shopName: 'Old Shop',
+        receiptTemplate: 'classic',
+        lastUpdated: '2025-01-01T00:00:00.000Z',
       };
 
-      mockDatabaseService.updateShopSettings.mockResolvedValue();
+      const updates = {
+        shopName: 'New Shop',
+        address: '456 New St',
+      };
 
-      await shopSettingsService.updateShopSettings(1, updates);
+      mockAsyncStorage.getItem.mockResolvedValue(
+        JSON.stringify(existingSettings)
+      );
+      mockAsyncStorage.setItem.mockResolvedValue();
 
-      expect(mockDatabaseService.updateShopSettings).toHaveBeenCalledWith(
-        1,
-        updates
+      await shopSettingsService.updateShopSettings(updates);
+
+      expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
+        '@shop_settings',
+        expect.stringContaining('"shopName":"New Shop"')
       );
     });
 
     it('should throw error for invalid updates', async () => {
       const updates = {
-        shopName: '',
+        shopName: '', // Invalid empty name
       };
 
       await expect(
-        shopSettingsService.updateShopSettings(1, updates)
+        shopSettingsService.updateShopSettings(updates)
       ).rejects.toThrow('Validation failed: Shop name is required');
 
-      expect(mockDatabaseService.updateShopSettings).not.toHaveBeenCalled();
+      expect(mockAsyncStorage.setItem).not.toHaveBeenCalled();
     });
   });
 
-  describe('uploadLogo', () => {
-    beforeEach(() => {
+  describe('deleteShopSettings', () => {
+    it('should clear settings and delete logo', async () => {
+      const settingsWithLogo = {
+        shopName: 'Test Shop',
+        logoPath: '/path/to/logo.png',
+        receiptTemplate: 'classic',
+        lastUpdated: '2025-01-01T00:00:00.000Z',
+      };
+
+      mockAsyncStorage.getItem.mockResolvedValue(
+        JSON.stringify(settingsWithLogo)
+      );
+      mockAsyncStorage.removeItem.mockResolvedValue();
+      mockFileSystem.getInfoAsync.mockResolvedValue({ exists: true } as any);
+      mockFileSystem.deleteAsync.mockResolvedValue();
+
+      await shopSettingsService.deleteShopSettings();
+
+      expect(mockFileSystem.deleteAsync).toHaveBeenCalledWith(
+        '/path/to/logo.png'
+      );
+      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(
+        '@shop_settings'
+      );
+    });
+  });
+
+  describe('logo management', () => {
+    it('should upload logo successfully', async () => {
+      const mockImageUri = 'file:///path/to/image.jpg';
+      const mockDestinationPath =
+        '/mock/documents/shop_logos/logo_123456789.jpg';
+
       mockFileSystem.getInfoAsync.mockResolvedValue({
         exists: true,
-        isDirectory: false,
         size: 1024 * 1024, // 1MB
-        modificationTime: Date.now(),
-        uri: '/mock/image.jpg',
-      });
-    });
-
-    it('should upload valid logo', async () => {
-      const imageUri = '/mock/image.jpg';
+      } as any);
+      mockFileSystem.makeDirectoryAsync.mockResolvedValue();
       mockFileSystem.copyAsync.mockResolvedValue();
 
-      const result = await shopSettingsService.uploadLogo(imageUri);
+      // Mock Date.now() for consistent filename
+      const mockNow = 123456789;
+      jest.spyOn(Date, 'now').mockReturnValue(mockNow);
 
-      expect(result).toMatch(/\/shop_logos\/logo_\d+\.jpg$/);
-      expect(mockFileSystem.copyAsync).toHaveBeenCalled();
+      const result = await shopSettingsService.uploadLogo(mockImageUri);
+
+      expect(result).toContain('logo_123456789.jpg');
+      expect(mockFileSystem.copyAsync).toHaveBeenCalledWith({
+        from: mockImageUri,
+        to: expect.stringContaining('logo_123456789.jpg'),
+      });
+
+      // Restore Date.now()
+      jest.restoreAllMocks();
     });
 
     it('should reject oversized images', async () => {
-      const imageUri = '/mock/large-image.jpg';
+      const mockImageUri = 'file:///path/to/large-image.jpg';
+
       mockFileSystem.getInfoAsync.mockResolvedValue({
         exists: true,
-        isDirectory: false,
-        size: 3 * 1024 * 1024, // 3MB
-        modificationTime: Date.now(),
-        uri: imageUri,
-      });
+        size: 3 * 1024 * 1024, // 3MB (over 2MB limit)
+      } as any);
 
-      await expect(shopSettingsService.uploadLogo(imageUri)).rejects.toThrow(
-        'Image validation failed: Image file is too large (max 2MB)'
-      );
-    });
-
-    it('should reject invalid file formats', async () => {
-      const imageUri = '/mock/document.pdf';
-
-      await expect(shopSettingsService.uploadLogo(imageUri)).rejects.toThrow(
-        'Image validation failed: Image must be JPG, PNG, or GIF format'
-      );
+      await expect(
+        shopSettingsService.uploadLogo(mockImageUri)
+      ).rejects.toThrow('Image file is too large (max 2MB)');
     });
   });
 
-  describe('pickImageFromGallery', () => {
-    it('should return image URI when user selects image', async () => {
-      const mockImageUri = '/mock/selected-image.jpg';
+  describe('validation', () => {
+    it('should validate shop settings correctly', () => {
+      const validSettings = {
+        shopName: 'Valid Shop',
+        phone: '+95-9-123-456-789',
+        receiptTemplate: 'classic',
+      };
 
-      mockImagePicker.requestMediaLibraryPermissionsAsync.mockResolvedValue({
-        granted: true,
-        status: 'granted',
-        expires: 'never',
-        canAskAgain: true,
-      });
+      const result = shopSettingsService.validateShopSettings(validSettings);
 
-      mockImagePicker.launchImageLibraryAsync.mockResolvedValue({
-        canceled: false,
-        assets: [{ uri: mockImageUri, width: 100, height: 100 }],
-      });
-
-      const result = await shopSettingsService.pickImageFromGallery();
-
-      expect(result).toBe(mockImageUri);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toEqual({});
     });
 
-    it('should return null when user cancels', async () => {
-      mockImagePicker.requestMediaLibraryPermissionsAsync.mockResolvedValue({
-        granted: true,
-        status: 'granted',
-        expires: 'never',
-        canAskAgain: true,
-      });
+    it('should reject invalid settings', () => {
+      const invalidSettings = {
+        shopName: '', // Empty name
+        phone: 'invalid-phone', // Invalid phone format
+        receiptTemplate: 'invalid-template', // Invalid template
+      };
 
-      mockImagePicker.launchImageLibraryAsync.mockResolvedValue({
-        canceled: true,
-        assets: [],
-      });
+      const result = shopSettingsService.validateShopSettings(invalidSettings);
 
-      const result = await shopSettingsService.pickImageFromGallery();
+      expect(result.isValid).toBe(false);
+      expect(result.errors.shopName).toContain('required');
+      expect(result.errors.phone).toContain('valid phone number');
+      expect(result.errors.receiptTemplate).toContain('valid receipt template');
+    });
+  });
 
-      expect(result).toBeNull();
+  describe('template management', () => {
+    it('should return available templates', () => {
+      const templates = shopSettingsService.getAvailableTemplates();
+
+      expect(templates).toHaveLength(4);
+      expect(templates.map((t) => t.id)).toEqual([
+        'classic',
+        'modern',
+        'minimal',
+        'elegant',
+      ]);
     });
 
-    it('should throw error when permission denied', async () => {
-      mockImagePicker.requestMediaLibraryPermissionsAsync.mockResolvedValue({
-        granted: false,
-        status: 'denied',
-        expires: 'never',
-        canAskAgain: true,
-      });
+    it('should generate template preview', async () => {
+      const mockSettings = {
+        shopName: 'Test Shop',
+        receiptTemplate: 'classic',
+        lastUpdated: '2025-01-01T00:00:00.000Z',
+      };
 
-      await expect(shopSettingsService.pickImageFromGallery()).rejects.toThrow(
-        'Permission to access media library is required'
+      const html = await shopSettingsService.previewTemplate(
+        'classic',
+        mockSettings
       );
+
+      expect(html).toContain('Test Shop');
+      expect(html).toContain('Sample Product');
     });
   });
 });

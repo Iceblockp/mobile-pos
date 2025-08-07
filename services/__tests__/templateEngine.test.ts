@@ -3,7 +3,7 @@ import {
   ReceiptData,
   TemplateContext,
 } from '../templateEngine';
-import { ShopSettings } from '../database';
+import { ShopSettings } from '../shopSettingsStorage';
 
 // Mock FileSystem
 jest.mock('expo-file-system', () => ({

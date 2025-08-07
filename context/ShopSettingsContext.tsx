@@ -65,7 +65,7 @@ export const ShopSettingsProvider: React.FC<ShopSettingsProviderProps> = ({
     }
   };
 
-  // Refresh shop settings from database
+  // Refresh shop settings from AsyncStorage
   const refreshShopSettings = async () => {
     if (!shopSettingsService) {
       console.warn('Shop settings service not available');
