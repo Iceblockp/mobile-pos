@@ -84,7 +84,7 @@ export const ShopSettingsProvider: React.FC<ShopSettingsProviderProps> = ({
     }
   };
 
-  // Update shop settings and refresh local state
+  // Update shop settings and update local state directly (no refresh needed)
   const updateShopSettings = async (updates: Partial<ShopSettings>) => {
     if (!shopSettingsService) {
       throw new Error('Shop settings service not available');
@@ -93,9 +93,17 @@ export const ShopSettingsProvider: React.FC<ShopSettingsProviderProps> = ({
     try {
       setError(null);
 
+      let updatedSettings: ShopSettings;
+
       if (shopSettings) {
         // Update existing settings
         await shopSettingsService.updateShopSettings(updates);
+        // Update local state directly - no need to refresh from AsyncStorage
+        updatedSettings = {
+          ...shopSettings,
+          ...updates,
+          lastUpdated: new Date().toISOString(),
+        };
       } else {
         // Create new settings
         const newSettings = {
@@ -108,10 +116,15 @@ export const ShopSettingsProvider: React.FC<ShopSettingsProviderProps> = ({
           receiptTemplate: updates.receiptTemplate || 'classic',
         };
         await shopSettingsService.saveShopSettings(newSettings);
+        // Set the new settings directly
+        updatedSettings = {
+          ...newSettings,
+          lastUpdated: new Date().toISOString(),
+        };
       }
 
-      // Refresh settings from AsyncStorage
-      await refreshShopSettings();
+      // Update local state directly instead of refreshing
+      setShopSettings(updatedSettings);
       console.log('Shop settings updated successfully');
     } catch (err) {
       console.error('Failed to update shop settings:', err);
@@ -125,50 +138,9 @@ export const ShopSettingsProvider: React.FC<ShopSettingsProviderProps> = ({
     initializeShopSettings();
   }, []);
 
-  // Auto-refresh settings periodically (every 30 seconds)
-  useEffect(() => {
-    if (!shopSettingsService) return;
+  // Removed periodic refresh - AsyncStorage doesn't change externally
 
-    const interval = setInterval(() => {
-      refreshShopSettings();
-    }, 30000); // 30 seconds
-
-    return () => clearInterval(interval);
-  }, [shopSettingsService]);
-
-  // Handle app state changes (refresh when app becomes active)
-  useEffect(() => {
-    if (!shopSettingsService) return;
-
-    // Import AppState dynamically to avoid issues during testing
-    let AppState: any;
-    try {
-      AppState = require('react-native').AppState;
-    } catch (error) {
-      // AppState not available (e.g., in tests), skip this functionality
-      return;
-    }
-
-    const handleAppStateChange = (nextAppState: string) => {
-      if (nextAppState === 'active') {
-        refreshShopSettings();
-      }
-    };
-
-    // Add app state listener
-    const subscription = AppState.addEventListener(
-      'change',
-      handleAppStateChange
-    );
-
-    return () => {
-      if (subscription?.remove) {
-        subscription.remove();
-      } else if (AppState.removeEventListener) {
-        AppState.removeEventListener('change', handleAppStateChange);
-      }
-    };
-  }, [shopSettingsService]);
+  // Removed app state refresh - AsyncStorage is local and doesn't need external sync
 
   const contextValue: ShopSettingsContextType = {
     shopSettings,

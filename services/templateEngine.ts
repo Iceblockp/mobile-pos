@@ -403,9 +403,10 @@ export class TemplateEngine {
         margin-bottom: 15px;
       }
       .logo {
+        display: block;
         max-width: 80px;
         max-height: 80px;
-        margin-bottom: 10px;
+        margin: 0 auto 10px auto;
         object-fit: contain;
         border-radius: 4px;
       }
@@ -545,9 +546,10 @@ export class TemplateEngine {
         border-bottom: 2px solid #e9ecef;
       }
       .logo {
+        display: block;
         max-width: 100px;
         max-height: 100px;
-        margin-bottom: 15px;
+        margin: 0 auto 15px auto;
         border-radius: 8px;
         object-fit: contain;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -703,9 +705,10 @@ export class TemplateEngine {
         border-bottom: 1px solid #eee;
       }
       .logo {
+        display: block;
         max-width: 60px;
         max-height: 60px;
-        margin-bottom: 8px;
+        margin: 0 auto 8px auto;
         object-fit: contain;
         border-radius: 4px;
       }
@@ -834,9 +837,10 @@ export class TemplateEngine {
         color: white;
       }
       .logo {
+        display: block;
         max-width: 120px;
         max-height: 120px;
-        margin-bottom: 15px;
+        margin: 0 auto 15px auto;
         border: 3px solid white;
         border-radius: 50%;
         object-fit: cover;

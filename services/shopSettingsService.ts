@@ -13,6 +13,9 @@ export interface ValidationResult {
   errors: { [key: string]: string };
 }
 
+// Re-export types from shopSettingsStorage for convenience
+export type { ShopSettings, ShopSettingsInput } from './shopSettingsStorage';
+
 export class ShopSettingsService {
   private storage: ShopSettingsStorage;
   private logoDirectory: string;

@@ -266,7 +266,7 @@ export default function ShopSettingsPage() {
               <Text style={styles.errorText}>{errors.receiptFooter}</Text>
             )}
             <Text style={styles.characterCount}>
-              {formData.receiptFooter.length}/200
+              {formData.receiptFooter?.length}/200
             </Text>
           </View>
 
@@ -292,7 +292,7 @@ export default function ShopSettingsPage() {
               <Text style={styles.errorText}>{errors.thankYouMessage}</Text>
             )}
             <Text style={styles.characterCount}>
-              {formData.thankYouMessage.length}/200
+              {formData.thankYouMessage?.length}/200
             </Text>
           </View>
         </View>
@@ -328,7 +328,6 @@ export default function ShopSettingsPage() {
               shopSettings={
                 formData.shopName
                   ? {
-                      id: shopSettings?.id || 0,
                       shopName: formData.shopName,
                       address: formData.address,
                       phone: formData.phone,
@@ -336,9 +335,7 @@ export default function ShopSettingsPage() {
                       receiptFooter: formData.receiptFooter,
                       thankYouMessage: formData.thankYouMessage,
                       receiptTemplate: formData.receiptTemplate,
-                      createdAt:
-                        shopSettings?.createdAt || new Date().toISOString(),
-                      updatedAt: new Date().toISOString(),
+                      lastUpdated: new Date().toISOString(),
                     }
                   : null
               }
