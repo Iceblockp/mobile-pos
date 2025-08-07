@@ -31,7 +31,7 @@ export default function ShopSettingsPage() {
     updateShopSettings,
   } = useShopSettings();
 
-  // Form state
+  // Form state - will be initialized when shop settings load
   const [formData, setFormData] = useState<ShopSettingsInput>({
     shopName: '',
     address: '',
@@ -39,16 +39,19 @@ export default function ShopSettingsPage() {
     logoPath: '',
     receiptFooter: '',
     thankYouMessage: '',
-    receiptTemplate: 'classic',
+    receiptTemplate: 'classic', // Default fallback
   });
+
+  // Track if form has been initialized to prevent overwriting user changes
+  const [formInitialized, setFormInitialized] = useState(false);
 
   // UI state
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  // Initialize form data when shop settings load
+  // Initialize form data when shop settings load (only once)
   useEffect(() => {
-    if (shopSettings) {
+    if (shopSettings && !formInitialized) {
       setFormData({
         shopName: shopSettings.shopName,
         address: shopSettings.address || '',
@@ -58,8 +61,21 @@ export default function ShopSettingsPage() {
         thankYouMessage: shopSettings.thankYouMessage || '',
         receiptTemplate: shopSettings.receiptTemplate,
       });
+      setFormInitialized(true);
+    } else if (!shopSettings && !contextLoading && !formInitialized) {
+      // No shop settings exist, initialize with defaults
+      setFormData({
+        shopName: '',
+        address: '',
+        phone: '',
+        logoPath: '',
+        receiptFooter: '',
+        thankYouMessage: '',
+        receiptTemplate: 'classic',
+      });
+      setFormInitialized(true);
     }
-  }, [shopSettings]);
+  }, [shopSettings, contextLoading, formInitialized]);
 
   // Handle form field changes
   const handleFieldChange = (field: keyof ShopSettingsInput, value: string) => {
@@ -147,7 +163,11 @@ export default function ShopSettingsPage() {
       </View>
 
       {/* Form Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Basic Information Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -323,7 +343,7 @@ export default function ShopSettingsPage() {
             <Text style={styles.sectionTitle}>{t('shopSettings.preview')}</Text>
           </View>
 
-          {shopSettingsService && (
+          {shopSettingsService && formInitialized && (
             <ReceiptPreview
               shopSettings={
                 formData.shopName
@@ -343,6 +363,13 @@ export default function ShopSettingsPage() {
               shopSettingsService={shopSettingsService}
               style={styles.previewContainer}
             />
+          )}
+
+          {(!formInitialized || contextLoading) && (
+            <View style={[styles.previewContainer, styles.loadingContainer]}>
+              <ActivityIndicator size="small" color="#059669" />
+              <Text style={styles.loadingText}>{t('common.loading')}</Text>
+            </View>
           )}
         </View>
 
@@ -378,17 +405,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-  },
+  // loadingContainer: {
+  //   flex: 1,
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  // },
+  // loadingText: {
+  //   marginTop: 12,
+  //   fontSize: 16,
+  //   color: '#6B7280',
+  //   fontFamily: 'Inter-Regular',
+  // },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -429,6 +456,10 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
+  },
+  scrollContent: {
+    paddingBottom: 100, // Extra bottom padding to ensure preview is fully visible
+    flexGrow: 1,
   },
   section: {
     backgroundColor: '#FFFFFF',
@@ -515,6 +546,17 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   previewContainer: {
-    minHeight: 400,
+    // Remove height constraints to show full content
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+  },
+  loadingText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: 'Inter-Regular',
   },
 });

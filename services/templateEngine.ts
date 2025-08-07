@@ -290,21 +290,33 @@ export class TemplateEngine {
       saleId: 12345,
       items: [
         {
-          product: { id: 1, name: 'Sample Product 1', price: 2500 },
-          quantity: 2,
+          product: { id: 1, name: 'Coca Cola 330ml', price: 800 },
+          quantity: 3,
           discount: 0,
-          subtotal: 5000,
+          subtotal: 2400,
         },
         {
-          product: { id: 2, name: 'Sample Product 2', price: 1500 },
+          product: { id: 2, name: 'Instant Noodles', price: 1200 },
+          quantity: 2,
+          discount: 100,
+          subtotal: 2300,
+        },
+        {
+          product: { id: 3, name: 'White Rice 1kg', price: 2500 },
+          quantity: 1,
+          discount: 0,
+          subtotal: 2500,
+        },
+        {
+          product: { id: 4, name: 'Cooking Oil 1L', price: 3500 },
           quantity: 1,
           discount: 200,
-          subtotal: 1300,
+          subtotal: 3300,
         },
       ],
-      total: 6300,
+      total: 10500,
       paymentMethod: 'CASH',
-      note: 'Sample transaction note',
+      note: 'Thank you for shopping with us!',
       date: new Date(),
     };
 

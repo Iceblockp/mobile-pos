@@ -94,27 +94,45 @@ export const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({
         <WebView
           source={{ html: previewHtml }}
           style={styles.webView}
-          scrollEnabled={true}
+          scrollEnabled={false} // Disable internal scrolling - let page handle it
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
           onError={(error) => {
             console.error('WebView error:', error);
             setError('Failed to display preview');
           }}
-          onLoadStart={() => {
-            // Optional: Show loading state when WebView starts loading
-          }}
-          onLoadEnd={() => {
-            // Optional: Hide loading state when WebView finishes loading
-          }}
-          // Disable zoom and scaling
+          // Auto-size to content height
           injectedJavaScript={`
             const meta = document.createElement('meta');
             meta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
             meta.setAttribute('name', 'viewport');
             document.getElementsByTagName('head')[0].appendChild(meta);
+            
+            // Auto-resize WebView to content height
+            function resizeWebView() {
+              const height = document.body.scrollHeight;
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'resize',
+                height: height
+              }));
+            }
+            
+            // Resize when content loads
+            window.addEventListener('load', resizeWebView);
+            setTimeout(resizeWebView, 100); // Fallback
+            
             true;
           `}
+          onMessage={(event) => {
+            try {
+              const data = JSON.parse(event.nativeEvent.data);
+              if (data.type === 'resize') {
+                // Handle resize if needed - WebView will auto-size
+              }
+            } catch (error) {
+              // Ignore parsing errors
+            }
+          }}
         />
       </View>
     </View>
@@ -123,7 +141,7 @@ export const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    // Remove flex: 1 to allow natural sizing
   },
   loadingContainer: {
     justifyContent: 'center',
@@ -175,16 +193,17 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   previewWrapper: {
-    flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    minHeight: 400,
+    minHeight: 400, // Minimum height for content
+    // Remove maxHeight to allow full content display
   },
   webView: {
-    flex: 1,
     backgroundColor: '#FFFFFF',
+    minHeight: 400, // Minimum height
+    // Remove flex: 1 to allow auto-sizing
   },
 });
