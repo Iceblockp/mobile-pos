@@ -24,7 +24,7 @@ interface ReceiptTemplateSelectorProps {
 }
 
 const { width: screenWidth } = Dimensions.get('window');
-const previewWidth = Math.min(screenWidth - 80, 280);
+const previewWidth = Math.min(screenWidth - 80, 320);
 
 export const ReceiptTemplateSelector: React.FC<
   ReceiptTemplateSelectorProps
@@ -171,7 +171,9 @@ export const ReceiptTemplateSelector: React.FC<
                     </Text>
                   </View>
                 ) : previewHtml[template.id] ? (
-                  <View style={styles.previewWrapper}>
+                  <View
+                    style={[styles.previewWrapper, { width: previewWidth }]}
+                  >
                     <WebView
                       source={{ html: previewHtml[template.id] }}
                       style={styles.previewWebView}
@@ -317,6 +319,7 @@ const styles = StyleSheet.create({
   previewWrapper: {
     height: 400,
     margin: 16,
+    alignSelf: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
     overflow: 'hidden',

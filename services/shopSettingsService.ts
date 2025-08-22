@@ -349,14 +349,22 @@ export class ShopSettingsService {
         }
       }
 
-      return await this.templateEngine.previewTemplate(templateId, settings);
+      return await this.templateEngine.previewTemplate(
+        templateId,
+        settings,
+        true
+      );
     } catch (error) {
       console.error('Failed to preview template:', error);
 
       // Try with default settings as last resort
       try {
         console.warn('Attempting template preview with default settings');
-        return await this.templateEngine.previewTemplate(templateId, null);
+        return await this.templateEngine.previewTemplate(
+          templateId,
+          null,
+          true
+        );
       } catch (fallbackError) {
         console.error(
           'Failed to generate template preview with defaults:',

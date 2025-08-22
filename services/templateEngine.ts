@@ -155,7 +155,8 @@ export class TemplateEngine {
   // Render receipt with template
   async renderReceipt(
     templateId: string,
-    context: TemplateContext
+    context: TemplateContext,
+    isPreview: boolean = false
   ): Promise<string> {
     const template = this.getTemplate(templateId);
     if (!template) {
@@ -259,14 +260,18 @@ export class TemplateEngine {
 
       html = html.replace(/{{items}}/g, itemsHtml);
 
-      // Combine with CSS
+      // Combine with CSS - add responsive styles for preview
+      const responsiveCSS = isPreview ? this.getResponsivePreviewCSS() : '';
       const fullHtml = `
         <!DOCTYPE html>
         <html>
           <head>
             <meta charset="utf-8">
             <title>Receipt #${context.receiptData.saleId}</title>
-            <style>${template.cssStyles}</style>
+            <style>
+              ${template.cssStyles}
+              ${responsiveCSS}
+            </style>
           </head>
           <body>
             ${html}
@@ -284,7 +289,8 @@ export class TemplateEngine {
   // Preview template with sample data
   async previewTemplate(
     templateId: string,
-    shopSettings: ShopSettings | null
+    shopSettings: ShopSettings | null,
+    isPreview: boolean = true
   ): Promise<string> {
     const sampleData: ReceiptData = {
       saleId: 12345,
@@ -321,7 +327,56 @@ export class TemplateEngine {
     };
 
     const context = this.buildTemplateContext(shopSettings, sampleData);
-    return this.renderReceipt(templateId, context);
+    return this.renderReceipt(templateId, context, isPreview);
+  }
+
+  // Get responsive CSS for preview mode
+  private getResponsivePreviewCSS(): string {
+    return `
+      /* Responsive styles for preview mode */
+      @media screen {
+        .receipt {
+          max-width: 100% !important;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 10px !important;
+          box-sizing: border-box;
+        }
+        
+        body {
+          padding: 10px !important;
+          margin: 0 !important;
+        }
+        
+        /* Ensure text scales appropriately */
+        .shop-name, h1 {
+          font-size: clamp(16px, 4vw, 24px) !important;
+        }
+        
+        .item-name {
+          font-size: clamp(14px, 3.5vw, 16px) !important;
+        }
+        
+        .total-line, .total-row {
+          font-size: clamp(16px, 4vw, 20px) !important;
+        }
+        
+        /* Improve spacing for wider screens */
+        .header {
+          padding: 15px !important;
+        }
+        
+        .items-section, .receipt-info, .receipt-details {
+          padding: 15px !important;
+        }
+        
+        /* Logo sizing for preview */
+        .logo {
+          max-width: min(100px, 25vw) !important;
+          max-height: min(100px, 25vw) !important;
+        }
+      }
+    `;
   }
 
   // Utility formatters
@@ -409,6 +464,12 @@ export class TemplateEngine {
         max-width: 300px;
         margin: 0 auto;
         background: white;
+      }
+      
+      /* Print-specific styles */
+      @media print {
+        body { padding: 10px; }
+        .receipt { max-width: 280px; }
       }
       .header {
         text-align: center;
@@ -550,6 +611,12 @@ export class TemplateEngine {
         background: white;
         border-radius: 8px;
         overflow: hidden;
+      }
+      
+      /* Print-specific styles */
+      @media print {
+        body { padding: 10px; }
+        .receipt { max-width: 300px; border-radius: 0; }
       }
       .header {
         text-align: center;
@@ -710,6 +777,12 @@ export class TemplateEngine {
         max-width: 280px;
         margin: 0 auto;
       }
+      
+      /* Print-specific styles */
+      @media print {
+        body { padding: 8px; }
+        .receipt { max-width: 260px; }
+      }
       .header {
         text-align: center;
         margin-bottom: 15px;
@@ -841,6 +914,12 @@ export class TemplateEngine {
         background: white;
         border: 2px solid #34495e;
         border-radius: 0;
+      }
+      
+      /* Print-specific styles */
+      @media print {
+        body { padding: 15px; }
+        .receipt { max-width: 320px; }
       }
       .header {
         text-align: center;
