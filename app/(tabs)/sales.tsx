@@ -492,6 +492,14 @@ export default function Sales() {
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  style={styles.clearButton}
+                  onPress={() => setSearchQuery('')}
+                >
+                  <X size={16} color="#6B7280" />
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Enhanced Category Filter */}
@@ -1716,12 +1724,28 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         </Modal>
 
         <View style={styles.filtersContainer}>
-          <TextInput
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder={t('sales.searchBySaleId')}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={() => setSearchQuery('')}
+              >
+                <X size={16} color="#6B7280" />
+              </TouchableOpacity>
+            )}
+          </View>
+          {/* <TextInput
             style={styles.searchInput}
             placeholder={t('sales.searchBySaleId')}
             value={searchQuery}
             onChangeText={setSearchQuery}
-          />
+          /> */}
 
           <ScrollView
             horizontal
@@ -2611,7 +2635,15 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   searchContainer: {
-    marginBottom: 20,
+    position: 'relative',
+    marginBottom: 12,
+  },
+  clearButton: {
+    position: 'absolute',
+    right: 12,
+    top: '50%',
+    transform: [{ translateY: -8 }],
+    padding: 4,
   },
   searchInput: {
     backgroundColor: '#FFFFFF',

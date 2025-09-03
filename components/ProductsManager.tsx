@@ -41,6 +41,7 @@ import {
   Download,
   Upload,
   MoreVertical,
+  X,
 } from 'lucide-react-native';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import TextScanner from '@/components/TextScanner';
@@ -953,6 +954,14 @@ export default function Products({ compact = false }: ProductsManagerProps) {
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  style={styles.clearButton}
+                  onPress={() => setSearchQuery('')}
+                >
+                  <X size={16} color="#6B7280" />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 style={styles.compactScanButton}
                 onPress={() => setShowSearchScanner(true)}
@@ -2058,6 +2067,12 @@ const styles = StyleSheet.create({
   },
   compactScanButton: {
     padding: 4,
+  },
+  clearButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginLeft: -4,
+    marginRight: 4,
   },
   compactCategoryScroll: {
     paddingHorizontal: 16,
