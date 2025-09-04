@@ -180,6 +180,7 @@ export const en = {
     discountTooHigh: 'Discount cannot be higher than item total',
     discountCannotBeNegative: 'Discount cannot be negative',
     discount: 'Discount',
+    manualDiscount: 'Manual Discount',
     saleNote: 'Sale Note',
     addNote: 'Add Note (Optional)',
   },

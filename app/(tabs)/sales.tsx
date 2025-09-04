@@ -61,7 +61,10 @@ import { useTranslation } from '@/context/LocalizationContext';
 import { PaymentModal } from '@/components/PaymentModal';
 import { EnhancedPrintManager } from '@/components/EnhancedPrintManager';
 import { BulkPricingIndicator } from '@/components/BulkPricingIndicator';
-import { calculateCartTotalWithBulkPricing } from '@/utils/bulkPricingUtils';
+import {
+  calculateBulkPrice,
+  calculateCartTotalWithBulkPricing,
+} from '@/utils/bulkPricingUtils';
 
 interface CartItem {
   product: Product;
@@ -104,23 +107,90 @@ export default function Sales() {
   const { addSale } = useSaleMutations();
 
   useEffect(() => {
-    // Convert cart items to the format expected by bulk pricing utils
-    const cartForBulkPricing = cart.map((item) => ({
-      ...item.product,
-      quantity: item.quantity,
-    }));
-
-    const cartTotals = calculateCartTotalWithBulkPricing(cartForBulkPricing);
+    // Calculate total considering both bulk pricing and manual discounts
+    const cartTotals = getCartTotals();
     setTotal(cartTotals.bulkTotal);
   }, [cart]);
 
+  // Helper function to get bulk price per unit for an item
+  const getBulkPricePerUnit = (item: CartItem) => {
+    const cartForBulkPricing = [
+      {
+        ...item.product,
+        quantity: item.quantity,
+      },
+    ];
+    const bulkPricingResult =
+      calculateCartTotalWithBulkPricing(cartForBulkPricing);
+    const bulkTotalPrice = bulkPricingResult.bulkTotal;
+    return bulkTotalPrice / item.quantity;
+  };
+
   const getCartTotals = () => {
+    // Calculate totals with separate bulk and manual discounts
+    let originalTotal = 0;
+    let finalTotal = 0;
+    let totalBulkSavings = 0;
+    let totalManualSavings = 0;
+
+    // Calculate bulk pricing first
     const cartForBulkPricing = cart.map((item) => ({
       ...item.product,
       quantity: item.quantity,
     }));
+    const bulkPricingTotals =
+      calculateCartTotalWithBulkPricing(cartForBulkPricing);
 
-    return calculateCartTotalWithBulkPricing(cartForBulkPricing);
+    // Create item breakdown with separate discounts
+    const itemBreakdown = cart.map((item) => {
+      const itemOriginal = item.product.price * item.quantity;
+
+      // Find bulk pricing for this item
+      const bulkItem = bulkPricingTotals.itemBreakdown.find(
+        (breakdown) => breakdown.item.id === item.product.id
+      );
+
+      // Step 1: Calculate bulk discount
+      const afterBulkPrice = bulkItem
+        ? bulkItem.pricing.bulkPrice
+        : itemOriginal;
+      const bulkSavings = itemOriginal - afterBulkPrice;
+
+      // Step 2: Manual discount is already applied in item.subtotal
+      // item.subtotal = afterBulkPrice - item.discount
+      const finalItemPrice = item.subtotal;
+      const manualSavings = item.discount;
+
+      const totalItemSavings = bulkSavings + manualSavings;
+
+      originalTotal += itemOriginal;
+      finalTotal += finalItemPrice;
+      totalBulkSavings += bulkSavings;
+      totalManualSavings += manualSavings;
+
+      return {
+        item: { ...item.product, quantity: item.quantity },
+        pricing: {
+          originalPrice: itemOriginal,
+          bulkPrice: finalItemPrice,
+          bulkSavings: bulkSavings,
+          manualSavings: manualSavings,
+          totalSavings: totalItemSavings,
+          discountPercentage:
+            totalItemSavings > 0 ? (totalItemSavings / itemOriginal) * 100 : 0,
+          discountType: 'stacked', // Both bulk and manual
+        },
+      };
+    });
+
+    return {
+      originalTotal,
+      bulkTotal: finalTotal,
+      totalSavings: totalBulkSavings + totalManualSavings,
+      bulkSavings: totalBulkSavings,
+      manualSavings: totalManualSavings,
+      itemBreakdown,
+    };
   };
 
   const formatMMK = (amount: number) => {
@@ -165,25 +235,49 @@ export default function Sales() {
         return;
       }
 
+      const newQuantity = existingItem.quantity + 1;
+
+      // Calculate bulk price for new quantity
+      const cartForBulkPricing = [
+        {
+          ...product,
+          quantity: newQuantity,
+        },
+      ];
+      const bulkPricingResult =
+        calculateCartTotalWithBulkPricing(cartForBulkPricing);
+      const bulkTotalPrice = bulkPricingResult.bulkTotal;
+
       setCart(
         cart.map((item) =>
           item.product.id === product.id
             ? {
                 ...item,
-                quantity: item.quantity + 1,
-                subtotal: (item.quantity + 1) * product.price - item.discount,
+                quantity: newQuantity,
+                subtotal: bulkTotalPrice - item.discount, // bulk_total - manual_discount
               }
             : item
         )
       );
     } else {
+      // For new items, start with bulk price for quantity 1
+      const cartForBulkPricing = [
+        {
+          ...product,
+          quantity: 1,
+        },
+      ];
+      const bulkPricingResult =
+        calculateCartTotalWithBulkPricing(cartForBulkPricing);
+      const bulkTotalPrice = bulkPricingResult.bulkTotal;
+
       setCart([
         ...cart,
         {
           product,
           quantity: 1,
           discount: 0, // Default discount is 0
-          subtotal: product.price,
+          subtotal: bulkTotalPrice, // Start with bulk price
         },
       ]);
     }
@@ -205,13 +299,24 @@ export default function Sales() {
       return;
     }
 
+    // Calculate bulk price for new quantity
+    const cartForBulkPricing = [
+      {
+        ...item.product,
+        quantity: newQuantity,
+      },
+    ];
+    const bulkPricingResult =
+      calculateCartTotalWithBulkPricing(cartForBulkPricing);
+    const bulkTotalPrice = bulkPricingResult.bulkTotal;
+
     setCart(
       cart.map((item) =>
         item.product.id === productId
           ? {
               ...item,
               quantity: newQuantity,
-              subtotal: newQuantity * item.product.price - item.discount,
+              subtotal: bulkTotalPrice - item.discount, // bulk_total - manual_discount
             }
           : item
       )
@@ -222,9 +327,19 @@ export default function Sales() {
     const item = cart.find((item) => item.product.id === productId);
     if (!item) return;
 
-    // Validate discount doesn't exceed item total
-    const itemTotal = item.quantity * item.product.price;
-    if (newDiscount > itemTotal) {
+    // Calculate bulk price for this item first
+    const cartForBulkPricing = [
+      {
+        ...item.product,
+        quantity: item.quantity,
+      },
+    ];
+    const bulkPricingResult =
+      calculateCartTotalWithBulkPricing(cartForBulkPricing);
+    const bulkPrice = bulkPricingResult.bulkTotal;
+
+    // Validate discount doesn't exceed bulk price (not original price)
+    if (newDiscount > bulkPrice) {
       Alert.alert(t('common.error'), t('sales.discountTooHigh'));
       return;
     }
@@ -240,7 +355,8 @@ export default function Sales() {
           ? {
               ...item,
               discount: newDiscount,
-              subtotal: item.quantity * item.product.price - newDiscount,
+              // Note: subtotal will be recalculated in getCartTotals with stacked discounts
+              subtotal: bulkPrice - newDiscount, // Apply manual discount to bulk price
             }
           : item
       )
@@ -269,9 +385,7 @@ export default function Sales() {
       const cartTotals = getCartTotals();
 
       const saleData = {
-        total: cartTotals.bulkTotal,
-        original_total: cartTotals.originalTotal,
-        total_savings: cartTotals.totalSavings,
+        total: cartTotals.bulkTotal, // This is the final discounted total
         payment_method: paymentMethod,
         note: note || undefined,
         customer_id: selectedCustomer?.id || undefined,
@@ -279,19 +393,33 @@ export default function Sales() {
 
       const saleItems = cart.map((item) => {
         const itemPricing = cartTotals.itemBreakdown.find(
-          (breakdown) => breakdown.item.id === item.product.id
+          (breakdown) => breakdown.item?.id === item.product.id
         );
+
+        // Calculate bulk pricing for this item
+        const cartForBulkPricing = [
+          {
+            ...item.product,
+            quantity: item.quantity,
+          },
+        ];
+        const bulkPricingResult =
+          calculateCartTotalWithBulkPricing(cartForBulkPricing);
+        const bulkSubtotal = bulkPricingResult.bulkTotal;
+        const bulkUnitPrice = bulkSubtotal / item.quantity;
+
+        // Final subtotal after manual discount
+        const finalSubtotal = bulkSubtotal - item.discount;
+
         return {
           product_id: item.product.id,
           quantity: item.quantity,
-          price: itemPricing
-            ? itemPricing.pricing.bulkPrice / item.quantity
-            : item.product.price,
+          price: bulkUnitPrice, // Bulk unit price (not final price after manual discount)
           original_price: item.product.price,
-          bulk_discount: itemPricing ? itemPricing.pricing.totalSavings : 0,
+          bulk_discount: itemPricing ? itemPricing.pricing.bulkSavings : 0, // Bulk discount amount
           cost: item.product.cost,
-          discount: item.discount,
-          subtotal: itemPricing ? itemPricing.pricing.bulkPrice : item.subtotal,
+          discount: item.discount, // Manual discount amount
+          subtotal: finalSubtotal, // Final subtotal after all discounts
         };
       });
 
@@ -408,14 +536,26 @@ export default function Sales() {
                       {formatMMK(cartTotals.originalTotal)}
                     </Text>
                   </View>
-                  <View style={styles.savingsRow}>
-                    <Text style={styles.savingsLabel}>
-                      {t('bulkPricing.bulkDiscount')}
-                    </Text>
-                    <Text style={styles.savingsAmount}>
-                      -{formatMMK(cartTotals.totalSavings)}
-                    </Text>
-                  </View>
+                  {cartTotals.bulkSavings > 0 && (
+                    <View style={styles.savingsRow}>
+                      <Text style={styles.savingsLabel}>
+                        {t('bulkPricing.bulkDiscount')}
+                      </Text>
+                      <Text style={styles.savingsAmount}>
+                        -{formatMMK(cartTotals.bulkSavings)}
+                      </Text>
+                    </View>
+                  )}
+                  {cartTotals.manualSavings > 0 && (
+                    <View style={styles.savingsRow}>
+                      <Text style={styles.savingsLabel}>
+                        {t('sales.manualDiscount')}
+                      </Text>
+                      <Text style={styles.savingsAmount}>
+                        -{formatMMK(cartTotals.manualSavings)}
+                      </Text>
+                    </View>
+                  )}
                 </View>
               ) : null;
             })()}
@@ -449,7 +589,7 @@ export default function Sales() {
                         {item.product.name}
                       </Text>
                       <Text style={styles.cartItemPrice}>
-                        {formatMMK(item.product.price)} {t('sales.each')}
+                        {formatMMK(getBulkPricePerUnit(item))} {t('sales.each')}
                       </Text>
                       {item.discount > 0 && (
                         <Text style={styles.cartItemDiscount}>
@@ -467,7 +607,10 @@ export default function Sales() {
                     </View>
                     <View style={styles.cartItemSubtotalContainer}>
                       <Text style={styles.cartItemSubtotal}>
-                        {formatMMK(item.subtotal)}
+                        {formatMMK(
+                          getBulkPricePerUnit(item) * item.quantity -
+                            item.discount
+                        )}
                       </Text>
                     </View>
                   </View>

@@ -185,6 +185,7 @@ export const my: TranslationKeys = {
     discountTooHigh: 'လျှော့စျေးသည် ပစ္စည်းစုစုပေါင်းထက် မပိုနိုင်ပါ',
     discountCannotBeNegative: 'လျှော့စျေးသည် အနုတ်လက္ခဏာမဖြစ်နိုင်ပါ',
     discount: 'လျှော့စျေး',
+    manualDiscount: 'လက်ဖြင့်လျှော့စျေး',
     saleNote: 'ရောင်းချမှုမှတ်စု',
     addNote: 'မှတ်စုထည့်မည် (ရွေးချယ်ခွင့်)',
   },
