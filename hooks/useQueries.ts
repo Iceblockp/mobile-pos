@@ -7,6 +7,9 @@ import {
   Sale,
   Expense,
   ExpenseCategory,
+  Customer,
+  StockMovement,
+  BulkPricing,
 } from '@/services/database';
 
 // Query keys factory for better organization
@@ -31,6 +34,70 @@ export const queryKeys = {
   suppliers: {
     all: ['suppliers'] as const,
     lists: () => [...queryKeys.suppliers.all, 'list'] as const,
+  },
+
+  // Customers
+  customers: {
+    all: ['customers'] as const,
+    lists: () => [...queryKeys.customers.all, 'list'] as const,
+    list: (searchQuery?: string, page?: number, pageSize?: number) =>
+      [
+        ...queryKeys.customers.lists(),
+        { searchQuery, page, pageSize },
+      ] as const,
+    details: () => [...queryKeys.customers.all, 'detail'] as const,
+    detail: (id: number) => [...queryKeys.customers.details(), id] as const,
+    purchaseHistory: (customerId: number, page?: number, pageSize?: number) =>
+      [
+        ...queryKeys.customers.all,
+        'purchaseHistory',
+        customerId,
+        page,
+        pageSize,
+      ] as const,
+    statistics: (customerId: number) =>
+      [...queryKeys.customers.all, 'statistics', customerId] as const,
+  },
+
+  // Stock Movements
+  stockMovements: {
+    all: ['stockMovements'] as const,
+    lists: () => [...queryKeys.stockMovements.all, 'list'] as const,
+    list: (filters?: any, page?: number, pageSize?: number) =>
+      [
+        ...queryKeys.stockMovements.lists(),
+        { filters, page, pageSize },
+      ] as const,
+    byProduct: (productId: number, page?: number, pageSize?: number) =>
+      [
+        ...queryKeys.stockMovements.all,
+        'byProduct',
+        productId,
+        page,
+        pageSize,
+      ] as const,
+    summary: (productId?: number, startDate?: Date, endDate?: Date) =>
+      [
+        ...queryKeys.stockMovements.all,
+        'summary',
+        productId,
+        startDate?.toISOString(),
+        endDate?.toISOString(),
+      ] as const,
+  },
+
+  // Bulk Pricing
+  bulkPricing: {
+    all: ['bulkPricing'] as const,
+    byProduct: (productId: number) =>
+      [...queryKeys.bulkPricing.all, 'byProduct', productId] as const,
+    calculation: (productId: number, quantity: number) =>
+      [
+        ...queryKeys.bulkPricing.all,
+        'calculation',
+        productId,
+        quantity,
+      ] as const,
   },
 
   // Inventory
@@ -124,12 +191,13 @@ export const queryKeys = {
 } as const;
 
 // ============ PRODUCT QUERIES ============
-export const useProducts = () => {
+export const useProducts = (includeBulkPricing: boolean = false) => {
   const { db, isReady } = useDatabase();
 
   return useQuery({
-    queryKey: queryKeys.products.lists(),
-    queryFn: () => db!.getProducts(),
+    queryKey: [...queryKeys.products.lists(), { includeBulkPricing }],
+    queryFn: () =>
+      includeBulkPricing ? db!.getProductsWithBulkPricing() : db!.getProducts(),
     enabled: isReady && !!db,
     staleTime: 3 * 60 * 1000, // 3 minutes - products change frequently
     gcTime: 10 * 60 * 1000,
@@ -430,7 +498,59 @@ export const useProductMutations = () => {
     },
   });
 
-  return { addProduct, updateProduct, deleteProduct };
+  const updateProductWithBulkPricing = useMutation({
+    mutationFn: async ({
+      id,
+      productData,
+      bulkPricingTiers,
+    }: {
+      id: number;
+      productData: Partial<Product>;
+      bulkPricingTiers?: Array<{ min_quantity: number; bulk_price: number }>;
+    }) => {
+      // Update product first
+      await db!.updateProduct(id, productData);
+
+      // If bulk pricing tiers are provided, update them
+      if (bulkPricingTiers) {
+        // First validate the tiers
+        await db!.validateBulkPricingTiers(id, bulkPricingTiers);
+
+        // Delete existing bulk pricing for this product
+        const existingTiers = await db!.getBulkPricingForProduct(id);
+        for (const tier of existingTiers) {
+          await db!.deleteBulkPricing(tier.id);
+        }
+
+        // Add new bulk pricing tiers
+        for (const tier of bulkPricingTiers) {
+          await db!.addBulkPricing({
+            product_id: id,
+            min_quantity: tier.min_quantity,
+            bulk_price: tier.bulk_price,
+          });
+        }
+      }
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.products.detail(id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.bulkPricing.byProduct(id),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analytics.all });
+    },
+  });
+
+  return {
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    updateProductWithBulkPricing,
+  };
 };
 
 export const useCategoryMutations = () => {
@@ -483,6 +603,7 @@ export const useSaleMutations = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.analytics.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
 
       // Force refresh chart data immediately
       queryClient.refetchQueries({
@@ -500,6 +621,7 @@ export const useSaleMutations = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.analytics.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
 
       // Force refresh chart data immediately
       queryClient.refetchQueries({
@@ -632,6 +754,311 @@ export const useExpenseMutations = () => {
   };
 };
 
+// ============ CUSTOMER QUERIES ============
+export const useCustomers = (
+  searchQuery?: string,
+  page: number = 1,
+  pageSize: number = 50
+) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.customers.list(searchQuery, page, pageSize),
+    queryFn: () => db!.getCustomers(searchQuery, page, pageSize),
+    enabled: isReady && !!db,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+};
+
+export const useCustomer = (id: number) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.customers.detail(id),
+    queryFn: () => db!.getCustomerById(id),
+    enabled: isReady && !!db && id > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const useCustomerPurchaseHistory = (
+  customerId: number,
+  page: number = 1,
+  pageSize: number = 20
+) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.customers.purchaseHistory(customerId, page, pageSize),
+    queryFn: () => db!.getCustomerPurchaseHistory(customerId, page, pageSize),
+    enabled: isReady && !!db && customerId > 0,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+};
+
+export const useCustomerStatistics = (customerId: number) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.customers.statistics(customerId),
+    queryFn: () => db!.getCustomerStatistics(customerId),
+    enabled: isReady && !!db && customerId > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const useCustomerMutations = () => {
+  const queryClient = useQueryClient();
+  const { db } = useDatabase();
+
+  const addCustomer = useMutation({
+    mutationFn: (customer: {
+      name: string;
+      phone?: string;
+      email?: string;
+      address?: string;
+    }) => db!.addCustomer(customer),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
+    },
+  });
+
+  const updateCustomer = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<Customer> }) =>
+      db!.updateCustomer(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
+    },
+  });
+
+  const deleteCustomer = useMutation({
+    mutationFn: (id: number) => db!.deleteCustomer(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
+    },
+  });
+
+  return {
+    addCustomer,
+    updateCustomer,
+    deleteCustomer,
+  };
+};
+
+// ============ STOCK MOVEMENT QUERIES ============
+export const useStockMovements = (
+  filters?: {
+    productId?: number;
+    type?: 'stock_in' | 'stock_out';
+    startDate?: Date;
+    endDate?: Date;
+    supplierId?: number;
+  },
+  page: number = 1,
+  pageSize: number = 50
+) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.stockMovements.list(filters, page, pageSize),
+    queryFn: () => db!.getStockMovements(filters, page, pageSize),
+    enabled: isReady && !!db,
+    staleTime: 1 * 60 * 1000, // 1 minute
+  });
+};
+
+export const useStockMovementsByProduct = (
+  productId: number,
+  page: number = 1,
+  pageSize: number = 20
+) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.stockMovements.byProduct(productId, page, pageSize),
+    queryFn: () => db!.getStockMovementsByProduct(productId, page, pageSize),
+    enabled: isReady && !!db && productId > 0,
+    staleTime: 1 * 60 * 1000, // 1 minute
+  });
+};
+
+export const useStockMovementSummary = (
+  productId?: number,
+  startDate?: Date,
+  endDate?: Date
+) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.stockMovements.summary(productId, startDate, endDate),
+    queryFn: () => db!.getStockMovementSummary(productId, startDate, endDate),
+    enabled: isReady && !!db,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+};
+
+export const useProductStockSummary = (productId: number) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: [...queryKeys.products.detail(productId), 'stockSummary'],
+    queryFn: async () => {
+      const [product, stockSummary] = await Promise.all([
+        db!
+          .getProducts()
+          .then((products) => products.find((p) => p.id === productId)),
+        db!.getStockMovementSummary(productId),
+      ]);
+      return { product, stockSummary };
+    },
+    enabled: isReady && !!db && productId > 0,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+};
+
+export const useStockMovementMutations = () => {
+  const queryClient = useQueryClient();
+  const { db } = useDatabase();
+
+  const addStockMovement = useMutation({
+    mutationFn: (movement: {
+      product_id: number;
+      type: 'stock_in' | 'stock_out';
+      quantity: number;
+      reason?: string;
+      supplier_id?: number;
+      reference_number?: string;
+      unit_cost?: number;
+    }) => db!.addStockMovement(movement),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.stockMovements.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
+    },
+  });
+
+  const updateProductQuantityWithMovement = useMutation({
+    mutationFn: ({
+      productId,
+      movementType,
+      quantity,
+      reason,
+      supplierId,
+      referenceNumber,
+      unitCost,
+    }: {
+      productId: number;
+      movementType: 'stock_in' | 'stock_out';
+      quantity: number;
+      reason?: string;
+      supplierId?: number;
+      referenceNumber?: string;
+      unitCost?: number;
+    }) =>
+      db!.updateProductQuantityWithMovement(
+        productId,
+        movementType,
+        quantity,
+        reason,
+        supplierId,
+        referenceNumber,
+        unitCost
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.stockMovements.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
+    },
+  });
+
+  return {
+    addStockMovement,
+    updateProductQuantityWithMovement,
+  };
+};
+
+// ============ BULK PRICING QUERIES ============
+export const useBulkPricing = (productId: number) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.bulkPricing.byProduct(productId),
+    queryFn: () => db!.getBulkPricingForProduct(productId),
+    enabled: isReady && !!db && productId > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const useBulkPriceCalculation = (
+  productId: number,
+  quantity: number
+) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.bulkPricing.calculation(productId, quantity),
+    queryFn: () => db!.calculateBestPrice(productId, quantity),
+    enabled: isReady && !!db && productId > 0 && quantity > 0,
+    staleTime: 1 * 60 * 1000, // 1 minute
+  });
+};
+
+export const useBulkPricingMutations = () => {
+  const queryClient = useQueryClient();
+  const { db } = useDatabase();
+
+  const addBulkPricing = useMutation({
+    mutationFn: (bulkPricing: {
+      product_id: number;
+      min_quantity: number;
+      bulk_price: number;
+    }) => db!.addBulkPricing(bulkPricing),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.bulkPricing.byProduct(variables.product_id),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+    },
+  });
+
+  const updateBulkPricing = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<BulkPricing> }) =>
+      db!.updateBulkPricing(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.bulkPricing.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+    },
+  });
+
+  const deleteBulkPricing = useMutation({
+    mutationFn: (id: number) => db!.deleteBulkPricing(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.bulkPricing.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+    },
+  });
+
+  const validateBulkPricingTiers = useMutation({
+    mutationFn: ({
+      productId,
+      tiers,
+    }: {
+      productId: number;
+      tiers: Array<{
+        min_quantity: number;
+        bulk_price: number;
+      }>;
+    }) => db!.validateBulkPricingTiers(productId, tiers),
+  });
+
+  return {
+    addBulkPricing,
+    updateBulkPricing,
+    deleteBulkPricing,
+    validateBulkPricingTiers,
+  };
+};
+
 // ============ UTILITY HOOKS ============
 export const useInvalidateQueries = () => {
   const queryClient = useQueryClient();
@@ -643,6 +1070,12 @@ export const useInvalidateQueries = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.categories.all }),
     invalidateSuppliers: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.suppliers.all }),
+    invalidateCustomers: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers.all }),
+    invalidateStockMovements: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.stockMovements.all }),
+    invalidateBulkPricing: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.bulkPricing.all }),
     invalidateInventory: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all }),
     invalidateSales: () =>

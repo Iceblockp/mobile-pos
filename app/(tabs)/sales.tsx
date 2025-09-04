@@ -30,7 +30,8 @@ import {
   useInfiniteSalesByDateRange,
 } from '@/hooks/useInfiniteQueries';
 import { useDatabase } from '@/context/DatabaseContext';
-import { Product, Category } from '@/services/database';
+import { Product, Category, Customer } from '@/services/database';
+import { CustomerSelector } from '@/components/CustomerSelector';
 import {
   ShoppingCart,
   Plus,
@@ -59,6 +60,8 @@ import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
 import { PaymentModal } from '@/components/PaymentModal';
 import { EnhancedPrintManager } from '@/components/EnhancedPrintManager';
+import { BulkPricingIndicator } from '@/components/BulkPricingIndicator';
+import { calculateCartTotalWithBulkPricing } from '@/utils/bulkPricingUtils';
 
 interface CartItem {
   product: Product;
@@ -84,13 +87,16 @@ export default function Sales() {
   const [receiptData, setReceiptData] = useState<any>(null);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
+    null
+  );
 
   // Use React Query for optimized data fetching
   const {
     data: products = [],
     isLoading: productsLoading,
     error: productsError,
-  } = useProducts();
+  } = useProducts(true); // Include bulk pricing data
 
   const { data: categories = [], isLoading: categoriesLoading } =
     useCategories();
@@ -98,9 +104,24 @@ export default function Sales() {
   const { addSale } = useSaleMutations();
 
   useEffect(() => {
-    const newTotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
-    setTotal(newTotal);
+    // Convert cart items to the format expected by bulk pricing utils
+    const cartForBulkPricing = cart.map((item) => ({
+      ...item.product,
+      quantity: item.quantity,
+    }));
+
+    const cartTotals = calculateCartTotalWithBulkPricing(cartForBulkPricing);
+    setTotal(cartTotals.bulkTotal);
   }, [cart]);
+
+  const getCartTotals = () => {
+    const cartForBulkPricing = cart.map((item) => ({
+      ...item.product,
+      quantity: item.quantity,
+    }));
+
+    return calculateCartTotalWithBulkPricing(cartForBulkPricing);
+  };
 
   const formatMMK = (amount: number) => {
     return (
@@ -232,6 +253,7 @@ export default function Sales() {
 
   const clearCart = () => {
     setCart([]);
+    setSelectedCustomer(null);
   };
 
   const processSale = async (
@@ -244,20 +266,34 @@ export default function Sales() {
     try {
       setLoading(true);
 
+      const cartTotals = getCartTotals();
+
       const saleData = {
-        total,
+        total: cartTotals.bulkTotal,
+        original_total: cartTotals.originalTotal,
+        total_savings: cartTotals.totalSavings,
         payment_method: paymentMethod,
         note: note || undefined,
+        customer_id: selectedCustomer?.id || undefined,
       };
 
-      const saleItems = cart.map((item) => ({
-        product_id: item.product.id,
-        quantity: item.quantity,
-        price: item.product.price,
-        cost: item.product.cost,
-        discount: item.discount,
-        subtotal: item.subtotal,
-      }));
+      const saleItems = cart.map((item) => {
+        const itemPricing = cartTotals.itemBreakdown.find(
+          (breakdown) => breakdown.item.id === item.product.id
+        );
+        return {
+          product_id: item.product.id,
+          quantity: item.quantity,
+          price: itemPricing
+            ? itemPricing.pricing.bulkPrice / item.quantity
+            : item.product.price,
+          original_price: item.product.price,
+          bulk_discount: itemPricing ? itemPricing.pricing.totalSavings : 0,
+          cost: item.product.cost,
+          discount: item.discount,
+          subtotal: itemPricing ? itemPricing.pricing.bulkPrice : item.subtotal,
+        };
+      });
 
       const result = await addSale.mutateAsync({ saleData, saleItems });
 
@@ -348,6 +384,42 @@ export default function Sales() {
             <Text style={styles.cartTotal}>{formatMMK(total)}</Text>
           </View>
 
+          {/* Customer Selection */}
+          <View style={styles.customerSection}>
+            <Text style={styles.customerLabel}>{t('sales.customer')}</Text>
+            <CustomerSelector
+              selectedCustomer={selectedCustomer}
+              onCustomerSelect={setSelectedCustomer}
+              placeholder={t('sales.selectCustomerOptional')}
+            />
+          </View>
+
+          {/* Bulk Pricing Summary */}
+          {cart.length > 0 &&
+            (() => {
+              const cartTotals = getCartTotals();
+              return cartTotals.totalSavings > 0 ? (
+                <View style={styles.bulkPricingSummary}>
+                  <View style={styles.savingsRow}>
+                    <Text style={styles.savingsLabel}>
+                      {t('sales.subtotal')}
+                    </Text>
+                    <Text style={styles.originalTotal}>
+                      {formatMMK(cartTotals.originalTotal)}
+                    </Text>
+                  </View>
+                  <View style={styles.savingsRow}>
+                    <Text style={styles.savingsLabel}>
+                      {t('bulkPricing.bulkDiscount')}
+                    </Text>
+                    <Text style={styles.savingsAmount}>
+                      -{formatMMK(cartTotals.totalSavings)}
+                    </Text>
+                  </View>
+                </View>
+              ) : null;
+            })()}
+
           {cart.length === 0 ? (
             <View style={styles.emptyCart}>
               <ShoppingCart size={isSmallScreen ? 32 : 48} color="#9CA3AF" />
@@ -384,6 +456,14 @@ export default function Sales() {
                           {t('sales.discount')}: -{formatMMK(item.discount)}
                         </Text>
                       )}
+                      <BulkPricingIndicator
+                        product={item.product}
+                        quantity={item.quantity}
+                        onQuantityChange={(newQuantity) =>
+                          updateQuantity(item.product.id, newQuantity)
+                        }
+                        compact={true}
+                      />
                     </View>
                     <View style={styles.cartItemSubtotalContainer}>
                       <Text style={styles.cartItemSubtotal}>
@@ -612,6 +692,12 @@ export default function Sales() {
                         ` ${t('sales.low')}`}
                       {product.quantity <= 0 && ` ${t('sales.out')}`}
                     </Text>
+                    <BulkPricingIndicator
+                      product={product}
+                      quantity={1}
+                      compact={true}
+                      showUpsell={false}
+                    />
                   </View>
                   <View style={styles.dialogProductPriceContainer}>
                     <Text
@@ -2424,7 +2510,46 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 16,
+  },
+  customerSection: {
     marginBottom: 20,
+  },
+  customerLabel: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  bulkPricingSummary: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  savingsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  savingsLabel: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  originalTotal: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#9CA3AF',
+    textDecorationLine: 'line-through',
+  },
+  savingsAmount: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#DC2626',
   },
   cartTitleContainer: {
     flexDirection: 'row',

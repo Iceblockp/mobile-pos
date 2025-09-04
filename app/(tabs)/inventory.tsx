@@ -25,10 +25,12 @@ import { Product, Supplier } from '@/services/database';
 import {
   TriangleAlert as AlertTriangle,
   TrendingUp,
+  TrendingDown,
   Package,
   List,
   Search,
   Scan,
+  RotateCcw,
 } from 'lucide-react-native';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { useToast } from '@/context/ToastContext';
@@ -37,8 +39,12 @@ import { usePerformanceOptimization } from '@/hooks/usePerformanceOptimization';
 
 // Import the ProductsManager component
 import ProductsManager from '@/components/ProductsManager';
+import { StockMovementForm } from '@/components/StockMovementForm';
+import { EnhancedMovementHistory } from '@/components/EnhancedMovementHistory';
+import { MovementSummary } from '@/components/MovementSummary';
+import { QuickStockActions } from '@/components/QuickStockActions';
 
-type InventoryTab = 'overview' | 'products';
+type InventoryTab = 'overview' | 'products' | 'movements';
 
 export default function Inventory() {
   const { showToast } = useToast();
@@ -49,6 +55,12 @@ export default function Inventory() {
   const [showAdjustment, setShowAdjustment] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showScanner, setShowScanner] = useState(false);
+  const [showStockMovementForm, setShowStockMovementForm] = useState(false);
+  const [selectedProductForMovement, setSelectedProductForMovement] =
+    useState<Product | null>(null);
+  const [movementType, setMovementType] = useState<'stock_in' | 'stock_out'>(
+    'stock_in'
+  );
 
   // Use React Query for optimized data fetching
   const {
@@ -119,6 +131,15 @@ export default function Inventory() {
     setShowAdjustment(true);
   };
 
+  const handleQuickStockMovement = (
+    product: Product,
+    type: 'stock_in' | 'stock_out'
+  ) => {
+    setSelectedProductForMovement(product);
+    setMovementType(type);
+    setShowStockMovementForm(true);
+  };
+
   const processAdjustment = async (type: 'add' | 'remove') => {
     if (!selectedProduct) return;
 
@@ -178,9 +199,26 @@ export default function Inventory() {
         return renderOverviewContent();
       case 'products':
         return <ProductsManager compact={true} />;
+      case 'movements':
+        return renderMovementsContent();
       default:
         return renderOverviewContent();
     }
+  };
+
+  const renderMovementsContent = () => {
+    return (
+      <ScrollView
+        style={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        <MovementSummary />
+        <EnhancedMovementHistory showProductName={true} showFilters={true} />
+      </ScrollView>
+    );
   };
 
   const renderOverviewContent = () => {
@@ -248,14 +286,32 @@ export default function Inventory() {
                         {t('inventory.min')}: {item.min_stock}
                       </Text>
                     </View>
-                    <TouchableOpacity
-                      style={styles.adjustButton}
-                      onPress={() => handleStockAdjustment(item)}
-                    >
-                      <Text style={styles.adjustButtonText}>
-                        {t('inventory.adjust')}
-                      </Text>
-                    </TouchableOpacity>
+                    <View style={styles.actionButtons}>
+                      <TouchableOpacity
+                        style={[styles.adjustButton, styles.stockInButton]}
+                        onPress={() =>
+                          handleQuickStockMovement(item, 'stock_in')
+                        }
+                      >
+                        <TrendingUp size={12} color="#FFFFFF" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.adjustButton, styles.stockOutButton]}
+                        onPress={() =>
+                          handleQuickStockMovement(item, 'stock_out')
+                        }
+                      >
+                        <TrendingDown size={12} color="#FFFFFF" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.adjustButton}
+                        onPress={() => handleStockAdjustment(item)}
+                      >
+                        <Text style={styles.adjustButtonText}>
+                          {t('inventory.adjust')}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 )}
                 ListFooterComponent={() => (
@@ -474,6 +530,24 @@ export default function Inventory() {
             {t('inventory.products')}
           </Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'movements' && styles.activeTab]}
+          onPress={() => setActiveTab('movements')}
+        >
+          <RotateCcw
+            size={20}
+            color={activeTab === 'movements' ? '#059669' : '#6B7280'}
+          />
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'movements' && styles.activeTabText,
+            ]}
+          >
+            {t('stockMovement.history')}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <View
@@ -493,6 +567,26 @@ export default function Inventory() {
       >
         {renderOverviewContent()}
       </View>
+      <View
+        style={[
+          styles.tabContent,
+          {
+            display: activeTab == 'movements' ? 'contents' : 'none',
+          },
+        ]}
+      >
+        {renderMovementsContent()}
+      </View>
+
+      <StockMovementForm
+        visible={showStockMovementForm}
+        onClose={() => {
+          setShowStockMovementForm(false);
+          setSelectedProductForMovement(null);
+        }}
+        product={selectedProductForMovement || undefined}
+        initialType={movementType}
+      />
     </SafeAreaView>
   );
 }
@@ -633,11 +727,27 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#F59E0B',
   },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 4,
+  },
   adjustButton: {
     backgroundColor: '#3B82F6',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 32,
+  },
+  stockInButton: {
+    backgroundColor: '#059669',
+    paddingHorizontal: 8,
+  },
+  stockOutButton: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 8,
   },
   adjustButtonText: {
     fontSize: 12,

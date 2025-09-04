@@ -22,6 +22,7 @@ import {
   useSuppliers,
   useProductMutations,
   useCategoryMutations,
+  useBulkPricing,
 } from '@/hooks/useQueries';
 import { Product, Category, Supplier } from '@/services/database';
 import {
@@ -52,6 +53,8 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { useOptimizedList } from '@/hooks/useOptimizedList';
+import { BulkPricingTiers } from '@/components/BulkPricingTiers';
+import { ProductMovementHistory } from '@/components/ProductMovementHistory';
 
 interface ProductsManagerProps {
   compact?: boolean;
@@ -88,14 +91,19 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     isLoading: productsLoading,
     isRefetching: productsRefetching,
     refetch: refetchProducts,
-  } = useProducts();
+  } = useProducts(true); // Include bulk pricing data
 
   const { data: categories = [], isLoading: categoriesLoading } =
     useCategories();
 
   const { data: suppliers = [], isLoading: suppliersLoading } = useSuppliers();
 
-  const { addProduct, updateProduct, deleteProduct } = useProductMutations();
+  const {
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    updateProductWithBulkPricing,
+  } = useProductMutations();
   const { addCategory, updateCategory, deleteCategory } =
     useCategoryMutations();
 
@@ -118,6 +126,10 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     name: '',
     description: '',
   });
+
+  const [bulkPricingTiers, setBulkPricingTiers] = useState<
+    Array<{ min_quantity: number; bulk_price: number }>
+  >([]);
 
   const onRefresh = () => {
     refetchProducts();
@@ -186,6 +198,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
       supplier_id: '',
       imageUrl: '',
     });
+    setBulkPricingTiers([]);
     setEditingProduct(null);
     setShowAddForm(false);
   };
@@ -364,12 +377,30 @@ export default function Products({ compact = false }: ProductsManagerProps) {
       };
 
       if (editingProduct) {
-        await updateProduct.mutateAsync({
-          id: editingProduct.id,
-          data: productData,
-        });
+        // Use bulk pricing mutation if there are tiers, otherwise use regular update
+        if (bulkPricingTiers.length > 0) {
+          await updateProductWithBulkPricing.mutateAsync({
+            id: editingProduct.id,
+            productData: productData,
+            bulkPricingTiers: bulkPricingTiers,
+          });
+        } else {
+          await updateProduct.mutateAsync({
+            id: editingProduct.id,
+            data: productData,
+          });
+        }
       } else {
-        await addProduct.mutateAsync(productData);
+        // For new products, create the product first, then add bulk pricing if needed
+        const newProductId = await addProduct.mutateAsync(productData);
+
+        if (bulkPricingTiers.length > 0 && newProductId) {
+          await updateProductWithBulkPricing.mutateAsync({
+            id: newProductId,
+            productData: {},
+            bulkPricingTiers: bulkPricingTiers,
+          });
+        }
       }
 
       resetForm();
@@ -435,9 +466,22 @@ export default function Products({ compact = false }: ProductsManagerProps) {
       cost: product.cost.toString(),
       quantity: product.quantity.toString(),
       min_stock: product.min_stock.toString(),
-      supplier_id: product.supplier_id.toString(),
+      supplier_id: product.supplier_id?.toString() || '',
       imageUrl: product.imageUrl || '',
     });
+
+    // Load existing bulk pricing if available
+    if (product.bulk_pricing) {
+      setBulkPricingTiers(
+        product.bulk_pricing.map((bp) => ({
+          min_quantity: bp.min_quantity,
+          bulk_price: bp.bulk_price,
+        }))
+      );
+    } else {
+      setBulkPricingTiers([]);
+    }
+
     setEditingProduct(product);
     setShowAddForm(true);
   };
@@ -874,6 +918,22 @@ export default function Products({ compact = false }: ProductsManagerProps) {
               </Text>
             </View>
           )}
+
+          {product.bulk_pricing && product.bulk_pricing.length > 0 && (
+            <View style={styles.bulkPricingDisplay}>
+              <BulkPricingTiers
+                productPrice={product.price}
+                initialTiers={product.bulk_pricing}
+                onTiersChange={() => {}} // Read-only in card view
+                compact={true}
+              />
+            </View>
+          )}
+
+          {/* Stock Movement Integration */}
+          <View style={styles.stockMovementSection}>
+            <ProductMovementHistory product={product} compact={true} />
+          </View>
         </Card>
       );
     },
@@ -1675,6 +1735,15 @@ export default function Products({ compact = false }: ProductsManagerProps) {
                 </View>
               )}
 
+            {/* Bulk Pricing Configuration */}
+            {formData.price && parseInt(formData.price) > 0 && (
+              <BulkPricingTiers
+                productPrice={parseInt(formData.price)}
+                initialTiers={bulkPricingTiers}
+                onTiersChange={setBulkPricingTiers}
+              />
+            )}
+
             <View style={styles.formButtons}>
               <Button
                 title={t('common.cancel')}
@@ -2335,6 +2404,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Inter-Regular',
     color: '#9CA3AF',
+  },
+  bulkPricingDisplay: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  stockMovementSection: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
   },
   emptyState: {
     alignItems: 'center',

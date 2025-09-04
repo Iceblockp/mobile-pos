@@ -10,8 +10,10 @@ export interface Product {
   cost: number;
   quantity: number;
   min_stock: number;
-  supplier_id: number;
+  supplier_id?: number; // Make supplier_id optional
+  supplier_name?: string; // For joined queries
   imageUrl?: string; // Optional image URL property
+  bulk_pricing?: BulkPricing[]; // For joined queries
   created_at: string;
   updated_at: string;
 }
@@ -21,6 +23,8 @@ export interface Sale {
   total: number;
   payment_method: string;
   note?: string; // Optional note field
+  customer_id?: number; // Optional customer relationship
+  customer_name?: string; // For joined queries
   created_at: string;
 }
 
@@ -40,7 +44,7 @@ export interface Supplier {
   name: string;
   contact_name: string;
   phone: string;
-  email: string;
+  email?: string; // Make email optional
   address: string;
   created_at: string;
 }
@@ -67,6 +71,40 @@ export interface Expense {
   date: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface Customer {
+  id: number;
+  name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  total_spent: number;
+  visit_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StockMovement {
+  id: number;
+  product_id: number;
+  product_name?: string; // For joined queries
+  type: 'stock_in' | 'stock_out';
+  quantity: number;
+  reason?: string;
+  supplier_id?: number; // Optional: some stock_in may not be from suppliers
+  supplier_name?: string; // For joined queries
+  reference_number?: string;
+  unit_cost?: number;
+  created_at: string;
+}
+
+export interface BulkPricing {
+  id: number;
+  product_id: number;
+  min_quantity: number;
+  bulk_price: number;
+  created_at: string;
 }
 
 // ShopSettings moved to shopSettingsStorage.ts (using AsyncStorage instead of SQLite)
@@ -318,10 +356,165 @@ export class DatabaseService {
         console.log('Updated existing sale_items with default discount value');
       }
 
+      // Enhanced features migration
+      await this.migrateToEnhancedFeatures();
+
       // shop_settings table migration removed (now using AsyncStorage)
     } catch (error) {
       console.log('Migration completed or column already exists:', error);
     }
+  }
+
+  async migrateToEnhancedFeatures() {
+    await this.db.execAsync('BEGIN TRANSACTION');
+
+    try {
+      // Create customers table
+      await this.createCustomersTable();
+
+      // Create stock_movements table
+      await this.createStockMovementsTable();
+
+      // Create bulk_pricing table
+      await this.createBulkPricingTable();
+
+      // Add customer_id to sales table
+      await this.addCustomerIdToSales();
+
+      // Create indexes for performance
+      await this.createEnhancedIndexes();
+
+      await this.db.execAsync('COMMIT');
+      console.log('Enhanced features migration completed successfully!');
+    } catch (error) {
+      await this.db.execAsync('ROLLBACK');
+      console.error('Enhanced features migration failed, rolling back:', error);
+      throw error;
+    }
+  }
+
+  async createCustomersTable() {
+    // Check if customers table already exists
+    const tableExists = await this.db.getFirstAsync(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='customers'"
+    );
+
+    if (!tableExists) {
+      await this.db.execAsync(`
+        CREATE TABLE customers (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          phone TEXT,
+          email TEXT,
+          address TEXT,
+          total_spent INTEGER DEFAULT 0,
+          visit_count INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      console.log('Created customers table');
+    }
+  }
+
+  async createStockMovementsTable() {
+    // Check if stock_movements table already exists
+    const tableExists = await this.db.getFirstAsync(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='stock_movements'"
+    );
+
+    if (!tableExists) {
+      await this.db.execAsync(`
+        CREATE TABLE stock_movements (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          product_id INTEGER NOT NULL,
+          type TEXT NOT NULL CHECK (type IN ('stock_in', 'stock_out')),
+          quantity INTEGER NOT NULL,
+          reason TEXT,
+          supplier_id INTEGER,
+          reference_number TEXT,
+          unit_cost INTEGER,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (product_id) REFERENCES products (id),
+          FOREIGN KEY (supplier_id) REFERENCES suppliers (id)
+        );
+      `);
+      console.log('Created stock_movements table');
+    }
+  }
+
+  async createBulkPricingTable() {
+    // Check if bulk_pricing table already exists
+    const tableExists = await this.db.getFirstAsync(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='bulk_pricing'"
+    );
+
+    if (!tableExists) {
+      await this.db.execAsync(`
+        CREATE TABLE bulk_pricing (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          product_id INTEGER NOT NULL,
+          min_quantity INTEGER NOT NULL,
+          bulk_price INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (product_id) REFERENCES products (id)
+        );
+      `);
+      console.log('Created bulk_pricing table');
+    }
+  }
+
+  async addCustomerIdToSales() {
+    // Check if customer_id column exists in sales table
+    const salesTableInfo = await this.db.getAllAsync(
+      'PRAGMA table_info(sales)'
+    );
+    const hasCustomerIdColumn = salesTableInfo.some(
+      (column: any) => column.name === 'customer_id'
+    );
+
+    if (!hasCustomerIdColumn) {
+      await this.db.execAsync(
+        'ALTER TABLE sales ADD COLUMN customer_id INTEGER'
+      );
+      console.log('Added customer_id column to sales table');
+    }
+  }
+
+  async createEnhancedIndexes() {
+    // Customer search optimization
+    await this.db.execAsync(
+      'CREATE INDEX IF NOT EXISTS idx_customers_name ON customers(name)'
+    );
+    await this.db.execAsync(
+      'CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone)'
+    );
+
+    // Stock movement queries
+    await this.db.execAsync(
+      'CREATE INDEX IF NOT EXISTS idx_stock_movements_product_id ON stock_movements(product_id)'
+    );
+    await this.db.execAsync(
+      'CREATE INDEX IF NOT EXISTS idx_stock_movements_created_at ON stock_movements(created_at)'
+    );
+    await this.db.execAsync(
+      'CREATE INDEX IF NOT EXISTS idx_stock_movements_type ON stock_movements(type)'
+    );
+
+    // Bulk pricing lookups
+    await this.db.execAsync(
+      'CREATE INDEX IF NOT EXISTS idx_bulk_pricing_product_id ON bulk_pricing(product_id)'
+    );
+    await this.db.execAsync(
+      'CREATE INDEX IF NOT EXISTS idx_bulk_pricing_min_quantity ON bulk_pricing(min_quantity)'
+    );
+
+    // Enhanced sales queries
+    await this.db.execAsync(
+      'CREATE INDEX IF NOT EXISTS idx_sales_customer_id ON sales(customer_id)'
+    );
+
+    console.log('Created enhanced feature indexes');
   }
 
   async seedInitialData() {
@@ -584,6 +777,30 @@ export class DatabaseService {
     return result as Product[];
   }
 
+  async getProductsWithBulkPricing(): Promise<Product[]> {
+    const products = await this.getProducts();
+
+    // Get bulk pricing for all products in a single query
+    const bulkPricingResult = (await this.db.getAllAsync(
+      'SELECT * FROM bulk_pricing ORDER BY product_id, min_quantity'
+    )) as BulkPricing[];
+
+    // Group bulk pricing by product_id
+    const bulkPricingMap = new Map<number, BulkPricing[]>();
+    bulkPricingResult.forEach((bp) => {
+      if (!bulkPricingMap.has(bp.product_id)) {
+        bulkPricingMap.set(bp.product_id, []);
+      }
+      bulkPricingMap.get(bp.product_id)!.push(bp);
+    });
+
+    // Add bulk pricing to products
+    return products.map((product) => ({
+      ...product,
+      bulk_pricing: bulkPricingMap.get(product.id) || [],
+    }));
+  }
+
   async getProductsByCategory(categoryId: number): Promise<Product[]> {
     const result = await this.db.getAllAsync(
       'SELECT p.*, c.name as category FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.category_id = ? ORDER BY p.name',
@@ -613,7 +830,7 @@ export class DatabaseService {
         product.cost,
         product.quantity,
         product.min_stock,
-        product.supplier_id,
+        product.supplier_id || null, // Handle optional supplier_id
         product.imageUrl || null,
       ]
     );
@@ -621,10 +838,32 @@ export class DatabaseService {
   }
 
   async updateProduct(id: number, product: Partial<Product>): Promise<void> {
-    const fields = Object.keys(product)
+    // Filter out fields that shouldn't be updated and complex objects
+    const allowedFields = [
+      'name',
+      'barcode',
+      'category_id',
+      'price',
+      'cost',
+      'quantity',
+      'min_stock',
+      'supplier_id',
+      'imageUrl',
+    ];
+    const updateData: { [key: string]: any } = {};
+
+    for (const key of allowedFields) {
+      if (key in product) {
+        updateData[key] = (product as any)[key];
+      }
+    }
+
+    const fields = Object.keys(updateData)
       .map((key) => `${key} = ?`)
       .join(', ');
-    const values = Object.values(product);
+    const values = Object.values(updateData).map((value) =>
+      value === undefined ? null : value
+    );
 
     await this.db.runAsync(
       `UPDATE products SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
@@ -716,34 +955,53 @@ export class DatabaseService {
     sale: Omit<Sale, 'id' | 'created_at'>,
     items: Omit<SaleItem, 'id' | 'sale_id'>[]
   ): Promise<number> {
-    const saleResult = await this.db.runAsync(
-      'INSERT INTO sales (total, payment_method, note) VALUES (?, ?, ?)',
-      [sale.total, sale.payment_method, sale.note || null]
-    );
+    // Start transaction for atomic operation
+    await this.db.execAsync('BEGIN TRANSACTION');
 
-    const saleId = saleResult.lastInsertRowId;
-
-    for (const item of items) {
-      await this.db.runAsync(
-        'INSERT INTO sale_items (sale_id, product_id, quantity, price, cost, discount, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    try {
+      const saleResult = await this.db.runAsync(
+        'INSERT INTO sales (total, payment_method, note, customer_id) VALUES (?, ?, ?, ?)',
         [
-          saleId,
-          item.product_id,
-          item.quantity,
-          item.price,
-          item.cost,
-          item.discount || 0,
-          item.subtotal,
+          sale.total,
+          sale.payment_method,
+          sale.note || null,
+          sale.customer_id || null,
         ]
       );
 
-      await this.db.runAsync(
-        'UPDATE products SET quantity = quantity - ? WHERE id = ?',
-        [item.quantity, item.product_id]
-      );
-    }
+      const saleId = saleResult.lastInsertRowId;
 
-    return saleId;
+      for (const item of items) {
+        await this.db.runAsync(
+          'INSERT INTO sale_items (sale_id, product_id, quantity, price, cost, discount, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [
+            saleId,
+            item.product_id,
+            item.quantity,
+            item.price,
+            item.cost,
+            item.discount || 0,
+            item.subtotal,
+          ]
+        );
+
+        await this.db.runAsync(
+          'UPDATE products SET quantity = quantity - ? WHERE id = ?',
+          [item.quantity, item.product_id]
+        );
+      }
+
+      // Update customer statistics if customer is associated
+      if (sale.customer_id) {
+        await this.updateCustomerStatistics(sale.customer_id, sale.total);
+      }
+
+      await this.db.execAsync('COMMIT');
+      return saleId;
+    } catch (error) {
+      await this.db.execAsync('ROLLBACK');
+      throw error;
+    }
   }
 
   // Add these functions after the getSales function
@@ -753,7 +1011,10 @@ export class DatabaseService {
   ): Promise<Sale[]> {
     const offset = (page - 1) * pageSize;
     const result = await this.db.getAllAsync(
-      'SELECT * FROM sales ORDER BY created_at DESC LIMIT ? OFFSET ?',
+      `SELECT s.*, c.name as customer_name 
+       FROM sales s 
+       LEFT JOIN customers c ON s.customer_id = c.id 
+       ORDER BY s.created_at DESC LIMIT ? OFFSET ?`,
       [pageSize, offset]
     );
     return result as Sale[];
@@ -770,8 +1031,29 @@ export class DatabaseService {
     const offset = (page - 1) * pageSize;
 
     const result = await this.db.getAllAsync(
-      'SELECT * FROM sales WHERE created_at >= ? AND created_at <= ? ORDER BY created_at DESC LIMIT ? OFFSET ?',
+      `SELECT s.*, c.name as customer_name 
+       FROM sales s 
+       LEFT JOIN customers c ON s.customer_id = c.id 
+       WHERE s.created_at >= ? AND s.created_at <= ? 
+       ORDER BY s.created_at DESC LIMIT ? OFFSET ?`,
       [startDateStr, endDateStr, pageSize, offset]
+    );
+    return result as Sale[];
+  }
+
+  async getSalesByCustomer(
+    customerId: number,
+    page: number = 1,
+    pageSize: number = 20
+  ): Promise<Sale[]> {
+    const offset = (page - 1) * pageSize;
+    const result = await this.db.getAllAsync(
+      `SELECT s.*, c.name as customer_name 
+       FROM sales s 
+       LEFT JOIN customers c ON s.customer_id = c.id 
+       WHERE s.customer_id = ? 
+       ORDER BY s.created_at DESC LIMIT ? OFFSET ?`,
+      [customerId, pageSize, offset]
     );
     return result as Sale[];
   }
@@ -785,7 +1067,11 @@ export class DatabaseService {
     const endDateStr = endDate.toISOString();
 
     const result = await this.db.getAllAsync(
-      'SELECT * FROM sales WHERE created_at >= ? AND created_at <= ? ORDER BY created_at DESC LIMIT ?',
+      `SELECT s.*, c.name as customer_name 
+       FROM sales s 
+       LEFT JOIN customers c ON s.customer_id = c.id 
+       WHERE s.created_at >= ? AND s.created_at <= ? 
+       ORDER BY s.created_at DESC LIMIT ?`,
       [startDateStr, endDateStr, limit]
     );
     return result as Sale[];
@@ -1413,6 +1699,525 @@ export class DatabaseService {
       totalExpenses,
       netProfit,
       expensesByCategory: expensesByCategoryWithPercentage,
+    };
+  }
+
+  // Bulk Pricing Methods
+  async addBulkPricing(
+    bulkPricing: Omit<BulkPricing, 'id' | 'created_at'>
+  ): Promise<number> {
+    // Validate that bulk price is less than regular price
+    const product = (await this.db.getFirstAsync(
+      'SELECT price FROM products WHERE id = ?',
+      [bulkPricing.product_id]
+    )) as { price: number } | null;
+
+    if (!product) {
+      throw new Error('Product not found');
+    }
+
+    if (bulkPricing.bulk_price >= product.price) {
+      throw new Error('Bulk price must be less than regular price');
+    }
+
+    // Check for overlapping quantity tiers
+    const existingTiers = await this.getBulkPricingForProduct(
+      bulkPricing.product_id
+    );
+    const hasOverlap = existingTiers.some(
+      (tier) => tier.min_quantity === bulkPricing.min_quantity
+    );
+
+    if (hasOverlap) {
+      throw new Error('A bulk pricing tier already exists for this quantity');
+    }
+
+    const result = await this.db.runAsync(
+      'INSERT INTO bulk_pricing (product_id, min_quantity, bulk_price) VALUES (?, ?, ?)',
+      [bulkPricing.product_id, bulkPricing.min_quantity, bulkPricing.bulk_price]
+    );
+    return result.lastInsertRowId;
+  }
+
+  async updateBulkPricing(
+    id: number,
+    bulkPricing: Partial<BulkPricing>
+  ): Promise<void> {
+    // If updating price, validate it's less than regular price
+    if (bulkPricing.bulk_price) {
+      const existingTier = (await this.db.getFirstAsync(
+        'SELECT product_id FROM bulk_pricing WHERE id = ?',
+        [id]
+      )) as { product_id: number } | null;
+
+      if (existingTier) {
+        const product = (await this.db.getFirstAsync(
+          'SELECT price FROM products WHERE id = ?',
+          [existingTier.product_id]
+        )) as { price: number } | null;
+
+        if (product && bulkPricing.bulk_price >= product.price) {
+          throw new Error('Bulk price must be less than regular price');
+        }
+      }
+    }
+
+    const fields = Object.keys(bulkPricing)
+      .filter((key) => key !== 'id' && key !== 'created_at')
+      .map((key) => `${key} = ?`)
+      .join(', ');
+    const values = Object.keys(bulkPricing)
+      .filter((key) => key !== 'id' && key !== 'created_at')
+      .map((key) => (bulkPricing as any)[key]);
+
+    await this.db.runAsync(`UPDATE bulk_pricing SET ${fields} WHERE id = ?`, [
+      ...values,
+      id,
+    ]);
+  }
+
+  async deleteBulkPricing(id: number): Promise<void> {
+    await this.db.runAsync('DELETE FROM bulk_pricing WHERE id = ?', [id]);
+  }
+
+  async getBulkPricingForProduct(productId: number): Promise<BulkPricing[]> {
+    const result = await this.db.getAllAsync(
+      'SELECT * FROM bulk_pricing WHERE product_id = ? ORDER BY min_quantity ASC',
+      [productId]
+    );
+    return result as BulkPricing[];
+  }
+
+  async calculateBestPrice(
+    productId: number,
+    quantity: number
+  ): Promise<{
+    price: number;
+    isBulkPrice: boolean;
+    savings: number;
+    appliedTier?: BulkPricing;
+  }> {
+    // Get regular product price
+    const product = (await this.db.getFirstAsync(
+      'SELECT price FROM products WHERE id = ?',
+      [productId]
+    )) as { price: number } | null;
+
+    if (!product) {
+      throw new Error('Product not found');
+    }
+
+    const regularPrice = product.price;
+    const regularTotal = regularPrice * quantity;
+
+    // Get applicable bulk pricing tiers
+    const bulkTiers = await this.getBulkPricingForProduct(productId);
+    const applicableTiers = bulkTiers.filter(
+      (tier) => quantity >= tier.min_quantity
+    );
+
+    if (applicableTiers.length === 0) {
+      return {
+        price: regularPrice,
+        isBulkPrice: false,
+        savings: 0,
+      };
+    }
+
+    // Find the best tier (lowest price among applicable tiers)
+    const bestTier = applicableTiers.reduce((best, current) =>
+      current.bulk_price < best.bulk_price ? current : best
+    );
+
+    const bulkTotal = bestTier.bulk_price * quantity;
+    const savings = regularTotal - bulkTotal;
+
+    return {
+      price: bestTier.bulk_price,
+      isBulkPrice: true,
+      savings,
+      appliedTier: bestTier,
+    };
+  }
+
+  async validateBulkPricingTiers(
+    productId: number,
+    tiers: Omit<BulkPricing, 'id' | 'product_id' | 'created_at'>[]
+  ): Promise<{
+    isValid: boolean;
+    errors: string[];
+  }> {
+    const errors: string[] = [];
+
+    // Get product regular price
+    const product = (await this.db.getFirstAsync(
+      'SELECT price FROM products WHERE id = ?',
+      [productId]
+    )) as { price: number } | null;
+
+    if (!product) {
+      errors.push('Product not found');
+      return { isValid: false, errors };
+    }
+
+    // Validate each tier
+    for (const tier of tiers) {
+      if (tier.min_quantity <= 0) {
+        errors.push(
+          `Minimum quantity must be greater than 0 for tier with quantity ${tier.min_quantity}`
+        );
+      }
+
+      if (tier.bulk_price <= 0) {
+        errors.push(
+          `Bulk price must be greater than 0 for tier with quantity ${tier.min_quantity}`
+        );
+      }
+
+      if (tier.bulk_price >= product.price) {
+        errors.push(
+          `Bulk price must be less than regular price (${product.price}) for tier with quantity ${tier.min_quantity}`
+        );
+      }
+    }
+
+    // Check for duplicate quantities
+    const quantities = tiers.map((tier) => tier.min_quantity);
+    const uniqueQuantities = new Set(quantities);
+    if (quantities.length !== uniqueQuantities.size) {
+      errors.push('Duplicate minimum quantities are not allowed');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+    };
+  }
+
+  // Stock Movement Methods
+  async addStockMovement(
+    movement: Omit<
+      StockMovement,
+      'id' | 'created_at' | 'product_name' | 'supplier_name'
+    >
+  ): Promise<number> {
+    // Start transaction for atomic operation
+    await this.db.execAsync('BEGIN TRANSACTION');
+
+    try {
+      // Add the stock movement record
+      const result = await this.db.runAsync(
+        `INSERT INTO stock_movements 
+         (product_id, type, quantity, reason, supplier_id, reference_number, unit_cost) 
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          movement.product_id,
+          movement.type,
+          movement.quantity,
+          movement.reason || null,
+          movement.supplier_id || null,
+          movement.reference_number || null,
+          movement.unit_cost || null,
+        ]
+      );
+
+      // Update product quantity based on movement type
+      if (movement.type === 'stock_in') {
+        await this.db.runAsync(
+          'UPDATE products SET quantity = quantity + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+          [movement.quantity, movement.product_id]
+        );
+      } else if (movement.type === 'stock_out') {
+        await this.db.runAsync(
+          'UPDATE products SET quantity = CASE WHEN quantity >= ? THEN quantity - ? ELSE 0 END, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+          [movement.quantity, movement.quantity, movement.product_id]
+        );
+      }
+
+      await this.db.execAsync('COMMIT');
+      return result.lastInsertRowId;
+    } catch (error) {
+      await this.db.execAsync('ROLLBACK');
+      throw error;
+    }
+  }
+
+  async getStockMovements(
+    filters?: {
+      productId?: number;
+      type?: 'stock_in' | 'stock_out';
+      startDate?: Date;
+      endDate?: Date;
+      supplierId?: number;
+    },
+    page: number = 1,
+    pageSize: number = 50
+  ): Promise<StockMovement[]> {
+    const offset = (page - 1) * pageSize;
+    let query = `
+      SELECT sm.*, 
+             COALESCE(p.name, '[Deleted Product]') as product_name,
+             s.name as supplier_name
+      FROM stock_movements sm
+      LEFT JOIN products p ON sm.product_id = p.id
+      LEFT JOIN suppliers s ON sm.supplier_id = s.id
+    `;
+
+    const conditions: string[] = [];
+    const params: any[] = [];
+
+    if (filters?.productId) {
+      conditions.push('sm.product_id = ?');
+      params.push(filters.productId);
+    }
+
+    if (filters?.type) {
+      conditions.push('sm.type = ?');
+      params.push(filters.type);
+    }
+
+    if (filters?.startDate) {
+      conditions.push('sm.created_at >= ?');
+      params.push(filters.startDate.toISOString());
+    }
+
+    if (filters?.endDate) {
+      conditions.push('sm.created_at <= ?');
+      params.push(filters.endDate.toISOString());
+    }
+
+    if (filters?.supplierId) {
+      conditions.push('sm.supplier_id = ?');
+      params.push(filters.supplierId);
+    }
+
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+
+    query += ' ORDER BY sm.created_at DESC LIMIT ? OFFSET ?';
+    params.push(pageSize, offset);
+
+    const result = await this.db.getAllAsync(query, params);
+    return result as StockMovement[];
+  }
+
+  async getStockMovementsByProduct(
+    productId: number,
+    page: number = 1,
+    pageSize: number = 20
+  ): Promise<StockMovement[]> {
+    return this.getStockMovements({ productId }, page, pageSize);
+  }
+
+  async updateProductQuantityWithMovement(
+    productId: number,
+    movementType: 'stock_in' | 'stock_out',
+    quantity: number,
+    reason?: string,
+    supplierId?: number,
+    referenceNumber?: string,
+    unitCost?: number
+  ): Promise<number> {
+    return this.addStockMovement({
+      product_id: productId,
+      type: movementType,
+      quantity,
+      reason,
+      supplier_id: supplierId,
+      reference_number: referenceNumber,
+      unit_cost: unitCost,
+    });
+  }
+
+  async getStockMovementSummary(
+    productId?: number,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<{
+    totalStockIn: number;
+    totalStockOut: number;
+    netMovement: number;
+    movementCount: number;
+  }> {
+    let query = `
+      SELECT 
+        SUM(CASE WHEN type = 'stock_in' THEN quantity ELSE 0 END) as total_stock_in,
+        SUM(CASE WHEN type = 'stock_out' THEN quantity ELSE 0 END) as total_stock_out,
+        COUNT(*) as movement_count
+      FROM stock_movements
+    `;
+
+    const conditions: string[] = [];
+    const params: any[] = [];
+
+    if (productId) {
+      conditions.push('product_id = ?');
+      params.push(productId);
+    }
+
+    if (startDate) {
+      conditions.push('created_at >= ?');
+      params.push(startDate.toISOString());
+    }
+
+    if (endDate) {
+      conditions.push('created_at <= ?');
+      params.push(endDate.toISOString());
+    }
+
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+
+    const result = (await this.db.getFirstAsync(query, params)) as {
+      total_stock_in: number;
+      total_stock_out: number;
+      movement_count: number;
+    };
+
+    const totalStockIn = result.total_stock_in || 0;
+    const totalStockOut = result.total_stock_out || 0;
+
+    return {
+      totalStockIn,
+      totalStockOut,
+      netMovement: totalStockIn - totalStockOut,
+      movementCount: result.movement_count || 0,
+    };
+  }
+
+  // Customer Management Methods
+  async getCustomers(
+    searchQuery?: string,
+    page: number = 1,
+    pageSize: number = 50
+  ): Promise<Customer[]> {
+    const offset = (page - 1) * pageSize;
+    let query = 'SELECT * FROM customers';
+    let params: any[] = [];
+
+    if (searchQuery) {
+      query += ' WHERE name LIKE ? OR phone LIKE ? OR email LIKE ?';
+      const searchPattern = `%${searchQuery}%`;
+      params = [searchPattern, searchPattern, searchPattern];
+    }
+
+    query += ' ORDER BY name ASC LIMIT ? OFFSET ?';
+    params.push(pageSize, offset);
+
+    const result = await this.db.getAllAsync(query, params);
+    return result as Customer[];
+  }
+
+  async getCustomerById(id: number): Promise<Customer | null> {
+    const result = await this.db.getFirstAsync(
+      'SELECT * FROM customers WHERE id = ?',
+      [id]
+    );
+    return result as Customer | null;
+  }
+
+  async addCustomer(
+    customer: Omit<
+      Customer,
+      'id' | 'total_spent' | 'visit_count' | 'created_at' | 'updated_at'
+    >
+  ): Promise<number> {
+    const result = await this.db.runAsync(
+      'INSERT INTO customers (name, phone, email, address) VALUES (?, ?, ?, ?)',
+      [
+        customer.name,
+        customer.phone || null,
+        customer.email || null,
+        customer.address || null,
+      ]
+    );
+    return result.lastInsertRowId;
+  }
+
+  async updateCustomer(id: number, customer: Partial<Customer>): Promise<void> {
+    const fields = Object.keys(customer)
+      .filter((key) => key !== 'id' && key !== 'created_at')
+      .map((key) => `${key} = ?`)
+      .join(', ');
+    const values = Object.keys(customer)
+      .filter((key) => key !== 'id' && key !== 'created_at')
+      .map((key) => (customer as any)[key]);
+
+    await this.db.runAsync(
+      `UPDATE customers SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      [...values, id]
+    );
+  }
+
+  async deleteCustomer(id: number): Promise<void> {
+    // Check if customer has any sales
+    const salesCount = (await this.db.getFirstAsync(
+      'SELECT COUNT(*) as count FROM sales WHERE customer_id = ?',
+      [id]
+    )) as { count: number };
+
+    if (salesCount.count > 0) {
+      throw new Error('Cannot delete customer with existing sales records');
+    }
+
+    await this.db.runAsync('DELETE FROM customers WHERE id = ?', [id]);
+  }
+
+  async getCustomerPurchaseHistory(
+    customerId: number,
+    page: number = 1,
+    pageSize: number = 20
+  ): Promise<Sale[]> {
+    const offset = (page - 1) * pageSize;
+    const result = await this.db.getAllAsync(
+      'SELECT * FROM sales WHERE customer_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?',
+      [customerId, pageSize, offset]
+    );
+    return result as Sale[];
+  }
+
+  async updateCustomerStatistics(
+    customerId: number,
+    saleAmount: number
+  ): Promise<void> {
+    await this.db.runAsync(
+      `UPDATE customers 
+       SET total_spent = total_spent + ?, 
+           visit_count = visit_count + 1,
+           updated_at = CURRENT_TIMESTAMP 
+       WHERE id = ?`,
+      [saleAmount, customerId]
+    );
+  }
+
+  async getCustomerStatistics(customerId: number): Promise<{
+    totalSpent: number;
+    visitCount: number;
+    averageOrderValue: number;
+    lastVisit: string | null;
+  }> {
+    const customer = await this.getCustomerById(customerId);
+    if (!customer) {
+      throw new Error('Customer not found');
+    }
+
+    const lastSale = (await this.db.getFirstAsync(
+      'SELECT created_at FROM sales WHERE customer_id = ? ORDER BY created_at DESC LIMIT 1',
+      [customerId]
+    )) as { created_at: string } | null;
+
+    const averageOrderValue =
+      customer.visit_count > 0
+        ? customer.total_spent / customer.visit_count
+        : 0;
+
+    return {
+      totalSpent: customer.total_spent,
+      visitCount: customer.visit_count,
+      averageOrderValue,
+      lastVisit: lastSale?.created_at || null,
     };
   }
 
