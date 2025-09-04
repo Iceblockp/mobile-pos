@@ -10,6 +10,8 @@ import {
   Platform,
   RefreshControl,
 } from 'react-native';
+import { StockAnalytics } from './StockAnalytics';
+import { BulkPricingAnalytics } from './BulkPricingAnalytics';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useCustomAnalytics, useSalesByDateRange } from '@/hooks/useQueries';
@@ -44,6 +46,9 @@ interface DateFilter {
 
 export default function Analytics() {
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'customers' | 'stock' | 'pricing'
+  >('overview');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
 
@@ -443,7 +448,45 @@ export default function Analytics() {
         <Text style={styles.subtitle}>{t('analytics.subtitle')}</Text>
       </View>
 
-      <ScrollView
+      {/* Tab Navigation */}
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'overview' && styles.activeTab]}
+          onPress={() => setActiveTab('overview')}
+        >
+          <Text style={[styles.tabText, activeTab === 'overview' && styles.activeTabText]}>
+            {t('analytics.overview')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'customers' && styles.activeTab]}
+          onPress={() => setActiveTab('customers')}
+        >
+          <Text style={[styles.tabText, activeTab === 'customers' && styles.activeTabText]}>
+            {t('analytics.customers')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'stock' && styles.activeTab]}
+          onPress={() => setActiveTab('stock')}
+        >
+          <Text style={[styles.tabText, activeTab === 'stock' && styles.activeTabText]}>
+            {t('analytics.stock')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'pricing' && styles.activeTab]}
+          onPress={() => setActiveTab('pricing')}
+        >
+          <Text style={[styles.tabText, activeTab === 'pricing' && styles.activeTabText]}>
+            {t('analytics.pricing')}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Tab Content */}
+      {activeTab === 'overview' && (
+        <ScrollView
         style={styles.content}
         refreshControl={
           <RefreshControl

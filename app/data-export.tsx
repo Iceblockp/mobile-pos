@@ -19,6 +19,9 @@ import {
   Share,
   CheckCircle,
   Store,
+  Users,
+  TrendingUp,
+  Tag,
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useToast } from '@/context/ToastContext';
@@ -34,7 +37,15 @@ interface ExportOption {
   icon: any;
   color: string;
   backgroundColor: string;
-  dataType: 'sales' | 'products' | 'expenses' | 'shopSettings' | 'all';
+  dataType:
+    | 'sales'
+    | 'products'
+    | 'expenses'
+    | 'shopSettings'
+    | 'customers'
+    | 'stockMovements'
+    | 'bulkPricing'
+    | 'all';
 }
 
 export default function DataExport() {
@@ -63,6 +74,33 @@ export default function DataExport() {
       color: '#3B82F6',
       backgroundColor: '#EFF6FF',
       dataType: 'products',
+    },
+    {
+      id: 'customers',
+      title: t('dataExport.customersData'),
+      description: t('dataExport.customersDataDesc'),
+      icon: Users,
+      color: '#F59E0B',
+      backgroundColor: '#FFFBEB',
+      dataType: 'customers',
+    },
+    {
+      id: 'stockMovements',
+      title: t('dataExport.stockMovements'),
+      description: t('dataExport.stockMovementsDesc'),
+      icon: TrendingUp,
+      color: '#06B6D4',
+      backgroundColor: '#ECFEFF',
+      dataType: 'stockMovements',
+    },
+    {
+      id: 'bulkPricing',
+      title: t('dataExport.bulkPricing'),
+      description: t('dataExport.bulkPricingDesc'),
+      icon: Tag,
+      color: '#8B5CF6',
+      backgroundColor: '#F5F3FF',
+      dataType: 'bulkPricing',
     },
     {
       id: 'expenses',
@@ -125,6 +163,101 @@ export default function DataExport() {
     const startDate = new Date('2020-01-01');
     const endDate = new Date();
     return await db.getExpensesByDateRange(startDate, endDate, 10000); // Large limit to get all
+  };
+
+  // Helper function to get all customers with purchase history
+  const getAllCustomersWithHistory = async () => {
+    if (!db) throw new Error('Database not available');
+
+    try {
+      const customers = await db.getCustomers();
+
+      // Get purchase history and statistics for each customer
+      const customersWithHistory = await Promise.all(
+        customers.map(async (customer) => {
+          if (!db) throw new Error('Database not available');
+          try {
+            const purchaseHistory = await db.getCustomerPurchaseHistory(
+              customer.id
+            );
+            const statistics = await db.getCustomerStatistics(customer.id);
+            return {
+              ...customer,
+              purchaseHistory,
+              statistics,
+            };
+          } catch (error) {
+            // If customer methods fail, return customer without additional data
+            return {
+              ...customer,
+              purchaseHistory: [],
+              statistics: {
+                totalSpent: 0,
+                visitCount: 0,
+                averageOrderValue: 0,
+                lastVisit: null,
+              },
+            };
+          }
+        })
+      );
+
+      return customersWithHistory;
+    } catch (error) {
+      // If customers table doesn't exist, return empty array
+      console.warn('Customers table not available:', error);
+      return [];
+    }
+  };
+
+  // Helper function to get all stock movements
+  const getAllStockMovements = async () => {
+    if (!db) throw new Error('Database not available');
+
+    try {
+      // Get all stock movements with large page size
+      return await db.getStockMovements({}, 1, 10000);
+    } catch (error) {
+      // If stock movements table doesn't exist, return empty array
+      console.warn('Stock movements table not available:', error);
+      return [];
+    }
+  };
+
+  // Helper function to get all bulk pricing data
+  const getAllBulkPricing = async () => {
+    if (!db) throw new Error('Database not available');
+
+    try {
+      const products = await db.getProducts();
+      const bulkPricingData = await Promise.all(
+        products.map(async (product) => {
+          if (!db) throw new Error('Database not available');
+          try {
+            const bulkTiers = await db.getBulkPricingForProduct(product.id);
+            return {
+              productId: product.id,
+              productName: product.name,
+              bulkTiers,
+            };
+          } catch (error) {
+            // If bulk pricing methods fail, return product without bulk pricing
+            return {
+              productId: product.id,
+              productName: product.name,
+              bulkTiers: [],
+            };
+          }
+        })
+      );
+
+      // Filter out products without bulk pricing
+      return bulkPricingData.filter((item) => item.bulkTiers.length > 0);
+    } catch (error) {
+      // If bulk pricing table doesn't exist, return empty array
+      console.warn('Bulk pricing table not available:', error);
+      return [];
+    }
   };
 
   const handleExport = async (option: ExportOption) => {
@@ -194,6 +327,61 @@ export default function DataExport() {
           filename = `expenses_export_${timestamp}.json`;
           break;
 
+        case 'customers':
+          // Fetch all customers with purchase history
+          const customersWithHistory = await getAllCustomersWithHistory();
+
+          data = {
+            customers: customersWithHistory,
+            exportDate: new Date().toISOString(),
+            totalCustomers: customersWithHistory.length,
+            totalCustomerValue: customersWithHistory.reduce(
+              (sum, customer) => sum + (customer.statistics?.totalSpent || 0),
+              0
+            ),
+            message:
+              'Customer data export with purchase history and statistics',
+          };
+          filename = `customers_export_${timestamp}.json`;
+          break;
+
+        case 'stockMovements':
+          // Fetch all stock movements
+          const stockMovements = await getAllStockMovements();
+
+          data = {
+            stockMovements,
+            exportDate: new Date().toISOString(),
+            totalMovements: stockMovements.length,
+            stockInMovements: stockMovements.filter(
+              (m) => m.type === 'stock_in'
+            ).length,
+            stockOutMovements: stockMovements.filter(
+              (m) => m.type === 'stock_out'
+            ).length,
+            message:
+              'Stock movement history export with complete tracking data',
+          };
+          filename = `stock_movements_export_${timestamp}.json`;
+          break;
+
+        case 'bulkPricing':
+          // Fetch all bulk pricing data
+          const bulkPricingData = await getAllBulkPricing();
+
+          data = {
+            bulkPricing: bulkPricingData,
+            exportDate: new Date().toISOString(),
+            productsWithBulkPricing: bulkPricingData.length,
+            totalBulkTiers: bulkPricingData.reduce(
+              (sum, item) => sum + item.bulkTiers.length,
+              0
+            ),
+            message: 'Bulk pricing configuration export with all tier data',
+          };
+          filename = `bulk_pricing_export_${timestamp}.json`;
+          break;
+
         case 'shopSettings':
           // Fetch shop settings and templates
           const exportShopSettings = shopSettingsService
@@ -227,6 +415,9 @@ export default function DataExport() {
           const allSuppliers = await db.getSuppliers();
           const allExpenses = await getAllExpenses();
           const allExpenseCategories = await db.getExpenseCategories();
+          const allCustomersWithHistory = await getAllCustomersWithHistory();
+          const allStockMovements = await getAllStockMovements();
+          const allBulkPricing = await getAllBulkPricing();
 
           // Get shop settings
           const currentShopSettings = shopSettingsService
@@ -240,6 +431,9 @@ export default function DataExport() {
             suppliers: allSuppliers,
             expenses: allExpenses,
             expenseCategories: allExpenseCategories,
+            customers: allCustomersWithHistory,
+            stockMovements: allStockMovements,
+            bulkPricing: allBulkPricing,
             shopSettings: currentShopSettings,
             exportDate: new Date().toISOString(),
             summary: {
@@ -249,6 +443,9 @@ export default function DataExport() {
               totalSuppliers: allSuppliers.length,
               totalExpenses: allExpenses.length,
               totalExpenseCategories: allExpenseCategories.length,
+              totalCustomers: allCustomersWithHistory.length,
+              totalStockMovements: allStockMovements.length,
+              productsWithBulkPricing: allBulkPricing.length,
               hasShopSettings: currentShopSettings !== null,
               shopName: currentShopSettings?.shopName || 'Not configured',
               totalRevenue: allSalesWithItems.reduce(
@@ -259,8 +456,12 @@ export default function DataExport() {
                 (sum, exp) => sum + exp.amount,
                 0
               ),
+              totalCustomerValue: allCustomersWithHistory.reduce(
+                (sum, customer) => sum + (customer.statistics?.totalSpent || 0),
+                0
+              ),
             },
-            message: 'Complete Mobile POS data backup including shop settings',
+            message: 'Complete Mobile POS data backup with enhanced features',
           };
           filename = `complete_backup_${timestamp}.json`;
           break;

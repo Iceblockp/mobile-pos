@@ -57,6 +57,21 @@ export const queryKeys = {
       ] as const,
     statistics: (customerId: number) =>
       [...queryKeys.customers.all, 'statistics', customerId] as const,
+    analytics: () => [...queryKeys.customers.all, 'analytics'] as const,
+    purchasePatterns: (customerId: number) =>
+      [
+        ...queryKeys.customers.analytics(),
+        'purchasePatterns',
+        customerId,
+      ] as const,
+    lifetimeValue: (customerId: number) =>
+      [
+        ...queryKeys.customers.analytics(),
+        'lifetimeValue',
+        customerId,
+      ] as const,
+    segmentation: () =>
+      [...queryKeys.customers.analytics(), 'segmentation'] as const,
   },
 
   // Stock Movements
@@ -843,6 +858,136 @@ export const useCustomerMutations = () => {
     updateCustomer,
     deleteCustomer,
   };
+};
+
+// ============ CUSTOMER ANALYTICS QUERIES ============
+export const useCustomerPurchasePatterns = (customerId: number) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.customers.purchasePatterns(customerId),
+    queryFn: () => db!.getCustomerPurchasePatterns(customerId),
+    enabled: isReady && !!db && customerId > 0,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+};
+
+export const useCustomerLifetimeValue = (customerId: number) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.customers.lifetimeValue(customerId),
+    queryFn: () => db!.calculateCustomerLifetimeValue(customerId),
+    enabled: isReady && !!db && customerId > 0,
+    staleTime: 15 * 60 * 1000, // 15 minutes
+  });
+};
+
+export const useCustomerSegmentation = () => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.customers.segmentation(),
+    queryFn: () => db!.getCustomerSegmentation(),
+    enabled: isReady && !!db,
+    staleTime: 30 * 60 * 1000, // 30 minutes
+  });
+};
+
+// ============ STOCK MOVEMENT ANALYTICS QUERIES ============
+export const useStockMovementTrends = (startDate?: Date, endDate?: Date) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: [
+      'stockMovementTrends',
+      startDate?.toISOString(),
+      endDate?.toISOString(),
+    ],
+    queryFn: () => db!.getStockMovementTrends(startDate, endDate),
+    enabled: isReady && !!db,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+};
+
+export const useStockTurnoverRates = () => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: ['stockTurnoverRates'],
+    queryFn: () => db!.calculateStockTurnoverRates(),
+    enabled: isReady && !!db,
+    staleTime: 30 * 60 * 1000, // 30 minutes
+  });
+};
+
+export const useLowStockPrediction = () => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: ['lowStockPrediction'],
+    queryFn: () => db!.predictLowStockItems(),
+    enabled: isReady && !!db,
+    staleTime: 15 * 60 * 1000, // 15 minutes
+  });
+};
+
+export const useStockMovementReport = (
+  startDate?: Date,
+  endDate?: Date,
+  productId?: number
+) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: [
+      'stockMovementReport',
+      startDate?.toISOString(),
+      endDate?.toISOString(),
+      productId,
+    ],
+    queryFn: () => db!.getStockMovementReport(startDate, endDate, productId),
+    enabled: isReady && !!db,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+// ============ BULK PRICING ANALYTICS QUERIES ============
+export const useBulkPricingInsights = () => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: ['bulkPricingInsights'],
+    queryFn: () => db!.getBulkPricingInsights(),
+    enabled: isReady && !!db,
+    staleTime: 15 * 60 * 1000, // 15 minutes
+  });
+};
+
+export const useBulkPricingOptimization = () => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: ['bulkPricingOptimization'],
+    queryFn: () => db!.getBulkPricingOptimizationSuggestions(),
+    enabled: isReady && !!db,
+    staleTime: 30 * 60 * 1000, // 30 minutes
+  });
+};
+
+export const useBulkPricingPerformance = (startDate?: Date, endDate?: Date) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: [
+      'bulkPricingPerformance',
+      startDate?.toISOString(),
+      endDate?.toISOString(),
+    ],
+    queryFn: () => db!.getBulkPricingPerformanceMetrics(startDate, endDate),
+    enabled: isReady && !!db,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
 };
 
 // ============ STOCK MOVEMENT QUERIES ============

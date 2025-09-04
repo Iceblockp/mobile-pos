@@ -2221,6 +2221,1092 @@ export class DatabaseService {
     };
   }
 
+  // Customer Analytics Methods
+  async getCustomerPurchasePatterns(customerId: number): Promise<{
+    monthlySpending: { month: string; amount: number }[];
+    topCategories: { category: string; amount: number; percentage: number }[];
+    purchaseFrequency: { dayOfWeek: string; count: number }[];
+    averageItemsPerOrder: number;
+  }> {
+    // Monthly spending pattern
+    const monthlySpending = (await this.db.getAllAsync(
+      `
+      SELECT 
+        strftime('%Y-%m', s.created_at) as month,
+        SUM(s.total) as amount
+      FROM sales s
+      WHERE s.customer_id = ?
+      GROUP BY strftime('%Y-%m', s.created_at)
+      ORDER BY month DESC
+      LIMIT 12
+    `,
+      [customerId]
+    )) as { month: string; amount: number }[];
+
+    // Top categories by spending
+    const topCategories = (await this.db.getAllAsync(
+      `
+      SELECT 
+        c.name as category,
+        SUM(si.subtotal) as amount,
+        (SUM(si.subtotal) * 100.0 / (
+          SELECT SUM(si2.subtotal) 
+          FROM sale_items si2 
+          JOIN sales s2 ON si2.sale_id = s2.id 
+          WHERE s2.customer_id = ?
+        )) as percentage
+      FROM sale_items si
+      JOIN sales s ON si.sale_id = s.id
+      JOIN products p ON si.product_id = p.id
+      JOIN categories c ON p.category_id = c.id
+      WHERE s.customer_id = ?
+      GROUP BY c.id, c.name
+      ORDER BY amount DESC
+      LIMIT 5
+    `,
+      [customerId, customerId]
+    )) as { category: string; amount: number; percentage: number }[];
+
+    // Purchase frequency by day of week
+    const purchaseFrequency = (await this.db.getAllAsync(
+      `
+      SELECT 
+        CASE strftime('%w', created_at)
+          WHEN '0' THEN 'Sunday'
+          WHEN '1' THEN 'Monday'
+          WHEN '2' THEN 'Tuesday'
+          WHEN '3' THEN 'Wednesday'
+          WHEN '4' THEN 'Thursday'
+          WHEN '5' THEN 'Friday'
+          WHEN '6' THEN 'Saturday'
+        END as dayOfWeek,
+        COUNT(*) as count
+      FROM sales
+      WHERE customer_id = ?
+      GROUP BY strftime('%w', created_at)
+      ORDER BY strftime('%w', created_at)
+    `,
+      [customerId]
+    )) as { dayOfWeek: string; count: number }[];
+
+    // Average items per order
+    const avgItemsResult = (await this.db.getFirstAsync(
+      `
+      SELECT AVG(item_count) as average
+      FROM (
+        SELECT COUNT(si.id) as item_count
+        FROM sales s
+        JOIN sale_items si ON s.id = si.sale_id
+        WHERE s.customer_id = ?
+        GROUP BY s.id
+      )
+    `,
+      [customerId]
+    )) as { average: number } | null;
+
+    return {
+      monthlySpending,
+      topCategories,
+      purchaseFrequency,
+      averageItemsPerOrder: avgItemsResult?.average || 0,
+    };
+  }
+
+  async calculateCustomerLifetimeValue(customerId: number): Promise<{
+    currentLTV: number;
+    predictedLTV: number;
+    customerSegment: 'high_value' | 'medium_value' | 'low_value' | 'new';
+    riskScore: number; // 0-100, higher means more likely to churn
+  }> {
+    const customer = await this.getCustomerById(customerId);
+    if (!customer) {
+      throw new Error('Customer not found');
+    }
+
+    // Get customer's purchase history
+    const firstSale = (await this.db.getFirstAsync(
+      `
+      SELECT created_at FROM sales 
+      WHERE customer_id = ? 
+      ORDER BY created_at ASC 
+      LIMIT 1
+    `,
+      [customerId]
+    )) as { created_at: string } | null;
+
+    const lastSale = (await this.db.getFirstAsync(
+      `
+      SELECT created_at FROM sales 
+      WHERE customer_id = ? 
+      ORDER BY created_at DESC 
+      LIMIT 1
+    `,
+      [customerId]
+    )) as { created_at: string } | null;
+
+    if (!firstSale || !lastSale) {
+      return {
+        currentLTV: 0,
+        predictedLTV: 0,
+        customerSegment: 'new',
+        riskScore: 100,
+      };
+    }
+
+    // Calculate customer lifetime in days
+    const lifetimeDays = Math.max(
+      1,
+      (new Date(lastSale.created_at).getTime() -
+        new Date(firstSale.created_at).getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
+
+    // Current LTV is total spent
+    const currentLTV = customer.total_spent;
+
+    // Predict future LTV based on purchase frequency and average order value
+    const avgOrderValue =
+      customer.visit_count > 0
+        ? customer.total_spent / customer.visit_count
+        : 0;
+    const purchaseFrequency = customer.visit_count / lifetimeDays; // purchases per day
+
+    // Simple prediction: assume customer will continue for another year at current rate
+    const predictedLTV = currentLTV + avgOrderValue * purchaseFrequency * 365;
+
+    // Determine customer segment
+    let customerSegment: 'high_value' | 'medium_value' | 'low_value' | 'new';
+    if (customer.visit_count < 3) {
+      customerSegment = 'new';
+    } else if (currentLTV >= 100000) {
+      // 100,000 MMK
+      customerSegment = 'high_value';
+    } else if (currentLTV >= 50000) {
+      // 50,000 MMK
+      customerSegment = 'medium_value';
+    } else {
+      customerSegment = 'low_value';
+    }
+
+    // Calculate risk score (days since last purchase)
+    const daysSinceLastPurchase =
+      (new Date().getTime() - new Date(lastSale.created_at).getTime()) /
+      (1000 * 60 * 60 * 24);
+    const riskScore = Math.min(100, Math.max(0, daysSinceLastPurchase * 2)); // 2 points per day
+
+    return {
+      currentLTV,
+      predictedLTV,
+      customerSegment,
+      riskScore,
+    };
+  }
+
+  async getCustomerSegmentation(): Promise<{
+    segments: {
+      segment: 'high_value' | 'medium_value' | 'low_value' | 'new' | 'at_risk';
+      count: number;
+      totalValue: number;
+      averageOrderValue: number;
+    }[];
+    totalCustomers: number;
+  }> {
+    const customers = await this.getCustomers();
+    const segments = {
+      high_value: { count: 0, totalValue: 0, orders: 0 },
+      medium_value: { count: 0, totalValue: 0, orders: 0 },
+      low_value: { count: 0, totalValue: 0, orders: 0 },
+      new: { count: 0, totalValue: 0, orders: 0 },
+      at_risk: { count: 0, totalValue: 0, orders: 0 },
+    };
+
+    for (const customer of customers) {
+      const ltv = await this.calculateCustomerLifetimeValue(customer.id);
+
+      let segment = ltv.customerSegment;
+      if (ltv.riskScore > 60) {
+        segment = 'at_risk';
+      }
+
+      segments[segment].count++;
+      segments[segment].totalValue += customer.total_spent;
+      segments[segment].orders += customer.visit_count;
+    }
+
+    const result = Object.entries(segments).map(([segment, data]) => ({
+      segment: segment as
+        | 'high_value'
+        | 'medium_value'
+        | 'low_value'
+        | 'new'
+        | 'at_risk',
+      count: data.count,
+      totalValue: data.totalValue,
+      averageOrderValue: data.orders > 0 ? data.totalValue / data.orders : 0,
+    }));
+
+    return {
+      segments: result,
+      totalCustomers: customers.length,
+    };
+  }
+
+  // Stock Movement Analytics Methods
+  async getStockMovementTrends(
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<{
+    dailyMovements: {
+      date: string;
+      stockIn: number;
+      stockOut: number;
+      netChange: number;
+    }[];
+    weeklyTrends: {
+      week: string;
+      stockIn: number;
+      stockOut: number;
+      netChange: number;
+    }[];
+    monthlyTrends: {
+      month: string;
+      stockIn: number;
+      stockOut: number;
+      netChange: number;
+    }[];
+    topMovingProducts: {
+      productId: number;
+      productName: string;
+      totalMovement: number;
+      netChange: number;
+    }[];
+  }> {
+    const whereClause =
+      startDate && endDate ? `WHERE sm.created_at BETWEEN ? AND ?` : '';
+    const params =
+      startDate && endDate
+        ? [startDate.toISOString(), endDate.toISOString()]
+        : [];
+
+    // Daily movements
+    const dailyMovements = (await this.db.getAllAsync(
+      `
+      SELECT 
+        DATE(sm.created_at) as date,
+        SUM(CASE WHEN sm.type = 'stock_in' THEN sm.quantity ELSE 0 END) as stockIn,
+        SUM(CASE WHEN sm.type = 'stock_out' THEN sm.quantity ELSE 0 END) as stockOut,
+        SUM(CASE WHEN sm.type = 'stock_in' THEN sm.quantity ELSE -sm.quantity END) as netChange
+      FROM stock_movements sm
+      ${whereClause}
+      GROUP BY DATE(sm.created_at)
+      ORDER BY date DESC
+      LIMIT 30
+    `,
+      params
+    )) as {
+      date: string;
+      stockIn: number;
+      stockOut: number;
+      netChange: number;
+    }[];
+
+    // Weekly trends
+    const weeklyTrends = (await this.db.getAllAsync(
+      `
+      SELECT 
+        strftime('%Y-W%W', sm.created_at) as week,
+        SUM(CASE WHEN sm.type = 'stock_in' THEN sm.quantity ELSE 0 END) as stockIn,
+        SUM(CASE WHEN sm.type = 'stock_out' THEN sm.quantity ELSE 0 END) as stockOut,
+        SUM(CASE WHEN sm.type = 'stock_in' THEN sm.quantity ELSE -sm.quantity END) as netChange
+      FROM stock_movements sm
+      ${whereClause}
+      GROUP BY strftime('%Y-W%W', sm.created_at)
+      ORDER BY week DESC
+      LIMIT 12
+    `,
+      params
+    )) as {
+      week: string;
+      stockIn: number;
+      stockOut: number;
+      netChange: number;
+    }[];
+
+    // Monthly trends
+    const monthlyTrends = (await this.db.getAllAsync(
+      `
+      SELECT 
+        strftime('%Y-%m', sm.created_at) as month,
+        SUM(CASE WHEN sm.type = 'stock_in' THEN sm.quantity ELSE 0 END) as stockIn,
+        SUM(CASE WHEN sm.type = 'stock_out' THEN sm.quantity ELSE 0 END) as stockOut,
+        SUM(CASE WHEN sm.type = 'stock_in' THEN sm.quantity ELSE -sm.quantity END) as netChange
+      FROM stock_movements sm
+      ${whereClause}
+      GROUP BY strftime('%Y-%m', sm.created_at)
+      ORDER BY month DESC
+      LIMIT 12
+    `,
+      params
+    )) as {
+      month: string;
+      stockIn: number;
+      stockOut: number;
+      netChange: number;
+    }[];
+
+    // Top moving products
+    const topMovingProducts = (await this.db.getAllAsync(
+      `
+      SELECT 
+        sm.product_id as productId,
+        p.name as productName,
+        SUM(sm.quantity) as totalMovement,
+        SUM(CASE WHEN sm.type = 'stock_in' THEN sm.quantity ELSE -sm.quantity END) as netChange
+      FROM stock_movements sm
+      JOIN products p ON sm.product_id = p.id
+      ${whereClause}
+      GROUP BY sm.product_id, p.name
+      ORDER BY totalMovement DESC
+      LIMIT 10
+    `,
+      params
+    )) as {
+      productId: number;
+      productName: string;
+      totalMovement: number;
+      netChange: number;
+    }[];
+
+    return {
+      dailyMovements,
+      weeklyTrends,
+      monthlyTrends,
+      topMovingProducts,
+    };
+  }
+
+  async calculateStockTurnoverRates(): Promise<{
+    productTurnover: {
+      productId: number;
+      productName: string;
+      turnoverRate: number;
+      daysOfStock: number;
+      category: string;
+    }[];
+    categoryTurnover: {
+      categoryId: number;
+      categoryName: string;
+      avgTurnoverRate: number;
+      totalValue: number;
+    }[];
+    overallTurnover: number;
+  }> {
+    // Calculate turnover rate for each product (sales / average inventory)
+    const productTurnover = (await this.db.getAllAsync(`
+      SELECT 
+        p.id as productId,
+        p.name as productName,
+        c.name as category,
+        p.quantity as currentStock,
+        p.cost,
+        COALESCE(sales_data.total_sold, 0) as totalSold,
+        COALESCE(sales_data.total_sold, 0) * 1.0 / NULLIF(p.quantity, 0) as turnoverRate,
+        CASE 
+          WHEN COALESCE(sales_data.avg_daily_sales, 0) > 0 
+          THEN p.quantity / sales_data.avg_daily_sales
+          ELSE 999
+        END as daysOfStock
+      FROM products p
+      JOIN categories c ON p.category_id = c.id
+      LEFT JOIN (
+        SELECT 
+          si.product_id,
+          SUM(si.quantity) as total_sold,
+          SUM(si.quantity) / 30.0 as avg_daily_sales
+        FROM sale_items si
+        JOIN sales s ON si.sale_id = s.id
+        WHERE s.created_at >= date('now', '-30 days')
+        GROUP BY si.product_id
+      ) sales_data ON p.id = sales_data.product_id
+      ORDER BY turnoverRate DESC
+    `)) as {
+      productId: number;
+      productName: string;
+      turnoverRate: number;
+      daysOfStock: number;
+      category: string;
+    }[];
+
+    // Calculate category-level turnover
+    const categoryTurnover = (await this.db.getAllAsync(`
+      SELECT 
+        c.id as categoryId,
+        c.name as categoryName,
+        AVG(COALESCE(sales_data.total_sold, 0) * 1.0 / NULLIF(p.quantity, 0)) as avgTurnoverRate,
+        SUM(p.quantity * p.cost) as totalValue
+      FROM categories c
+      JOIN products p ON c.id = p.category_id
+      LEFT JOIN (
+        SELECT 
+          si.product_id,
+          SUM(si.quantity) as total_sold
+        FROM sale_items si
+        JOIN sales s ON si.sale_id = s.id
+        WHERE s.created_at >= date('now', '-30 days')
+        GROUP BY si.product_id
+      ) sales_data ON p.id = sales_data.product_id
+      GROUP BY c.id, c.name
+      ORDER BY avgTurnoverRate DESC
+    `)) as {
+      categoryId: number;
+      categoryName: string;
+      avgTurnoverRate: number;
+      totalValue: number;
+    }[];
+
+    // Calculate overall turnover
+    const overallResult = (await this.db.getFirstAsync(`
+      SELECT 
+        AVG(COALESCE(sales_data.total_sold, 0) * 1.0 / NULLIF(p.quantity, 0)) as overallTurnover
+      FROM products p
+      LEFT JOIN (
+        SELECT 
+          si.product_id,
+          SUM(si.quantity) as total_sold
+        FROM sale_items si
+        JOIN sales s ON si.sale_id = s.id
+        WHERE s.created_at >= date('now', '-30 days')
+        GROUP BY si.product_id
+      ) sales_data ON p.id = sales_data.product_id
+    `)) as { overallTurnover: number } | null;
+
+    return {
+      productTurnover,
+      categoryTurnover,
+      overallTurnover: overallResult?.overallTurnover || 0,
+    };
+  }
+
+  async predictLowStockItems(): Promise<{
+    criticalItems: {
+      productId: number;
+      productName: string;
+      currentStock: number;
+      minStock: number;
+      predictedDaysUntilEmpty: number;
+      avgDailySales: number;
+      category: string;
+    }[];
+    warningItems: {
+      productId: number;
+      productName: string;
+      currentStock: number;
+      minStock: number;
+      predictedDaysUntilEmpty: number;
+      avgDailySales: number;
+      category: string;
+    }[];
+  }> {
+    const stockPredictions = (await this.db.getAllAsync(`
+      SELECT 
+        p.id as productId,
+        p.name as productName,
+        p.quantity as currentStock,
+        p.min_stock as minStock,
+        c.name as category,
+        COALESCE(sales_data.avg_daily_sales, 0) as avgDailySales,
+        CASE 
+          WHEN COALESCE(sales_data.avg_daily_sales, 0) > 0 
+          THEN p.quantity / sales_data.avg_daily_sales
+          ELSE 999
+        END as predictedDaysUntilEmpty
+      FROM products p
+      JOIN categories c ON p.category_id = c.id
+      LEFT JOIN (
+        SELECT 
+          si.product_id,
+          SUM(si.quantity) / 30.0 as avg_daily_sales
+        FROM sale_items si
+        JOIN sales s ON si.sale_id = s.id
+        WHERE s.created_at >= date('now', '-30 days')
+        GROUP BY si.product_id
+      ) sales_data ON p.id = sales_data.product_id
+      WHERE p.quantity > 0
+      ORDER BY predictedDaysUntilEmpty ASC
+    `)) as {
+      productId: number;
+      productName: string;
+      currentStock: number;
+      minStock: number;
+      predictedDaysUntilEmpty: number;
+      avgDailySales: number;
+      category: string;
+    }[];
+
+    const criticalItems = stockPredictions.filter(
+      (item) =>
+        item.predictedDaysUntilEmpty <= 7 || item.currentStock <= item.minStock
+    );
+
+    const warningItems = stockPredictions.filter(
+      (item) =>
+        item.predictedDaysUntilEmpty > 7 &&
+        item.predictedDaysUntilEmpty <= 14 &&
+        item.currentStock > item.minStock
+    );
+
+    return {
+      criticalItems,
+      warningItems,
+    };
+  }
+
+  async getStockMovementReport(
+    startDate?: Date,
+    endDate?: Date,
+    productId?: number
+  ): Promise<{
+    summary: {
+      totalStockIn: number;
+      totalStockOut: number;
+      netChange: number;
+      totalTransactions: number;
+      avgTransactionSize: number;
+    };
+    movements: {
+      id: number;
+      productName: string;
+      type: 'stock_in' | 'stock_out';
+      quantity: number;
+      reason: string;
+      supplierName?: string;
+      createdAt: string;
+    }[];
+    productSummary?: {
+      productName: string;
+      openingStock: number;
+      totalIn: number;
+      totalOut: number;
+      closingStock: number;
+      netChange: number;
+    };
+  }> {
+    let whereClause = '1=1';
+    const params: any[] = [];
+
+    if (startDate && endDate) {
+      whereClause += ' AND sm.created_at BETWEEN ? AND ?';
+      params.push(startDate.toISOString(), endDate.toISOString());
+    }
+
+    if (productId) {
+      whereClause += ' AND sm.product_id = ?';
+      params.push(productId);
+    }
+
+    // Summary data
+    const summary = (await this.db.getFirstAsync(
+      `
+      SELECT 
+        SUM(CASE WHEN sm.type = 'stock_in' THEN sm.quantity ELSE 0 END) as totalStockIn,
+        SUM(CASE WHEN sm.type = 'stock_out' THEN sm.quantity ELSE 0 END) as totalStockOut,
+        SUM(CASE WHEN sm.type = 'stock_in' THEN sm.quantity ELSE -sm.quantity END) as netChange,
+        COUNT(*) as totalTransactions,
+        AVG(sm.quantity) as avgTransactionSize
+      FROM stock_movements sm
+      WHERE ${whereClause}
+    `,
+      params
+    )) as {
+      totalStockIn: number;
+      totalStockOut: number;
+      netChange: number;
+      totalTransactions: number;
+      avgTransactionSize: number;
+    } | null;
+
+    // Detailed movements
+    const movements = (await this.db.getAllAsync(
+      `
+      SELECT 
+        sm.id,
+        p.name as productName,
+        sm.type,
+        sm.quantity,
+        sm.reason,
+        s.name as supplierName,
+        sm.created_at as createdAt
+      FROM stock_movements sm
+      JOIN products p ON sm.product_id = p.id
+      LEFT JOIN suppliers s ON sm.supplier_id = s.id
+      WHERE ${whereClause}
+      ORDER BY sm.created_at DESC
+      LIMIT 1000
+    `,
+      params
+    )) as {
+      id: number;
+      productName: string;
+      type: 'stock_in' | 'stock_out';
+      quantity: number;
+      reason: string;
+      supplierName?: string;
+      createdAt: string;
+    }[];
+
+    let productSummary;
+    if (productId) {
+      // Get product summary for specific product
+      const product = await this.getProductById(productId);
+      if (product) {
+        const totalIn = summary?.totalStockIn || 0;
+        const totalOut = summary?.totalStockOut || 0;
+        const netChange = summary?.netChange || 0;
+
+        productSummary = {
+          productName: product.name,
+          openingStock: product.quantity - netChange,
+          totalIn,
+          totalOut,
+          closingStock: product.quantity,
+          netChange,
+        };
+      }
+    }
+
+    return {
+      summary: summary || {
+        totalStockIn: 0,
+        totalStockOut: 0,
+        netChange: 0,
+        totalTransactions: 0,
+        avgTransactionSize: 0,
+      },
+      movements,
+      productSummary,
+    };
+  }
+
+  // Bulk Pricing Analytics Methods
+  async getBulkPricingInsights(): Promise<{
+    discountImpact: {
+      totalBulkDiscounts: number;
+      totalManualDiscounts: number;
+      totalSavingsGiven: number;
+      avgDiscountPerSale: number;
+      discountedSalesCount: number;
+      totalSalesCount: number;
+      discountPenetration: number; // percentage of sales with discounts
+    };
+    bulkPricingEffectiveness: {
+      productId: number;
+      productName: string;
+      totalBulkSales: number;
+      totalBulkDiscount: number;
+      avgBulkDiscount: number;
+      bulkSalesCount: number;
+      regularSalesCount: number;
+      bulkSalesPercentage: number;
+    }[];
+    revenueAnalysis: {
+      totalRevenue: number;
+      revenueWithoutDiscounts: number;
+      discountImpactOnRevenue: number;
+      avgOrderValueWithBulk: number;
+      avgOrderValueWithoutBulk: number;
+    };
+  }> {
+    // Discount impact analysis
+    const discountImpactResult = (await this.db.getFirstAsync(`
+      SELECT 
+        SUM(si.bulk_discount) as totalBulkDiscounts,
+        SUM(si.discount) as totalManualDiscounts,
+        SUM(si.bulk_discount + si.discount) as totalSavingsGiven,
+        AVG(si.bulk_discount + si.discount) as avgDiscountPerSale,
+        COUNT(CASE WHEN (si.bulk_discount > 0 OR si.discount > 0) THEN 1 END) as discountedSalesCount,
+        COUNT(*) as totalSalesCount
+      FROM sale_items si
+      JOIN sales s ON si.sale_id = s.id
+      WHERE s.created_at >= date('now', '-30 days')
+    `)) as {
+      totalBulkDiscounts: number;
+      totalManualDiscounts: number;
+      totalSavingsGiven: number;
+      avgDiscountPerSale: number;
+      discountedSalesCount: number;
+      totalSalesCount: number;
+    } | null;
+
+    const discountPenetration = discountImpactResult
+      ? (discountImpactResult.discountedSalesCount /
+          discountImpactResult.totalSalesCount) *
+        100
+      : 0;
+
+    // Bulk pricing effectiveness by product
+    const bulkPricingEffectiveness = (await this.db.getAllAsync(`
+      SELECT 
+        p.id as productId,
+        p.name as productName,
+        SUM(CASE WHEN si.bulk_discount > 0 THEN si.subtotal ELSE 0 END) as totalBulkSales,
+        SUM(si.bulk_discount) as totalBulkDiscount,
+        AVG(CASE WHEN si.bulk_discount > 0 THEN si.bulk_discount ELSE NULL END) as avgBulkDiscount,
+        COUNT(CASE WHEN si.bulk_discount > 0 THEN 1 END) as bulkSalesCount,
+        COUNT(CASE WHEN si.bulk_discount = 0 THEN 1 END) as regularSalesCount,
+        (COUNT(CASE WHEN si.bulk_discount > 0 THEN 1 END) * 100.0 / COUNT(*)) as bulkSalesPercentage
+      FROM sale_items si
+      JOIN sales s ON si.sale_id = s.id
+      JOIN products p ON si.product_id = p.id
+      WHERE s.created_at >= date('now', '-30 days')
+      GROUP BY p.id, p.name
+      HAVING COUNT(*) > 0
+      ORDER BY totalBulkDiscount DESC
+      LIMIT 20
+    `)) as {
+      productId: number;
+      productName: string;
+      totalBulkSales: number;
+      totalBulkDiscount: number;
+      avgBulkDiscount: number;
+      bulkSalesCount: number;
+      regularSalesCount: number;
+      bulkSalesPercentage: number;
+    }[];
+
+    // Revenue analysis
+    const revenueAnalysisResult = (await this.db.getFirstAsync(`
+      SELECT 
+        SUM(s.total) as totalRevenue,
+        SUM(s.total + si_totals.total_discounts) as revenueWithoutDiscounts,
+        SUM(si_totals.total_discounts) as discountImpactOnRevenue,
+        AVG(CASE WHEN si_totals.has_bulk_discount THEN s.total ELSE NULL END) as avgOrderValueWithBulk,
+        AVG(CASE WHEN NOT si_totals.has_bulk_discount THEN s.total ELSE NULL END) as avgOrderValueWithoutBulk
+      FROM sales s
+      JOIN (
+        SELECT 
+          si.sale_id,
+          SUM(si.bulk_discount + si.discount) as total_discounts,
+          MAX(CASE WHEN si.bulk_discount > 0 THEN 1 ELSE 0 END) as has_bulk_discount
+        FROM sale_items si
+        GROUP BY si.sale_id
+      ) si_totals ON s.id = si_totals.sale_id
+      WHERE s.created_at >= date('now', '-30 days')
+    `)) as {
+      totalRevenue: number;
+      revenueWithoutDiscounts: number;
+      discountImpactOnRevenue: number;
+      avgOrderValueWithBulk: number;
+      avgOrderValueWithoutBulk: number;
+    } | null;
+
+    return {
+      discountImpact: {
+        totalBulkDiscounts: discountImpactResult?.totalBulkDiscounts || 0,
+        totalManualDiscounts: discountImpactResult?.totalManualDiscounts || 0,
+        totalSavingsGiven: discountImpactResult?.totalSavingsGiven || 0,
+        avgDiscountPerSale: discountImpactResult?.avgDiscountPerSale || 0,
+        discountedSalesCount: discountImpactResult?.discountedSalesCount || 0,
+        totalSalesCount: discountImpactResult?.totalSalesCount || 0,
+        discountPenetration,
+      },
+      bulkPricingEffectiveness,
+      revenueAnalysis: {
+        totalRevenue: revenueAnalysisResult?.totalRevenue || 0,
+        revenueWithoutDiscounts:
+          revenueAnalysisResult?.revenueWithoutDiscounts || 0,
+        discountImpactOnRevenue:
+          revenueAnalysisResult?.discountImpactOnRevenue || 0,
+        avgOrderValueWithBulk:
+          revenueAnalysisResult?.avgOrderValueWithBulk || 0,
+        avgOrderValueWithoutBulk:
+          revenueAnalysisResult?.avgOrderValueWithoutBulk || 0,
+      },
+    };
+  }
+
+  async getBulkPricingOptimizationSuggestions(): Promise<{
+    underperformingProducts: {
+      productId: number;
+      productName: string;
+      currentBulkTiers: number;
+      salesWithoutBulk: number;
+      potentialBulkSales: number;
+      suggestedAction: string;
+    }[];
+    overDiscountedProducts: {
+      productId: number;
+      productName: string;
+      avgDiscountGiven: number;
+      profitMargin: number;
+      suggestedMaxDiscount: number;
+      suggestedAction: string;
+    }[];
+    opportunityProducts: {
+      productId: number;
+      productName: string;
+      highVolumeSales: number;
+      noBulkPricing: boolean;
+      avgQuantityPerSale: number;
+      suggestedAction: string;
+    }[];
+  }> {
+    // Find products with low bulk pricing adoption
+    const underperformingProducts = (await this.db.getAllAsync(`
+      SELECT 
+        p.id as productId,
+        p.name as productName,
+        COUNT(bp.id) as currentBulkTiers,
+        COUNT(CASE WHEN si.bulk_discount = 0 THEN 1 END) as salesWithoutBulk,
+        COUNT(CASE WHEN si.bulk_discount > 0 THEN 1 END) as potentialBulkSales,
+        'Consider adjusting bulk pricing tiers or promoting bulk discounts' as suggestedAction
+      FROM products p
+      LEFT JOIN bulk_pricing bp ON p.id = bp.product_id
+      LEFT JOIN sale_items si ON p.id = si.product_id
+      LEFT JOIN sales s ON si.sale_id = s.id
+      WHERE s.created_at >= date('now', '-30 days')
+      GROUP BY p.id, p.name
+      HAVING COUNT(si.id) > 5 AND 
+             (COUNT(CASE WHEN si.bulk_discount > 0 THEN 1 END) * 100.0 / COUNT(si.id)) < 30
+      ORDER BY salesWithoutBulk DESC
+      LIMIT 10
+    `)) as {
+      productId: number;
+      productName: string;
+      currentBulkTiers: number;
+      salesWithoutBulk: number;
+      potentialBulkSales: number;
+      suggestedAction: string;
+    }[];
+
+    // Find products with excessive discounting affecting profit margins
+    const overDiscountedProducts = (await this.db.getAllAsync(`
+      SELECT 
+        p.id as productId,
+        p.name as productName,
+        AVG(si.bulk_discount + si.discount) as avgDiscountGiven,
+        ((p.price - p.cost) * 100.0 / p.price) as profitMargin,
+        ((p.price - p.cost) * 0.5) as suggestedMaxDiscount,
+        'Consider reducing discount amounts to maintain profitability' as suggestedAction
+      FROM products p
+      JOIN sale_items si ON p.id = si.product_id
+      JOIN sales s ON si.sale_id = s.id
+      WHERE s.created_at >= date('now', '-30 days')
+        AND (si.bulk_discount + si.discount) > 0
+      GROUP BY p.id, p.name, p.price, p.cost
+      HAVING AVG(si.bulk_discount + si.discount) > ((p.price - p.cost) * 0.5)
+      ORDER BY avgDiscountGiven DESC
+      LIMIT 10
+    `)) as {
+      productId: number;
+      productName: string;
+      avgDiscountGiven: number;
+      profitMargin: number;
+      suggestedMaxDiscount: number;
+      suggestedAction: string;
+    }[];
+
+    // Find high-volume products without bulk pricing
+    const opportunityProducts = (await this.db.getAllAsync(`
+      SELECT 
+        p.id as productId,
+        p.name as productName,
+        COUNT(si.id) as highVolumeSales,
+        CASE WHEN bp.id IS NULL THEN 1 ELSE 0 END as noBulkPricing,
+        AVG(si.quantity) as avgQuantityPerSale,
+        'Consider adding bulk pricing tiers for this high-volume product' as suggestedAction
+      FROM products p
+      JOIN sale_items si ON p.id = si.product_id
+      JOIN sales s ON si.sale_id = s.id
+      LEFT JOIN bulk_pricing bp ON p.id = bp.product_id
+      WHERE s.created_at >= date('now', '-30 days')
+      GROUP BY p.id, p.name
+      HAVING COUNT(si.id) > 10 
+        AND AVG(si.quantity) > 2
+        AND bp.id IS NULL
+      ORDER BY highVolumeSales DESC
+      LIMIT 10
+    `)) as {
+      productId: number;
+      productName: string;
+      highVolumeSales: number;
+      noBulkPricing: boolean;
+      avgQuantityPerSale: number;
+      suggestedAction: string;
+    }[];
+
+    return {
+      underperformingProducts,
+      overDiscountedProducts,
+      opportunityProducts,
+    };
+  }
+
+  async getBulkPricingPerformanceMetrics(
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<{
+    periodComparison: {
+      currentPeriod: {
+        totalSales: number;
+        bulkSales: number;
+        bulkDiscountGiven: number;
+        avgBulkOrderValue: number;
+      };
+      previousPeriod: {
+        totalSales: number;
+        bulkSales: number;
+        bulkDiscountGiven: number;
+        avgBulkOrderValue: number;
+      };
+      growth: {
+        salesGrowth: number;
+        bulkSalesGrowth: number;
+        discountGrowth: number;
+        orderValueGrowth: number;
+      };
+    };
+    topPerformingTiers: {
+      productId: number;
+      productName: string;
+      tierMinQuantity: number;
+      tierDiscount: number;
+      timesUsed: number;
+      totalRevenue: number;
+      avgOrderSize: number;
+    }[];
+  }> {
+    const currentEndDate = endDate || new Date();
+    const currentStartDate =
+      startDate ||
+      new Date(currentEndDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const periodLength = currentEndDate.getTime() - currentStartDate.getTime();
+    const previousEndDate = new Date(currentStartDate.getTime());
+    const previousStartDate = new Date(
+      currentStartDate.getTime() - periodLength
+    );
+
+    // Current period metrics
+    const currentPeriodResult = (await this.db.getFirstAsync(
+      `
+      SELECT 
+        COUNT(DISTINCT s.id) as totalSales,
+        COUNT(DISTINCT CASE WHEN si.bulk_discount > 0 THEN s.id END) as bulkSales,
+        SUM(si.bulk_discount) as bulkDiscountGiven,
+        AVG(CASE WHEN si.bulk_discount > 0 THEN s.total END) as avgBulkOrderValue
+      FROM sales s
+      JOIN sale_items si ON s.id = si.sale_id
+      WHERE s.created_at BETWEEN ? AND ?
+    `,
+      [currentStartDate.toISOString(), currentEndDate.toISOString()]
+    )) as {
+      totalSales: number;
+      bulkSales: number;
+      bulkDiscountGiven: number;
+      avgBulkOrderValue: number;
+    } | null;
+
+    // Previous period metrics
+    const previousPeriodResult = (await this.db.getFirstAsync(
+      `
+      SELECT 
+        COUNT(DISTINCT s.id) as totalSales,
+        COUNT(DISTINCT CASE WHEN si.bulk_discount > 0 THEN s.id END) as bulkSales,
+        SUM(si.bulk_discount) as bulkDiscountGiven,
+        AVG(CASE WHEN si.bulk_discount > 0 THEN s.total END) as avgBulkOrderValue
+      FROM sales s
+      JOIN sale_items si ON s.id = si.sale_id
+      WHERE s.created_at BETWEEN ? AND ?
+    `,
+      [previousStartDate.toISOString(), previousEndDate.toISOString()]
+    )) as {
+      totalSales: number;
+      bulkSales: number;
+      bulkDiscountGiven: number;
+      avgBulkOrderValue: number;
+    } | null;
+
+    // Calculate growth rates
+    const calculateGrowth = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return ((current - previous) / previous) * 100;
+    };
+
+    const currentPeriod = {
+      totalSales: currentPeriodResult?.totalSales || 0,
+      bulkSales: currentPeriodResult?.bulkSales || 0,
+      bulkDiscountGiven: currentPeriodResult?.bulkDiscountGiven || 0,
+      avgBulkOrderValue: currentPeriodResult?.avgBulkOrderValue || 0,
+    };
+
+    const previousPeriod = {
+      totalSales: previousPeriodResult?.totalSales || 0,
+      bulkSales: previousPeriodResult?.bulkSales || 0,
+      bulkDiscountGiven: previousPeriodResult?.bulkDiscountGiven || 0,
+      avgBulkOrderValue: previousPeriodResult?.avgBulkOrderValue || 0,
+    };
+
+    const growth = {
+      salesGrowth: calculateGrowth(
+        currentPeriod.totalSales,
+        previousPeriod.totalSales
+      ),
+      bulkSalesGrowth: calculateGrowth(
+        currentPeriod.bulkSales,
+        previousPeriod.bulkSales
+      ),
+      discountGrowth: calculateGrowth(
+        currentPeriod.bulkDiscountGiven,
+        previousPeriod.bulkDiscountGiven
+      ),
+      orderValueGrowth: calculateGrowth(
+        currentPeriod.avgBulkOrderValue,
+        previousPeriod.avgBulkOrderValue
+      ),
+    };
+
+    // Top performing bulk pricing tiers
+    const topPerformingTiers = (await this.db.getAllAsync(
+      `
+      SELECT 
+        p.id as productId,
+        p.name as productName,
+        bp.min_quantity as tierMinQuantity,
+        bp.discount_percentage as tierDiscount,
+        COUNT(si.id) as timesUsed,
+        SUM(si.subtotal) as totalRevenue,
+        AVG(si.quantity) as avgOrderSize
+      FROM bulk_pricing bp
+      JOIN products p ON bp.product_id = p.id
+      JOIN sale_items si ON p.id = si.product_id AND si.quantity >= bp.min_quantity
+      JOIN sales s ON si.sale_id = s.id
+      WHERE s.created_at BETWEEN ? AND ?
+        AND si.bulk_discount > 0
+      GROUP BY p.id, p.name, bp.min_quantity, bp.discount_percentage
+      ORDER BY totalRevenue DESC
+      LIMIT 15
+    `,
+      [currentStartDate.toISOString(), currentEndDate.toISOString()]
+    )) as {
+      productId: number;
+      productName: string;
+      tierMinQuantity: number;
+      tierDiscount: number;
+      timesUsed: number;
+      totalRevenue: number;
+      avgOrderSize: number;
+    }[];
+
+    return {
+      periodComparison: {
+        currentPeriod,
+        previousPeriod,
+        growth,
+      },
+      topPerformingTiers,
+    };
+  }
+
   // Shop Settings Methods removed - now using AsyncStorage (see shopSettingsStorage.ts)
 }
 
