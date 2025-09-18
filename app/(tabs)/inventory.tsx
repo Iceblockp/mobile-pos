@@ -87,7 +87,7 @@ export default function Inventory() {
     products.length,
     'InventoryPage'
   );
-
+  console.log('inver');
   const onRefresh = () => {
     refetchProducts();
     refetchLowStock();

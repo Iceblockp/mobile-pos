@@ -41,6 +41,7 @@ export const en = {
     clear: 'Clear',
     apply: 'Apply',
     product: 'Product',
+    optional: 'Optional',
   },
   navigation: {
     dashboard: 'Dashboard',

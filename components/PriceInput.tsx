@@ -40,22 +40,31 @@ export const PriceInput: React.FC<PriceInputProps> = ({
     onChange,
   } = usePriceInput(value);
 
-  // Sync with parent component
+  // Use refs to track if we're in the middle of an update to prevent circular calls
+  const isUpdatingRef = React.useRef(false);
+
+  // Sync with parent component - only when input value actually changes
   React.useEffect(() => {
+    if (isUpdatingRef.current) return;
+
     if (inputValue !== value) {
+      isUpdatingRef.current = true;
       onChangeText(inputValue);
+      isUpdatingRef.current = false;
     }
     if (onValueChange && numericValue !== undefined) {
       onValueChange(numericValue);
     }
-  }, [inputValue, numericValue, onChangeText, onValueChange, value]);
+  }, [inputValue, numericValue]);
 
-  // Handle external value changes
+  // Handle external value changes - only when external value changes and differs from input
   React.useEffect(() => {
+    if (isUpdatingRef.current) return;
+
     if (value !== inputValue) {
       onChange(value);
     }
-  }, [value, inputValue, onChange]);
+  }, [value]);
 
   const displayError = error || validationError;
   const placeholder = usesDecimals()

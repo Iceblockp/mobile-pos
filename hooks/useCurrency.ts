@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { currencySettingsService } from '@/services/currencySettingsService';
 import { CurrencySettings, CurrencyManager } from '@/services/currencyManager';
@@ -146,6 +146,9 @@ export const usePriceInput = (initialValue: string = '') => {
   const [numericValue, setNumericValue] = useState<number>(0);
   const { validatePriceInput, parsePrice } = useCurrencyFormatter();
 
+  // Use ref to track the last processed initial value to prevent unnecessary effects
+  const lastInitialValueRef = useRef(initialValue);
+
   const handleChange = useCallback(
     (newValue: string) => {
       setValue(newValue);
@@ -182,10 +185,13 @@ export const usePriceInput = (initialValue: string = '') => {
     setError(null);
   }, []);
 
-  // Initialize numeric value
+  // Initialize numeric value - only when initialValue actually changes
   useEffect(() => {
-    if (initialValue) {
-      handleChange(initialValue);
+    if (initialValue !== lastInitialValueRef.current) {
+      lastInitialValueRef.current = initialValue;
+      if (initialValue) {
+        handleChange(initialValue);
+      }
     }
   }, [initialValue, handleChange]);
 

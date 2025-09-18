@@ -43,6 +43,7 @@ export const my: TranslationKeys = {
     clear: 'ရှင်းလင်းမည်',
     apply: 'အသုံးပြုမည်',
     product: 'ကုန်ပစ္စည်း',
+    optional: 'ရွေးချယ်ခွင့်ရှိသော',
   },
   navigation: {
     dashboard: 'သုံးသပ်ချက်',
