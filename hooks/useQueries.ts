@@ -782,6 +782,8 @@ export const useCustomers = (
     queryFn: () => db!.getCustomers(searchQuery, page, pageSize),
     enabled: isReady && !!db,
     staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
+    refetchOnWindowFocus: false, // Don't refetch on window focus for better performance
   });
 };
 
@@ -1009,6 +1011,8 @@ export const useStockMovements = (
     queryFn: () => db!.getStockMovements(filters, page, pageSize),
     enabled: isReady && !!db,
     staleTime: 1 * 60 * 1000, // 1 minute
+    gcTime: 3 * 60 * 1000, // 3 minutes garbage collection
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 };
 
@@ -1130,7 +1134,9 @@ export const useBulkPricing = (productId: number) => {
     queryKey: queryKeys.bulkPricing.byProduct(productId),
     queryFn: () => db!.getBulkPricingForProduct(productId),
     enabled: isReady && !!db && productId > 0,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - longer cache for bulk pricing
+    gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 };
 
@@ -1144,7 +1150,9 @@ export const useBulkPriceCalculation = (
     queryKey: queryKeys.bulkPricing.calculation(productId, quantity),
     queryFn: () => db!.calculateBestPrice(productId, quantity),
     enabled: isReady && !!db && productId > 0 && quantity > 0,
-    staleTime: 1 * 60 * 1000, // 1 minute
+    staleTime: 2 * 60 * 1000, // 2 minutes - cache calculations longer
+    gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 };
 

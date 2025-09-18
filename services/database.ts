@@ -111,6 +111,9 @@ export interface BulkPricing {
 
 export class DatabaseService {
   private db: SQLite.SQLiteDatabase;
+  private bulkPricingCache = new Map<number, BulkPricing[]>();
+  private cacheExpiry = new Map<number, number>();
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   constructor(database: SQLite.SQLiteDatabase) {
     this.db = database;
@@ -514,6 +517,20 @@ export class DatabaseService {
       'CREATE INDEX IF NOT EXISTS idx_sales_customer_id ON sales(customer_id)'
     );
 
+    // Composite indexes for complex queries
+    await this.db.execAsync(
+      'CREATE INDEX IF NOT EXISTS idx_stock_movements_product_date ON stock_movements(product_id, created_at)'
+    );
+    await this.db.execAsync(
+      'CREATE INDEX IF NOT EXISTS idx_stock_movements_type_date ON stock_movements(type, created_at)'
+    );
+    await this.db.execAsync(
+      'CREATE INDEX IF NOT EXISTS idx_sales_customer_date ON sales(customer_id, created_at)'
+    );
+    await this.db.execAsync(
+      'CREATE INDEX IF NOT EXISTS idx_customers_total_spent ON customers(total_spent DESC)'
+    );
+
     console.log('Created enhanced feature indexes');
   }
 
@@ -875,6 +892,14 @@ export class DatabaseService {
     await this.db.runAsync('DELETE FROM products WHERE id = ?', [id]);
   }
 
+  async getProductById(id: number): Promise<Product | null> {
+    const result = await this.db.getFirstAsync(
+      'SELECT * FROM products WHERE id = ?',
+      [id]
+    );
+    return result as Product | null;
+  }
+
   async getLowStockProducts(): Promise<Product[]> {
     const result = await this.db.getAllAsync(
       'SELECT p.*, c.name as category FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.quantity <= p.min_stock ORDER BY p.quantity ASC'
@@ -949,6 +974,14 @@ export class DatabaseService {
       'SELECT * FROM suppliers ORDER BY name'
     );
     return result as Supplier[];
+  }
+
+  async getSupplierById(id: number): Promise<Supplier | null> {
+    const result = await this.db.getFirstAsync(
+      'SELECT * FROM suppliers WHERE id = ?',
+      [id]
+    );
+    return result as Supplier | null;
   }
 
   async addSale(
@@ -1703,6 +1736,54 @@ export class DatabaseService {
   }
 
   // Bulk Pricing Methods
+  private clearBulkPricingCache(productId: number) {
+    this.bulkPricingCache.delete(productId);
+    this.cacheExpiry.delete(productId);
+  }
+
+  // Batch processing utility for performance
+  async batchOperation<T>(
+    items: T[],
+    operation: (batch: T[]) => Promise<void>,
+    batchSize: number = 50
+  ): Promise<void> {
+    for (let i = 0; i < items.length; i += batchSize) {
+      const batch = items.slice(i, i + batchSize);
+      await operation(batch);
+    }
+  }
+
+  // Clear all caches for performance reset
+  clearAllCaches(): void {
+    this.bulkPricingCache.clear();
+    this.cacheExpiry.clear();
+  }
+
+  // Performance monitoring utility
+  async measureQueryPerformance<T>(
+    queryName: string,
+    queryFn: () => Promise<T>
+  ): Promise<T> {
+    const startTime = Date.now();
+    try {
+      const result = await queryFn();
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+
+      if (duration > 1000) {
+        // Log slow queries (>1s)
+        console.warn(`Slow query detected: ${queryName} took ${duration}ms`);
+      }
+
+      return result;
+    } catch (error) {
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      console.error(`Query failed: ${queryName} after ${duration}ms`, error);
+      throw error;
+    }
+  }
+
   async addBulkPricing(
     bulkPricing: Omit<BulkPricing, 'id' | 'created_at'>
   ): Promise<number> {
@@ -1736,6 +1817,10 @@ export class DatabaseService {
       'INSERT INTO bulk_pricing (product_id, min_quantity, bulk_price) VALUES (?, ?, ?)',
       [bulkPricing.product_id, bulkPricing.min_quantity, bulkPricing.bulk_price]
     );
+
+    // Clear cache for this product
+    this.clearBulkPricingCache(bulkPricing.product_id);
+
     return result.lastInsertRowId;
   }
 
@@ -1774,18 +1859,58 @@ export class DatabaseService {
       ...values,
       id,
     ]);
+
+    // Clear cache for the affected product
+    const existingTier = (await this.db.getFirstAsync(
+      'SELECT product_id FROM bulk_pricing WHERE id = ?',
+      [id]
+    )) as { product_id: number } | null;
+
+    if (existingTier) {
+      this.clearBulkPricingCache(existingTier.product_id);
+    }
   }
 
   async deleteBulkPricing(id: number): Promise<void> {
+    // Get product_id before deletion for cache clearing
+    const existingTier = (await this.db.getFirstAsync(
+      'SELECT product_id FROM bulk_pricing WHERE id = ?',
+      [id]
+    )) as { product_id: number } | null;
+
     await this.db.runAsync('DELETE FROM bulk_pricing WHERE id = ?', [id]);
+
+    // Clear cache for the affected product
+    if (existingTier) {
+      this.clearBulkPricingCache(existingTier.product_id);
+    }
   }
 
   async getBulkPricingForProduct(productId: number): Promise<BulkPricing[]> {
+    // Check cache first
+    const now = Date.now();
+    const cacheKey = productId;
+
+    if (this.bulkPricingCache.has(cacheKey)) {
+      const expiry = this.cacheExpiry.get(cacheKey) || 0;
+      if (now < expiry) {
+        return this.bulkPricingCache.get(cacheKey)!;
+      }
+    }
+
+    // Fetch from database
     const result = await this.db.getAllAsync(
       'SELECT * FROM bulk_pricing WHERE product_id = ? ORDER BY min_quantity ASC',
       [productId]
     );
-    return result as BulkPricing[];
+
+    const bulkPricing = result as BulkPricing[];
+
+    // Cache the result
+    this.bulkPricingCache.set(cacheKey, bulkPricing);
+    this.cacheExpiry.set(cacheKey, now + this.CACHE_TTL);
+
+    return bulkPricing;
   }
 
   async calculateBestPrice(
@@ -2315,7 +2440,12 @@ export class DatabaseService {
   async calculateCustomerLifetimeValue(customerId: number): Promise<{
     currentLTV: number;
     predictedLTV: number;
-    customerSegment: 'high_value' | 'medium_value' | 'low_value' | 'new';
+    customerSegment:
+      | 'high_value'
+      | 'medium_value'
+      | 'low_value'
+      | 'new'
+      | 'at_risk';
     riskScore: number; // 0-100, higher means more likely to churn
   }> {
     const customer = await this.getCustomerById(customerId);
@@ -2375,7 +2505,12 @@ export class DatabaseService {
     const predictedLTV = currentLTV + avgOrderValue * purchaseFrequency * 365;
 
     // Determine customer segment
-    let customerSegment: 'high_value' | 'medium_value' | 'low_value' | 'new';
+    let customerSegment:
+      | 'high_value'
+      | 'medium_value'
+      | 'low_value'
+      | 'new'
+      | 'at_risk';
     if (customer.visit_count < 3) {
       customerSegment = 'new';
     } else if (currentLTV >= 100000) {
