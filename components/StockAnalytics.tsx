@@ -14,7 +14,8 @@ import {
   useLowStockPrediction,
   useStockMovementReport,
 } from '@/hooks/useQueries';
-import { formatMMK } from '@/utils/formatters';
+import { formatCurrency } from '@/utils/formatters';
+import { useCurrencyFormatter } from '@/hooks/useCurrency';
 import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
 import { useTranslation } from '@/context/LocalizationContext';
@@ -29,6 +30,7 @@ export const StockAnalytics: React.FC<StockAnalyticsProps> = ({
   productId,
 }) => {
   const { t } = useTranslation();
+  const { formatPrice } = useCurrencyFormatter();
   const [activeTab, setActiveTab] = useState<
     'trends' | 'turnover' | 'predictions' | 'reports'
   >('trends');
@@ -287,7 +289,7 @@ export const StockAnalytics: React.FC<StockAnalyticsProps> = ({
                   {category.avgTurnoverRate.toFixed(2)}x
                 </Text>
                 <Text style={styles.categoryTurnoverValue}>
-                  {formatMMK(category.totalValue)}
+                  {formatPrice(category.totalValue)}
                 </Text>
               </View>
             </View>

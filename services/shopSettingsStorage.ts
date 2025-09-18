@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CurrencySettings } from './currencyManager';
 
 // Simplified ShopSettings interface without database-specific fields
 export interface ShopSettings {
@@ -9,6 +10,7 @@ export interface ShopSettings {
   receiptFooter?: string;
   thankYouMessage?: string;
   receiptTemplate: string;
+  currency?: CurrencySettings;
   lastUpdated: string;
 }
 
@@ -20,6 +22,7 @@ export interface ShopSettingsInput {
   receiptFooter?: string;
   thankYouMessage?: string;
   receiptTemplate: string;
+  currency?: CurrencySettings;
 }
 
 const SHOP_SETTINGS_KEY = '@shop_settings';
@@ -65,6 +68,7 @@ export class ShopSettingsStorage {
         receiptFooter: settings.receiptFooter?.trim() || undefined,
         thankYouMessage: settings.thankYouMessage?.trim() || undefined,
         receiptTemplate: settings.receiptTemplate || 'classic',
+        currency: settings.currency || undefined,
         lastUpdated: new Date().toISOString(),
       };
 
@@ -110,6 +114,10 @@ export class ShopSettingsStorage {
           updates.receiptTemplate ||
           currentSettings?.receiptTemplate ||
           'classic',
+        currency:
+          updates.currency !== undefined
+            ? updates.currency
+            : currentSettings?.currency,
       };
 
       await this.saveShopSettings(updatedSettings);
@@ -151,6 +159,7 @@ export class ShopSettingsStorage {
       receiptFooter: 'Thank you for your business!',
       thankYouMessage: 'Come again soon!',
       receiptTemplate: 'classic',
+      currency: undefined, // Will use default MMK from CurrencyManager
       lastUpdated: new Date().toISOString(),
     };
   }
@@ -216,6 +225,15 @@ export class ShopSettingsStorage {
       if (!validTemplates.includes(settings.receiptTemplate)) {
         errors.push('Please select a valid receipt template');
       }
+    }
+
+    // Currency validation
+    if (settings.currency !== undefined) {
+      const { CurrencyValidator } = require('./currencyManager');
+      const currencyErrors = CurrencyValidator.validateCurrencySettings(
+        settings.currency
+      );
+      errors.push(...currencyErrors);
     }
 
     return {

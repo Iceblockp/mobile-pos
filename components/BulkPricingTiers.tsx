@@ -10,8 +10,10 @@ import {
 } from 'react-native';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
+import { PriceInput } from '@/components/PriceInput';
 import { Plus, Trash2, Package, TrendingDown } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
+import { useCurrencyFormatter } from '@/hooks/useCurrency';
 
 interface BulkPricingTier {
   id?: number;
@@ -33,6 +35,7 @@ export const BulkPricingTiers: React.FC<BulkPricingTiersProps> = ({
   compact = false,
 }) => {
   const { t } = useTranslation();
+  const { formatPrice } = useCurrencyFormatter();
   const [tiers, setTiers] = useState<BulkPricingTier[]>(initialTiers);
   const [showForm, setShowForm] = useState(false);
 
@@ -43,10 +46,6 @@ export const BulkPricingTiers: React.FC<BulkPricingTiersProps> = ({
   useEffect(() => {
     onTiersChange(tiers);
   }, [tiers, onTiersChange]);
-
-  const formatMMK = (amount: number) => {
-    return new Intl.NumberFormat('en-US').format(amount) + ' MMK';
-  };
 
   const addTier = () => {
     const newTier: BulkPricingTier = {
@@ -156,24 +155,20 @@ export const BulkPricingTiers: React.FC<BulkPricingTiersProps> = ({
         </View>
 
         <View style={styles.tierInputGroup}>
-          <Text style={styles.tierInputLabel}>
-            {t('bulkPricing.bulkPrice')}
-          </Text>
-          <TextInput
-            style={styles.tierInput}
+          <PriceInput
+            label={t('bulkPricing.bulkPrice')}
             value={tier.bulk_price.toString()}
             onChangeText={(text) =>
               updateTier(tiers.indexOf(tier), 'bulk_price', text)
             }
-            keyboardType="numeric"
-            placeholder={productPrice.toString()}
+            showCurrencyHint={false}
           />
         </View>
       </View>
 
       <View style={styles.tierPreview}>
         <Text style={styles.tierPreviewText}>
-          {t('bulkPricing.preview')}: {formatMMK(tier.bulk_price)}
+          {t('bulkPricing.preview')}: {formatPrice(tier.bulk_price)}
           <Text style={styles.discountText}>
             {' '}
             ({getDiscountPercentage(tier.bulk_price).toFixed(1)}%{' '}
@@ -204,7 +199,7 @@ export const BulkPricingTiers: React.FC<BulkPricingTiersProps> = ({
                   {tier.min_quantity}+
                 </Text>
                 <Text style={styles.compactTierPrice}>
-                  {formatMMK(tier.bulk_price)}
+                  {formatPrice(tier.bulk_price)}
                 </Text>
                 <Text style={styles.compactTierDiscount}>
                   {getDiscountPercentage(tier.bulk_price).toFixed(0)}% off

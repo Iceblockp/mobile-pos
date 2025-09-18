@@ -4,6 +4,8 @@ import {
   Product,
   Category,
   Supplier,
+  SupplierWithStats,
+  SupplierProduct,
   Sale,
   Expense,
   ExpenseCategory,
@@ -34,6 +36,17 @@ export const queryKeys = {
   suppliers: {
     all: ['suppliers'] as const,
     lists: () => [...queryKeys.suppliers.all, 'list'] as const,
+    list: (searchQuery?: string, page?: number, pageSize?: number) =>
+      [
+        ...queryKeys.suppliers.lists(),
+        { searchQuery, page, pageSize },
+      ] as const,
+    details: () => [...queryKeys.suppliers.all, 'detail'] as const,
+    detail: (id: number) => [...queryKeys.suppliers.details(), id] as const,
+    products: (supplierId: number) =>
+      [...queryKeys.suppliers.all, 'products', supplierId] as const,
+    analytics: (supplierId: number) =>
+      [...queryKeys.suppliers.all, 'analytics', supplierId] as const,
   },
 
   // Customers
@@ -237,15 +250,68 @@ export const useCategories = () => {
 };
 
 // ============ SUPPLIER QUERIES ============
-export const useSuppliers = () => {
+export const useSuppliers = (
+  searchQuery?: string,
+  page: number = 1,
+  pageSize: number = 50
+) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.suppliers.list(searchQuery, page, pageSize),
+    queryFn: () => db!.getSuppliersWithStats(searchQuery, page, pageSize),
+    enabled: isReady && !!db,
+    staleTime: 15 * 60 * 1000, // 15 minutes - suppliers rarely change
+    gcTime: 30 * 60 * 1000,
+  });
+};
+
+// Basic suppliers list (for dropdowns, etc.)
+export const useBasicSuppliers = () => {
   const { db, isReady } = useDatabase();
 
   return useQuery({
     queryKey: queryKeys.suppliers.lists(),
     queryFn: () => db!.getSuppliers(),
     enabled: isReady && !!db,
-    staleTime: 15 * 60 * 1000, // 15 minutes - suppliers rarely change
+    staleTime: 15 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
+  });
+};
+
+export const useSupplier = (id: number) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.suppliers.detail(id),
+    queryFn: () => db!.getSupplierById(id),
+    enabled: isReady && !!db && id > 0,
+    staleTime: 15 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  });
+};
+
+export const useSupplierProducts = (supplierId: number) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.suppliers.products(supplierId),
+    queryFn: () => db!.getSupplierProducts(supplierId),
+    enabled: isReady && !!db && supplierId > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes - product data changes more frequently
+    gcTime: 15 * 60 * 1000,
+  });
+};
+
+export const useSupplierAnalytics = (supplierId: number) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.suppliers.analytics(supplierId),
+    queryFn: () => db!.getSupplierAnalytics(supplierId),
+    enabled: isReady && !!db && supplierId > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes - analytics data changes frequently
+    gcTime: 15 * 60 * 1000,
   });
 };
 
@@ -1209,6 +1275,56 @@ export const useBulkPricingMutations = () => {
     updateBulkPricing,
     deleteBulkPricing,
     validateBulkPricingTiers,
+  };
+};
+
+export const useSupplierMutations = () => {
+  const queryClient = useQueryClient();
+  const { db } = useDatabase();
+
+  const addSupplier = useMutation({
+    mutationFn: (supplier: {
+      name: string;
+      contact_name: string;
+      phone: string;
+      email?: string;
+      address: string;
+    }) => db!.addSupplier(supplier),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.suppliers.all });
+    },
+  });
+
+  const updateSupplier = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<Supplier> }) =>
+      db!.updateSupplier(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.suppliers.all });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.suppliers.detail(variables.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.suppliers.products(variables.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.suppliers.analytics(variables.id),
+      });
+    },
+  });
+
+  const deleteSupplier = useMutation({
+    mutationFn: (id: number) => db!.deleteSupplier(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.suppliers.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.stockMovements.all });
+    },
+  });
+
+  return {
+    addSupplier,
+    updateSupplier,
+    deleteSupplier,
   };
 };
 

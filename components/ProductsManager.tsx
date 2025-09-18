@@ -16,10 +16,11 @@ import {
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { PriceInput } from '@/components/PriceInput';
 import {
   useProducts,
   useCategories,
-  useSuppliers,
+  useBasicSuppliers,
   useProductMutations,
   useCategoryMutations,
   useBulkPricing,
@@ -96,7 +97,8 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   const { data: categories = [], isLoading: categoriesLoading } =
     useCategories();
 
-  const { data: suppliers = [], isLoading: suppliersLoading } = useSuppliers();
+  const { data: suppliers = [], isLoading: suppliersLoading } =
+    useBasicSuppliers();
 
   const {
     addProduct,
@@ -1649,31 +1651,19 @@ export default function Products({ compact = false }: ProductsManagerProps) {
               </ScrollView>
             </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>{t('common.price')} *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={t('products.pricePlaceholder')}
-                value={formData.price}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, price: validatePricing(text) })
-                }
-                keyboardType="numeric"
-              />
-            </View>
+            <PriceInput
+              label={t('common.price')}
+              value={formData.price}
+              onChangeText={(text) => setFormData({ ...formData, price: text })}
+              required
+            />
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>{t('products.cost')} *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={t('products.costPlaceholder')}
-                value={formData.cost}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, cost: validatePricing(text) })
-                }
-                keyboardType="numeric"
-              />
-            </View>
+            <PriceInput
+              label={t('products.cost')}
+              value={formData.cost}
+              onChangeText={(text) => setFormData({ ...formData, cost: text })}
+              required
+            />
 
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>{t('common.quantity')}</Text>

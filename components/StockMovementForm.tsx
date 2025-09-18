@@ -11,7 +11,10 @@ import {
 } from 'react-native';
 import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { useSuppliers, useStockMovementMutations } from '@/hooks/useQueries';
+import {
+  useBasicSuppliers,
+  useStockMovementMutations,
+} from '@/hooks/useQueries';
 import { Product } from '@/services/database';
 import { X, Package, TrendingUp, TrendingDown } from 'lucide-react-native';
 import { useToast } from '@/context/ToastContext';
@@ -39,7 +42,7 @@ export const StockMovementForm: React.FC<StockMovementFormProps> = ({
   const [referenceNumber, setReferenceNumber] = useState('');
   const [unitCost, setUnitCost] = useState('');
 
-  const { data: suppliers = [] } = useSuppliers();
+  const { data: suppliers = [] } = useBasicSuppliers();
   const { updateProductQuantityWithMovement } = useStockMovementMutations();
 
   useEffect(() => {

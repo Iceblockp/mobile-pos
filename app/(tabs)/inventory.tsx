@@ -17,7 +17,7 @@ import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import {
   useProducts,
-  useSuppliers,
+  useBasicSuppliers,
   useLowStockProducts,
   useProductMutations,
 } from '@/hooks/useQueries';
@@ -70,7 +70,8 @@ export default function Inventory() {
     refetch: refetchProducts,
   } = useProducts();
 
-  const { data: suppliers = [], isLoading: suppliersLoading } = useSuppliers();
+  const { data: suppliers = [], isLoading: suppliersLoading } =
+    useBasicSuppliers();
 
   const {
     data: lowStockProducts = [],

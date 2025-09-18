@@ -18,6 +18,7 @@ import { ShopSettingsInput } from '@/services/shopSettingsService';
 import { LogoUploader } from '@/components/LogoUploader';
 import { ReceiptTemplateSelector } from '@/components/ReceiptTemplateSelector';
 import { ReceiptPreview } from '@/components/ReceiptPreview';
+import { CurrencySelector } from '@/components/CurrencySelector';
 import { useShopSettings } from '@/context/ShopSettingsContext';
 
 export default function ShopSettingsPage() {
@@ -235,6 +236,9 @@ export default function ShopSettingsPage() {
               <Text style={styles.errorText}>{errors.phone}</Text>
             )}
           </View>
+
+          {/* Currency Configuration */}
+          <CurrencySelector />
         </View>
 
         {/* Branding Section */}

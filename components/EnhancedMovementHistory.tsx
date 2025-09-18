@@ -16,7 +16,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import {
   useStockMovements,
   useProducts,
-  useSuppliers,
+  useBasicSuppliers,
 } from '@/hooks/useQueries';
 import { StockMovement } from '@/services/database';
 import {
@@ -76,7 +76,7 @@ export const EnhancedMovementHistory: React.FC<
 
   // Get products and suppliers for filter dropdowns
   const { data: products = [] } = useProducts();
-  const { data: suppliers = [] } = useSuppliers();
+  const { data: suppliers = [] } = useBasicSuppliers();
 
   // Prepare filters for the query
   const queryFilters = useMemo(() => {

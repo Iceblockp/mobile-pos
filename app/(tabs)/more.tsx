@@ -17,6 +17,7 @@ import {
   Info,
   Settings,
   Store,
+  Truck,
   ChevronRight,
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
@@ -34,6 +35,15 @@ export default function More() {
       color: '#059669',
       backgroundColor: '#ECFDF5',
       route: '/shop-settings',
+    },
+    {
+      id: 'suppliers',
+      title: 'Suppliers',
+      subtitle: 'Manage your suppliers and vendor relationships',
+      icon: Truck,
+      color: '#7C3AED',
+      backgroundColor: '#F5F3FF',
+      route: '/supplier-management',
     },
     {
       id: 'expenses',

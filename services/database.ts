@@ -1,4 +1,8 @@
 import * as SQLite from 'expo-sqlite';
+import {
+  DatabaseOptimizer,
+  PerformanceMonitor,
+} from '../utils/databaseOptimization';
 
 export interface Product {
   id: number;
@@ -107,6 +111,29 @@ export interface BulkPricing {
   created_at: string;
 }
 
+// Enhanced supplier management interfaces
+export interface SupplierWithStats {
+  id: number;
+  name: string;
+  contact_name: string;
+  phone: string;
+  email?: string;
+  address: string;
+  created_at: string;
+  // Analytics fields
+  total_products?: number;
+  recent_deliveries?: number;
+  total_purchase_value?: number;
+}
+
+export interface SupplierProduct {
+  product_id: number;
+  product_name: string;
+  current_stock: number;
+  last_delivery_date?: string;
+  total_received: number;
+}
+
 // ShopSettings moved to shopSettingsStorage.ts (using AsyncStorage instead of SQLite)
 
 export class DatabaseService {
@@ -142,8 +169,8 @@ export class DatabaseService {
         name TEXT NOT NULL,
         barcode TEXT, /* Removed UNIQUE constraint */
         category_id INTEGER NOT NULL,
-        price INTEGER NOT NULL,
-        cost INTEGER NOT NULL,
+        price REAL NOT NULL,
+        cost REAL NOT NULL,
         quantity INTEGER NOT NULL DEFAULT 0,
         min_stock INTEGER NOT NULL DEFAULT 10,
         supplier_id INTEGER,
@@ -156,9 +183,12 @@ export class DatabaseService {
 
       CREATE TABLE IF NOT EXISTS sales (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        total INTEGER NOT NULL,
+        total REAL NOT NULL,
         payment_method TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        note TEXT,
+        customer_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (customer_id) REFERENCES customers (id)
       );
 
       CREATE TABLE IF NOT EXISTS sale_items (
@@ -166,9 +196,10 @@ export class DatabaseService {
         sale_id INTEGER NOT NULL,
         product_id INTEGER NOT NULL,
         quantity INTEGER NOT NULL,
-        price INTEGER NOT NULL,
-        cost INTEGER NOT NULL,
-        subtotal INTEGER NOT NULL,
+        price REAL NOT NULL,
+        cost REAL NOT NULL,
+        discount REAL DEFAULT 0,
+        subtotal REAL NOT NULL,
         FOREIGN KEY (sale_id) REFERENCES sales (id),
         FOREIGN KEY (product_id) REFERENCES products (id)
       );
@@ -183,7 +214,7 @@ export class DatabaseService {
       CREATE TABLE IF NOT EXISTS expenses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         category_id INTEGER NOT NULL,
-        amount INTEGER NOT NULL,
+        amount REAL NOT NULL,
         description TEXT,
         date TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -362,6 +393,9 @@ export class DatabaseService {
       // Enhanced features migration
       await this.migrateToEnhancedFeatures();
 
+      // Decimal pricing migration
+      await this.migrateToDecimalPricing();
+
       // shop_settings table migration removed (now using AsyncStorage)
     } catch (error) {
       console.log('Migration completed or column already exists:', error);
@@ -410,7 +444,7 @@ export class DatabaseService {
           phone TEXT,
           email TEXT,
           address TEXT,
-          total_spent INTEGER DEFAULT 0,
+          total_spent REAL DEFAULT 0,
           visit_count INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -436,7 +470,7 @@ export class DatabaseService {
           reason TEXT,
           supplier_id INTEGER,
           reference_number TEXT,
-          unit_cost INTEGER,
+          unit_cost REAL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (product_id) REFERENCES products (id),
           FOREIGN KEY (supplier_id) REFERENCES suppliers (id)
@@ -458,7 +492,7 @@ export class DatabaseService {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           product_id INTEGER NOT NULL,
           min_quantity INTEGER NOT NULL,
-          bulk_price INTEGER NOT NULL,
+          bulk_price REAL NOT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (product_id) REFERENCES products (id)
         );
@@ -532,6 +566,366 @@ export class DatabaseService {
     );
 
     console.log('Created enhanced feature indexes');
+  }
+
+  async migrateToDecimalPricing() {
+    await this.db.execAsync('BEGIN TRANSACTION');
+
+    try {
+      // Check if decimal pricing migration has already been done
+      const productsInfo = await this.db.getAllAsync(
+        'PRAGMA table_info(products)'
+      );
+      const hasDecimalPrice = productsInfo.some(
+        (column: any) => column.name === 'price' && column.type === 'REAL'
+      );
+
+      if (!hasDecimalPrice) {
+        console.log('Starting decimal pricing migration...');
+
+        // Step 1: Add new decimal columns
+        await this.addDecimalPriceColumns();
+
+        // Step 2: Migrate data from integer to decimal (divide by 100 for existing integer prices)
+        await this.migrateIntegerToDecimalPrices();
+
+        // Step 3: Verify data integrity
+        await this.verifyPriceMigration();
+
+        // Step 4: Drop old columns and rename new ones
+        await this.finalizeDecimalMigration();
+
+        console.log('Decimal pricing migration completed successfully!');
+      }
+
+      await this.db.execAsync('COMMIT');
+    } catch (error) {
+      await this.db.execAsync('ROLLBACK');
+      console.error('Decimal pricing migration failed, rolling back:', error);
+      throw error;
+    }
+  }
+
+  async addDecimalPriceColumns() {
+    // Add decimal columns to products table
+    await this.db.execAsync(
+      'ALTER TABLE products ADD COLUMN price_decimal REAL'
+    );
+    await this.db.execAsync(
+      'ALTER TABLE products ADD COLUMN cost_decimal REAL'
+    );
+
+    // Add decimal columns to sales table
+    await this.db.execAsync('ALTER TABLE sales ADD COLUMN total_decimal REAL');
+
+    // Add decimal columns to sale_items table
+    await this.db.execAsync(
+      'ALTER TABLE sale_items ADD COLUMN price_decimal REAL'
+    );
+    await this.db.execAsync(
+      'ALTER TABLE sale_items ADD COLUMN cost_decimal REAL'
+    );
+    await this.db.execAsync(
+      'ALTER TABLE sale_items ADD COLUMN discount_decimal REAL'
+    );
+    await this.db.execAsync(
+      'ALTER TABLE sale_items ADD COLUMN subtotal_decimal REAL'
+    );
+
+    // Add decimal columns to bulk_pricing table
+    await this.db.execAsync(
+      'ALTER TABLE bulk_pricing ADD COLUMN bulk_price_decimal REAL'
+    );
+
+    // Add decimal columns to stock_movements table
+    await this.db.execAsync(
+      'ALTER TABLE stock_movements ADD COLUMN unit_cost_decimal REAL'
+    );
+
+    // Add decimal columns to expenses table
+    await this.db.execAsync(
+      'ALTER TABLE expenses ADD COLUMN amount_decimal REAL'
+    );
+
+    // Add decimal columns to customers table (total_spent)
+    await this.db.execAsync(
+      'ALTER TABLE customers ADD COLUMN total_spent_decimal REAL'
+    );
+
+    console.log('Added decimal price columns');
+  }
+
+  async migrateIntegerToDecimalPrices() {
+    // Migrate products table (assuming prices were stored as cents/smallest unit)
+    await this.db.execAsync(
+      'UPDATE products SET price_decimal = CAST(price AS REAL), cost_decimal = CAST(cost AS REAL)'
+    );
+
+    // Migrate sales table
+    await this.db.execAsync(
+      'UPDATE sales SET total_decimal = CAST(total AS REAL)'
+    );
+
+    // Migrate sale_items table
+    await this.db.execAsync(`
+      UPDATE sale_items SET 
+        price_decimal = CAST(price AS REAL),
+        cost_decimal = CAST(cost AS REAL),
+        discount_decimal = CAST(discount AS REAL),
+        subtotal_decimal = CAST(subtotal AS REAL)
+    `);
+
+    // Migrate bulk_pricing table
+    await this.db.execAsync(
+      'UPDATE bulk_pricing SET bulk_price_decimal = CAST(bulk_price AS REAL)'
+    );
+
+    // Migrate stock_movements table
+    await this.db.execAsync(
+      'UPDATE stock_movements SET unit_cost_decimal = CAST(unit_cost AS REAL) WHERE unit_cost IS NOT NULL'
+    );
+
+    // Migrate expenses table
+    await this.db.execAsync(
+      'UPDATE expenses SET amount_decimal = CAST(amount AS REAL)'
+    );
+
+    // Migrate customers table
+    await this.db.execAsync(
+      'UPDATE customers SET total_spent_decimal = CAST(total_spent AS REAL)'
+    );
+
+    console.log('Migrated integer prices to decimal format');
+  }
+
+  async verifyPriceMigration(): Promise<void> {
+    // Verify that all prices were migrated correctly
+    const verificationQueries = [
+      {
+        query:
+          'SELECT COUNT(*) as count FROM products WHERE price_decimal IS NULL',
+        table: 'products',
+      },
+      {
+        query:
+          'SELECT COUNT(*) as count FROM sales WHERE total_decimal IS NULL',
+        table: 'sales',
+      },
+      {
+        query:
+          'SELECT COUNT(*) as count FROM sale_items WHERE price_decimal IS NULL OR cost_decimal IS NULL OR discount_decimal IS NULL OR subtotal_decimal IS NULL',
+        table: 'sale_items',
+      },
+      {
+        query:
+          'SELECT COUNT(*) as count FROM bulk_pricing WHERE bulk_price_decimal IS NULL',
+        table: 'bulk_pricing',
+      },
+      {
+        query:
+          'SELECT COUNT(*) as count FROM expenses WHERE amount_decimal IS NULL',
+        table: 'expenses',
+      },
+      {
+        query:
+          'SELECT COUNT(*) as count FROM customers WHERE total_spent_decimal IS NULL',
+        table: 'customers',
+      },
+    ];
+
+    for (const { query, table } of verificationQueries) {
+      const result = (await this.db.getFirstAsync(query)) as { count: number };
+      if (result.count > 0) {
+        throw new Error(
+          `Migration verification failed for ${table}: ${result.count} records with NULL decimal values`
+        );
+      }
+    }
+
+    console.log('Price migration verification completed successfully');
+  }
+
+  async finalizeDecimalMigration() {
+    // Create new tables with REAL price columns
+    await this.db.execAsync(`
+      CREATE TABLE products_decimal (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        barcode TEXT,
+        category_id INTEGER NOT NULL,
+        price REAL NOT NULL,
+        cost REAL NOT NULL,
+        quantity INTEGER NOT NULL DEFAULT 0,
+        min_stock INTEGER NOT NULL DEFAULT 10,
+        supplier_id INTEGER,
+        imageUrl TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (category_id) REFERENCES categories (id),
+        FOREIGN KEY (supplier_id) REFERENCES suppliers (id)
+      );
+    `);
+
+    await this.db.execAsync(`
+      CREATE TABLE sales_decimal (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        total REAL NOT NULL,
+        payment_method TEXT NOT NULL,
+        note TEXT,
+        customer_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (customer_id) REFERENCES customers (id)
+      );
+    `);
+
+    await this.db.execAsync(`
+      CREATE TABLE sale_items_decimal (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sale_id INTEGER NOT NULL,
+        product_id INTEGER NOT NULL,
+        quantity INTEGER NOT NULL,
+        price REAL NOT NULL,
+        cost REAL NOT NULL,
+        discount REAL DEFAULT 0,
+        subtotal REAL NOT NULL,
+        FOREIGN KEY (sale_id) REFERENCES sales (id),
+        FOREIGN KEY (product_id) REFERENCES products (id)
+      );
+    `);
+
+    await this.db.execAsync(`
+      CREATE TABLE bulk_pricing_decimal (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER NOT NULL,
+        min_quantity INTEGER NOT NULL,
+        bulk_price REAL NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (product_id) REFERENCES products (id)
+      );
+    `);
+
+    await this.db.execAsync(`
+      CREATE TABLE stock_movements_decimal (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER NOT NULL,
+        type TEXT NOT NULL CHECK (type IN ('stock_in', 'stock_out')),
+        quantity INTEGER NOT NULL,
+        reason TEXT,
+        supplier_id INTEGER,
+        reference_number TEXT,
+        unit_cost REAL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (product_id) REFERENCES products (id),
+        FOREIGN KEY (supplier_id) REFERENCES suppliers (id)
+      );
+    `);
+
+    await this.db.execAsync(`
+      CREATE TABLE expenses_decimal (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        category_id INTEGER NOT NULL,
+        amount REAL NOT NULL,
+        description TEXT,
+        date TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (category_id) REFERENCES expense_categories (id)
+      );
+    `);
+
+    await this.db.execAsync(`
+      CREATE TABLE customers_decimal (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT,
+        email TEXT,
+        address TEXT,
+        total_spent REAL DEFAULT 0,
+        visit_count INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Copy data to new tables
+    await this.db.execAsync(`
+      INSERT INTO products_decimal (id, name, barcode, category_id, price, cost, quantity, min_stock, supplier_id, imageUrl, created_at, updated_at)
+      SELECT id, name, barcode, category_id, price_decimal, cost_decimal, quantity, min_stock, supplier_id, imageUrl, created_at, updated_at
+      FROM products;
+    `);
+
+    await this.db.execAsync(`
+      INSERT INTO sales_decimal (id, total, payment_method, note, customer_id, created_at)
+      SELECT id, total_decimal, payment_method, note, customer_id, created_at
+      FROM sales;
+    `);
+
+    await this.db.execAsync(`
+      INSERT INTO sale_items_decimal (id, sale_id, product_id, quantity, price, cost, discount, subtotal)
+      SELECT id, sale_id, product_id, quantity, price_decimal, cost_decimal, discount_decimal, subtotal_decimal
+      FROM sale_items;
+    `);
+
+    await this.db.execAsync(`
+      INSERT INTO bulk_pricing_decimal (id, product_id, min_quantity, bulk_price, created_at)
+      SELECT id, product_id, min_quantity, bulk_price_decimal, created_at
+      FROM bulk_pricing;
+    `);
+
+    await this.db.execAsync(`
+      INSERT INTO stock_movements_decimal (id, product_id, type, quantity, reason, supplier_id, reference_number, unit_cost, created_at)
+      SELECT id, product_id, type, quantity, reason, supplier_id, reference_number, unit_cost_decimal, created_at
+      FROM stock_movements;
+    `);
+
+    await this.db.execAsync(`
+      INSERT INTO expenses_decimal (id, category_id, amount, description, date, created_at, updated_at)
+      SELECT id, category_id, amount_decimal, description, date, created_at, updated_at
+      FROM expenses;
+    `);
+
+    await this.db.execAsync(`
+      INSERT INTO customers_decimal (id, name, phone, email, address, total_spent, visit_count, created_at, updated_at)
+      SELECT id, name, phone, email, address, total_spent_decimal, visit_count, created_at, updated_at
+      FROM customers;
+    `);
+
+    // Drop old tables and rename new ones
+    await this.db.execAsync('DROP TABLE products');
+    await this.db.execAsync('ALTER TABLE products_decimal RENAME TO products');
+
+    await this.db.execAsync('DROP TABLE sales');
+    await this.db.execAsync('ALTER TABLE sales_decimal RENAME TO sales');
+
+    await this.db.execAsync('DROP TABLE sale_items');
+    await this.db.execAsync(
+      'ALTER TABLE sale_items_decimal RENAME TO sale_items'
+    );
+
+    await this.db.execAsync('DROP TABLE bulk_pricing');
+    await this.db.execAsync(
+      'ALTER TABLE bulk_pricing_decimal RENAME TO bulk_pricing'
+    );
+
+    await this.db.execAsync('DROP TABLE stock_movements');
+    await this.db.execAsync(
+      'ALTER TABLE stock_movements_decimal RENAME TO stock_movements'
+    );
+
+    await this.db.execAsync('DROP TABLE expenses');
+    await this.db.execAsync('ALTER TABLE expenses_decimal RENAME TO expenses');
+
+    await this.db.execAsync('DROP TABLE customers');
+    await this.db.execAsync(
+      'ALTER TABLE customers_decimal RENAME TO customers'
+    );
+
+    // Recreate indexes
+    await this.createEnhancedIndexes();
+
+    console.log(
+      'Finalized decimal migration - replaced integer tables with decimal tables'
+    );
   }
 
   async seedInitialData() {
@@ -982,6 +1376,156 @@ export class DatabaseService {
       [id]
     );
     return result as Supplier | null;
+  }
+
+  // Enhanced supplier management methods
+  async getSuppliersWithStats(
+    searchQuery?: string,
+    page: number = 1,
+    pageSize: number = 50
+  ): Promise<SupplierWithStats[]> {
+    const offset = (page - 1) * pageSize;
+    let query = `
+      SELECT s.*, 
+             COUNT(DISTINCT p.id) as total_products,
+             COUNT(DISTINCT sm.id) as recent_deliveries,
+             COALESCE(SUM(sm.quantity * sm.unit_cost), 0) as total_purchase_value
+      FROM suppliers s
+      LEFT JOIN products p ON s.id = p.supplier_id
+      LEFT JOIN stock_movements sm ON s.id = sm.supplier_id AND sm.type = 'stock_in' AND sm.created_at >= datetime('now', '-30 days')
+    `;
+
+    let params: any[] = [];
+
+    if (searchQuery) {
+      query +=
+        ' WHERE s.name LIKE ? OR s.contact_name LIKE ? OR s.phone LIKE ?';
+      const searchPattern = `%${searchQuery}%`;
+      params = [searchPattern, searchPattern, searchPattern];
+    }
+
+    query += ' GROUP BY s.id ORDER BY s.name ASC LIMIT ? OFFSET ?';
+    params.push(pageSize, offset);
+
+    const result = await this.db.getAllAsync(query, params);
+    return result as SupplierWithStats[];
+  }
+
+  async addSupplier(
+    supplier: Omit<Supplier, 'id' | 'created_at'>
+  ): Promise<number> {
+    const result = await this.db.runAsync(
+      'INSERT INTO suppliers (name, contact_name, phone, email, address) VALUES (?, ?, ?, ?, ?)',
+      [
+        supplier.name,
+        supplier.contact_name,
+        supplier.phone,
+        supplier.email || null,
+        supplier.address,
+      ]
+    );
+    return result.lastInsertRowId;
+  }
+
+  async updateSupplier(id: number, supplier: Partial<Supplier>): Promise<void> {
+    const fields = Object.keys(supplier)
+      .filter((key) => key !== 'id' && key !== 'created_at')
+      .map((key) => `${key} = ?`)
+      .join(', ');
+    const values = Object.keys(supplier)
+      .filter((key) => key !== 'id' && key !== 'created_at')
+      .map((key) => (supplier as any)[key] || null);
+
+    await this.db.runAsync(`UPDATE suppliers SET ${fields} WHERE id = ?`, [
+      ...values,
+      id,
+    ]);
+  }
+
+  async deleteSupplier(id: number): Promise<void> {
+    // Check if supplier has any products
+    const productsCount = (await this.db.getFirstAsync(
+      'SELECT COUNT(*) as count FROM products WHERE supplier_id = ?',
+      [id]
+    )) as { count: number };
+
+    if (productsCount.count > 0) {
+      throw new Error(
+        'Cannot delete supplier with associated products. Please remove products first or assign them to another supplier.'
+      );
+    }
+
+    await this.db.runAsync('DELETE FROM suppliers WHERE id = ?', [id]);
+  }
+
+  async getSupplierProducts(supplierId: number): Promise<SupplierProduct[]> {
+    const result = await this.db.getAllAsync(
+      `SELECT 
+        p.id as product_id,
+        p.name as product_name,
+        p.quantity as current_stock,
+        MAX(sm.created_at) as last_delivery_date,
+        COALESCE(SUM(CASE WHEN sm.type = 'stock_in' THEN sm.quantity ELSE 0 END), 0) as total_received
+       FROM products p
+       LEFT JOIN stock_movements sm ON p.id = sm.product_id AND sm.supplier_id = ?
+       WHERE p.supplier_id = ?
+       GROUP BY p.id, p.name, p.quantity
+       ORDER BY p.name`,
+      [supplierId, supplierId]
+    );
+    return result as SupplierProduct[];
+  }
+
+  async getSupplierAnalytics(supplierId: number): Promise<{
+    totalProducts: number;
+    totalPurchaseValue: number;
+    recentDeliveries: StockMovement[];
+    topProducts: SupplierProduct[];
+  }> {
+    // Get total products
+    const productsResult = (await this.db.getFirstAsync(
+      'SELECT COUNT(*) as count FROM products WHERE supplier_id = ?',
+      [supplierId]
+    )) as { count: number };
+
+    // Get total purchase value (last 30 days)
+    const purchaseValueResult = (await this.db.getFirstAsync(
+      `SELECT COALESCE(SUM(sm.quantity * sm.unit_cost), 0) as total_value
+       FROM stock_movements sm
+       WHERE sm.supplier_id = ? AND sm.type = 'stock_in' AND sm.created_at >= datetime('now', '-30 days')`,
+      [supplierId]
+    )) as { total_value: number };
+
+    // Get recent deliveries
+    const recentDeliveries = await this.getStockMovements(
+      { supplierId, type: 'stock_in' },
+      1,
+      10
+    );
+
+    // Get top products by quantity received
+    const topProducts = (await this.db.getAllAsync(
+      `SELECT 
+        p.id as product_id,
+        p.name as product_name,
+        p.quantity as current_stock,
+        MAX(sm.created_at) as last_delivery_date,
+        SUM(sm.quantity) as total_received
+       FROM products p
+       JOIN stock_movements sm ON p.id = sm.product_id
+       WHERE p.supplier_id = ? AND sm.supplier_id = ? AND sm.type = 'stock_in'
+       GROUP BY p.id, p.name, p.quantity
+       ORDER BY total_received DESC
+       LIMIT 5`,
+      [supplierId, supplierId]
+    )) as SupplierProduct[];
+
+    return {
+      totalProducts: productsResult.count,
+      totalPurchaseValue: purchaseValueResult.total_value,
+      recentDeliveries,
+      topProducts,
+    };
   }
 
   async addSale(
@@ -3440,6 +3984,86 @@ export class DatabaseService {
       },
       topPerformingTiers,
     };
+  }
+
+  // Performance Optimization Methods
+  async initializeOptimizations(): Promise<void> {
+    const optimizer = new DatabaseOptimizer(this.db);
+
+    try {
+      // Create performance indexes
+      await optimizer.createPerformanceIndexes();
+
+      // Create materialized views for analytics
+      await optimizer.createMaterializedViews();
+
+      console.log('Database optimizations initialized successfully');
+    } catch (error) {
+      console.error('Error initializing database optimizations:', error);
+      // Don't throw error to prevent app from crashing
+    }
+  }
+
+  async analyzePerformance(): Promise<{
+    tableStats: Array<{
+      table: string;
+      rowCount: number;
+      indexCount: number;
+    }>;
+    recommendations: string[];
+  }> {
+    const optimizer = new DatabaseOptimizer(this.db);
+    return optimizer.analyzePerformance();
+  }
+
+  async optimizeDatabase(): Promise<void> {
+    const optimizer = new DatabaseOptimizer(this.db);
+    await optimizer.optimizeDatabase();
+  }
+
+  async getDatabaseSize(): Promise<{
+    pageCount: number;
+    pageSize: number;
+    totalSize: number;
+    freePages: number;
+  }> {
+    const optimizer = new DatabaseOptimizer(this.db);
+    return optimizer.getDatabaseSize();
+  }
+
+  async cleanupOldData(options: {
+    deleteOldSales?: boolean;
+    salesOlderThanDays?: number;
+    deleteOldStockMovements?: boolean;
+    stockMovementsOlderThanDays?: number;
+    deleteOldExpenses?: boolean;
+    expensesOlderThanDays?: number;
+  }): Promise<{
+    deletedSales: number;
+    deletedStockMovements: number;
+    deletedExpenses: number;
+  }> {
+    const optimizer = new DatabaseOptimizer(this.db);
+    return optimizer.cleanupOldData(options);
+  }
+
+  // Monitored query wrapper for performance tracking
+  async monitoredQuery<T>(
+    queryName: string,
+    queryFunction: () => Promise<T>
+  ): Promise<T> {
+    const startTime = Date.now();
+
+    try {
+      const result = await queryFunction();
+      const executionTime = Date.now() - startTime;
+      PerformanceMonitor.recordQuery(queryName, executionTime);
+      return result;
+    } catch (error) {
+      const executionTime = Date.now() - startTime;
+      PerformanceMonitor.recordQuery(`${queryName}_ERROR`, executionTime);
+      throw error;
+    }
   }
 
   // Shop Settings Methods removed - now using AsyncStorage (see shopSettingsStorage.ts)

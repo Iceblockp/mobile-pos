@@ -2,18 +2,25 @@
  * Utility functions for formatting data
  */
 
+import { currencyManager } from '@/services/currencyManager';
+
+/**
+ * Format a number as currency using the current shop currency
+ * @param amount - The amount to format
+ * @returns Formatted currency string
+ */
+export const formatCurrency = (amount: number): string => {
+  return currencyManager.formatPrice(amount);
+};
+
 /**
  * Format a number as Myanmar Kyat (MMK) currency
+ * Now uses the current shop currency instead of hardcoded MMK
  * @param amount - The amount to format
  * @returns Formatted currency string
  */
 export const formatMMK = (amount: number): string => {
-  return (
-    new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount) + ' MMK'
-  );
+  return formatCurrency(amount);
 };
 
 /**

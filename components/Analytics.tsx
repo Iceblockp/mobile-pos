@@ -16,6 +16,7 @@ import { CustomerAnalytics } from './CustomerAnalytics';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useCustomAnalytics, useSalesByDateRange } from '@/hooks/useQueries';
+import { useCurrencyFormatter } from '@/hooks/useCurrency';
 import AnalyticsCharts from '@/components/AnalyticsCharts';
 import { Sale } from '@/services/database';
 import {
@@ -122,14 +123,7 @@ export default function Analytics() {
   const isLoading = analyticsLoading || salesLoading;
   const isRefreshing = analyticsRefetching || salesRefetching;
 
-  const formatMMK = (amount: number) => {
-    return (
-      new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount) + ' MMK'
-    );
-  };
+  const { formatPrice } = useCurrencyFormatter();
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -667,7 +661,7 @@ export default function Analytics() {
                 </View>
                 <View style={styles.metricText}>
                   <Text style={styles.metricValue}>
-                    {formatMMK(analytics?.totalRevenue || 0)}
+                    {formatPrice(analytics?.totalRevenue || 0)}
                   </Text>
                   <Text style={styles.metricLabel}>
                     {t('analytics.totalRevenue')}
@@ -685,7 +679,7 @@ export default function Analytics() {
                 </View>
                 <View style={styles.metricText}>
                   <Text style={styles.metricValue}>
-                    {formatMMK(analytics?.totalProfit || 0)}
+                    {formatPrice(analytics?.totalProfit || 0)}
                   </Text>
                   <Text style={styles.metricLabel}>
                     {t('analytics.totalProfit')}
@@ -732,7 +726,7 @@ export default function Analytics() {
                 </View>
                 <View style={styles.metricText}>
                   <Text style={styles.metricValue}>
-                    {formatMMK(analytics?.avgSaleValue || 0)}
+                    {formatPrice(analytics?.avgSaleValue || 0)}
                   </Text>
                   <Text style={styles.metricLabel}>
                     {t('analytics.avgSaleValue')}
@@ -756,7 +750,9 @@ export default function Analytics() {
                 {t('analytics.dailyAverageRevenue')}
               </Text>
               <Text style={styles.insightValue}>
-                {formatMMK((analytics?.totalRevenue || 0) / getDaysInPeriod())}
+                {formatPrice(
+                  (analytics?.totalRevenue || 0) / getDaysInPeriod()
+                )}
               </Text>
             </View>
 
@@ -765,7 +761,7 @@ export default function Analytics() {
                 {t('analytics.dailyAverageProfit')}
               </Text>
               <Text style={styles.insightValue}>
-                {formatMMK((analytics?.totalProfit || 0) / getDaysInPeriod())}
+                {formatPrice((analytics?.totalProfit || 0) / getDaysInPeriod())}
               </Text>
             </View>
 
@@ -774,7 +770,7 @@ export default function Analytics() {
                 {t('analytics.costOfGoodsSold')}
               </Text>
               <Text style={styles.insightValue}>
-                {formatMMK(analytics?.totalCost || 0)}
+                {formatPrice(analytics?.totalCost || 0)}
               </Text>
             </View>
 
@@ -818,7 +814,7 @@ export default function Analytics() {
                 {t('analytics.totalExpenses')}
               </Text>
               <Text style={styles.insightValue}>
-                {formatMMK(analytics?.totalExpenses || 0)}
+                {formatPrice(analytics?.totalExpenses || 0)}
               </Text>
             </View>
 
@@ -835,7 +831,7 @@ export default function Analytics() {
                   },
                 ]}
               >
-                {formatMMK(analytics?.netProfit || 0)}
+                {formatPrice(analytics?.netProfit || 0)}
               </Text>
             </View>
 
@@ -853,7 +849,7 @@ export default function Analytics() {
                       </Text>
                       <View style={styles.expenseValueContainer}>
                         <Text style={styles.insightValue}>
-                          {formatMMK(category.amount)}
+                          {formatPrice(category.amount)}
                         </Text>
                         <Text style={styles.expensePercentage}>
                           {category.percentage.toFixed(1)}%
@@ -892,7 +888,7 @@ export default function Analytics() {
                     <Text style={styles.productName}>{product.name}</Text>
                     <Text style={styles.productStats}>
                       {product.quantity} {t('analytics.units')} •{' '}
-                      {t('analytics.profit')}: {formatMMK(product.profit)}
+                      {t('analytics.profit')}: {formatPrice(product.profit)}
                     </Text>
                     <Text style={styles.productMargin}>
                       {t('analytics.profitMargin')}:{' '}
@@ -901,7 +897,7 @@ export default function Analytics() {
                   </View>
                   <View style={styles.productRevenue}>
                     <Text style={styles.revenueAmount}>
-                      {formatMMK(product.revenue)}
+                      {formatPrice(product.revenue)}
                     </Text>
                   </View>
                 </View>
@@ -934,7 +930,9 @@ export default function Analytics() {
                       {sale.payment_method.toUpperCase()}
                     </Text>
                   </View>
-                  <Text style={styles.saleAmount}>{formatMMK(sale.total)}</Text>
+                  <Text style={styles.saleAmount}>
+                    {formatPrice(sale.total)}
+                  </Text>
                 </View>
               ))
             ) : (
