@@ -8,7 +8,6 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
-import { useTranslation } from 'react-i18next';
 import {
   useStockMovementTrends,
   useStockTurnoverRates,
@@ -18,6 +17,7 @@ import {
 import { formatMMK } from '@/utils/formatters';
 import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
+import { useTranslation } from '@/context/LocalizationContext';
 
 const { width } = Dimensions.get('window');
 

@@ -164,7 +164,7 @@
   - Create comprehensive business data export combining all entities
   - _Requirements: 9.1, 9.3, 9.4_
 
-- [-] 21. Implement import functionality for enhanced data
+- [x] 21. Implement import functionality for enhanced data
   - Create customer data import with validation and conflict resolution
   - Add bulk pricing import for product configuration
   - Implement stock movement import for historical data migration

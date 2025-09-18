@@ -13,6 +13,7 @@ import {
   HelpCircle,
   Globe,
   Download,
+  Upload,
   Info,
   Settings,
   Store,
@@ -69,6 +70,15 @@ export default function More() {
       color: '#F59E0B',
       backgroundColor: '#FFFBEB',
       route: '/data-export',
+    },
+    {
+      id: 'import',
+      title: t('more.dataImport'),
+      subtitle: t('more.dataImportSubtitle'),
+      icon: Upload,
+      color: '#06B6D4',
+      backgroundColor: '#ECFEFF',
+      route: '/data-import',
     },
     {
       id: 'about',

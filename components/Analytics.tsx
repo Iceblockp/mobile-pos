@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { StockAnalytics } from './StockAnalytics';
 import { BulkPricingAnalytics } from './BulkPricingAnalytics';
+import { CustomerAnalytics } from './CustomerAnalytics';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useCustomAnalytics, useSalesByDateRange } from '@/hooks/useQueries';
@@ -454,7 +455,12 @@ export default function Analytics() {
           style={[styles.tab, activeTab === 'overview' && styles.activeTab]}
           onPress={() => setActiveTab('overview')}
         >
-          <Text style={[styles.tabText, activeTab === 'overview' && styles.activeTabText]}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'overview' && styles.activeTabText,
+            ]}
+          >
             {t('analytics.overview')}
           </Text>
         </TouchableOpacity>
@@ -462,7 +468,12 @@ export default function Analytics() {
           style={[styles.tab, activeTab === 'customers' && styles.activeTab]}
           onPress={() => setActiveTab('customers')}
         >
-          <Text style={[styles.tabText, activeTab === 'customers' && styles.activeTabText]}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'customers' && styles.activeTabText,
+            ]}
+          >
             {t('analytics.customers')}
           </Text>
         </TouchableOpacity>
@@ -470,7 +481,12 @@ export default function Analytics() {
           style={[styles.tab, activeTab === 'stock' && styles.activeTab]}
           onPress={() => setActiveTab('stock')}
         >
-          <Text style={[styles.tabText, activeTab === 'stock' && styles.activeTabText]}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'stock' && styles.activeTabText,
+            ]}
+          >
             {t('analytics.stock')}
           </Text>
         </TouchableOpacity>
@@ -478,7 +494,12 @@ export default function Analytics() {
           style={[styles.tab, activeTab === 'pricing' && styles.activeTab]}
           onPress={() => setActiveTab('pricing')}
         >
-          <Text style={[styles.tabText, activeTab === 'pricing' && styles.activeTabText]}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'pricing' && styles.activeTabText,
+            ]}
+          >
             {t('analytics.pricing')}
           </Text>
         </TouchableOpacity>
@@ -487,422 +508,455 @@ export default function Analytics() {
       {/* Tab Content */}
       {activeTab === 'overview' && (
         <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={onRefresh}
-            colors={['#059669']}
-            tintColor={'#059669'}
-          />
-        }
-      >
-        {/* Enhanced Period Selector */}
-        <Card style={styles.periodCard}>
-          <View style={styles.periodHeader}>
-            <Text style={styles.sectionTitle}>
-              {t('analytics.analysisPeriod')}
-            </Text>
-            <TouchableOpacity
-              style={styles.filterButton}
-              onPress={() => setShowFilterModal(true)}
-            >
-              <Calendar size={16} color="#059669" />
-              <Text style={styles.filterButtonText}>{t('common.filter')}</Text>
-              <ChevronDown size={16} color="#059669" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Current Filter Display */}
-          <View style={styles.currentFilterContainer}>
-            <View style={styles.currentFilterDisplay}>
-              <Text style={styles.currentFilterLabel}>
-                {t('analytics.currentPeriod')}:
+          style={styles.content}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              colors={['#059669']}
+              tintColor={'#059669'}
+            />
+          }
+        >
+          {/* Enhanced Period Selector */}
+          <Card style={styles.periodCard}>
+            <View style={styles.periodHeader}>
+              <Text style={styles.sectionTitle}>
+                {t('analytics.analysisPeriod')}
               </Text>
-              <Text style={styles.currentFilterValue}>
-                {getFilterDisplayText()}
-              </Text>
-            </View>
-
-            {/* Navigation Controls */}
-            <View style={styles.navigationControls}>
               <TouchableOpacity
-                style={styles.navButton}
-                onPress={() => {
-                  if (dateFilter.mode === 'day') {
-                    navigateDay('prev');
-                  } else if (dateFilter.mode === 'month') {
-                    navigateMonth('prev');
-                  } else if (dateFilter.mode === 'range') {
-                    navigateWeek('prev');
-                  }
-                }}
+                style={styles.filterButton}
+                onPress={() => setShowFilterModal(true)}
               >
-                <ChevronLeft size={20} color="#6B7280" />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.navButton}
-                onPress={() => {
-                  if (dateFilter.mode === 'day') {
-                    navigateDay('next');
-                  } else if (dateFilter.mode === 'month') {
-                    navigateMonth('next');
-                  } else if (dateFilter.mode === 'range') {
-                    navigateWeek('next');
-                  }
-                }}
-              >
-                <ChevronRight size={20} color="#6B7280" />
+                <Calendar size={16} color="#059669" />
+                <Text style={styles.filterButtonText}>
+                  {t('common.filter')}
+                </Text>
+                <ChevronDown size={16} color="#059669" />
               </TouchableOpacity>
             </View>
-          </View>
 
-          {/* Quick Filter Chips */}
-          <View style={styles.quickFilters}>
-            <TouchableOpacity
-              style={[
-                styles.quickFilterChip,
-                dateFilter.mode === 'day' &&
-                  dateFilter.selectedDate.toDateString() ===
-                    new Date().toDateString() &&
-                  styles.quickFilterChipActive,
-              ]}
-              onPress={() => handleQuickFilter('day', 'today')}
-            >
-              <Text
+            {/* Current Filter Display */}
+            <View style={styles.currentFilterContainer}>
+              <View style={styles.currentFilterDisplay}>
+                <Text style={styles.currentFilterLabel}>
+                  {t('analytics.currentPeriod')}:
+                </Text>
+                <Text style={styles.currentFilterValue}>
+                  {getFilterDisplayText()}
+                </Text>
+              </View>
+
+              {/* Navigation Controls */}
+              <View style={styles.navigationControls}>
+                <TouchableOpacity
+                  style={styles.navButton}
+                  onPress={() => {
+                    if (dateFilter.mode === 'day') {
+                      navigateDay('prev');
+                    } else if (dateFilter.mode === 'month') {
+                      navigateMonth('prev');
+                    } else if (dateFilter.mode === 'range') {
+                      navigateWeek('prev');
+                    }
+                  }}
+                >
+                  <ChevronLeft size={20} color="#6B7280" />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.navButton}
+                  onPress={() => {
+                    if (dateFilter.mode === 'day') {
+                      navigateDay('next');
+                    } else if (dateFilter.mode === 'month') {
+                      navigateMonth('next');
+                    } else if (dateFilter.mode === 'range') {
+                      navigateWeek('next');
+                    }
+                  }}
+                >
+                  <ChevronRight size={20} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Quick Filter Chips */}
+            <View style={styles.quickFilters}>
+              <TouchableOpacity
                 style={[
-                  styles.quickFilterText,
+                  styles.quickFilterChip,
                   dateFilter.mode === 'day' &&
                     dateFilter.selectedDate.toDateString() ===
                       new Date().toDateString() &&
-                    styles.quickFilterTextActive,
+                    styles.quickFilterChipActive,
                 ]}
+                onPress={() => handleQuickFilter('day', 'today')}
               >
-                {t('common.today')}
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.quickFilterText,
+                    dateFilter.mode === 'day' &&
+                      dateFilter.selectedDate.toDateString() ===
+                        new Date().toDateString() &&
+                      styles.quickFilterTextActive,
+                  ]}
+                >
+                  {t('common.today')}
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.quickFilterChip,
-                dateFilter.mode === 'month' &&
-                  dateFilter.selectedMonth === new Date().getMonth() &&
-                  styles.quickFilterChipActive,
-              ]}
-              onPress={() => handleQuickFilter('month', 'current')}
-            >
-              <Text
+              <TouchableOpacity
                 style={[
-                  styles.quickFilterText,
+                  styles.quickFilterChip,
                   dateFilter.mode === 'month' &&
                     dateFilter.selectedMonth === new Date().getMonth() &&
-                    styles.quickFilterTextActive,
+                    styles.quickFilterChipActive,
                 ]}
+                onPress={() => handleQuickFilter('month', 'current')}
               >
-                {t('common.thisMonth')}
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.quickFilterText,
+                    dateFilter.mode === 'month' &&
+                      dateFilter.selectedMonth === new Date().getMonth() &&
+                      styles.quickFilterTextActive,
+                  ]}
+                >
+                  {t('common.thisMonth')}
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.quickFilterChip,
-                isCurrentWeek() && styles.quickFilterChipActive,
-              ]}
-              onPress={() => handleQuickFilter('range', 'week')}
-            >
+              <TouchableOpacity
+                style={[
+                  styles.quickFilterChip,
+                  isCurrentWeek() && styles.quickFilterChipActive,
+                ]}
+                onPress={() => handleQuickFilter('range', 'week')}
+              >
+                <Text
+                  style={[
+                    styles.quickFilterText,
+                    isCurrentWeek() && styles.quickFilterTextActive,
+                  ]}
+                >
+                  {t('common.thisWeek')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.periodSummary}>
+              <Text style={styles.periodSummaryText}>
+                {getDaysInPeriod()}{' '}
+                {getDaysInPeriod() === 1
+                  ? t('analytics.day')
+                  : t('analytics.days')}{' '}
+                • {analytics?.totalSales || 0} {t('analytics.sales')}
+              </Text>
+            </View>
+          </Card>
+
+          {/* Key Metrics */}
+          <View style={styles.metricsGrid}>
+            <Card style={styles.metricCard}>
+              <View style={styles.metricContent}>
+                <View
+                  style={[styles.metricIcon, { backgroundColor: '#10B981' }]}
+                >
+                  <DollarSign size={24} color="#FFFFFF" />
+                </View>
+                <View style={styles.metricText}>
+                  <Text style={styles.metricValue}>
+                    {formatMMK(analytics?.totalRevenue || 0)}
+                  </Text>
+                  <Text style={styles.metricLabel}>
+                    {t('analytics.totalRevenue')}
+                  </Text>
+                </View>
+              </View>
+            </Card>
+
+            <Card style={styles.metricCard}>
+              <View style={styles.metricContent}>
+                <View
+                  style={[styles.metricIcon, { backgroundColor: '#F59E0B' }]}
+                >
+                  <Target size={24} color="#FFFFFF" />
+                </View>
+                <View style={styles.metricText}>
+                  <Text style={styles.metricValue}>
+                    {formatMMK(analytics?.totalProfit || 0)}
+                  </Text>
+                  <Text style={styles.metricLabel}>
+                    {t('analytics.totalProfit')}
+                  </Text>
+                  <Text style={styles.metricSubtext}>
+                    {t('analytics.profitMargin')}:{' '}
+                    {analytics?.profitMargin?.toFixed(1) || 0}%
+                  </Text>
+                </View>
+              </View>
+            </Card>
+
+            <Card style={styles.metricCard}>
+              <View style={styles.metricContent}>
+                <View
+                  style={[styles.metricIcon, { backgroundColor: '#3B82F6' }]}
+                >
+                  <BarChart3 size={24} color="#FFFFFF" />
+                </View>
+                <View style={styles.metricText}>
+                  <Text style={styles.metricValue}>
+                    {analytics?.totalSales || 0}
+                  </Text>
+                  <Text style={styles.metricLabel}>
+                    {t('analytics.totalSales')}
+                  </Text>
+                  <Text style={styles.metricSubtext}>
+                    {t('analytics.avg')}:{' '}
+                    {((analytics?.totalSales || 0) / getDaysInPeriod()).toFixed(
+                      1
+                    )}
+                    /{t('analytics.day')}
+                  </Text>
+                </View>
+              </View>
+            </Card>
+
+            <Card style={styles.metricCard}>
+              <View style={styles.metricContent}>
+                <View
+                  style={[styles.metricIcon, { backgroundColor: '#8B5CF6' }]}
+                >
+                  <Users size={24} color="#FFFFFF" />
+                </View>
+                <View style={styles.metricText}>
+                  <Text style={styles.metricValue}>
+                    {formatMMK(analytics?.avgSaleValue || 0)}
+                  </Text>
+                  <Text style={styles.metricLabel}>
+                    {t('analytics.avgSaleValue')}
+                  </Text>
+                  <Text style={styles.metricSubtext}>
+                    {t('analytics.perTransaction')}
+                  </Text>
+                </View>
+              </View>
+            </Card>
+          </View>
+
+          {/* Business Insights */}
+          <Card>
+            <Text style={styles.sectionTitle}>
+              {t('analytics.businessInsights')}
+            </Text>
+
+            <View style={styles.insightItem}>
+              <Text style={styles.insightLabel}>
+                {t('analytics.dailyAverageRevenue')}
+              </Text>
+              <Text style={styles.insightValue}>
+                {formatMMK((analytics?.totalRevenue || 0) / getDaysInPeriod())}
+              </Text>
+            </View>
+
+            <View style={styles.insightItem}>
+              <Text style={styles.insightLabel}>
+                {t('analytics.dailyAverageProfit')}
+              </Text>
+              <Text style={styles.insightValue}>
+                {formatMMK((analytics?.totalProfit || 0) / getDaysInPeriod())}
+              </Text>
+            </View>
+
+            <View style={styles.insightItem}>
+              <Text style={styles.insightLabel}>
+                {t('analytics.costOfGoodsSold')}
+              </Text>
+              <Text style={styles.insightValue}>
+                {formatMMK(analytics?.totalCost || 0)}
+              </Text>
+            </View>
+
+            <View style={styles.insightItem}>
+              <Text style={styles.insightLabel}>
+                {t('analytics.profitMargin')}
+              </Text>
               <Text
                 style={[
-                  styles.quickFilterText,
-                  isCurrentWeek() && styles.quickFilterTextActive,
+                  styles.insightValue,
+                  {
+                    color:
+                      (analytics?.profitMargin || 0) > 20
+                        ? '#10B981'
+                        : '#F59E0B',
+                  },
                 ]}
               >
-                {t('common.thisWeek')}
+                {analytics?.profitMargin?.toFixed(1) || 0}%
               </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.periodSummary}>
-            <Text style={styles.periodSummaryText}>
-              {getDaysInPeriod()}{' '}
-              {getDaysInPeriod() === 1
-                ? t('analytics.day')
-                : t('analytics.days')}{' '}
-              • {analytics?.totalSales || 0} {t('analytics.sales')}
-            </Text>
-          </View>
-        </Card>
-
-        {/* Key Metrics */}
-        <View style={styles.metricsGrid}>
-          <Card style={styles.metricCard}>
-            <View style={styles.metricContent}>
-              <View style={[styles.metricIcon, { backgroundColor: '#10B981' }]}>
-                <DollarSign size={24} color="#FFFFFF" />
-              </View>
-              <View style={styles.metricText}>
-                <Text style={styles.metricValue}>
-                  {formatMMK(analytics?.totalRevenue || 0)}
-                </Text>
-                <Text style={styles.metricLabel}>
-                  {t('analytics.totalRevenue')}
-                </Text>
-              </View>
             </View>
-          </Card>
 
-          <Card style={styles.metricCard}>
-            <View style={styles.metricContent}>
-              <View style={[styles.metricIcon, { backgroundColor: '#F59E0B' }]}>
-                <Target size={24} color="#FFFFFF" />
-              </View>
-              <View style={styles.metricText}>
-                <Text style={styles.metricValue}>
-                  {formatMMK(analytics?.totalProfit || 0)}
-                </Text>
-                <Text style={styles.metricLabel}>
-                  {t('analytics.totalProfit')}
-                </Text>
-                <Text style={styles.metricSubtext}>
-                  {t('analytics.profitMargin')}:{' '}
-                  {analytics?.profitMargin?.toFixed(1) || 0}%
-                </Text>
-              </View>
-            </View>
-          </Card>
-
-          <Card style={styles.metricCard}>
-            <View style={styles.metricContent}>
-              <View style={[styles.metricIcon, { backgroundColor: '#3B82F6' }]}>
-                <BarChart3 size={24} color="#FFFFFF" />
-              </View>
-              <View style={styles.metricText}>
-                <Text style={styles.metricValue}>
-                  {analytics?.totalSales || 0}
-                </Text>
-                <Text style={styles.metricLabel}>
-                  {t('analytics.totalSales')}
-                </Text>
-                <Text style={styles.metricSubtext}>
-                  {t('analytics.avg')}:{' '}
-                  {((analytics?.totalSales || 0) / getDaysInPeriod()).toFixed(
-                    1
-                  )}
-                  /{t('analytics.day')}
-                </Text>
-              </View>
-            </View>
-          </Card>
-
-          <Card style={styles.metricCard}>
-            <View style={styles.metricContent}>
-              <View style={[styles.metricIcon, { backgroundColor: '#8B5CF6' }]}>
-                <Users size={24} color="#FFFFFF" />
-              </View>
-              <View style={styles.metricText}>
-                <Text style={styles.metricValue}>
-                  {formatMMK(analytics?.avgSaleValue || 0)}
-                </Text>
-                <Text style={styles.metricLabel}>
-                  {t('analytics.avgSaleValue')}
-                </Text>
-                <Text style={styles.metricSubtext}>
-                  {t('analytics.perTransaction')}
-                </Text>
-              </View>
-            </View>
-          </Card>
-        </View>
-
-        {/* Business Insights */}
-        <Card>
-          <Text style={styles.sectionTitle}>
-            {t('analytics.businessInsights')}
-          </Text>
-
-          <View style={styles.insightItem}>
-            <Text style={styles.insightLabel}>
-              {t('analytics.dailyAverageRevenue')}
-            </Text>
-            <Text style={styles.insightValue}>
-              {formatMMK((analytics?.totalRevenue || 0) / getDaysInPeriod())}
-            </Text>
-          </View>
-
-          <View style={styles.insightItem}>
-            <Text style={styles.insightLabel}>
-              {t('analytics.dailyAverageProfit')}
-            </Text>
-            <Text style={styles.insightValue}>
-              {formatMMK((analytics?.totalProfit || 0) / getDaysInPeriod())}
-            </Text>
-          </View>
-
-          <View style={styles.insightItem}>
-            <Text style={styles.insightLabel}>
-              {t('analytics.costOfGoodsSold')}
-            </Text>
-            <Text style={styles.insightValue}>
-              {formatMMK(analytics?.totalCost || 0)}
-            </Text>
-          </View>
-
-          <View style={styles.insightItem}>
-            <Text style={styles.insightLabel}>
-              {t('analytics.profitMargin')}
-            </Text>
-            <Text
-              style={[
-                styles.insightValue,
-                {
-                  color:
-                    (analytics?.profitMargin || 0) > 20 ? '#10B981' : '#F59E0B',
-                },
-              ]}
-            >
-              {analytics?.profitMargin?.toFixed(1) || 0}%
-            </Text>
-          </View>
-
-          <View style={styles.insightItem}>
-            <Text style={styles.insightLabel}>{t('analytics.itemsSold')}</Text>
-            <Text style={styles.insightValue}>
-              {analytics?.totalItemsSold || 0} {t('analytics.units')}
-            </Text>
-          </View>
-        </Card>
-
-        {/* Expense Summary */}
-        <Card>
-          <Text style={styles.sectionTitle}>
-            {t('analytics.expenseSummary')}
-          </Text>
-
-          <View style={styles.insightItem}>
-            <Text style={styles.insightLabel}>
-              {t('analytics.totalExpenses')}
-            </Text>
-            <Text style={styles.insightValue}>
-              {formatMMK(analytics?.totalExpenses || 0)}
-            </Text>
-          </View>
-
-          <View style={styles.insightItem}>
-            <Text style={styles.insightLabel}>{t('analytics.netProfit')}</Text>
-            <Text
-              style={[
-                styles.insightValue,
-                {
-                  color:
-                    (analytics?.netProfit || 0) > 0 ? '#10B981' : '#EF4444',
-                },
-              ]}
-            >
-              {formatMMK(analytics?.netProfit || 0)}
-            </Text>
-          </View>
-
-          {analytics?.expensesByCategory &&
-          analytics.expensesByCategory.length > 0 ? (
-            <>
-              <Text style={styles.subSectionTitle}>
-                {t('analytics.expensesByCategory')}
+            <View style={styles.insightItem}>
+              <Text style={styles.insightLabel}>
+                {t('analytics.itemsSold')}
               </Text>
-              {analytics.expensesByCategory.map(
-                (category: any, index: number) => (
-                  <View key={index} style={styles.insightItem}>
-                    <Text style={styles.insightLabel}>
-                      {category.category_name}
-                    </Text>
-                    <View style={styles.expenseValueContainer}>
-                      <Text style={styles.insightValue}>
-                        {formatMMK(category.amount)}
+              <Text style={styles.insightValue}>
+                {analytics?.totalItemsSold || 0} {t('analytics.units')}
+              </Text>
+            </View>
+          </Card>
+
+          {/* Expense Summary */}
+          <Card>
+            <Text style={styles.sectionTitle}>
+              {t('analytics.expenseSummary')}
+            </Text>
+
+            <View style={styles.insightItem}>
+              <Text style={styles.insightLabel}>
+                {t('analytics.totalExpenses')}
+              </Text>
+              <Text style={styles.insightValue}>
+                {formatMMK(analytics?.totalExpenses || 0)}
+              </Text>
+            </View>
+
+            <View style={styles.insightItem}>
+              <Text style={styles.insightLabel}>
+                {t('analytics.netProfit')}
+              </Text>
+              <Text
+                style={[
+                  styles.insightValue,
+                  {
+                    color:
+                      (analytics?.netProfit || 0) > 0 ? '#10B981' : '#EF4444',
+                  },
+                ]}
+              >
+                {formatMMK(analytics?.netProfit || 0)}
+              </Text>
+            </View>
+
+            {analytics?.expensesByCategory &&
+            analytics.expensesByCategory.length > 0 ? (
+              <>
+                <Text style={styles.subSectionTitle}>
+                  {t('analytics.expensesByCategory')}
+                </Text>
+                {analytics.expensesByCategory.map(
+                  (category: any, index: number) => (
+                    <View key={index} style={styles.insightItem}>
+                      <Text style={styles.insightLabel}>
+                        {category.category_name}
                       </Text>
-                      <Text style={styles.expensePercentage}>
-                        {category.percentage.toFixed(1)}%
-                      </Text>
+                      <View style={styles.expenseValueContainer}>
+                        <Text style={styles.insightValue}>
+                          {formatMMK(category.amount)}
+                        </Text>
+                        <Text style={styles.expensePercentage}>
+                          {category.percentage.toFixed(1)}%
+                        </Text>
+                      </View>
                     </View>
-                  </View>
-                )
-              )}
-            </>
-          ) : (
-            <Text style={styles.noDataText}>
-              {t('analytics.noExpenseData')}
+                  )
+                )}
+              </>
+            ) : (
+              <Text style={styles.noDataText}>
+                {t('analytics.noExpenseData')}
+              </Text>
+            )}
+          </Card>
+
+          {/* Analytics Charts */}
+          <AnalyticsCharts
+            startDate={startDate}
+            endDate={endDate}
+            analytics={analytics}
+          />
+
+          {/* Top Performing Products */}
+          <Card>
+            <Text style={styles.sectionTitle}>
+              {t('analytics.topPerformingProducts')}
             </Text>
-          )}
-        </Card>
-
-        {/* Analytics Charts */}
-        <AnalyticsCharts
-          startDate={startDate}
-          endDate={endDate}
-          analytics={analytics}
-        />
-
-        {/* Top Performing Products */}
-        <Card>
-          <Text style={styles.sectionTitle}>
-            {t('analytics.topPerformingProducts')}
-          </Text>
-          {analytics?.topProducts && analytics?.topProducts.length > 0 ? (
-            analytics?.topProducts.map((product: any, index: number) => (
-              <View key={index} style={styles.productRank}>
-                <View style={styles.rankNumber}>
-                  <Text style={styles.rankText}>{index + 1}</Text>
+            {analytics?.topProducts && analytics?.topProducts.length > 0 ? (
+              analytics?.topProducts.map((product: any, index: number) => (
+                <View key={index} style={styles.productRank}>
+                  <View style={styles.rankNumber}>
+                    <Text style={styles.rankText}>{index + 1}</Text>
+                  </View>
+                  <View style={styles.productInfo}>
+                    <Text style={styles.productName}>{product.name}</Text>
+                    <Text style={styles.productStats}>
+                      {product.quantity} {t('analytics.units')} •{' '}
+                      {t('analytics.profit')}: {formatMMK(product.profit)}
+                    </Text>
+                    <Text style={styles.productMargin}>
+                      {t('analytics.profitMargin')}:{' '}
+                      {product.margin?.toFixed(1) || 0}%
+                    </Text>
+                  </View>
+                  <View style={styles.productRevenue}>
+                    <Text style={styles.revenueAmount}>
+                      {formatMMK(product.revenue)}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.productInfo}>
-                  <Text style={styles.productName}>{product.name}</Text>
-                  <Text style={styles.productStats}>
-                    {product.quantity} {t('analytics.units')} •{' '}
-                    {t('analytics.profit')}: {formatMMK(product.profit)}
-                  </Text>
-                  <Text style={styles.productMargin}>
-                    {t('analytics.profitMargin')}:{' '}
-                    {product.margin?.toFixed(1) || 0}%
-                  </Text>
-                </View>
-                <View style={styles.productRevenue}>
-                  <Text style={styles.revenueAmount}>
-                    {formatMMK(product.revenue)}
-                  </Text>
-                </View>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.noData}>{t('analytics.noSalesForPeriod')}</Text>
-          )}
-        </Card>
+              ))
+            ) : (
+              <Text style={styles.noData}>
+                {t('analytics.noSalesForPeriod')}
+              </Text>
+            )}
+          </Card>
 
-        {/* Recent Sales */}
-        <Card>
-          <Text style={styles.sectionTitle}>{t('analytics.recentSales')}</Text>
-          {recentSales.length > 0 ? (
-            recentSales.slice(0, 10).map((sale) => (
-              <View key={sale.id} style={styles.saleItem}>
-                <View style={styles.saleInfo}>
-                  <Text style={styles.saleId}>
-                    {t('analytics.saleId')}
-                    {sale.id}
-                  </Text>
-                  <Text style={styles.saleDate}>
-                    {formatDate(sale.created_at)}
-                  </Text>
-                  <Text style={styles.salePayment}>
-                    {t('analytics.payment')}:{' '}
-                    {sale.payment_method.toUpperCase()}
-                  </Text>
+          {/* Recent Sales */}
+          <Card>
+            <Text style={styles.sectionTitle}>
+              {t('analytics.recentSales')}
+            </Text>
+            {recentSales.length > 0 ? (
+              recentSales.slice(0, 10).map((sale) => (
+                <View key={sale.id} style={styles.saleItem}>
+                  <View style={styles.saleInfo}>
+                    <Text style={styles.saleId}>
+                      {t('analytics.saleId')}
+                      {sale.id}
+                    </Text>
+                    <Text style={styles.saleDate}>
+                      {formatDate(sale.created_at)}
+                    </Text>
+                    <Text style={styles.salePayment}>
+                      {t('analytics.payment')}:{' '}
+                      {sale.payment_method.toUpperCase()}
+                    </Text>
+                  </View>
+                  <Text style={styles.saleAmount}>{formatMMK(sale.total)}</Text>
                 </View>
-                <Text style={styles.saleAmount}>{formatMMK(sale.total)}</Text>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.noData}>{t('analytics.noSalesForPeriod')}</Text>
-          )}
-        </Card>
-      </ScrollView>
+              ))
+            ) : (
+              <Text style={styles.noData}>
+                {t('analytics.noSalesForPeriod')}
+              </Text>
+            )}
+          </Card>
+        </ScrollView>
+      )}
 
-      {/* Enhanced Filter Modal */}
+      {/* Customers Tab */}
+      {activeTab === 'customers' && (
+        <CustomerAnalytics customerId={undefined} />
+      )}
+
+      {/* Stock Tab */}
+      {activeTab === 'stock' && <StockAnalytics />}
+
+      {/* Pricing Tab */}
+      {activeTab === 'pricing' && <BulkPricingAnalytics />}
+
       <Modal
         visible={showFilterModal}
         animationType="slide"
@@ -1655,5 +1709,31 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontStyle: 'italic',
     marginTop: 8,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+  },
+  activeTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#059669',
+  },
+  tabText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  activeTabText: {
+    color: '#059669',
+    fontFamily: 'Inter-SemiBold',
   },
 });
