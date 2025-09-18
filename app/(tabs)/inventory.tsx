@@ -208,16 +208,13 @@ export default function Inventory() {
 
   const renderMovementsContent = () => {
     return (
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        <MovementSummary />
-        <EnhancedMovementHistory showProductName={true} showFilters={true} />
-      </ScrollView>
+      <View style={styles.content}>
+        <EnhancedMovementHistory
+          showProductName={true}
+          showFilters={true}
+          headerComponent={<MovementSummary />}
+        />
+      </View>
     );
   };
 

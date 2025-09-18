@@ -320,6 +320,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     maxHeight: '80%',
+    minHeight: 700,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -373,7 +374,6 @@ const styles = StyleSheet.create({
   customerListContainer: {
     flex: 1,
     minHeight: 200,
-    maxHeight: 300,
   },
   customerList: {
     flex: 1,

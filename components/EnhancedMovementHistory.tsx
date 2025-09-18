@@ -39,6 +39,7 @@ interface EnhancedMovementHistoryProps {
   showProductName?: boolean;
   compact?: boolean;
   showFilters?: boolean;
+  headerComponent?: React.ReactNode;
 }
 
 interface MovementFilters {
@@ -57,6 +58,7 @@ export const EnhancedMovementHistory: React.FC<
   showProductName = false,
   compact = false,
   showFilters = true,
+  headerComponent,
 }) => {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
@@ -509,6 +511,7 @@ export const EnhancedMovementHistory: React.FC<
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderMovementItem}
         ListEmptyComponent={renderEmptyState}
+        ListHeaderComponent={headerComponent}
         refreshControl={
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
         }
