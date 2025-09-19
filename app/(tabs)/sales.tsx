@@ -32,6 +32,7 @@ import {
 import { useDatabase } from '@/context/DatabaseContext';
 import { Product, Category, Customer } from '@/services/database';
 import { CustomerSelector } from '@/components/CustomerSelector';
+import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import {
   ShoppingCart,
   Plus,
@@ -80,6 +81,7 @@ export default function Sales() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const { showToast } = useToast();
   const { t } = useTranslation();
+  const { formatPrice } = useCurrencyFormatter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showProductDialog, setShowProductDialog] = useState(false);
@@ -193,14 +195,7 @@ export default function Sales() {
     };
   };
 
-  const formatMMK = (amount: number) => {
-    return (
-      new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount) + ' MMK'
-    );
-  };
+  // Removed formatMMK function - now using standardized currency formatting
 
   const handleBarcodeScanned = async (barcode: string) => {
     try {
@@ -509,7 +504,7 @@ export default function Sales() {
                 <Text style={styles.cartBadgeText}>{cart.length}</Text>
               </View>
             </View>
-            <Text style={styles.cartTotal}>{formatMMK(total)}</Text>
+            <Text style={styles.cartTotal}>{formatPrice(total)}</Text>
           </View>
 
           {/* Customer Selection */}
@@ -533,7 +528,7 @@ export default function Sales() {
                       {t('sales.subtotal')}
                     </Text>
                     <Text style={styles.originalTotal}>
-                      {formatMMK(cartTotals.originalTotal)}
+                      {formatPrice(cartTotals.originalTotal)}
                     </Text>
                   </View>
                   {cartTotals.bulkSavings > 0 && (
@@ -542,7 +537,7 @@ export default function Sales() {
                         {t('bulkPricing.bulkDiscount')}
                       </Text>
                       <Text style={styles.savingsAmount}>
-                        -{formatMMK(cartTotals.bulkSavings)}
+                        -{formatPrice(cartTotals.bulkSavings)}
                       </Text>
                     </View>
                   )}
@@ -552,7 +547,7 @@ export default function Sales() {
                         {t('sales.manualDiscount')}
                       </Text>
                       <Text style={styles.savingsAmount}>
-                        -{formatMMK(cartTotals.manualSavings)}
+                        -{formatPrice(cartTotals.manualSavings)}
                       </Text>
                     </View>
                   )}
@@ -589,11 +584,12 @@ export default function Sales() {
                         {item.product.name}
                       </Text>
                       <Text style={styles.cartItemPrice}>
-                        {formatMMK(getBulkPricePerUnit(item))} {t('sales.each')}
+                        {formatPrice(getBulkPricePerUnit(item))}{' '}
+                        {t('sales.each')}
                       </Text>
                       {item.discount > 0 && (
                         <Text style={styles.cartItemDiscount}>
-                          {t('sales.discount')}: -{formatMMK(item.discount)}
+                          {t('sales.discount')}: -{formatPrice(item.discount)}
                         </Text>
                       )}
                       <BulkPricingIndicator
@@ -607,7 +603,7 @@ export default function Sales() {
                     </View>
                     <View style={styles.cartItemSubtotalContainer}>
                       <Text style={styles.cartItemSubtotal}>
-                        {formatMMK(
+                        {formatPrice(
                           getBulkPricePerUnit(item) * item.quantity -
                             item.discount
                         )}
@@ -663,7 +659,9 @@ export default function Sales() {
                         keyboardType="numeric"
                         placeholder="0"
                       />
-                      <Text style={styles.discountUnit}>MMK</Text>
+                      <Text style={styles.discountUnit}>
+                        {formatPrice(0).replace('0', '').trim()}
+                      </Text>
                     </View>
                   </View>
                 </View>
@@ -850,7 +848,7 @@ export default function Sales() {
                           styles.dialogProductPriceDisabled,
                       ]}
                     >
-                      {formatMMK(product.price)}
+                      {formatPrice(product.price)}
                     </Text>
                     {product.quantity > 0 && (
                       <View style={styles.addToCartIndicator}>
@@ -933,15 +931,9 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [isCustomerVoucher, setIsCustomerVoucher] = useState(true);
   const [showPrintManager, setShowPrintManager] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
+  const { formatPrice } = useCurrencyFormatter();
 
-  const formatMMK = (amount: number) => {
-    return (
-      new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount) + ' MMK'
-    );
-  };
+  // Removed second formatMMK function - now using standardized currency formatting
 
   const formatDate = (dateString: string) => {
     // Create a date object from the UTC timestamp
@@ -1392,7 +1384,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Sale ID': sale.id,
         Date: formatDate(sale.created_at),
         'Total Amount': sale.total,
-        'Total Amount (MMK)': formatMMK(sale.total),
+        'Total Amount (MMK)': formatPrice(sale.total),
         'Payment Method': sale.payment_method.toUpperCase(),
         Note: sale.note || '',
         Day: formatDateOnly(sale.created_at),
@@ -1438,7 +1430,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Sale ID': 0,
         Date: 'Total Revenue',
         'Total Amount': totalRevenue,
-        'Total Amount (MMK)': formatMMK(totalRevenue),
+        'Total Amount (MMK)': formatPrice(totalRevenue),
         'Payment Method': '',
         Note: '',
         Day: '',
@@ -1447,7 +1439,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Sale ID': 0,
         Date: 'Total Cost',
         'Total Amount': totalCost,
-        'Total Amount (MMK)': formatMMK(totalCost),
+        'Total Amount (MMK)': formatPrice(totalCost),
         'Payment Method': '',
         Note: '',
         Day: '',
@@ -1456,7 +1448,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Sale ID': 0,
         Date: 'Total Profit',
         'Total Amount': totalProfit,
-        'Total Amount (MMK)': formatMMK(totalProfit),
+        'Total Amount (MMK)': formatPrice(totalProfit),
         'Payment Method': '',
         Note: '',
         Day: '',
@@ -1668,15 +1660,15 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         Product: item.product_name,
         Quantity: item.quantity,
         'Sale Price': item.price,
-        'Sale Price (MMK)': formatMMK(item.price),
+        'Sale Price (MMK)': formatPrice(item.price),
         'Cost Price': item.cost || 0,
-        'Cost Price (MMK)': formatMMK(item.cost || 0),
+        'Cost Price (MMK)': formatPrice(item.cost || 0),
         Discount: item.discount || 0,
-        'Discount (MMK)': formatMMK(item.discount || 0),
+        'Discount (MMK)': formatPrice(item.discount || 0),
         Subtotal: item.subtotal,
-        'Subtotal (MMK)': formatMMK(item.subtotal),
+        'Subtotal (MMK)': formatPrice(item.subtotal),
         Profit: item.subtotal - (item.cost || 0) * item.quantity,
-        'Profit (MMK)': formatMMK(
+        'Profit (MMK)': formatPrice(
           item.subtotal - (item.cost || 0) * item.quantity
         ),
       }));
@@ -1750,7 +1742,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         Discount: 0,
         'Discount (MMK)': '',
         Subtotal: totalSales,
-        'Subtotal (MMK)': formatMMK(totalSales),
+        'Subtotal (MMK)': formatPrice(totalSales),
         Profit: 0,
         'Profit (MMK)': '',
       });
@@ -1768,7 +1760,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         Subtotal: 0,
         'Subtotal (MMK)': '',
         Profit: totalCost,
-        'Profit (MMK)': formatMMK(totalCost),
+        'Profit (MMK)': formatPrice(totalCost),
       });
       excelData.push({
         'Sale ID': 0,
@@ -1784,7 +1776,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         Subtotal: 0,
         'Subtotal (MMK)': '',
         Profit: totalProfit,
-        'Profit (MMK)': formatMMK(totalProfit),
+        'Profit (MMK)': formatPrice(totalProfit),
       });
 
       const ws = XLSX.utils.json_to_sheet(excelData);
@@ -2057,7 +2049,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           <View style={styles.summaryContainer}>
             <Text style={styles.summaryText}>
               {filteredSales.length} {t('sales.salesTotal')}{' '}
-              {formatMMK(
+              {formatPrice(
                 filteredSales.reduce((sum, sale) => sum + sale.total, 0)
               )}
             </Text>
@@ -2117,7 +2109,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   </View>
                   <View style={styles.saleAmountContainer}>
                     <Text style={styles.saleTotal}>
-                      {formatMMK(sale.total)}
+                      {formatPrice(sale.total)}
                     </Text>
                     <Eye size={16} color="#6B7280" />
                   </View>
@@ -2384,7 +2376,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                       <Text
                         style={[styles.saleDetailValue, styles.saleDetailTotal]}
                       >
-                        {formatMMK(selectedSale.total)}
+                        {formatPrice(selectedSale.total)}
                       </Text>
                     </View>
 
@@ -2396,7 +2388,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                             {t('sales.totalCost')}
                           </Text>
                           <Text style={styles.saleDetailValue}>
-                            {formatMMK(
+                            {formatPrice(
                               saleItems.reduce(
                                 (sum, item) => sum + item.cost * item.quantity,
                                 0
@@ -2414,7 +2406,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                               styles.saleDetailProfit,
                             ]}
                           >
-                            {formatMMK(
+                            {formatPrice(
                               selectedSale.total -
                                 saleItems.reduce(
                                   (sum, item) =>
@@ -2439,11 +2431,11 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                             {item.product_name}
                           </Text>
                           <Text style={styles.saleItemDetails}>
-                            {item.quantity} × {formatMMK(item.price)}
+                            {item.quantity} × {formatPrice(item.price)}
                             {item.discount > 0 && (
                               <Text style={styles.saleItemDiscount}>
                                 {' '}
-                                - {formatMMK(item.discount)}{' '}
+                                - {formatPrice(item.discount)}{' '}
                                 {t('sales.discount')}
                               </Text>
                             )}
@@ -2451,13 +2443,13 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         </View>
                         <View style={styles.saleItemPricing}>
                           <Text style={styles.saleItemSubtotal}>
-                            {formatMMK(item.subtotal)}
+                            {formatPrice(item.subtotal)}
                           </Text>
                           {/* Only show profit in internal view */}
                           {!isCustomerVoucher && (
                             <Text style={styles.saleItemProfit}>
                               {t('sales.profit')}{' '}
-                              {formatMMK(
+                              {formatPrice(
                                 item.subtotal - item.cost * item.quantity
                               )}
                             </Text>
@@ -2471,7 +2463,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         {t('sales.totalItems')} {saleItems.length}
                       </Text>
                       <Text style={styles.saleItemsTotalValue}>
-                        {formatMMK(selectedSale.total)}
+                        {formatPrice(selectedSale.total)}
                       </Text>
                     </View>
                   </Card>

@@ -49,6 +49,7 @@ import { BarcodeScanner } from '@/components/BarcodeScanner';
 import TextScanner from '@/components/TextScanner';
 import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
+import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -64,6 +65,7 @@ interface ProductsManagerProps {
 export default function Products({ compact = false }: ProductsManagerProps) {
   const { showToast } = useToast();
   const { t } = useTranslation();
+  const { formatPrice } = useCurrencyFormatter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | number>(
     'All'
@@ -143,14 +145,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     if (showSortOptions) setShowSortOptions(false);
   };
 
-  const formatMMK = (amount: number) => {
-    return (
-      new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount) + ' MMK'
-    );
-  };
+  // Removed formatMMK function - now using standardized currency formatting
 
   // Use optimized list hook for better performance with large datasets
   const {
@@ -887,7 +882,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
                 {t('products.price')}
               </Text>
               <Text style={styles.productDetailValue}>
-                {formatMMK(product.price)}
+                {formatPrice(product.price)}
               </Text>
             </View>
             <View style={styles.productDetailItem}>
@@ -908,7 +903,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
                 {t('products.profit')}
               </Text>
               <Text style={[styles.productDetailValue, styles.profitText]}>
-                {formatMMK(product.price - product.cost)}
+                {formatPrice(product.price - product.cost)}
               </Text>
             </View>
           </View>
@@ -1712,7 +1707,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
                     {t('products.profitPreview')}:
                   </Text>
                   <Text style={styles.profitValue}>
-                    {formatMMK(
+                    {formatPrice(
                       parseInt(formData.price) - parseInt(formData.cost)
                     )}{' '}
                     {t('products.perUnit')}

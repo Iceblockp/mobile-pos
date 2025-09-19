@@ -35,8 +35,10 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Button } from '@/components/Button';
 import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
+import { useCurrencyFormatter } from '@/context/CurrencyContext';
 
 export default function Expenses() {
+  const { formatPrice } = useCurrencyFormatter();
   const { showToast } = useToast();
   const { t } = useTranslation();
   const [showAddModal, setShowAddModal] = useState(false);
@@ -360,14 +362,7 @@ export default function Expenses() {
     });
   };
 
-  const formatMMK = (amount: number) => {
-    return (
-      new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount) + ' MMK'
-    );
-  };
+  // Removed formatMMK function - now using standardized currency formatting
 
   const renderExpenseItem = ({ item }: { item: Expense }) => (
     <Card key={item.id} style={styles.expenseCard}>
@@ -381,7 +376,7 @@ export default function Expenses() {
           </Text>
           <Text style={styles.expenseDate}>{formatDate(item.date)}</Text>
         </View>
-        <Text style={styles.expenseAmount}>{formatMMK(item.amount)}</Text>
+        <Text style={styles.expenseAmount}>{formatPrice(item.amount)}</Text>
       </View>
 
       {item.description ? (
@@ -500,7 +495,7 @@ export default function Expenses() {
         <Text style={styles.summaryText}>
           {expenses.length} {t('expenses.title').toLowerCase()} •{' '}
           {t('common.total')}:{' '}
-          {formatMMK(
+          {formatPrice(
             expenses.reduce((sum, expense) => sum + expense.amount, 0)
           )}
         </Text>
@@ -736,7 +731,7 @@ export default function Expenses() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>{t('expenses.amountMMK')}</Text>
+                <Text style={styles.label}>{t('common.amount')}</Text>
                 <TextInput
                   style={styles.input}
                   value={formAmount}

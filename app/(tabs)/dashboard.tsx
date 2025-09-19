@@ -24,9 +24,11 @@ import { router } from 'expo-router';
 import { useTranslation } from '@/context/LocalizationContext';
 import { LanguageIconButton } from '@/components/LanguageIconButton';
 import { SplashScreen } from '@/components/SplashScreen';
+import { useCurrencyFormatter } from '@/context/CurrencyContext';
 
 export default function Dashboard() {
   const { t } = useTranslation();
+  const { formatPrice } = useCurrencyFormatter();
 
   // Use React Query for optimized data fetching
   const {
@@ -44,15 +46,6 @@ export default function Dashboard() {
   const analytics = dashboardData?.analytics;
   const lowStockCount = dashboardData?.lowStockCount || 0;
   const totalProducts = dashboardData?.totalProducts || 0;
-
-  const formatMMK = (amount: number) => {
-    return (
-      new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount) + ' MMK'
-    );
-  };
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -93,7 +86,7 @@ export default function Dashboard() {
               </View>
               <View style={styles.metricText}>
                 <Text style={styles.metricValue}>
-                  {formatMMK(analytics?.totalRevenue || 0)}
+                  {formatPrice(analytics?.totalRevenue || 0)}
                 </Text>
                 <Text style={styles.metricLabel}>
                   {t('dashboard.totalRevenue')} ({t('dashboard.days30')})
@@ -137,7 +130,7 @@ export default function Dashboard() {
               </View>
               <View style={styles.metricText}>
                 <Text style={styles.metricValue}>
-                  {formatMMK(analytics?.avgSaleValue || 0)}
+                  {formatPrice(analytics?.avgSaleValue || 0)}
                 </Text>
                 <Text style={styles.metricLabel}>
                   {t('dashboard.avgSaleValue')}
@@ -203,7 +196,7 @@ export default function Dashboard() {
                   <Text style={styles.productName}>{product.name}</Text>
                   <Text style={styles.productStats}>
                     {t('dashboard.sold')}: {product.quantity} •{' '}
-                    {t('dashboard.revenue')}: {formatMMK(product.revenue)}
+                    {t('dashboard.revenue')}: {formatPrice(product.revenue)}
                   </Text>
                 </View>
                 <View style={styles.productTrend}>

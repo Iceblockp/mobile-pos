@@ -16,6 +16,7 @@ import {
   Printer,
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
+import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import { Picker } from '@react-native-picker/picker';
 
 interface PaymentModalProps {
@@ -42,6 +43,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   loading,
 }) => {
   const { t } = useTranslation();
+  const { formatPrice } = useCurrencyFormatter();
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState<PaymentMethod>('cash');
   const [saleNote, setSaleNote] = useState('');
@@ -68,14 +70,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     },
   ];
 
-  const formatMMK = (amount: number) => {
-    return (
-      new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount) + ' MMK'
-    );
-  };
+  // Removed formatMMK function - now using standardized currency formatting
 
   const handleConfirmSale = () => {
     onConfirmSale(selectedPaymentMethod, saleNote.trim(), shouldPrintReceipt);
@@ -116,7 +111,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             <Text style={styles.totalLabel}>
               {t('paymentModal.totalAmount')}
             </Text>
-            <Text style={styles.totalAmount}>{formatMMK(total)}</Text>
+            <Text style={styles.totalAmount}>{formatPrice(total)}</Text>
           </View>
 
           {/* Payment Method Selection */}

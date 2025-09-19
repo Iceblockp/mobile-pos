@@ -36,6 +36,7 @@ import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
 import { usePerformanceOptimization } from '@/hooks/usePerformanceOptimization';
+import { useCurrencyFormatter } from '@/context/CurrencyContext';
 
 // Import the ProductsManager component
 import ProductsManager from '@/components/ProductsManager';
@@ -48,6 +49,7 @@ type InventoryTab = 'overview' | 'products' | 'movements';
 
 export default function Inventory() {
   const { showToast } = useToast();
+  const { formatPrice } = useCurrencyFormatter();
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<InventoryTab>('overview');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -96,14 +98,7 @@ export default function Inventory() {
   const isLoading = productsLoading || suppliersLoading || lowStockLoading;
   const isRefreshing = productsRefetching || lowStockRefetching;
 
-  const formatMMK = (amount: number) => {
-    return (
-      new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount) + ' MMK'
-    );
-  };
+  // Removed formatMMK function - now using standardized currency formatting
 
   // const getSupplierName = (supplierId: number) => {
   //   const supplier = suppliers.find((s) => s.id === supplierId);
@@ -385,7 +380,7 @@ export default function Inventory() {
                           {item.category}
                         </Text>
                         <Text style={styles.productPrice}>
-                          {t('inventory.price')}: {formatMMK(item.price)}
+                          {t('inventory.price')}: {formatPrice(item.price)}
                         </Text>
                       </View>
 
