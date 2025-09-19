@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from 'react';
 import {
   View,
   Text,
@@ -91,11 +97,7 @@ export const PriceInput: React.FC<PriceInputProps> = ({
     useCurrencyFormatter();
 
   // Use the simplified hook that doesn't cause circular dependencies
-  const {
-    error: validationError,
-    numericValue,
-    isValid,
-  } = useStandardPriceInput(value);
+  const { error: validationError, isValid } = useStandardPriceInput(value);
 
   // Stable callback for handling text changes with error handling
   const handleTextChange = useCallback(
@@ -135,9 +137,12 @@ export const PriceInput: React.FC<PriceInputProps> = ({
             displayError && styles.inputContainerError,
           ]}
         >
-          {showCurrencySymbol && currentCurrency?.symbolPosition === 'before' && (
-            <Text style={styles.currencySymbol}>{currentCurrency.symbol}</Text>
-          )}
+          {showCurrencySymbol &&
+            currentCurrency?.symbolPosition === 'before' && (
+              <Text style={styles.currencySymbol}>
+                {currentCurrency.symbol}
+              </Text>
+            )}
 
           <TextInput
             style={[styles.input, style]}
@@ -150,9 +155,12 @@ export const PriceInput: React.FC<PriceInputProps> = ({
             {...textInputProps}
           />
 
-          {showCurrencySymbol && currentCurrency?.symbolPosition === 'after' && (
-            <Text style={styles.currencySymbol}>{currentCurrency.symbol}</Text>
-          )}
+          {showCurrencySymbol &&
+            currentCurrency?.symbolPosition === 'after' && (
+              <Text style={styles.currencySymbol}>
+                {currentCurrency.symbol}
+              </Text>
+            )}
 
           {isValid && (
             <Ionicons
@@ -193,11 +201,7 @@ export const SimplePriceInput: React.FC<StandardPriceInputProps> = ({
     useCurrencyFormatter();
 
   // Use the simplified hook that doesn't cause circular dependencies
-  const {
-    error: validationError,
-    numericValue,
-    isValid,
-  } = useStandardPriceInput(value);
+  const { error: validationError, isValid } = useStandardPriceInput(value);
 
   // Stable callback for handling text changes
   const handleTextChange = useCallback(
@@ -303,7 +307,7 @@ export const PriceDisplay: React.FC<PriceDisplayProps> = ({
   };
 
   const getTextStyle = () => {
-    const baseStyle = [styles.displayValue];
+    const baseStyle: any[] = [styles.displayValue];
 
     if (style === 'compact') {
       baseStyle.push(styles.compactText);
@@ -335,7 +339,6 @@ interface PriceRangeDisplayProps {
   minAmount: number;
   maxAmount: number;
   separator?: string;
-  style?: 'default' | 'compact' | 'detailed';
   textStyle?: any;
   containerStyle?: any;
 }
@@ -344,7 +347,6 @@ export const PriceRangeDisplay: React.FC<PriceRangeDisplayProps> = ({
   minAmount,
   maxAmount,
   separator = ' - ',
-  style = 'default',
   textStyle,
   containerStyle,
 }) => {
