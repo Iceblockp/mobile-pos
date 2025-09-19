@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { SimplePriceInput } from '@/components/PriceInput';
 import {
   useBasicSuppliers,
   useStockMovementMutations,
@@ -19,6 +20,8 @@ import { Product } from '@/services/database';
 import { X, Package, TrendingUp, TrendingDown } from 'lucide-react-native';
 import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
+import { useCurrencyFormatter } from '@/hooks/useCurrency';
+// import { useCurrencyFormatter } from '@/context/CurrencyContext';
 
 interface StockMovementFormProps {
   visible: boolean;
@@ -35,12 +38,14 @@ export const StockMovementForm: React.FC<StockMovementFormProps> = ({
 }) => {
   const { showToast } = useToast();
   const { t } = useTranslation();
+  const { parsePrice } = useCurrencyFormatter();
   const [type, setType] = useState<'stock_in' | 'stock_out'>(initialType);
   const [quantity, setQuantity] = useState('');
   const [reason, setReason] = useState('');
   const [supplierId, setSupplierId] = useState<number | undefined>();
   const [referenceNumber, setReferenceNumber] = useState('');
   const [unitCost, setUnitCost] = useState('');
+  const [unitCostNumeric, setUnitCostNumeric] = useState(0);
 
   const { data: suppliers = [] } = useBasicSuppliers();
   const { updateProductQuantityWithMovement } = useStockMovementMutations();
@@ -54,6 +59,7 @@ export const StockMovementForm: React.FC<StockMovementFormProps> = ({
       setSupplierId(undefined);
       setReferenceNumber('');
       setUnitCost('');
+      setUnitCostNumeric(0);
     }
   }, [visible, initialType]);
 
@@ -90,7 +96,7 @@ export const StockMovementForm: React.FC<StockMovementFormProps> = ({
         reason: reason.trim() || undefined,
         supplierId: supplierId,
         referenceNumber: referenceNumber.trim() || undefined,
-        unitCost: unitCost ? parseInt(unitCost) : undefined,
+        unitCost: unitCostNumeric > 0 ? unitCostNumeric : undefined,
       });
 
       showToast(
@@ -107,11 +113,7 @@ export const StockMovementForm: React.FC<StockMovementFormProps> = ({
     }
   };
 
-  const formatMMK = (amount: string) => {
-    const num = parseInt(amount);
-    if (isNaN(num)) return '';
-    return new Intl.NumberFormat('en-US').format(num) + ' MMK';
-  };
+  // Removed formatMMK function - now using standardized currency formatting
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -294,17 +296,15 @@ export const StockMovementForm: React.FC<StockMovementFormProps> = ({
                 <Text style={styles.label}>
                   {t('stockMovement.unitCost')} ({t('common.optional')})
                 </Text>
-                <TextInput
-                  style={styles.input}
+                <SimplePriceInput
                   value={unitCost}
-                  onChangeText={setUnitCost}
+                  onValueChange={(text, numericValue) => {
+                    setUnitCost(text);
+                    setUnitCostNumeric(numericValue);
+                  }}
                   placeholder={t('stockMovement.unitCostPlaceholder')}
-                  keyboardType="numeric"
-                  placeholderTextColor="#9CA3AF"
+                  style={styles.input}
                 />
-                {unitCost && (
-                  <Text style={styles.costPreview}>{formatMMK(unitCost)}</Text>
-                )}
               </View>
             )}
           </ScrollView>

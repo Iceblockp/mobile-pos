@@ -8,6 +8,11 @@ export interface CurrencySettings {
   symbolPosition: 'before' | 'after'; // '$10.50' vs '10.50€'
   thousandSeparator: string; // ',' or '.'
   decimalSeparator: string; // '.' or ','
+
+  // Enhanced fields for custom currency support
+  isCustom?: boolean; // true if this is a user-created currency
+  createdAt?: string; // ISO date string when currency was created
+  lastUsed?: string; // ISO date string when currency was last used
 }
 
 export class CurrencyManager {
@@ -103,17 +108,10 @@ export class CurrencyManager {
   }
 
   async initialize(): Promise<void> {
-    try {
-      const savedCurrency = await AsyncStorage.getItem(
-        this.CURRENCY_STORAGE_KEY
-      );
-      if (savedCurrency) {
-        this.currentCurrency = JSON.parse(savedCurrency);
-      }
-    } catch (error) {
-      console.error('Failed to load currency settings:', error);
-      // Use default currency
-    }
+    // Note: Initialization is now handled by CurrencySettingsService
+    // This method is kept for backward compatibility but doesn't load from AsyncStorage
+    // The currency will be set by CurrencySettingsService after loading from shop settings
+    console.log('CurrencyManager initialized with default MMK currency');
   }
 
   async setCurrency(currency: CurrencySettings): Promise<void> {
@@ -126,15 +124,8 @@ export class CurrencyManager {
 
     this.currentCurrency = currency;
 
-    try {
-      await AsyncStorage.setItem(
-        this.CURRENCY_STORAGE_KEY,
-        JSON.stringify(currency)
-      );
-    } catch (error) {
-      console.error('Failed to save currency settings:', error);
-      throw new Error('Failed to save currency settings');
-    }
+    // Note: Storage is now handled by CurrencySettingsService through shop settings
+    // This method only updates the in-memory currency for backward compatibility
   }
 
   getCurrentCurrency(): CurrencySettings {

@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { ShopSettings } from '@/services/shopSettingsStorage';
 import { ShopSettingsService } from '@/services/shopSettingsService';
+import { CurrencySettings } from '@/services/currencyManager';
 
 interface ShopSettingsContextType {
   shopSettings: ShopSettings | null;
@@ -15,6 +16,12 @@ interface ShopSettingsContextType {
   error: string | null;
   refreshShopSettings: () => Promise<void>;
   updateShopSettings: (settings: Partial<ShopSettings>) => Promise<void>;
+
+  // Currency-specific methods for integration
+  updateCurrencyInShopSettings: (currency: CurrencySettings) => Promise<void>;
+  updateCustomCurrenciesInShopSettings: (
+    customCurrencies: CurrencySettings[]
+  ) => Promise<void>;
 }
 
 const ShopSettingsContext = createContext<ShopSettingsContextType | undefined>(
@@ -142,6 +149,17 @@ export const ShopSettingsProvider: React.FC<ShopSettingsProviderProps> = ({
 
   // Removed app state refresh - AsyncStorage is local and doesn't need external sync
 
+  // Currency-specific update methods for integration
+  const updateCurrencyInShopSettings = async (currency: CurrencySettings) => {
+    await updateShopSettings({ currency });
+  };
+
+  const updateCustomCurrenciesInShopSettings = async (
+    customCurrencies: CurrencySettings[]
+  ) => {
+    await updateShopSettings({ customCurrencies });
+  };
+
   const contextValue: ShopSettingsContextType = {
     shopSettings,
     shopSettingsService,
@@ -149,6 +167,8 @@ export const ShopSettingsProvider: React.FC<ShopSettingsProviderProps> = ({
     error,
     refreshShopSettings,
     updateShopSettings,
+    updateCurrencyInShopSettings,
+    updateCustomCurrenciesInShopSettings,
   };
 
   return (

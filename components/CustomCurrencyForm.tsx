@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,18 +14,23 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
 import { CurrencySettings } from '@/services/currencyManager';
+import { useCurrencyContext } from '@/context/CurrencyContext';
 
 interface CustomCurrencyFormProps {
   visible: boolean;
   onClose: () => void;
   onSubmit: (currency: CurrencySettings) => void;
+  editingCurrency?: CurrencySettings; // For editing existing custom currencies
 }
 
 export const CustomCurrencyForm: React.FC<CustomCurrencyFormProps> = ({
   visible,
   onClose,
   onSubmit,
+  editingCurrency,
 }) => {
+  const { validateCurrency } = useCurrencyContext();
+
   const [formData, setFormData] = useState<CurrencySettings>({
     code: '',
     symbol: '',
@@ -36,64 +41,82 @@ export const CustomCurrencyForm: React.FC<CustomCurrencyFormProps> = ({
     decimalSeparator: '.',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Load editing currency data when modal opens
+  useEffect(() => {
+    if (visible && editingCurrency) {
+      setFormData({
+        code: editingCurrency.code,
+        symbol: editingCurrency.symbol,
+        name: editingCurrency.name,
+        decimals: editingCurrency.decimals,
+        symbolPosition: editingCurrency.symbolPosition,
+        thousandSeparator: editingCurrency.thousandSeparator,
+        decimalSeparator: editingCurrency.decimalSeparator,
+      });
+    } else if (visible && !editingCurrency) {
+      // Reset form for new currency
+      handleReset();
+    }
+  }, [visible, editingCurrency]);
 
   const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
+    // Use the currency context validation
+    const validation = validateCurrency(formData);
 
-    if (!formData.code.trim()) {
-      newErrors.code = 'Currency code is required';
-    } else if (formData.code.trim().length !== 3) {
-      newErrors.code = 'Currency code must be exactly 3 characters';
-    } else if (!/^[A-Z]{3}$/.test(formData.code.trim())) {
-      newErrors.code = 'Currency code must be 3 uppercase letters';
+    if (!validation.isValid) {
+      const newErrors: Record<string, string> = {};
+      validation.errors.forEach((error) => {
+        // Map validation errors to form fields
+        if (error.includes('code')) newErrors.code = error;
+        else if (error.includes('symbol')) newErrors.symbol = error;
+        else if (error.includes('name')) newErrors.name = error;
+        else if (error.includes('decimal')) newErrors.decimals = error;
+        else if (error.includes('thousand'))
+          newErrors.thousandSeparator = error;
+        else if (error.includes('separator'))
+          newErrors.decimalSeparator = error;
+        else newErrors.general = error;
+      });
+      setErrors(newErrors);
+      return false;
     }
 
-    if (!formData.symbol.trim()) {
-      newErrors.symbol = 'Currency symbol is required';
-    }
-
-    if (!formData.name.trim()) {
-      newErrors.name = 'Currency name is required';
-    }
-
-    if (formData.decimals < 0 || formData.decimals > 4) {
-      newErrors.decimals = 'Decimal places must be between 0 and 4';
-    }
-
-    if (!formData.thousandSeparator) {
-      newErrors.thousandSeparator = 'Thousand separator is required';
-    }
-
-    if (!formData.decimalSeparator) {
-      newErrors.decimalSeparator = 'Decimal separator is required';
-    }
-
-    if (formData.thousandSeparator === formData.decimalSeparator) {
-      newErrors.decimalSeparator =
-        'Thousand and decimal separators must be different';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors({});
+    return true;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validateForm()) {
       return;
     }
 
-    const currency: CurrencySettings = {
-      code: formData.code.trim().toUpperCase(),
-      symbol: formData.symbol.trim(),
-      name: formData.name.trim(),
-      decimals: formData.decimals,
-      symbolPosition: formData.symbolPosition,
-      thousandSeparator: formData.thousandSeparator,
-      decimalSeparator: formData.decimalSeparator,
-    };
+    setIsSubmitting(true);
+    try {
+      const currency: CurrencySettings = {
+        code: formData.code.trim().toUpperCase(),
+        symbol: formData.symbol.trim(),
+        name: formData.name.trim(),
+        decimals: formData.decimals,
+        symbolPosition: formData.symbolPosition,
+        thousandSeparator: formData.thousandSeparator,
+        decimalSeparator: formData.decimalSeparator,
+        isCustom: true,
+        createdAt: editingCurrency?.createdAt || new Date().toISOString(),
+        lastUsed: editingCurrency?.lastUsed,
+      };
 
-    onSubmit(currency);
-    handleReset();
+      await onSubmit(currency);
+      handleReset();
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        error instanceof Error ? error.message : 'Failed to save currency'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleReset = () => {
@@ -147,12 +170,17 @@ export const CustomCurrencyForm: React.FC<CustomCurrencyFormProps> = ({
       keyboardType?: 'default' | 'numeric';
       maxLength?: number;
       autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+      editable?: boolean;
     }
   ) => (
     <View style={styles.inputContainer}>
       <Text style={styles.inputLabel}>{label}</Text>
       <TextInput
-        style={[styles.input, errors[field] && styles.inputError]}
+        style={[
+          styles.input,
+          errors[field] && styles.inputError,
+          options?.editable === false && styles.disabledInput,
+        ]}
         value={String(formData[field])}
         onChangeText={(value) => {
           const processedValue =
@@ -164,6 +192,7 @@ export const CustomCurrencyForm: React.FC<CustomCurrencyFormProps> = ({
         keyboardType={options?.keyboardType || 'default'}
         maxLength={options?.maxLength}
         autoCapitalize={options?.autoCapitalize || 'none'}
+        editable={options?.editable !== false && !isSubmitting}
       />
       {errors[field] && <Text style={styles.errorText}>{errors[field]}</Text>}
     </View>
@@ -214,18 +243,31 @@ export const CustomCurrencyForm: React.FC<CustomCurrencyFormProps> = ({
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={handleClose}
+            disabled={isSubmitting}
+          >
             <Ionicons name="close" size={24} color="#374151" />
           </TouchableOpacity>
-          <Text style={styles.title}>Custom Currency</Text>
+          <Text style={styles.title}>
+            {editingCurrency ? 'Edit Currency' : 'Create Custom Currency'}
+          </Text>
           <View style={styles.placeholder} />
         </View>
 
         {/* Form */}
         <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
+          {errors.general && (
+            <View style={styles.generalError}>
+              <Text style={styles.errorText}>{errors.general}</Text>
+            </View>
+          )}
+
           {renderInput('code', 'Currency Code', 'USD', {
             maxLength: 3,
             autoCapitalize: 'characters',
+            editable: !editingCurrency, // Don't allow editing code for existing currencies
           })}
 
           {renderInput('name', 'Currency Name', 'US Dollar')}
@@ -263,11 +305,14 @@ export const CustomCurrencyForm: React.FC<CustomCurrencyFormProps> = ({
             onPress={handleClose}
             variant="outline"
             style={styles.cancelButton}
+            disabled={isSubmitting}
           />
           <Button
-            title="Create Currency"
+            title={editingCurrency ? 'Update Currency' : 'Create Currency'}
             onPress={handleSubmit}
             style={styles.submitButton}
+            loading={isSubmitting}
+            disabled={isSubmitting}
           />
         </View>
       </KeyboardAvoidingView>
@@ -327,6 +372,18 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderColor: '#EF4444',
+  },
+  disabledInput: {
+    backgroundColor: '#F3F4F6',
+    color: '#6B7280',
+  },
+  generalError: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
   },
   errorText: {
     fontSize: 14,

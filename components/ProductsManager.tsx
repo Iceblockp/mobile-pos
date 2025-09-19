@@ -1654,14 +1654,18 @@ export default function Products({ compact = false }: ProductsManagerProps) {
             <PriceInput
               label={t('common.price')}
               value={formData.price}
-              onChangeText={(text) => setFormData({ ...formData, price: text })}
+              onValueChange={(text, numericValue) =>
+                setFormData({ ...formData, price: text })
+              }
               required
             />
 
             <PriceInput
               label={t('products.cost')}
               value={formData.cost}
-              onChangeText={(text) => setFormData({ ...formData, cost: text })}
+              onValueChange={(text, numericValue) =>
+                setFormData({ ...formData, cost: text })
+              }
               required
             />
 

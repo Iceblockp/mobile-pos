@@ -16,7 +16,7 @@ import { CustomerAnalytics } from './CustomerAnalytics';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useCustomAnalytics, useSalesByDateRange } from '@/hooks/useQueries';
-import { useCurrencyFormatter } from '@/hooks/useCurrency';
+import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import AnalyticsCharts from '@/components/AnalyticsCharts';
 import { Sale } from '@/services/database';
 import {

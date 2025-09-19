@@ -14,6 +14,7 @@ import { PriceInput } from '@/components/PriceInput';
 import { Plus, Trash2, Package, TrendingDown } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useCurrencyFormatter } from '@/hooks/useCurrency';
+// import { useCurrencyFormatter } from '@/context/CurrencyContext';
 
 interface BulkPricingTier {
   id?: number;

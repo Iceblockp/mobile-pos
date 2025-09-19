@@ -14,6 +14,7 @@ import { DatabaseProvider } from '@/context/DatabaseContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { LocalizationProvider } from '@/context/LocalizationContext';
 import { ShopSettingsProvider } from '@/context/ShopSettingsContext';
+import { CurrencyProvider } from '@/context/CurrencyContext';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
@@ -49,25 +50,27 @@ export default function RootLayout() {
       <LocalizationProvider>
         <DatabaseProvider>
           <ShopSettingsProvider>
-            <ToastProvider>
-              <SafeAreaProvider>
-                <SafeAreaView style={{ flex: 1 }}>
-                  <Stack screenOptions={{ headerShown: false }}>
-                    {/* <Stack.Screen name="index" /> */}
-                    <Stack.Screen
-                      name="(tabs)"
-                      options={{
-                        headerShown: false,
-                        statusBarStyle: 'dark',
-                        statusBarBackgroundColor: 'white',
-                      }}
-                    />
-                    <Stack.Screen name="+not-found" />
-                  </Stack>
-                  <StatusBar style="auto" />
-                </SafeAreaView>
-              </SafeAreaProvider>
-            </ToastProvider>
+            <CurrencyProvider>
+              <ToastProvider>
+                <SafeAreaProvider>
+                  <SafeAreaView style={{ flex: 1 }}>
+                    <Stack screenOptions={{ headerShown: false }}>
+                      {/* <Stack.Screen name="index" /> */}
+                      <Stack.Screen
+                        name="(tabs)"
+                        options={{
+                          headerShown: false,
+                          statusBarStyle: 'dark',
+                          statusBarBackgroundColor: 'white',
+                        }}
+                      />
+                      <Stack.Screen name="+not-found" />
+                    </Stack>
+                    <StatusBar style="auto" />
+                  </SafeAreaView>
+                </SafeAreaProvider>
+              </ToastProvider>
+            </CurrencyProvider>
           </ShopSettingsProvider>
         </DatabaseProvider>
       </LocalizationProvider>

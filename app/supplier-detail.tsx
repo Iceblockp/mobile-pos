@@ -20,8 +20,8 @@ import {
   useSupplierAnalytics,
   useSupplierMutations,
 } from '@/hooks/useQueries';
-import { useCurrencyFormatter } from '@/hooks/useCurrency';
 import { SupplierProduct } from '@/services/database';
+import { useCurrencyFormatter } from '@/hooks/useCurrency';
 
 export default function SupplierDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();

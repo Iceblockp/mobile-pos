@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CurrencySettings } from './currencyManager';
 
-// Simplified ShopSettings interface without database-specific fields
+// Enhanced ShopSettings interface with currency management
 export interface ShopSettings {
   shopName: string;
   address?: string;
@@ -11,6 +11,7 @@ export interface ShopSettings {
   thankYouMessage?: string;
   receiptTemplate: string;
   currency?: CurrencySettings;
+  customCurrencies?: CurrencySettings[]; // User-created custom currencies
   lastUpdated: string;
 }
 
@@ -23,6 +24,7 @@ export interface ShopSettingsInput {
   thankYouMessage?: string;
   receiptTemplate: string;
   currency?: CurrencySettings;
+  customCurrencies?: CurrencySettings[];
 }
 
 const SHOP_SETTINGS_KEY = '@shop_settings';
@@ -69,6 +71,7 @@ export class ShopSettingsStorage {
         thankYouMessage: settings.thankYouMessage?.trim() || undefined,
         receiptTemplate: settings.receiptTemplate || 'classic',
         currency: settings.currency || undefined,
+        customCurrencies: settings.customCurrencies || [],
         lastUpdated: new Date().toISOString(),
       };
 
@@ -118,6 +121,10 @@ export class ShopSettingsStorage {
           updates.currency !== undefined
             ? updates.currency
             : currentSettings?.currency,
+        customCurrencies:
+          updates.customCurrencies !== undefined
+            ? updates.customCurrencies
+            : currentSettings?.customCurrencies || [],
       };
 
       await this.saveShopSettings(updatedSettings);
@@ -160,6 +167,7 @@ export class ShopSettingsStorage {
       thankYouMessage: 'Come again soon!',
       receiptTemplate: 'classic',
       currency: undefined, // Will use default MMK from CurrencyManager
+      customCurrencies: [],
       lastUpdated: new Date().toISOString(),
     };
   }
