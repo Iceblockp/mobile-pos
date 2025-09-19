@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -27,165 +27,203 @@ interface ProductMovementHistoryProps {
   compact?: boolean;
 }
 
-export const ProductMovementHistory: React.FC<ProductMovementHistoryProps> = ({
-  product,
-  compact = false,
-}) => {
-  const { t } = useTranslation();
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [showStockMovementForm, setShowStockMovementForm] = useState(false);
-  const [movementType, setMovementType] = useState<'stock_in' | 'stock_out'>(
-    'stock_in'
-  );
-
-  const handleQuickStockMovement = (type: 'stock_in' | 'stock_out') => {
-    setMovementType(type);
-    setShowStockMovementForm(true);
-  };
-
-  const renderModals = () => (
-    <>
-      {/* History Modal */}
-      <Modal
-        visible={showHistoryModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowHistoryModal(false)}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              {t('stockMovement.history')} - {product.name}
-            </Text>
-            <TouchableOpacity
-              style={styles.modalCloseButton}
-              onPress={() => setShowHistoryModal(false)}
-            >
-              <X size={24} color="#6B7280" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.modalContent}>
-            <EnhancedMovementHistory
-              productId={product.id}
-              showProductName={false}
-              showFilters={true}
-            />
-          </View>
-        </SafeAreaView>
-      </Modal>
-
-      {/* Stock Movement Form */}
-      <StockMovementForm
-        visible={showStockMovementForm}
-        onClose={() => setShowStockMovementForm(false)}
-        product={product}
-        initialType={movementType}
-      />
-    </>
-  );
-
-  if (compact) {
-    return (
-      <>
-        <View style={styles.compactContainer}>
-          <TouchableOpacity
-            style={styles.compactButton}
-            onPress={() => setShowHistoryModal(true)}
-          >
-            <History size={16} color="#6B7280" />
-            <Text style={styles.compactButtonText}>
-              {t('stockMovement.history')}
-            </Text>
-          </TouchableOpacity>
-
-          <View style={styles.quickActions}>
-            <TouchableOpacity
-              style={[styles.quickActionButton, styles.stockInButton]}
-              onPress={() => handleQuickStockMovement('stock_in')}
-            >
-              <Plus size={14} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.quickActionButton, styles.stockOutButton]}
-              onPress={() => handleQuickStockMovement('stock_out')}
-            >
-              <Minus size={14} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {renderModals()}
-      </>
+export const ProductMovementHistory: React.FC<ProductMovementHistoryProps> =
+  React.memo(({ product, compact = false }) => {
+    const { t } = useTranslation();
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [showStockMovementForm, setShowStockMovementForm] = useState(false);
+    const [movementType, setMovementType] = useState<'stock_in' | 'stock_out'>(
+      'stock_in'
     );
-  }
 
-  return (
-    <Card style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{t('stockMovement.title')}</Text>
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => setShowHistoryModal(true)}
+    // Memoize callbacks to prevent unnecessary re-renders
+    const handleQuickStockMovement = useCallback(
+      (type: 'stock_in' | 'stock_out') => {
+        setMovementType(type);
+        setShowStockMovementForm(true);
+      },
+      []
+    );
+
+    const handleCloseHistoryModal = useCallback(() => {
+      setShowHistoryModal(false);
+    }, []);
+
+    const handleOpenHistoryModal = useCallback(() => {
+      setShowHistoryModal(true);
+    }, []);
+
+    const handleCloseStockMovementForm = useCallback(() => {
+      setShowStockMovementForm(false);
+    }, []);
+
+    const handleStockIn = useCallback(() => {
+      handleQuickStockMovement('stock_in');
+    }, [handleQuickStockMovement]);
+
+    const handleStockOut = useCallback(() => {
+      handleQuickStockMovement('stock_out');
+    }, [handleQuickStockMovement]);
+
+    // Memoize modal title to prevent unnecessary recalculations
+    const modalTitle = useMemo(
+      () => `${t('stockMovement.history')} - ${product.name}`,
+      [t, product.name]
+    );
+
+    // Memoize modals to prevent unnecessary re-renders
+    const renderModals = useMemo(
+      () => (
+        <>
+          {/* History Modal */}
+          <Modal
+            visible={showHistoryModal}
+            animationType="slide"
+            presentationStyle="pageSheet"
+            onRequestClose={handleCloseHistoryModal}
           >
-            <History size={20} color="#6B7280" />
-            <Text style={styles.actionButtonText}>
-              {t('stockMovement.history')}
-            </Text>
-          </TouchableOpacity>
+            <SafeAreaView style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{modalTitle}</Text>
+                <TouchableOpacity
+                  style={styles.modalCloseButton}
+                  onPress={handleCloseHistoryModal}
+                >
+                  <X size={24} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.modalContent}>
+                <EnhancedMovementHistory
+                  productId={product.id}
+                  showProductName={false}
+                  showFilters={true}
+                />
+              </View>
+            </SafeAreaView>
+          </Modal>
+
+          {/* Stock Movement Form */}
+          <StockMovementForm
+            visible={showStockMovementForm}
+            onClose={handleCloseStockMovementForm}
+            product={product}
+            initialType={movementType}
+          />
+        </>
+      ),
+      [
+        showHistoryModal,
+        showStockMovementForm,
+        modalTitle,
+        product,
+        movementType,
+        handleCloseHistoryModal,
+        handleCloseStockMovementForm,
+      ]
+    );
+
+    if (compact) {
+      return (
+        <>
+          <View style={styles.compactContainer}>
+            <TouchableOpacity
+              style={styles.compactButton}
+              onPress={handleOpenHistoryModal}
+            >
+              <History size={16} color="#6B7280" />
+              <Text style={styles.compactButtonText}>
+                {t('stockMovement.history')}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.quickActions}>
+              <TouchableOpacity
+                style={[styles.quickActionButton, styles.stockInButton]}
+                onPress={handleStockIn}
+              >
+                <Plus size={14} color="#FFFFFF" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.quickActionButton, styles.stockOutButton]}
+                onPress={handleStockOut}
+              >
+                <Minus size={14} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {renderModals}
+        </>
+      );
+    }
+
+    return (
+      <Card style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>{t('stockMovement.title')}</Text>
+          <View style={styles.actions}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleOpenHistoryModal}
+            >
+              <History size={20} color="#6B7280" />
+              <Text style={styles.actionButtonText}>
+                {t('stockMovement.history')}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
 
-      <View style={styles.quickActionsContainer}>
-        <Text style={styles.quickActionsTitle}>
-          {t('stockMovement.quickActions')}
-        </Text>
-        <View style={styles.quickActionsRow}>
-          <TouchableOpacity
-            style={[styles.quickActionCard, styles.stockInCard]}
-            onPress={() => handleQuickStockMovement('stock_in')}
-          >
-            <TrendingUp size={24} color="#059669" />
-            <Text style={styles.quickActionCardTitle}>
-              {t('stockMovement.addStock')}
-            </Text>
-            <Text style={styles.quickActionCardSubtitle}>
-              {t('stockMovement.stockIn')}
-            </Text>
-          </TouchableOpacity>
+        <View style={styles.quickActionsContainer}>
+          <Text style={styles.quickActionsTitle}>
+            {t('stockMovement.quickActions')}
+          </Text>
+          <View style={styles.quickActionsRow}>
+            <TouchableOpacity
+              style={[styles.quickActionCard, styles.stockInCard]}
+              onPress={handleStockIn}
+            >
+              <TrendingUp size={24} color="#059669" />
+              <Text style={styles.quickActionCardTitle}>
+                {t('stockMovement.addStock')}
+              </Text>
+              <Text style={styles.quickActionCardSubtitle}>
+                {t('stockMovement.stockIn')}
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.quickActionCard, styles.stockOutCard]}
-            onPress={() => handleQuickStockMovement('stock_out')}
-          >
-            <TrendingDown size={24} color="#EF4444" />
-            <Text style={styles.quickActionCardTitle}>
-              {t('stockMovement.removeStock')}
-            </Text>
-            <Text style={styles.quickActionCardSubtitle}>
-              {t('stockMovement.stockOut')}
-            </Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.quickActionCard, styles.stockOutCard]}
+              onPress={handleStockOut}
+            >
+              <TrendingDown size={24} color="#EF4444" />
+              <Text style={styles.quickActionCardTitle}>
+                {t('stockMovement.removeStock')}
+              </Text>
+              <Text style={styles.quickActionCardSubtitle}>
+                {t('stockMovement.stockOut')}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
 
-      <View style={styles.recentMovements}>
-        <Text style={styles.recentMovementsTitle}>
-          {t('stockMovement.recentActivity')}
-        </Text>
-        <EnhancedMovementHistory
-          productId={product.id}
-          showProductName={false}
-          compact={true}
-          showFilters={false}
-        />
-      </View>
+        <View style={styles.recentMovements}>
+          <Text style={styles.recentMovementsTitle}>
+            {t('stockMovement.recentActivity')}
+          </Text>
+          <EnhancedMovementHistory
+            productId={product.id}
+            showProductName={false}
+            compact={true}
+            showFilters={false}
+          />
+        </View>
 
-      {renderModals()}
-    </Card>
-  );
-};
+        {renderModals}
+      </Card>
+    );
+  });
 
 const styles = StyleSheet.create({
   container: {

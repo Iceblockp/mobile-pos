@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
+import { PriceInputErrorBoundary } from './PriceInputErrorBoundary';
 
 // Standardized interface for all price input components
 interface StandardPriceInputProps
@@ -27,72 +28,49 @@ interface PriceInputProps extends StandardPriceInputProps {
   showCurrencyHint?: boolean;
 }
 
-// Custom hook for price input with validation
-const useStandardPriceInput = (initialValue: string = '') => {
-  const [value, setValue] = useState(initialValue);
+// Custom hook for price input with validation - Fixed to prevent infinite loops
+const useStandardPriceInput = (externalValue: string = '') => {
   const [error, setError] = useState<string | null>(null);
-  const [numericValue, setNumericValue] = useState<number>(0);
-  const { validatePriceInput, parsePrice, formatPrice } =
-    useCurrencyFormatter();
+  const { validatePriceInput, parsePrice } = useCurrencyFormatter();
 
-  const lastInitialValueRef = useRef(initialValue);
+  // Use ref to track if we're updating internally to prevent circular calls
+  const isInternalUpdateRef = useRef(false);
 
-  const handleChange = useCallback(
-    (newValue: string) => {
-      setValue(newValue);
-
-      if (!newValue.trim()) {
-        setError(null);
-        setNumericValue(0);
-        return;
-      }
-
-      const validation = validatePriceInput(newValue);
-      if (validation.isValid) {
-        setError(null);
-        setNumericValue(validation.value || 0);
-      } else {
-        setError(validation.error || 'Invalid price');
-        setNumericValue(parsePrice(newValue)); // Try to parse anyway for partial values
-      }
-    },
-    [validatePriceInput, parsePrice]
-  );
-
-  const reset = useCallback(() => {
-    setValue(initialValue);
-    setError(null);
-    setNumericValue(parsePrice(initialValue));
-  }, [initialValue, parsePrice]);
-
-  const setNumericValueDirectly = useCallback(
-    (num: number) => {
-      const formatted = formatPrice(num);
-      setValue(formatted);
-      setNumericValue(num);
-      setError(null);
-    },
-    [formatPrice]
-  );
-
-  // Initialize numeric value - only when initialValue actually changes
-  useEffect(() => {
-    if (initialValue !== lastInitialValueRef.current) {
-      lastInitialValueRef.current = initialValue;
-      if (initialValue) {
-        handleChange(initialValue);
-      }
+  // Memoize validation to prevent unnecessary recalculations
+  const validationResult = useMemo(() => {
+    if (!externalValue.trim()) {
+      return { isValid: true, error: null, numericValue: 0 };
     }
-  }, [initialValue, handleChange]);
+
+    const validation = validatePriceInput(externalValue);
+    return {
+      isValid: validation.isValid,
+      error: validation.error || null,
+      numericValue: validation.value || parsePrice(externalValue),
+    };
+  }, [externalValue, validatePriceInput, parsePrice]);
+
+  // Update error state when validation changes
+  useEffect(() => {
+    setError(validationResult.error);
+  }, [validationResult.error]);
+
+  const handleChange = useCallback((newValue: string) => {
+    // Don't process if this is an internal update
+    if (isInternalUpdateRef.current) {
+      return;
+    }
+
+    // This will be handled by the parent component
+    return newValue;
+  }, []);
 
   return {
-    value,
+    value: externalValue,
     error,
-    numericValue,
-    isValid: !error && value.trim().length > 0,
+    numericValue: validationResult.numericValue,
+    isValid: validationResult.isValid && externalValue.trim().length > 0,
     onChange: handleChange,
-    reset,
-    setNumericValue: setNumericValueDirectly,
   };
 };
 
@@ -109,37 +87,34 @@ export const PriceInput: React.FC<PriceInputProps> = ({
   style,
   ...textInputProps
 }) => {
-  const { currentCurrency, usesDecimals } = useCurrencyFormatter();
+  const { currentCurrency, usesDecimals, validatePriceInput, parsePrice } =
+    useCurrencyFormatter();
+
+  // Use the simplified hook that doesn't cause circular dependencies
   const {
-    value: inputValue,
     error: validationError,
     numericValue,
     isValid,
-    onChange,
   } = useStandardPriceInput(value);
 
-  // Use refs to track if we're in the middle of an update to prevent circular calls
-  const isUpdatingRef = useRef(false);
-
-  // Sync with parent component - only when input value actually changes
-  useEffect(() => {
-    if (isUpdatingRef.current) return;
-
-    if (inputValue !== value) {
-      isUpdatingRef.current = true;
-      onValueChange(inputValue, numericValue);
-      isUpdatingRef.current = false;
-    }
-  }, [inputValue, numericValue, onValueChange]);
-
-  // Handle external value changes - only when external value changes and differs from input
-  useEffect(() => {
-    if (isUpdatingRef.current) return;
-
-    if (value !== inputValue) {
-      onChange(value);
-    }
-  }, [value, inputValue, onChange]);
+  // Stable callback for handling text changes with error handling
+  const handleTextChange = useCallback(
+    (newValue: string) => {
+      try {
+        // Directly call parent callback without internal state management
+        const validation = validatePriceInput(newValue);
+        const numeric = validation.isValid
+          ? validation.value || 0
+          : parsePrice(newValue);
+        onValueChange(newValue, numeric);
+      } catch (error) {
+        console.error('Error in price input change handler:', error);
+        // Fallback: just pass the string value with 0 as numeric
+        onValueChange(newValue, 0);
+      }
+    },
+    [onValueChange, validatePriceInput, parsePrice]
+  );
 
   const displayError = error || validationError;
   const placeholder = usesDecimals()
@@ -147,56 +122,58 @@ export const PriceInput: React.FC<PriceInputProps> = ({
     : '0';
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>
-        {label}
-        {required && <Text style={styles.required}> *</Text>}
-      </Text>
+    <PriceInputErrorBoundary>
+      <View style={styles.container}>
+        <Text style={styles.label}>
+          {label}
+          {required && <Text style={styles.required}> *</Text>}
+        </Text>
 
-      <View
-        style={[
-          styles.inputContainer,
-          displayError && styles.inputContainerError,
-        ]}
-      >
-        {showCurrencySymbol && currentCurrency?.symbolPosition === 'before' && (
-          <Text style={styles.currencySymbol}>{currentCurrency.symbol}</Text>
-        )}
+        <View
+          style={[
+            styles.inputContainer,
+            displayError && styles.inputContainerError,
+          ]}
+        >
+          {showCurrencySymbol && currentCurrency?.symbolPosition === 'before' && (
+            <Text style={styles.currencySymbol}>{currentCurrency.symbol}</Text>
+          )}
 
-        <TextInput
-          style={[styles.input, style]}
-          value={inputValue}
-          onChangeText={onChange}
-          placeholder={placeholder}
-          placeholderTextColor="#9CA3AF"
-          keyboardType="decimal-pad"
-          editable={!disabled}
-          {...textInputProps}
-        />
-
-        {showCurrencySymbol && currentCurrency?.symbolPosition === 'after' && (
-          <Text style={styles.currencySymbol}>{currentCurrency.symbol}</Text>
-        )}
-
-        {isValid && (
-          <Ionicons
-            name="checkmark-circle"
-            size={20}
-            color="#10B981"
-            style={styles.validIcon}
+          <TextInput
+            style={[styles.input, style]}
+            value={value}
+            onChangeText={handleTextChange}
+            placeholder={placeholder}
+            placeholderTextColor="#9CA3AF"
+            keyboardType="decimal-pad"
+            editable={!disabled}
+            {...textInputProps}
           />
+
+          {showCurrencySymbol && currentCurrency?.symbolPosition === 'after' && (
+            <Text style={styles.currencySymbol}>{currentCurrency.symbol}</Text>
+          )}
+
+          {isValid && (
+            <Ionicons
+              name="checkmark-circle"
+              size={20}
+              color="#10B981"
+              style={styles.validIcon}
+            />
+          )}
+        </View>
+
+        {displayError && <Text style={styles.errorText}>{displayError}</Text>}
+
+        {showCurrencyHint && currentCurrency && (
+          <Text style={styles.currencyHint}>
+            Currency: {currentCurrency.name} ({currentCurrency.symbol})
+            {usesDecimals() && ` • ${currentCurrency.decimals} decimal places`}
+          </Text>
         )}
       </View>
-
-      {displayError && <Text style={styles.errorText}>{displayError}</Text>}
-
-      {showCurrencyHint && currentCurrency && (
-        <Text style={styles.currencyHint}>
-          Currency: {currentCurrency.name} ({currentCurrency.symbol})
-          {usesDecimals() && ` • ${currentCurrency.decimals} decimal places`}
-        </Text>
-      )}
-    </View>
+    </PriceInputErrorBoundary>
   );
 };
 
@@ -212,36 +189,28 @@ export const SimplePriceInput: React.FC<StandardPriceInputProps> = ({
   style,
   ...textInputProps
 }) => {
-  const { formatPrice, parsePrice, currentCurrency } = useCurrencyFormatter();
+  const { validatePriceInput, parsePrice, currentCurrency } =
+    useCurrencyFormatter();
+
+  // Use the simplified hook that doesn't cause circular dependencies
   const {
-    value: inputValue,
     error: validationError,
     numericValue,
     isValid,
-    onChange,
   } = useStandardPriceInput(value);
 
-  const isUpdatingRef = useRef(false);
-
-  // Sync with parent component
-  useEffect(() => {
-    if (isUpdatingRef.current) return;
-
-    if (inputValue !== value) {
-      isUpdatingRef.current = true;
-      onValueChange(inputValue, numericValue);
-      isUpdatingRef.current = false;
-    }
-  }, [inputValue, numericValue, onValueChange]);
-
-  // Handle external value changes
-  useEffect(() => {
-    if (isUpdatingRef.current) return;
-
-    if (value !== inputValue) {
-      onChange(value);
-    }
-  }, [value, inputValue, onChange]);
+  // Stable callback for handling text changes
+  const handleTextChange = useCallback(
+    (newValue: string) => {
+      // Directly call parent callback without internal state management
+      const validation = validatePriceInput(newValue);
+      const numeric = validation.isValid
+        ? validation.value || 0
+        : parsePrice(newValue);
+      onValueChange(newValue, numeric);
+    },
+    [onValueChange, validatePriceInput, parsePrice]
+  );
 
   const displayError = error || validationError;
 
@@ -260,8 +229,8 @@ export const SimplePriceInput: React.FC<StandardPriceInputProps> = ({
 
         <TextInput
           style={[styles.simpleInput, style]}
-          value={inputValue}
-          onChangeText={onChange}
+          value={value}
+          onChangeText={handleTextChange}
           placeholder={placeholder}
           placeholderTextColor="#9CA3AF"
           keyboardType="decimal-pad"
@@ -516,24 +485,53 @@ export const createPriceInputProps = (
   autoFormat: options?.autoFormat !== false,
 });
 
+// Custom debounce hook for price inputs
+const useDebounce = <T>(value: T, delay: number): T => {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
 // Hook for components that need to manage price state
 export const usePriceState = (initialValue: number = 0) => {
   const { formatPrice } = useCurrencyFormatter();
   const [numericValue, setNumericValue] = useState(initialValue);
-  const [stringValue, setStringValue] = useState(formatPrice(initialValue));
+  const [stringValue, setStringValue] = useState(() => formatPrice(initialValue));
 
+  // Stable update function that doesn't cause re-renders
   const updateValue = useCallback((value: string, numeric: number) => {
     setStringValue(value);
     setNumericValue(numeric);
   }, []);
 
+  // Stable numeric setter
   const setNumericValueDirectly = useCallback(
     (value: number) => {
+      const formatted = formatPrice(value);
       setNumericValue(value);
-      setStringValue(formatPrice(value));
+      setStringValue(formatted);
     },
     [formatPrice]
   );
+
+  // Initialize only when initialValue actually changes
+  const prevInitialValue = useRef(initialValue);
+  useEffect(() => {
+    if (prevInitialValue.current !== initialValue) {
+      prevInitialValue.current = initialValue;
+      setNumericValueDirectly(initialValue);
+    }
+  }, [initialValue, setNumericValueDirectly]);
 
   return {
     numericValue,
