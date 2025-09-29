@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -26,7 +27,12 @@ import {
 import { useTranslation } from '@/context/LocalizationContext';
 import { useToast } from '@/context/ToastContext';
 import { useDatabase } from '@/context/DatabaseContext';
-import { useShopSettings } from '@/context/ShopSettingsContext';
+import {
+  DataImportService,
+  ImportProgress,
+  ImportOptions,
+  DataConflict,
+} from '@/services/dataImportService';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 
@@ -48,26 +54,31 @@ interface ImportOption {
     | 'all';
 }
 
-interface ImportProgress {
-  isImporting: boolean;
-  current: number;
-  total: number;
-  stage: string;
-}
-
 export default function DataImport() {
   const router = useRouter();
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { db } = useDatabase();
-  const { shopSettingsService } = useShopSettings();
   const [isImporting, setIsImporting] = useState<string | null>(null);
-  const [importProgress, setImportProgress] = useState<ImportProgress>({
-    isImporting: false,
-    current: 0,
-    total: 0,
-    stage: '',
-  });
+  const [importProgress, setImportProgress] = useState<ImportProgress | null>(
+    null
+  );
+  const [importService, setImportService] = useState<DataImportService | null>(
+    null
+  );
+  const [conflicts, setConflicts] = useState<DataConflict[]>([]);
+  const [showConflictModal, setShowConflictModal] = useState(false);
+
+  // Initialize import service when database is ready
+  React.useEffect(() => {
+    if (db) {
+      const service = new DataImportService(db);
+      service.onProgress((progress) => {
+        setImportProgress(progress);
+      });
+      setImportService(service);
+    }
+  }, [db]);
 
   const importOptions: ImportOption[] = [
     {
@@ -109,8 +120,8 @@ export default function DataImport() {
   ];
 
   const handleImport = async (option: ImportOption) => {
-    if (!db) {
-      showToast('Database not ready', 'error');
+    if (!importService) {
+      showToast('Import service not ready', 'error');
       return;
     }
 
@@ -122,22 +133,38 @@ export default function DataImport() {
 
       if (result.canceled) return;
 
-      const fileContent = await FileSystem.readAsStringAsync(
+      // Validate the file first
+      const validation = await importService.validateImportFile(
         result.assets[0].uri
       );
-      const importData = JSON.parse(fileContent);
+      if (!validation.isValid) {
+        const errorMessages = validation.errors
+          .map((e) => e.message)
+          .join('\n');
+        Alert.alert(t('dataImport.invalidFormat'), errorMessages);
+        return;
+      }
 
-      // Validate import data structure based on type
-      if (!validateImportData(importData, option.dataType)) {
-        showToast(t('dataImport.invalidFormat'), 'error');
+      // Preview the import data
+      const preview = await importService.previewImportData(
+        result.assets[0].uri
+      );
+
+      // Check for conflicts
+      if (preview.conflicts.length > 0) {
+        setConflicts(preview.conflicts);
+        setShowConflictModal(true);
         return;
       }
 
       // Show confirmation dialog
-      const itemCount = getImportItemCount(importData, option.dataType);
+      const totalItems = Object.values(preview.recordCounts).reduce(
+        (sum, count) => sum + count,
+        0
+      );
       Alert.alert(
         t('dataImport.confirmImport'),
-        `${t('dataImport.aboutToImport')} ${itemCount} ${t(
+        `${t('dataImport.aboutToImport')} ${totalItems} ${t(
           'dataImport.items'
         )}. ${t('dataImport.existingDataWarning')}`,
         [
@@ -145,7 +172,7 @@ export default function DataImport() {
           {
             text: t('dataImport.import'),
             onPress: async () => {
-              await performImport(importData, option);
+              await performImport(result.assets[0].uri, option);
             },
           },
         ]
@@ -156,315 +183,86 @@ export default function DataImport() {
     }
   };
 
-  const validateImportData = (data: any, dataType: string): boolean => {
-    switch (dataType) {
-      case 'customers':
-        return data.customers && Array.isArray(data.customers);
-      case 'bulkPricing':
-        return data.bulkPricing && Array.isArray(data.bulkPricing);
-      case 'stockMovements':
-        return data.stockMovements && Array.isArray(data.stockMovements);
-      case 'all':
-        return (
-          data.customers ||
-          data.bulkPricing ||
-          data.stockMovements ||
-          data.sales ||
-          data.products
-        );
-      default:
-        return false;
+  const performImport = async (fileUri: string, option: ImportOption) => {
+    if (!importService) {
+      showToast('Import service not ready', 'error');
+      return;
     }
-  };
 
-  const getImportItemCount = (data: any, dataType: string): number => {
-    switch (dataType) {
-      case 'customers':
-        return data.customers?.length || 0;
-      case 'bulkPricing':
-        return (
-          data.bulkPricing?.reduce(
-            (sum: number, item: any) => sum + (item.bulkTiers?.length || 0),
-            0
-          ) || 0
-        );
-      case 'stockMovements':
-        return data.stockMovements?.length || 0;
-      case 'all':
-        return (
-          (data.customers?.length || 0) +
-          (data.stockMovements?.length || 0) +
-          (data.bulkPricing?.reduce(
-            (sum: number, item: any) => sum + (item.bulkTiers?.length || 0),
-            0
-          ) || 0) +
-          (data.sales?.length || 0) +
-          (data.products?.length || 0)
-        );
-      default:
-        return 0;
-    }
-  };
-
-  const performImport = async (importData: any, option: ImportOption) => {
     setIsImporting(option.id);
+    setImportProgress(null);
 
     try {
-      const totalItems = getImportItemCount(importData, option.dataType);
-      setImportProgress({
-        isImporting: true,
-        current: 0,
-        total: totalItems,
-        stage: t('dataImport.preparingImport'),
-      });
+      const importOptions: ImportOptions = {
+        batchSize: 25,
+        conflictResolution: 'update', // Default to update existing records
+        validateReferences: true,
+        createMissingReferences: true,
+      };
 
-      let importedCount = 0;
-      let skippedCount = 0;
+      let result;
 
       switch (option.dataType) {
         case 'customers':
-          const customerResults = await importCustomers(importData.customers);
-          importedCount += customerResults.imported;
-          skippedCount += customerResults.skipped;
+          result = await importService.importCustomers(fileUri, importOptions);
           break;
-
         case 'bulkPricing':
-          const bulkResults = await importBulkPricing(importData.bulkPricing);
-          importedCount += bulkResults.imported;
-          skippedCount += bulkResults.skipped;
-          break;
-
-        case 'stockMovements':
-          const movementResults = await importStockMovements(
-            importData.stockMovements
+          result = await importService.importBulkPricing(
+            fileUri,
+            importOptions
           );
-          importedCount += movementResults.imported;
-          skippedCount += movementResults.skipped;
           break;
-
+        case 'stockMovements':
+          result = await importService.importStockMovements(
+            fileUri,
+            importOptions
+          );
+          break;
         case 'all':
-          // Import in order: customers, bulk pricing, stock movements
-          if (importData.customers) {
-            setImportProgress((prev) => ({
-              ...prev,
-              stage: t('dataImport.importingCustomers'),
-            }));
-            const customerResults = await importCustomers(importData.customers);
-            importedCount += customerResults.imported;
-            skippedCount += customerResults.skipped;
-          }
-
-          if (importData.bulkPricing) {
-            setImportProgress((prev) => ({
-              ...prev,
-              stage: t('dataImport.importingBulkPricing'),
-            }));
-            const bulkResults = await importBulkPricing(importData.bulkPricing);
-            importedCount += bulkResults.imported;
-            skippedCount += bulkResults.skipped;
-          }
-
-          if (importData.stockMovements) {
-            setImportProgress((prev) => ({
-              ...prev,
-              stage: t('dataImport.importingStockMovements'),
-            }));
-            const movementResults = await importStockMovements(
-              importData.stockMovements
-            );
-            importedCount += movementResults.imported;
-            skippedCount += movementResults.skipped;
-          }
+          result = await importService.importCompleteBackup(
+            fileUri,
+            importOptions
+          );
           break;
+        default:
+          throw new Error(`Unsupported import type: ${option.dataType}`);
       }
 
-      setImportProgress({
-        isImporting: false,
-        current: 0,
-        total: 0,
-        stage: '',
-      });
+      if (result.success) {
+        showToast(
+          `${t('dataImport.importComplete')} ${result.imported} ${t(
+            'dataImport.imported'
+          )}, ${result.updated} ${t('dataImport.updated')}, ${
+            result.skipped
+          } ${t('dataImport.skipped')}`,
+          'success'
+        );
 
-      showToast(
-        `${t('dataImport.importComplete')} ${importedCount} ${t(
-          'dataImport.imported'
-        )}, ${skippedCount} ${t('dataImport.skipped')}`,
-        'success'
-      );
+        // Show detailed results if there were errors
+        if (result.errors.length > 0) {
+          Alert.alert(
+            t('dataImport.importCompleteWithErrors'),
+            `${result.errors.length} ${t('dataImport.errorsOccurred')}. ${t(
+              'dataImport.checkLogs'
+            )}`,
+            [{ text: t('common.ok'), style: 'default' }]
+          );
+        }
+      } else {
+        throw new Error('Import failed');
+      }
     } catch (error) {
       console.error('Import error:', error);
-      showToast(t('dataImport.importFailed'), 'error');
+      showToast(
+        `${t('dataImport.importFailed')}: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+        'error'
+      );
     } finally {
       setIsImporting(null);
-      setImportProgress({
-        isImporting: false,
-        current: 0,
-        total: 0,
-        stage: '',
-      });
+      setImportProgress(null);
     }
-  };
-
-  const importCustomers = async (
-    customers: any[]
-  ): Promise<{ imported: number; skipped: number }> => {
-    if (!db) throw new Error('Database not available');
-
-    let imported = 0;
-    let skipped = 0;
-    const BATCH_SIZE = 10;
-
-    for (let i = 0; i < customers.length; i += BATCH_SIZE) {
-      const batch = customers.slice(i, i + BATCH_SIZE);
-
-      const batchPromises = batch.map(async (customer: any) => {
-        try {
-          // Check if customer already exists by name or phone
-          const existingCustomers = await db.getCustomers();
-          const existingCustomer = existingCustomers.find(
-            (c) =>
-              c.name === customer.name ||
-              (customer.phone && c.phone === customer.phone)
-          );
-
-          if (existingCustomer) {
-            // Update existing customer
-            await db.updateCustomer(existingCustomer.id, {
-              name: customer.name,
-              phone: customer.phone || '',
-              email: customer.email || '',
-              address: customer.address || '',
-            });
-          } else {
-            // Add new customer
-            await db.addCustomer({
-              name: customer.name,
-              phone: customer.phone || '',
-              email: customer.email || '',
-              address: customer.address || '',
-            });
-          }
-          return { success: true };
-        } catch (error) {
-          console.error('Customer import error:', error);
-          return { success: false };
-        }
-      });
-
-      const results = await Promise.all(batchPromises);
-      imported += results.filter((r) => r.success).length;
-      skipped += results.filter((r) => !r.success).length;
-
-      setImportProgress((prev) => ({
-        ...prev,
-        current: Math.min(i + BATCH_SIZE, customers.length),
-      }));
-    }
-
-    return { imported, skipped };
-  };
-
-  const importBulkPricing = async (
-    bulkPricingData: any[]
-  ): Promise<{ imported: number; skipped: number }> => {
-    if (!db) throw new Error('Database not available');
-
-    let imported = 0;
-    let skipped = 0;
-
-    // Get all products to match by name
-    const products = await db.getProducts();
-
-    for (const item of bulkPricingData) {
-      try {
-        const product = products.find((p) => p.name === item.productName);
-        if (!product) {
-          skipped += item.bulkTiers?.length || 0;
-          continue;
-        }
-
-        // Clear existing bulk pricing for this product
-        const existingTiers = await db.getBulkPricingForProduct(product.id);
-        for (const tier of existingTiers) {
-          await db.deleteBulkPricing(tier.id);
-        }
-
-        // Add new bulk pricing tiers
-        for (const tier of item.bulkTiers || []) {
-          try {
-            await db.addBulkPricing({
-              product_id: product.id,
-              min_quantity: tier.min_quantity,
-              bulk_price: tier.bulk_price,
-            });
-            imported++;
-          } catch (error) {
-            console.error('Bulk pricing tier import error:', error);
-            skipped++;
-          }
-        }
-      } catch (error) {
-        console.error('Bulk pricing import error:', error);
-        skipped += item.bulkTiers?.length || 0;
-      }
-    }
-
-    return { imported, skipped };
-  };
-
-  const importStockMovements = async (
-    movements: any[]
-  ): Promise<{ imported: number; skipped: number }> => {
-    if (!db) throw new Error('Database not available');
-
-    let imported = 0;
-    let skipped = 0;
-    const BATCH_SIZE = 20;
-
-    // Get all products to match by name
-    const products = await db.getProducts();
-
-    for (let i = 0; i < movements.length; i += BATCH_SIZE) {
-      const batch = movements.slice(i, i + BATCH_SIZE);
-
-      const batchPromises = batch.map(async (movement: any) => {
-        try {
-          const product = products.find(
-            (p) => p.name === movement.product_name
-          );
-          if (!product) {
-            return { success: false };
-          }
-
-          await db.addStockMovement({
-            product_id: product.id,
-            type: movement.type,
-            quantity: movement.quantity,
-            reason: movement.reason || '',
-            supplier_id: movement.supplier_id || null,
-            reference_number: movement.reference_number || '',
-            unit_cost: movement.unit_cost || null,
-            created_at: movement.created_at || new Date().toISOString(),
-          });
-
-          return { success: true };
-        } catch (error) {
-          console.error('Stock movement import error:', error);
-          return { success: false };
-        }
-      });
-
-      const results = await Promise.all(batchPromises);
-      imported += results.filter((r) => r.success).length;
-      skipped += results.filter((r) => !r.success).length;
-
-      setImportProgress((prev) => ({
-        ...prev,
-        current: Math.min(i + BATCH_SIZE, movements.length),
-      }));
-    }
-
-    return { imported, skipped };
   };
 
   const showImportInfo = () => {
@@ -496,7 +294,7 @@ export default function DataImport() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Import Progress */}
-        {importProgress.isImporting && (
+        {importProgress && (
           <View style={styles.progressSection}>
             <View style={styles.progressCard}>
               <Text style={styles.progressTitle}>{importProgress.stage}</Text>
@@ -505,9 +303,7 @@ export default function DataImport() {
                   style={[
                     styles.progressFill,
                     {
-                      width: `${
-                        (importProgress.current / importProgress.total) * 100
-                      }%`,
+                      width: `${importProgress.percentage}%`,
                     },
                   ]}
                 />
@@ -632,6 +428,81 @@ export default function DataImport() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Conflict Resolution Modal */}
+      {showConflictModal && (
+        <Modal visible={true} animationType="slide" transparent={true}>
+          <View style={styles.conflictModalOverlay}>
+            <View style={styles.conflictModalContainer}>
+              <Text style={styles.conflictModalTitle}>
+                {t('dataImport.conflictsDetected')}
+              </Text>
+
+              <Text style={styles.conflictModalSubtitle}>
+                {conflicts.length} {t('dataImport.conflictsFound')}
+              </Text>
+
+              <ScrollView style={styles.conflictsList}>
+                {conflicts.slice(0, 5).map((conflict, index) => (
+                  <View key={index} style={styles.conflictItem}>
+                    <Text style={styles.conflictMessage}>
+                      {conflict.message}
+                    </Text>
+                    <Text style={styles.conflictType}>{conflict.type}</Text>
+                  </View>
+                ))}
+                {conflicts.length > 5 && (
+                  <Text style={styles.moreConflictsText}>
+                    {t('dataImport.andMoreConflicts', {
+                      count: conflicts.length - 5,
+                    })}
+                  </Text>
+                )}
+              </ScrollView>
+
+              <View style={styles.conflictActions}>
+                <TouchableOpacity
+                  style={[styles.conflictButton, styles.updateButton]}
+                  onPress={() => {
+                    setShowConflictModal(false);
+                    // Handle update existing records
+                    showToast(t('dataImport.willUpdateExisting'), 'info');
+                  }}
+                >
+                  <Text style={styles.updateButtonText}>
+                    {t('dataImport.updateExisting')}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.conflictButton, styles.skipButton]}
+                  onPress={() => {
+                    setShowConflictModal(false);
+                    // Handle skip conflicts
+                    showToast(t('dataImport.willSkipConflicts'), 'info');
+                  }}
+                >
+                  <Text style={styles.skipButtonText}>
+                    {t('dataImport.skipConflicts')}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.conflictButton, styles.cancelButton]}
+                  onPress={() => {
+                    setShowConflictModal(false);
+                    setConflicts([]);
+                  }}
+                >
+                  <Text style={styles.cancelButtonText}>
+                    {t('common.cancel')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
@@ -859,5 +730,97 @@ const styles = StyleSheet.create({
     color: '#7F1D1D',
     lineHeight: 20,
     marginBottom: 4,
+  },
+  conflictModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  conflictModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 24,
+    margin: 20,
+    maxWidth: '90%',
+    maxHeight: '80%',
+  },
+  conflictModalTitle: {
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  conflictModalSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  conflictsList: {
+    maxHeight: 200,
+    marginBottom: 20,
+  },
+  conflictItem: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#EF4444',
+  },
+  conflictMessage: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#7F1D1D',
+    marginBottom: 4,
+  },
+  conflictType: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#991B1B',
+    textTransform: 'capitalize',
+  },
+  moreConflictsText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  conflictActions: {
+    gap: 12,
+  },
+  conflictButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  updateButton: {
+    backgroundColor: '#3B82F6',
+  },
+  updateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+  },
+  skipButton: {
+    backgroundColor: '#F59E0B',
+  },
+  skipButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+  },
+  cancelButton: {
+    backgroundColor: '#F3F4F6',
+  },
+  cancelButtonText: {
+    color: '#6B7280',
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
   },
 });

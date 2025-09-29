@@ -40,8 +40,6 @@ import {
   ArrowUpAZ,
   Calendar,
   ArrowDownAZ,
-  Download,
-  Upload,
   MoreVertical,
   X,
 } from 'lucide-react-native';
@@ -51,9 +49,7 @@ import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
-import * as DocumentPicker from 'expo-document-picker';
+
 import { useOptimizedList } from '@/hooks/useOptimizedList';
 import { BulkPricingTiers } from '@/components/BulkPricingTiers';
 import { ProductMovementHistory } from '@/components/ProductMovementHistory';
@@ -81,12 +77,6 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
-  const [importProgress, setImportProgress] = useState({
-    isImporting: false,
-    current: 0,
-    total: 0,
-    stage: '',
-  });
 
   // Use React Query for optimized data fetching
   const {
@@ -587,248 +577,6 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   //   return supplier ? supplier.name : t('products.unknown');
   // };
 
-  // Export products data
-  const exportProducts = async () => {
-    try {
-      const exportData = {
-        version: '1.0',
-        exportDate: new Date().toISOString(),
-        categories: categories,
-        suppliers: suppliers,
-        products: products.map((product) => ({
-          ...product,
-          id: undefined,
-          created_at: undefined,
-          updated_at: undefined,
-        })),
-      };
-
-      const jsonString = JSON.stringify(exportData, null, 2);
-      const fileName = `products_export_${
-        new Date().toISOString().split('T')[0]
-      }.json`;
-      const fileUri = FileSystem.documentDirectory + fileName;
-
-      await FileSystem.writeAsStringAsync(fileUri, jsonString);
-
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri, {
-          mimeType: 'application/json',
-          dialogTitle: 'Export Products Data',
-        });
-      } else {
-        showToast('Export completed. File saved to: ' + fileName, 'success');
-      }
-
-      showToast(`${products.length} ${t('products.exportSuccess')}`, 'success');
-    } catch (error) {
-      console.error('Export error:', error);
-      showToast(t('products.exportFailed'), 'error');
-    }
-  };
-
-  // Import products data
-  const importProducts = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/json',
-        copyToCacheDirectory: true,
-      });
-
-      if (result.canceled) return;
-
-      const fileContent = await FileSystem.readAsStringAsync(
-        result.assets[0].uri
-      );
-      const importData = JSON.parse(fileContent);
-
-      // Validate import data structure
-      if (!importData.categories || !importData.products) {
-        throw new Error(t('products.invalidImportFormat'));
-      }
-
-      Alert.alert(
-        t('products.importProducts'),
-        `${t('products.importConfirm')} ${importData.products.length} ${t(
-          'products.importConfirmDetails'
-        )}`,
-        [
-          { text: t('common.cancel'), style: 'cancel' },
-          {
-            text: t('products.importProducts'),
-            onPress: async () => {
-              await performImport(importData);
-            },
-          },
-        ]
-      );
-    } catch (error) {
-      console.error('Import error:', error);
-      showToast(t('products.importFailed'), 'error');
-    }
-  };
-
-  const performImport = async (importData: any) => {
-    try {
-      const totalProducts = importData.products.length;
-      const totalCategories = importData.categories.length;
-      const BATCH_SIZE = 25; // Larger batch size for better performance
-
-      setImportProgress({
-        isImporting: true,
-        current: 0,
-        total: totalProducts + totalCategories,
-        stage: t('products.importingCategories'),
-      });
-
-      let importedCount = 0;
-      let skippedCount = 0;
-
-      // Import categories first - process all at once since usually small number
-      if (totalCategories > 0) {
-        const categoryPromises = importData.categories.map(
-          async (category: any) => {
-            try {
-              const existingCategory = categories.find(
-                (c) => c.name === category.name
-              );
-              if (!existingCategory) {
-                await addCategory.mutateAsync({
-                  name: category.name,
-                  description: category.description || '',
-                  created_at: new Date().toISOString(),
-                });
-              }
-              return { success: true };
-            } catch (error) {
-              return { success: false };
-            }
-          }
-        );
-
-        await Promise.all(categoryPromises);
-
-        // Update progress after categories
-        setImportProgress((prev) => ({
-          ...prev,
-          current: totalCategories,
-          stage: t('products.importingProducts'),
-        }));
-
-        // Brief wait for categories to be available
-        await new Promise((resolve) => setTimeout(resolve, 200));
-      } else {
-        setImportProgress((prev) => ({
-          ...prev,
-          stage: t('products.importingProducts'),
-        }));
-      }
-
-      // Pre-process products to avoid repeated lookups
-      const processedProducts = importData.products.map((product: any) => {
-        const category = categories.find((c) => c.name === product.category);
-        return {
-          ...product,
-          category_id: category?.id,
-          hasValidCategory: !!category,
-        };
-      });
-
-      // Process products in larger batches
-      for (let i = 0; i < processedProducts.length; i += BATCH_SIZE) {
-        const batch = processedProducts.slice(i, i + BATCH_SIZE);
-
-        const batchPromises = batch.map(async (product: any) => {
-          try {
-            if (!product.hasValidCategory) {
-              return { success: false, skipped: true };
-            }
-
-            // Check if product already exists
-            const existingProduct = products.find(
-              (p) =>
-                p.name === product.name ||
-                (product.barcode && p.barcode === product.barcode)
-            );
-
-            const productData = {
-              name: product.name,
-              barcode: product.barcode || undefined,
-              category_id: product.category_id,
-              price: product.price,
-              cost: product.cost,
-              quantity: product.quantity || 0,
-              min_stock: product.min_stock || 10,
-              supplier_id: product.supplier_id || 1,
-              imageUrl: product.imageUrl || undefined,
-            };
-
-            if (existingProduct) {
-              await updateProduct.mutateAsync({
-                id: existingProduct.id,
-                data: productData,
-              });
-            } else {
-              await addProduct.mutateAsync(productData);
-            }
-
-            return { success: true, skipped: false };
-          } catch (error) {
-            return { success: false, skipped: false };
-          }
-        });
-
-        // Process batch
-        const batchResults = await Promise.all(batchPromises);
-
-        // Update counters
-        batchResults.forEach((result) => {
-          if (result.success) {
-            importedCount++;
-          } else {
-            skippedCount++;
-          }
-        });
-
-        // Update progress less frequently for better performance
-        const currentProgress = totalCategories + i + batch.length;
-        setImportProgress((prev) => ({
-          ...prev,
-          current: Math.min(currentProgress, prev.total),
-        }));
-
-        // Very minimal delay only between larger batches to keep UI responsive
-        if (i + BATCH_SIZE < processedProducts.length) {
-          await new Promise((resolve) => setTimeout(resolve, 10));
-        }
-      }
-
-      // Complete the import
-      setImportProgress({
-        isImporting: false,
-        current: 0,
-        total: 0,
-        stage: '',
-      });
-
-      showToast(
-        `${t('products.importSuccess')}: ${importedCount} ${t(
-          'products.importCompleted'
-        )} ${skippedCount}`,
-        'success'
-      );
-    } catch (error) {
-      console.error('Import process error:', error);
-      setImportProgress({
-        isImporting: false,
-        current: 0,
-        total: 0,
-        stage: '',
-      });
-      showToast(t('products.importFailed'), 'error');
-    }
-  };
-
   if (isLoading && !isRefreshing) {
     return <LoadingSpinner />;
   }
@@ -951,7 +699,12 @@ export default function Products({ compact = false }: ProductsManagerProps) {
       {!compact && (
         <SafeAreaView>
           <View style={styles.header}>
-            <Text style={styles.title}>{t('products.title')}</Text>
+            <View style={styles.titleContainer}>
+              <Text style={styles.title}>{t('products.title')}</Text>
+              <Text style={styles.dataHint}>
+                {t('products.dataManagementHint')}
+              </Text>
+            </View>
             <View style={styles.headerActions}>
               {/* <TouchableOpacity
                 style={[styles.sortDropdown, { backgroundColor: '#6B7280' }]}
@@ -970,18 +723,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
                   {sortOrder === 'asc' ? '↑' : '↓'}
                 </Text>
               </TouchableOpacity> */}
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: '#10B981' }]}
-                onPress={exportProducts}
-              >
-                <Download size={20} color="#FFFFFF" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: '#F59E0B' }]}
-                onPress={importProducts}
-              >
-                <Upload size={20} color="#FFFFFF" />
-              </TouchableOpacity>
+
               <TouchableOpacity
                 style={styles.categoryButton}
                 onPress={() => setShowCategoryModal(true)}
@@ -1086,36 +828,6 @@ export default function Products({ compact = false }: ProductsManagerProps) {
                   <Settings size={16} color="#6B7280" />
                   <Text style={styles.actionMenuItemText}>
                     {t('products.categories')}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionMenuItem}
-                onPress={() => {
-                  exportProducts();
-                  setShowActionsMenu(false);
-                }}
-              >
-                <View style={styles.actionMenuItemContent}>
-                  <Download size={16} color="#10B981" />
-                  <Text style={styles.actionMenuItemText}>
-                    {t('products.export')}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionMenuItemLast}
-                onPress={() => {
-                  importProducts();
-                  setShowActionsMenu(false);
-                }}
-              >
-                <View style={styles.actionMenuItemContent}>
-                  <Upload size={16} color="#F59E0B" />
-                  <Text style={styles.actionMenuItemText}>
-                    {t('products.import')}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -1883,67 +1595,6 @@ export default function Products({ compact = false }: ProductsManagerProps) {
           </View>
         </SafeAreaView>
       </Modal>
-
-      {/* Import Progress Modal */}
-      <Modal
-        visible={importProgress.isImporting}
-        animationType="fade"
-        transparent={true}
-      >
-        <View style={styles.progressModalOverlay}>
-          <View style={styles.progressModalContainer}>
-            <Text style={styles.progressModalTitle}>
-              {t('products.importingData')}
-            </Text>
-
-            <Text style={styles.progressModalStage}>
-              {importProgress.stage}
-            </Text>
-
-            <View style={styles.progressBarContainer}>
-              <View style={styles.progressBarBackground}>
-                <View
-                  style={[
-                    styles.progressBarFill,
-                    {
-                      width: `${
-                        importProgress.total > 0
-                          ? (importProgress.current / importProgress.total) *
-                            100
-                          : 0
-                      }%`,
-                    },
-                  ]}
-                />
-              </View>
-            </View>
-
-            <Text style={styles.progressModalText}>
-              {importProgress.current} / {importProgress.total}{' '}
-              {t('products.itemsProcessed')}
-            </Text>
-
-            <Text style={styles.progressModalSubtext}>
-              {t('products.pleaseWait')}
-            </Text>
-
-            <TouchableOpacity
-              style={styles.skipAnimationButton}
-              onPress={() => {
-                // Remove all delays for maximum speed
-                setImportProgress((prev) => ({
-                  ...prev,
-                  current: prev.total, // Jump to completion
-                }));
-              }}
-            >
-              <Text style={styles.skipAnimationText}>
-                {t('products.skipAnimation')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -2164,10 +1815,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
+  titleContainer: {
+    flex: 1,
+  },
   title: {
     fontSize: 32,
     fontFamily: 'Inter-Bold',
     color: '#111827',
+  },
+  dataHint: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    marginTop: 2,
   },
   headerActions: {
     flexDirection: 'row',
@@ -2633,75 +2293,5 @@ const styles = StyleSheet.create({
   },
   categoryActions: {
     flexDirection: 'row',
-  },
-  progressModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  progressModalContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 24,
-    margin: 20,
-    minWidth: 280,
-    alignItems: 'center',
-  },
-  progressModalTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  progressModalStage: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  progressBarContainer: {
-    width: '100%',
-    marginBottom: 12,
-  },
-  progressBarBackground: {
-    width: '100%',
-    height: 8,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#10B981',
-    borderRadius: 4,
-  },
-  progressModalText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Medium',
-    color: '#111827',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  progressModalSubtext: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    textAlign: 'center',
-  },
-  skipAnimationButton: {
-    marginTop: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 6,
-  },
-  skipAnimationText: {
-    fontSize: 12,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-    textAlign: 'center',
   },
 });

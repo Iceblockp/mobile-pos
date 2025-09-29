@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -26,7 +27,10 @@ import {
 import { useTranslation } from '@/context/LocalizationContext';
 import { useToast } from '@/context/ToastContext';
 import { useDatabase } from '@/context/DatabaseContext';
-import { useShopSettings } from '@/context/ShopSettingsContext';
+import {
+  DataExportService,
+  ExportProgress,
+} from '@/services/dataExportService';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 
@@ -53,8 +57,24 @@ export default function DataExport() {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { db } = useDatabase();
-  const { shopSettings, shopSettingsService } = useShopSettings();
   const [isExporting, setIsExporting] = useState<string | null>(null);
+  const [exportProgress, setExportProgress] = useState<ExportProgress | null>(
+    null
+  );
+  const [exportService, setExportService] = useState<DataExportService | null>(
+    null
+  );
+
+  // Initialize export service when database is ready
+  React.useEffect(() => {
+    if (db) {
+      const service = new DataExportService(db);
+      service.onProgress((progress) => {
+        setExportProgress(progress);
+      });
+      setExportService(service);
+    }
+  }, [db]);
 
   const exportOptions: ExportOption[] = [
     {
@@ -111,15 +131,7 @@ export default function DataExport() {
       backgroundColor: '#FEF2F2',
       dataType: 'expenses',
     },
-    {
-      id: 'shopSettings',
-      title: 'Shop Settings',
-      description: 'Export shop information, branding, and receipt templates',
-      icon: Store,
-      color: '#059669',
-      backgroundColor: '#ECFDF5',
-      dataType: 'shopSettings',
-    },
+
     {
       id: 'complete',
       title: t('dataExport.completeBackup'),
@@ -131,367 +143,76 @@ export default function DataExport() {
     },
   ];
 
-  // Helper function to get all sales with items
-  const getAllSalesWithItems = async () => {
-    if (!db) throw new Error('Database not available');
-
-    // Get sales from a very early date to get all records
-    const startDate = new Date('2020-01-01');
-    const endDate = new Date();
-    const sales = await db.getSalesByDateRange(startDate, endDate, 10000); // Large limit to get all
-
-    // Get sale items for each sale
-    const salesWithItems = await Promise.all(
-      sales.map(async (sale) => {
-        if (!db) throw new Error('Database not available');
-        const items = await db.getSaleItems(sale.id);
-        return {
-          ...sale,
-          items,
-        };
-      })
-    );
-
-    return salesWithItems;
-  };
-
-  // Helper function to get all expenses
-  const getAllExpenses = async () => {
-    if (!db) throw new Error('Database not available');
-
-    // Get expenses from a very early date to get all records
-    const startDate = new Date('2020-01-01');
-    const endDate = new Date();
-    return await db.getExpensesByDateRange(startDate, endDate, 10000); // Large limit to get all
-  };
-
-  // Helper function to get all customers with purchase history
-  const getAllCustomersWithHistory = async () => {
-    if (!db) throw new Error('Database not available');
-
-    try {
-      const customers = await db.getCustomers();
-
-      // Get purchase history and statistics for each customer
-      const customersWithHistory = await Promise.all(
-        customers.map(async (customer) => {
-          if (!db) throw new Error('Database not available');
-          try {
-            const purchaseHistory = await db.getCustomerPurchaseHistory(
-              customer.id
-            );
-            const statistics = await db.getCustomerStatistics(customer.id);
-            return {
-              ...customer,
-              purchaseHistory,
-              statistics,
-            };
-          } catch (error) {
-            // If customer methods fail, return customer without additional data
-            return {
-              ...customer,
-              purchaseHistory: [],
-              statistics: {
-                totalSpent: 0,
-                visitCount: 0,
-                averageOrderValue: 0,
-                lastVisit: null,
-              },
-            };
-          }
-        })
-      );
-
-      return customersWithHistory;
-    } catch (error) {
-      // If customers table doesn't exist, return empty array
-      console.warn('Customers table not available:', error);
-      return [];
-    }
-  };
-
-  // Helper function to get all stock movements
-  const getAllStockMovements = async () => {
-    if (!db) throw new Error('Database not available');
-
-    try {
-      // Get all stock movements with large page size
-      return await db.getStockMovements({}, 1, 10000);
-    } catch (error) {
-      // If stock movements table doesn't exist, return empty array
-      console.warn('Stock movements table not available:', error);
-      return [];
-    }
-  };
-
-  // Helper function to get all bulk pricing data
-  const getAllBulkPricing = async () => {
-    if (!db) throw new Error('Database not available');
-
-    try {
-      const products = await db.getProducts();
-      const bulkPricingData = await Promise.all(
-        products.map(async (product) => {
-          if (!db) throw new Error('Database not available');
-          try {
-            const bulkTiers = await db.getBulkPricingForProduct(product.id);
-            return {
-              productId: product.id,
-              productName: product.name,
-              bulkTiers,
-            };
-          } catch (error) {
-            // If bulk pricing methods fail, return product without bulk pricing
-            return {
-              productId: product.id,
-              productName: product.name,
-              bulkTiers: [],
-            };
-          }
-        })
-      );
-
-      // Filter out products without bulk pricing
-      return bulkPricingData.filter((item) => item.bulkTiers.length > 0);
-    } catch (error) {
-      // If bulk pricing table doesn't exist, return empty array
-      console.warn('Bulk pricing table not available:', error);
-      return [];
-    }
-  };
-
   const handleExport = async (option: ExportOption) => {
-    if (!db) {
-      showToast('Database not ready', 'error');
+    if (!exportService) {
+      showToast('Export service not ready', 'error');
       return;
     }
 
     setIsExporting(option.id);
+    setExportProgress(null);
 
     try {
-      let data: any = {};
-      let filename = '';
-      const timestamp = new Date().toISOString().split('T')[0];
+      let result;
 
       switch (option.dataType) {
         case 'sales':
-          // Fetch all sales data with items
-          const salesWithItems = await getAllSalesWithItems();
-
-          data = {
-            sales: salesWithItems,
-            exportDate: new Date().toISOString(),
-            totalRecords: salesWithItems.length,
-            totalRevenue: salesWithItems.reduce(
-              (sum, sale) => sum + sale.total,
-              0
-            ),
-            message: 'Sales data export with transaction details',
-          };
-          filename = `sales_export_${timestamp}.json`;
+          result = await exportService.exportSales();
           break;
-
         case 'products':
-          // Fetch products, categories, and suppliers
-          const products = await db.getProducts();
-          const categories = await db.getCategories();
-          const suppliers = await db.getSuppliers();
-
-          data = {
-            products,
-            categories,
-            suppliers,
-            exportDate: new Date().toISOString(),
-            totalProducts: products.length,
-            totalCategories: categories.length,
-            totalSuppliers: suppliers.length,
-            message: 'Complete products and inventory data export',
-          };
-          filename = `products_export_${timestamp}.json`;
+          result = await exportService.exportProducts();
           break;
-
         case 'expenses':
-          // Fetch expenses and expense categories
-          const expenses = await getAllExpenses();
-          const expenseCategories = await db.getExpenseCategories();
-
-          data = {
-            expenses,
-            expenseCategories,
-            exportDate: new Date().toISOString(),
-            totalExpenses: expenses.length,
-            totalCategories: expenseCategories.length,
-            totalAmount: expenses.reduce((sum, exp) => sum + exp.amount, 0),
-            message: 'Complete expenses data export',
-          };
-          filename = `expenses_export_${timestamp}.json`;
+          result = await exportService.exportExpenses();
           break;
-
         case 'customers':
-          // Fetch all customers with purchase history
-          const customersWithHistory = await getAllCustomersWithHistory();
-
-          data = {
-            customers: customersWithHistory,
-            exportDate: new Date().toISOString(),
-            totalCustomers: customersWithHistory.length,
-            totalCustomerValue: customersWithHistory.reduce(
-              (sum, customer) => sum + (customer.statistics?.totalSpent || 0),
-              0
-            ),
-            message:
-              'Customer data export with purchase history and statistics',
-          };
-          filename = `customers_export_${timestamp}.json`;
+          result = await exportService.exportCustomers();
           break;
-
         case 'stockMovements':
-          // Fetch all stock movements
-          const stockMovements = await getAllStockMovements();
-
-          data = {
-            stockMovements,
-            exportDate: new Date().toISOString(),
-            totalMovements: stockMovements.length,
-            stockInMovements: stockMovements.filter(
-              (m) => m.type === 'stock_in'
-            ).length,
-            stockOutMovements: stockMovements.filter(
-              (m) => m.type === 'stock_out'
-            ).length,
-            message:
-              'Stock movement history export with complete tracking data',
-          };
-          filename = `stock_movements_export_${timestamp}.json`;
+          result = await exportService.exportStockMovements();
           break;
-
         case 'bulkPricing':
-          // Fetch all bulk pricing data
-          const bulkPricingData = await getAllBulkPricing();
-
-          data = {
-            bulkPricing: bulkPricingData,
-            exportDate: new Date().toISOString(),
-            productsWithBulkPricing: bulkPricingData.length,
-            totalBulkTiers: bulkPricingData.reduce(
-              (sum, item) => sum + item.bulkTiers.length,
-              0
-            ),
-            message: 'Bulk pricing configuration export with all tier data',
-          };
-          filename = `bulk_pricing_export_${timestamp}.json`;
+          result = await exportService.exportBulkPricing();
           break;
-
-        case 'shopSettings':
-          // Fetch shop settings and templates
-          const exportShopSettings = shopSettingsService
-            ? await shopSettingsService.getShopSettings()
-            : null;
-          const availableTemplates = shopSettingsService
-            ? shopSettingsService.getAvailableTemplates()
-            : [];
-
-          data = {
-            shopSettings: exportShopSettings,
-            availableTemplates: availableTemplates.map((template) => ({
-              id: template.id,
-              name: template.name,
-              description: template.description,
-            })),
-            exportDate: new Date().toISOString(),
-            hasShopSettings: exportShopSettings !== null,
-            shopName: exportShopSettings?.shopName || 'Not configured',
-            receiptTemplate: exportShopSettings?.receiptTemplate || 'classic',
-            message: 'Shop settings and branding configuration export',
-          };
-          filename = `shop_settings_export_${timestamp}.json`;
-          break;
-
         case 'all':
-          // Fetch all data for complete backup
-          const allSalesWithItems = await getAllSalesWithItems();
-          const allProducts = await db.getProducts();
-          const allCategories = await db.getCategories();
-          const allSuppliers = await db.getSuppliers();
-          const allExpenses = await getAllExpenses();
-          const allExpenseCategories = await db.getExpenseCategories();
-          const allCustomersWithHistory = await getAllCustomersWithHistory();
-          const allStockMovements = await getAllStockMovements();
-          const allBulkPricing = await getAllBulkPricing();
-
-          // Get shop settings
-          const currentShopSettings = shopSettingsService
-            ? await shopSettingsService.getShopSettings()
-            : null;
-
-          data = {
-            sales: allSalesWithItems,
-            products: allProducts,
-            categories: allCategories,
-            suppliers: allSuppliers,
-            expenses: allExpenses,
-            expenseCategories: allExpenseCategories,
-            customers: allCustomersWithHistory,
-            stockMovements: allStockMovements,
-            bulkPricing: allBulkPricing,
-            shopSettings: currentShopSettings,
-            exportDate: new Date().toISOString(),
-            summary: {
-              totalSales: allSalesWithItems.length,
-              totalProducts: allProducts.length,
-              totalCategories: allCategories.length,
-              totalSuppliers: allSuppliers.length,
-              totalExpenses: allExpenses.length,
-              totalExpenseCategories: allExpenseCategories.length,
-              totalCustomers: allCustomersWithHistory.length,
-              totalStockMovements: allStockMovements.length,
-              productsWithBulkPricing: allBulkPricing.length,
-              hasShopSettings: currentShopSettings !== null,
-              shopName: currentShopSettings?.shopName || 'Not configured',
-              totalRevenue: allSalesWithItems.reduce(
-                (sum, sale) => sum + sale.total,
-                0
-              ),
-              totalExpenseAmount: allExpenses.reduce(
-                (sum, exp) => sum + exp.amount,
-                0
-              ),
-              totalCustomerValue: allCustomersWithHistory.reduce(
-                (sum, customer) => sum + (customer.statistics?.totalSpent || 0),
-                0
-              ),
-            },
-            message: 'Complete Mobile POS data backup with enhanced features',
-          };
-          filename = `complete_backup_${timestamp}.json`;
+          result = await exportService.exportCompleteBackup();
           break;
+        default:
+          throw new Error(`Unsupported export type: ${option.dataType}`);
       }
 
-      // Create the file
-      const fileUri = FileSystem.documentDirectory + filename;
-      await FileSystem.writeAsStringAsync(
-        fileUri,
-        JSON.stringify(data, null, 2)
-      );
-
-      // Share the file
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri, {
-          mimeType: 'application/json',
-          dialogTitle: `Export ${option.title}`,
-        });
-        showToast(
-          `${option.title} ${t('dataExport.exportSuccess')}`,
-          'success'
-        );
+      if (result.success && result.fileUri) {
+        // Share the file
+        try {
+          await exportService.shareExportFile(
+            result.fileUri,
+            `Export ${option.title}`
+          );
+          showToast(
+            `${option.title} exported successfully! ${result.recordCount} records exported.`,
+            'success'
+          );
+        } catch (shareError) {
+          // If sharing fails, still show success but mention file location
+          showToast(
+            `${option.title} exported successfully! File saved: ${result.filename}`,
+            'success'
+          );
+        }
       } else {
-        showToast(t('dataExport.sharingNotAvailable'), 'error');
+        throw new Error(result.error || 'Export failed');
       }
     } catch (error) {
       console.error('Export error:', error);
-      showToast(`${t('dataExport.exportFailed')} ${option.title}`, 'error');
+      showToast(
+        `${t('dataExport.exportFailed')} ${option.title}: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+        'error'
+      );
     } finally {
       setIsExporting(null);
+      setExportProgress(null);
     }
   };
 
@@ -631,6 +352,45 @@ export default function DataExport() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Export Progress Modal */}
+      {exportProgress && (
+        <Modal visible={true} animationType="fade" transparent={true}>
+          <View style={styles.progressModalOverlay}>
+            <View style={styles.progressModalContainer}>
+              <Text style={styles.progressModalTitle}>
+                {t('dataExport.exporting')}
+              </Text>
+
+              <Text style={styles.progressModalStage}>
+                {exportProgress.stage}
+              </Text>
+
+              <View style={styles.progressBarContainer}>
+                <View style={styles.progressBarBackground}>
+                  <View
+                    style={[
+                      styles.progressBarFill,
+                      {
+                        width: `${exportProgress.percentage}%`,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+
+              <Text style={styles.progressModalText}>
+                {exportProgress.current} / {exportProgress.total}{' '}
+                {t('dataExport.itemsProcessed')}
+              </Text>
+
+              <Text style={styles.progressModalSubtext}>
+                {t('dataExport.pleaseWait')}
+              </Text>
+            </View>
+          </View>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
@@ -821,5 +581,62 @@ const styles = StyleSheet.create({
     color: '#7F1D1D',
     lineHeight: 20,
     marginBottom: 4,
+  },
+  progressModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 24,
+    margin: 20,
+    minWidth: 280,
+    alignItems: 'center',
+  },
+  progressModalTitle: {
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  progressModalStage: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  progressBarContainer: {
+    width: '100%',
+    marginBottom: 12,
+  },
+  progressBarBackground: {
+    width: '100%',
+    height: 8,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#10B981',
+    borderRadius: 4,
+  },
+  progressModalText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#111827',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  progressModalSubtext: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    textAlign: 'center',
   },
 });

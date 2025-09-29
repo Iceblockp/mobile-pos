@@ -518,6 +518,8 @@ export const my: TranslationKeys = {
     itemsProcessed: 'ပစ္စည်းများလုပ်ဆောင်ပြီး',
     pleaseWait: 'ကျေးဇူးပြု၍ စောင့်ပါ၊ ဒါက အချိန်အနည်းငယ်ကြာနိုင်ပါသည်',
     skipAnimation: 'အဆုံးသို့ကျော်မည်',
+    dataManagementHint:
+      'အချက်အလက်တင်ပို့/ထည့်သွင်းမှုအတွက် ဆက်တင်များ > အချက်အလက်တင်ပို့/ထည့်သွင်းမှု ကိုအသုံးပြုပါ',
   },
   categories: {
     title: 'အမျိုးအစားများ',
@@ -980,6 +982,8 @@ export const my: TranslationKeys = {
     exportSuccess: 'အောင်မြင်စွာတင်ပို့ပါပြီ!',
     exportFailed: 'တင်ပို့ရန်မအောင်မြင်ပါ',
     sharingNotAvailable: 'ဒီစက်ပေါ်တွင် မျှဝေခြင်းမရရှိနိုင်ပါ',
+    itemsProcessed: 'အချက်အလက်များ လုပ်ဆောင်ပြီး',
+    pleaseWait: 'သင့်တင်ပို့မှုကို ပြင်ဆင်နေစဉ် ကျေးဇူးပြု၍ စောင့်ပါ...',
   },
   dataImport: {
     title: 'အချက်အလက်ထည့်သွင်းမှု',
@@ -1031,8 +1035,20 @@ export const my: TranslationKeys = {
     importingStockMovements: 'စတော့လှုပ်ရှားမှုများထည့်သွင်းနေသည်...',
     importComplete: 'ထည့်သွင်းမှုပြီးစီးပါပြီ!',
     imported: 'ထည့်သွင်းပြီး',
+    updated: 'အပ်ဒိတ်လုပ်ပြီး',
     skipped: 'ကျော်သွားသည်',
     importFailed: 'ထည့်သွင်းမှုမအောင်မြင်ပါ',
+    conflictsDetected: 'ပဋိပက္ခများတွေ့ရှိပါသည်',
+    conflictsFound: 'ရှိပြီးသားအချက်အလက်များနှင့် ပဋိပက္ခများတွေ့ရှိ',
+    andMoreConflicts: 'နှင့် နောက်ထပ်ပဋိပက္ခ {{count}} ခု...',
+    updateExisting: 'ရှိပြီးသားကို အပ်ဒိတ်လုပ်မည်',
+    skipConflicts: 'ပဋိပက္ခများကို ကျော်မည်',
+    willUpdateExisting:
+      'ရှိပြီးသားမှတ်တမ်းများကို ထည့်သွင်းထားသောအချက်အလက်ဖြင့် အပ်ဒိတ်လုပ်မည်',
+    willSkipConflicts: 'ပဋိပက္ခရှိသောမှတ်တမ်းများကို ကျော်သွားမည်',
+    importCompleteWithErrors: 'အမှားများနှင့်အတူ ထည့်သွင်းမှုပြီးစီး',
+    errorsOccurred: 'ထည့်သွင်းမှုအတွင်း အမှားများဖြစ်ပွား',
+    checkLogs: 'နောက်ထပ်အချက်အလက်များအတွက် အသေးစိတ်ကို စစ်ဆေးပါ',
   },
   about: {
     title: 'အကြောင်း',

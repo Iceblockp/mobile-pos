@@ -506,6 +506,8 @@ export const en = {
     itemsProcessed: 'items processed',
     pleaseWait: 'Please wait, this may take a few moments',
     skipAnimation: 'Skip to end',
+    dataManagementHint:
+      'For data export/import, use Settings > Data Export/Import',
   },
   categories: {
     title: 'Categories',
@@ -922,6 +924,8 @@ export const en = {
     exportSuccess: 'exported successfully!',
     exportFailed: 'Failed to export',
     sharingNotAvailable: 'Sharing not available on this device',
+    itemsProcessed: 'items processed',
+    pleaseWait: 'Please wait while we prepare your export...',
   },
   dataImport: {
     title: 'Data Import',
@@ -967,8 +971,19 @@ export const en = {
     importingStockMovements: 'Importing stock movements...',
     importComplete: 'Import complete!',
     imported: 'imported',
+    updated: 'updated',
     skipped: 'skipped',
     importFailed: 'Import failed',
+    conflictsDetected: 'Conflicts Detected',
+    conflictsFound: 'conflicts found with existing data',
+    andMoreConflicts: 'and {{count}} more conflicts...',
+    updateExisting: 'Update Existing',
+    skipConflicts: 'Skip Conflicts',
+    willUpdateExisting: 'Will update existing records with imported data',
+    willSkipConflicts: 'Will skip conflicting records',
+    importCompleteWithErrors: 'Import Complete with Errors',
+    errorsOccurred: 'errors occurred during import',
+    checkLogs: 'Check the details for more information',
   },
   about: {
     title: 'About',
