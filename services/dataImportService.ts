@@ -294,9 +294,17 @@ export class DataImportService {
       const fileContent = await FileSystem.readAsStringAsync(fileUri);
       const importData = JSON.parse(fileContent);
 
+      console.log('Import data structure:', Object.keys(importData));
+      console.log(
+        'Import data.data structure:',
+        importData.data ? Object.keys(importData.data) : 'No data field'
+      );
+
       if (!importData.data || !importData.data.products) {
         throw new Error('No products data found in import file');
       }
+
+      console.log('Products to import:', importData.data.products.length);
 
       const products = importData.data.products;
       const categories = importData.data.categories || [];
@@ -351,6 +359,11 @@ export class DataImportService {
             const validation =
               this.validationService.validateProductData(product);
             if (!validation.isValid) {
+              console.log(
+                'Product validation failed:',
+                product.name,
+                validation.errors
+              );
               validation.errors.forEach((error) => {
                 errors.push({
                   index: globalIndex,
@@ -363,6 +376,8 @@ export class DataImportService {
               skipped++;
               continue;
             }
+
+            console.log('Processing product:', product.name);
 
             // Check for conflicts
             const existingProduct = existingProducts.find(
@@ -386,14 +401,14 @@ export class DataImportService {
 
                 await this.db.updateProduct(existingProduct.id, {
                   name: product.name,
-                  barcode: product.barcode || undefined,
+                  barcode: product.barcode || null,
                   category_id: categoryId,
                   price: product.price,
                   cost: product.cost,
                   quantity: product.quantity || 0,
                   min_stock: product.min_stock || 10,
-                  supplier_id: supplierId,
-                  imageUrl: product.imageUrl || undefined,
+                  supplier_id: supplierId || null,
+                  imageUrl: product.imageUrl || null,
                 });
                 updated++;
               } else {
@@ -416,17 +431,26 @@ export class DataImportService {
                 product.supplier || suppliers[0]?.name
               );
 
-              await this.db.addProduct({
+              console.log(
+                'Adding product to database:',
+                product.name,
+                'categoryId:',
+                categoryId,
+                'supplierId:',
+                supplierId
+              );
+              const newProductId = await this.db.addProduct({
                 name: product.name,
-                barcode: product.barcode || undefined,
+                barcode: product.barcode || null,
                 category_id: categoryId,
                 price: product.price,
                 cost: product.cost,
                 quantity: product.quantity || 0,
                 min_stock: product.min_stock || 10,
-                supplier_id: supplierId,
-                imageUrl: product.imageUrl || undefined,
+                supplier_id: supplierId || null,
+                imageUrl: product.imageUrl || null,
               });
+              console.log('Product added successfully with ID:', newProductId);
               imported++;
             }
           } catch (error) {
@@ -891,6 +915,275 @@ export class DataImportService {
     }
   }
 
+  // Import sales
+  async importSales(
+    fileUri: string,
+    options: ImportOptions
+  ): Promise<ImportResult> {
+    const startTime = Date.now();
+    let imported = 0;
+    let updated = 0;
+    let skipped = 0;
+    const errors: ImportError[] = [];
+    const conflicts: DataConflict[] = [];
+
+    try {
+      const fileContent = await FileSystem.readAsStringAsync(fileUri);
+      const importData = JSON.parse(fileContent);
+
+      if (!importData.data || !importData.data.sales) {
+        throw new Error('No sales data found in import file');
+      }
+
+      const sales = importData.data.sales;
+
+      this.updateProgress('Importing sales...', 0, sales.length);
+
+      // Process sales in batches
+      for (let i = 0; i < sales.length; i += options.batchSize) {
+        const batch = sales.slice(i, i + options.batchSize);
+
+        for (const [batchIndex, sale] of batch.entries()) {
+          const globalIndex = i + batchIndex;
+
+          try {
+            // Validate sales data
+            const validation = this.validationService.validateSalesData(sale);
+            if (!validation.isValid) {
+              validation.errors.forEach((error) => {
+                errors.push({
+                  index: globalIndex,
+                  record: sale,
+                  field: error.field,
+                  message: error.message,
+                  code: error.code,
+                });
+              });
+              skipped++;
+              continue;
+            }
+
+            // Add sale with items (sales are typically not updated, just added)
+            const saleItems =
+              sale.items && Array.isArray(sale.items)
+                ? sale.items.map((item: any) => ({
+                    product_id: item.product_id,
+                    quantity: item.quantity,
+                    price: item.price,
+                    cost: item.cost || 0,
+                    discount: item.discount || 0,
+                    subtotal: item.subtotal,
+                  }))
+                : [];
+
+            await this.db.addSale(
+              {
+                total: sale.total,
+                payment_method: sale.payment_method,
+                note: sale.note || null,
+                customer_id: sale.customer_id || null,
+              },
+              saleItems
+            );
+
+            imported++;
+          } catch (error) {
+            errors.push({
+              index: globalIndex,
+              record: sale,
+              message:
+                error instanceof Error ? error.message : 'Unknown import error',
+              code: 'IMPORT_ERROR',
+            });
+            skipped++;
+          }
+
+          this.updateProgress(
+            'Importing sales...',
+            globalIndex + 1,
+            sales.length
+          );
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+
+      return {
+        success: true,
+        imported,
+        updated,
+        skipped,
+        errors,
+        conflicts,
+        duration: Date.now() - startTime,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        imported,
+        updated,
+        skipped,
+        errors: [
+          {
+            index: -1,
+            record: null,
+            message:
+              error instanceof Error ? error.message : 'Unknown import error',
+            code: 'IMPORT_FAILED',
+          },
+        ],
+        conflicts,
+        duration: Date.now() - startTime,
+      };
+    }
+  }
+
+  // Import expenses
+  async importExpenses(
+    fileUri: string,
+    options: ImportOptions
+  ): Promise<ImportResult> {
+    const startTime = Date.now();
+    let imported = 0;
+    let updated = 0;
+    let skipped = 0;
+    const errors: ImportError[] = [];
+    const conflicts: DataConflict[] = [];
+
+    try {
+      const fileContent = await FileSystem.readAsStringAsync(fileUri);
+      const importData = JSON.parse(fileContent);
+
+      if (!importData.data || !importData.data.expenses) {
+        throw new Error('No expenses data found in import file');
+      }
+
+      const expenses = importData.data.expenses;
+      const expenseCategories = importData.data.expenseCategories || [];
+
+      this.updateProgress(
+        'Importing expense categories...',
+        0,
+        expenses.length + expenseCategories.length
+      );
+
+      // Import expense categories first
+      const existingExpenseCategories = await this.db.getExpenseCategories();
+      let categoryProgress = 0;
+
+      for (const category of expenseCategories) {
+        const existingCategory = existingExpenseCategories.find(
+          (c) => c.name === category.name
+        );
+        if (!existingCategory) {
+          try {
+            await this.db.addExpenseCategory(
+              category.name,
+              category.description || ''
+            );
+          } catch (error) {
+            console.error('Error adding expense category:', error);
+          }
+        }
+        categoryProgress++;
+        this.updateProgress(
+          'Importing expense categories...',
+          categoryProgress,
+          expenseCategories.length
+        );
+      }
+
+      // Process expenses in batches
+      this.updateProgress('Importing expenses...', 0, expenses.length);
+
+      for (let i = 0; i < expenses.length; i += options.batchSize) {
+        const batch = expenses.slice(i, i + options.batchSize);
+
+        for (const [batchIndex, expense] of batch.entries()) {
+          const globalIndex = i + batchIndex;
+
+          try {
+            // Validate expense data
+            const validation =
+              this.validationService.validateExpenseData(expense);
+            if (!validation.isValid) {
+              validation.errors.forEach((error) => {
+                errors.push({
+                  index: globalIndex,
+                  record: expense,
+                  field: error.field,
+                  message: error.message,
+                  code: error.code,
+                });
+              });
+              skipped++;
+              continue;
+            }
+
+            // Find or create expense category
+            const categoryId = await this.findOrCreateExpenseCategoryId(
+              expense.category
+            );
+
+            // Add expense (expenses are typically not updated, just added)
+            await this.db.addExpense(
+              categoryId,
+              expense.amount,
+              expense.description || '',
+              expense.date
+            );
+            imported++;
+          } catch (error) {
+            errors.push({
+              index: globalIndex,
+              record: expense,
+              message:
+                error instanceof Error ? error.message : 'Unknown import error',
+              code: 'IMPORT_ERROR',
+            });
+            skipped++;
+          }
+
+          this.updateProgress(
+            'Importing expenses...',
+            globalIndex + 1,
+            expenses.length
+          );
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+
+      return {
+        success: true,
+        imported,
+        updated,
+        skipped,
+        errors,
+        conflicts,
+        duration: Date.now() - startTime,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        imported,
+        updated,
+        skipped,
+        errors: [
+          {
+            index: -1,
+            record: null,
+            message:
+              error instanceof Error ? error.message : 'Unknown import error',
+            code: 'IMPORT_FAILED',
+          },
+        ],
+        conflicts,
+        duration: Date.now() - startTime,
+      };
+    }
+  }
+
   // Import complete backup
   async importCompleteBackup(
     fileUri: string,
@@ -921,6 +1214,8 @@ export class DataImportService {
         'suppliers',
         'products',
         'customers',
+        'sales',
+        'expenses',
         'bulkPricing',
         'stockMovements',
       ];
@@ -961,6 +1256,12 @@ export class DataImportService {
                 break;
               case 'customers':
                 result = await this.importCustomers(tempFileUri, options);
+                break;
+              case 'sales':
+                result = await this.importSales(tempFileUri, options);
+                break;
+              case 'expenses':
+                result = await this.importExpenses(tempFileUri, options);
                 break;
               case 'stockMovements':
                 result = await this.importStockMovements(tempFileUri, options);
@@ -1032,7 +1333,6 @@ export class DataImportService {
         const defaultCategory = await this.db.addCategory({
           name: 'General',
           description: 'Default category',
-          created_at: new Date().toISOString(),
         });
         return defaultCategory;
       }
@@ -1048,8 +1348,37 @@ export class DataImportService {
       return await this.db.addCategory({
         name: categoryName,
         description: '',
-        created_at: new Date().toISOString(),
       });
+    }
+  }
+
+  // Helper method to find or create expense category ID
+  private async findOrCreateExpenseCategoryId(
+    categoryName?: string
+  ): Promise<number> {
+    if (!categoryName) {
+      // Return default expense category ID or create one
+      const categories = await this.db.getExpenseCategories();
+      if (categories.length > 0) {
+        return categories[0].id;
+      } else {
+        // Create default expense category
+        const defaultCategory = await this.db.addExpenseCategory(
+          'General',
+          'Default expense category'
+        );
+        return defaultCategory;
+      }
+    }
+
+    const categories = await this.db.getExpenseCategories();
+    const existingCategory = categories.find((c) => c.name === categoryName);
+
+    if (existingCategory) {
+      return existingCategory.id;
+    } else {
+      // Create new expense category
+      return await this.db.addExpenseCategory(categoryName, '');
     }
   }
 

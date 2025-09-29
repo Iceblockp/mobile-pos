@@ -932,9 +932,18 @@ export const en = {
     subtitle: 'Import business data from backup files',
     importOptions: 'Import Options',
     chooseData: 'Choose what data you want to import into your POS system',
+    salesData: 'Sales Data',
+    salesDataDesc:
+      'Import sales transactions and payment records from backup files',
+    productsInventory: 'Products & Inventory',
+    productsInventoryDesc:
+      'Import product catalog, categories, suppliers, and pricing from backup files',
     customersData: 'Customer Data',
     customersDataDesc:
       'Import customer information and purchase history from backup files',
+    expensesData: 'Expenses Data',
+    expensesDataDesc:
+      'Import business expenses and categories from backup files',
     stockMovements: 'Stock Movements',
     stockMovementsDesc:
       'Import historical stock movement data for inventory tracking',

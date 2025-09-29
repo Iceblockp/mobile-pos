@@ -82,6 +82,24 @@ export default function DataImport() {
 
   const importOptions: ImportOption[] = [
     {
+      id: 'sales',
+      title: t('dataImport.salesData'),
+      description: t('dataImport.salesDataDesc'),
+      icon: DollarSign,
+      color: '#10B981',
+      backgroundColor: '#ECFDF5',
+      dataType: 'sales',
+    },
+    {
+      id: 'products',
+      title: t('dataImport.productsInventory'),
+      description: t('dataImport.productsInventoryDesc'),
+      icon: Package,
+      color: '#3B82F6',
+      backgroundColor: '#EFF6FF',
+      dataType: 'products',
+    },
+    {
       id: 'customers',
       title: t('dataImport.customersData'),
       description: t('dataImport.customersDataDesc'),
@@ -91,13 +109,13 @@ export default function DataImport() {
       dataType: 'customers',
     },
     {
-      id: 'bulkPricing',
-      title: t('dataImport.bulkPricing'),
-      description: t('dataImport.bulkPricingDesc'),
-      icon: Tag,
-      color: '#8B5CF6',
-      backgroundColor: '#F5F3FF',
-      dataType: 'bulkPricing',
+      id: 'expenses',
+      title: t('dataImport.expensesData'),
+      description: t('dataImport.expensesDataDesc'),
+      icon: FileText,
+      color: '#EF4444',
+      backgroundColor: '#FEF2F2',
+      dataType: 'expenses',
     },
     {
       id: 'stockMovements',
@@ -107,6 +125,15 @@ export default function DataImport() {
       color: '#06B6D4',
       backgroundColor: '#ECFEFF',
       dataType: 'stockMovements',
+    },
+    {
+      id: 'bulkPricing',
+      title: t('dataImport.bulkPricing'),
+      description: t('dataImport.bulkPricingDesc'),
+      icon: Tag,
+      color: '#8B5CF6',
+      backgroundColor: '#F5F3FF',
+      dataType: 'bulkPricing',
     },
     {
       id: 'complete',
@@ -203,17 +230,25 @@ export default function DataImport() {
       let result;
 
       switch (option.dataType) {
+        case 'sales':
+          result = await importService.importSales(fileUri, importOptions);
+          break;
+        case 'products':
+          result = await importService.importProducts(fileUri, importOptions);
+          break;
         case 'customers':
           result = await importService.importCustomers(fileUri, importOptions);
           break;
-        case 'bulkPricing':
-          result = await importService.importBulkPricing(
+        case 'expenses':
+          result = await importService.importExpenses(fileUri, importOptions);
+        case 'stockMovements':
+          result = await importService.importStockMovements(
             fileUri,
             importOptions
           );
           break;
-        case 'stockMovements':
-          result = await importService.importStockMovements(
+        case 'bulkPricing':
+          result = await importService.importBulkPricing(
             fileUri,
             importOptions
           );
