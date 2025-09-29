@@ -51,7 +51,7 @@ export default function Inventory() {
   const { showToast } = useToast();
   const { formatPrice } = useCurrencyFormatter();
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<InventoryTab>('overview');
+  const [activeTab, setActiveTab] = useState<InventoryTab>('products');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [adjustmentQuantity, setAdjustmentQuantity] = useState('');
   const [showAdjustment, setShowAdjustment] = useState(false);
@@ -296,14 +296,14 @@ export default function Inventory() {
                       >
                         <TrendingDown size={12} color="#FFFFFF" />
                       </TouchableOpacity>
-                      <TouchableOpacity
+                      {/* <TouchableOpacity
                         style={styles.adjustButton}
                         onPress={() => handleStockAdjustment(item)}
                       >
                         <Text style={styles.adjustButtonText}>
                           {t('inventory.adjust')}
                         </Text>
-                      </TouchableOpacity>
+                      </TouchableOpacity> */}
                     </View>
                   </View>
                 )}
@@ -324,100 +324,6 @@ export default function Inventory() {
               />
             </Card>
           )}
-
-          {/* <Card>
-            <View style={styles.searchHeader}>
-              <Text style={styles.sectionTitle}>
-                {t('inventory.allProducts')}
-              </Text>
-              <View style={styles.searchContainer}>
-                <View style={styles.searchInputContainer}>
-                  <Search size={20} color="#6B7280" style={styles.searchIcon} />
-                  <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search products, barcode, category..."
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    placeholderTextColor="#9CA3AF"
-                  />
-                  {searchQuery.length > 0 && (
-                    <TouchableOpacity
-                      onPress={() => setSearchQuery('')}
-                      style={styles.clearButton}
-                    >
-                      <Text style={styles.clearButtonText}>×</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-                <TouchableOpacity
-                  style={styles.scanButton}
-                  onPress={() => setShowScanner(true)}
-                >
-                  <Scan size={20} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-            </View>
-            {filteredProducts.length > 0 ? (
-              
-              <FlatList
-                data={filteredProducts}
-                keyExtractor={(item) => item.id.toString()}
-                scrollEnabled={false} // Since inside ScrollView
-                renderItem={({ item }) => {
-                  const status = getStockStatus(item);
-                  return (
-                    <View style={styles.productItem}>
-                      {item.imageUrl && (
-                        <Image
-                          source={{ uri: item.imageUrl }}
-                          style={styles.productImage}
-                          resizeMode="cover"
-                        />
-                      )}
-                      <View style={styles.productInfo}>
-                        <Text style={styles.productName}>{item.name}</Text>
-                        <Text style={styles.productCategory}>
-                          {item.category}
-                        </Text>
-                        <Text style={styles.productPrice}>
-                          {t('inventory.price')}: {formatPrice(item.price)}
-                        </Text>
-                      </View>
-
-                      <View style={styles.productStock}>
-                        <Text style={styles.stockQuantity}>
-                          {item.quantity}
-                        </Text>
-                        <Text
-                          style={[styles.stockStatus, { color: status.color }]}
-                        >
-                          {status.text}
-                        </Text>
-                        <TouchableOpacity
-                          style={styles.adjustButton}
-                          onPress={() => handleStockAdjustment(item)}
-                        >
-                          <Text style={styles.adjustButtonText}>
-                            {t('inventory.adjust')}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  );
-                }}
-              />
-            ) : (
-              <View style={styles.emptyState}>
-                <Package size={32} color="#9CA3AF" />
-                <Text style={styles.emptyStateText}>No products found</Text>
-                <Text style={styles.emptyStateSubtext}>
-                  {searchQuery
-                    ? 'Try adjusting your search terms'
-                    : 'No products available'}
-                </Text>
-              </View>
-            )}
-          </Card> */}
         </View>
 
         {showAdjustment && selectedProduct && (
@@ -489,28 +395,10 @@ export default function Inventory() {
       {/* Tab Navigation */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'overview' && styles.activeTab]}
-          onPress={() => setActiveTab('overview')}
-        >
-          <TrendingUp
-            size={20}
-            color={activeTab === 'overview' ? '#059669' : '#6B7280'}
-          />
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'overview' && styles.activeTabText,
-            ]}
-          >
-            {t('inventory.overview')}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
           style={[styles.tab, activeTab === 'products' && styles.activeTab]}
           onPress={() => setActiveTab('products')}
         >
-          <List
+          <Package
             size={20}
             color={activeTab === 'products' ? '#059669' : '#6B7280'}
           />
@@ -539,6 +427,23 @@ export default function Inventory() {
             ]}
           >
             {t('stockMovement.history')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'overview' && styles.activeTab]}
+          onPress={() => setActiveTab('overview')}
+        >
+          <TrendingUp
+            size={20}
+            color={activeTab === 'overview' ? '#059669' : '#6B7280'}
+          />
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'overview' && styles.activeTabText,
+            ]}
+          >
+            {t('inventory.overview')}
           </Text>
         </TouchableOpacity>
       </View>

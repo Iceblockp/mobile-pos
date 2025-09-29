@@ -29,7 +29,7 @@ import { Product, Category, Supplier } from '@/services/database';
 import {
   Plus,
   Search,
-  CreditCard as Edit,
+  Edit,
   Trash2,
   Package,
   FolderPlus,

@@ -122,6 +122,7 @@ export const en = {
     preparingExport: 'Preparing export...',
     loadingSalesItemsData: 'Loading sales items data...',
     searchBySaleId: 'Search by sale ID or payment method...',
+    selectCustomerOptional: ' Select Customer',
     all: 'All',
     today: 'Today',
     thisMonth: 'This Month',
@@ -312,6 +313,7 @@ export const en = {
     supplier: 'Supplier',
     // Additional inventory translations
     overview: 'Overview',
+
     products: 'Products',
     totalProducts: 'Total Products',
     stock: 'Stock',
@@ -1138,6 +1140,9 @@ export const en = {
 
     selectCustomer: 'Select Customer',
     overview: 'Overview',
+    customers: 'Customers',
+    stock: 'Stock',
+    pricing: 'Pricing',
     patterns: 'Patterns',
     segments: 'Segments',
     selectCustomerToView: 'Select a customer to view analytics',

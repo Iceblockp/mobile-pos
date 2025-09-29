@@ -378,7 +378,7 @@ export class CurrencyErrorBoundary extends React.Component<
     this.setState({
       hasError: true,
       error,
-      errorInfo: errorInfo.componentStack,
+      errorInfo: errorInfo.componentStack || null,
     });
   }
 

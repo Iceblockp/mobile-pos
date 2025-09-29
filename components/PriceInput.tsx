@@ -459,6 +459,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+
 // Export the standardized interface for other components to use
 export type {
   StandardPriceInputProps,
@@ -487,58 +488,6 @@ export const createPriceInputProps = (
   autoFormat: options?.autoFormat !== false,
 });
 
-// Custom debounce hook for price inputs
-const useDebounce = <T>(value: T, delay: number): T => {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-};
-
-// Hook for components that need to manage price state
-export const usePriceState = (initialValue: number = 0) => {
-  const { formatPrice } = useCurrencyFormatter();
-  const [numericValue, setNumericValue] = useState(initialValue);
-  const [stringValue, setStringValue] = useState(() => formatPrice(initialValue));
-
-  // Stable update function that doesn't cause re-renders
-  const updateValue = useCallback((value: string, numeric: number) => {
-    setStringValue(value);
-    setNumericValue(numeric);
-  }, []);
-
-  // Stable numeric setter
-  const setNumericValueDirectly = useCallback(
-    (value: number) => {
-      const formatted = formatPrice(value);
-      setNumericValue(value);
-      setStringValue(formatted);
-    },
-    [formatPrice]
-  );
-
-  // Initialize only when initialValue actually changes
-  const prevInitialValue = useRef(initialValue);
-  useEffect(() => {
-    if (prevInitialValue.current !== initialValue) {
-      prevInitialValue.current = initialValue;
-      setNumericValueDirectly(initialValue);
-    }
-  }, [initialValue, setNumericValueDirectly]);
-
-  return {
-    numericValue,
-    stringValue,
-    updateValue,
-    setNumericValue: setNumericValueDirectly,
-  };
-};
+// Note: useDebounce and usePriceState hooks are available in separate files:
+// - useDebounce is available in components/DebouncedPriceInput.tsx
+// - usePriceState can be created as a separate hook file if needed

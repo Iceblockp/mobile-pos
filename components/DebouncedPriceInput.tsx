@@ -4,6 +4,7 @@ import {
   SimplePriceInput,
   StandardPriceInputProps,
 } from './PriceInput';
+import { useDebounce } from '@/hooks/usePriceInputHooks';
 
 // Custom hook for debounced price input
 const useDebouncedPriceInput = (
@@ -12,38 +13,29 @@ const useDebouncedPriceInput = (
   delay: number = 300
 ) => {
   const [displayValue, setDisplayValue] = useState(initialValue);
-  const [debouncedValue, setDebouncedValue] = useState(initialValue);
+  const debouncedValue = useDebounce(displayValue, delay);
 
   // Update display value immediately for responsive UI
-  const handleImmediateChange = useCallback(
-    (value: string, numericValue: number) => {
-      setDisplayValue(value);
-    },
-    []
-  );
+  const handleImmediateChange = useCallback((value: string) => {
+    setDisplayValue(value);
+  }, []);
 
-  // Debounce the actual value change
+  // Call the debounced change handler when debounced value changes
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (displayValue !== debouncedValue) {
-        setDebouncedValue(displayValue);
-        // Parse the numeric value when debounced
-        const numericValue =
-          parseFloat(displayValue.replace(/[^0-9.-]/g, '')) || 0;
-        onDebouncedChange(displayValue, numericValue);
-      }
-    }, delay);
-
-    return () => clearTimeout(timer);
-  }, [displayValue, debouncedValue, onDebouncedChange, delay]);
+    if (debouncedValue !== initialValue) {
+      // Parse the numeric value when debounced
+      const numericValue =
+        parseFloat(debouncedValue.replace(/[^0-9.-]/g, '')) || 0;
+      onDebouncedChange(debouncedValue, numericValue);
+    }
+  }, [debouncedValue, onDebouncedChange, initialValue]);
 
   // Update display value when external value changes
   useEffect(() => {
     if (initialValue !== displayValue) {
       setDisplayValue(initialValue);
-      setDebouncedValue(initialValue);
     }
-  }, [initialValue]);
+  }, [initialValue, displayValue]);
 
   return {
     displayValue,

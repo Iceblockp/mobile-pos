@@ -24,7 +24,7 @@ export class CurrencyManager {
   private static readonly CURRENCIES: Record<string, CurrencySettings> = {
     MMK: {
       code: 'MMK',
-      symbol: 'K',
+      symbol: 'Ks',
       name: 'Myanmar Kyat',
       decimals: 0,
       symbolPosition: 'after',

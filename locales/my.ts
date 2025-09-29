@@ -104,6 +104,7 @@ export const my: TranslationKeys = {
     noProductsFound: 'ကုန်ပစ္စည်းများမတွေ့ပါ',
     adjustSearch: 'ရှာဖွေမှု သို့မဟုတ် အမျိုးအစားစစ်ထုတ်မှုကို ပြင်ဆင်ကြည့်ပါ',
     // Additional sales-related translations
+    selectCustomerOptional: 'ဖောက်သည် ရွေးချယ်ပါ',
     each: 'တစ်ခုလျှင်',
     searchProducts: 'ကုန်ပစ္စည်းများရှာဖွေပါ...',
     filterByCategory: 'အမျိုးအစားအလိုက်စစ်ထုတ်မည်',
@@ -1217,6 +1218,9 @@ export const my: TranslationKeys = {
 
     selectCustomer: 'ဖောက်သည်ရွေးချယ်မည်',
     overview: 'ခြုံငုံကြည့်ရှုမှု',
+    customers: 'ဖောက်သည်များ',
+    stock: 'လက်ကျန်',
+    pricing: 'စျေးနှုန်း',
     patterns: 'ပုံစံများ',
     segments: 'အုပ်စုများ',
     selectCustomerToView: 'ခွဲခြမ်းစိတ်ဖြာမှုကြည့်ရန် ဖောက်သည်တစ်ဦးရွေးချယ်ပါ',
