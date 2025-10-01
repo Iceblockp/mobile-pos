@@ -36,9 +36,9 @@ import {
   DataConflict,
   ConflictResolution,
 } from '@/services/dataImportService';
-import { ConflictResolutionModal } from '@/components/ConflictResolutionModal';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
+import { ConflictResolutionModal } from '@/components/ConflictResolutionModal';
 
 interface ImportOption {
   id: string;
@@ -303,6 +303,23 @@ export default function DataImport() {
       setIsImporting(null);
       setImportProgress(null);
     }
+  };
+
+  const handleConflictResolution = async (resolution: ConflictResolution) => {
+    // Handle the conflict resolution based on user choice
+    console.log('Conflict resolution:', resolution);
+
+    // Clear conflicts after resolution
+    setConflicts([]);
+
+    // You can implement additional logic here based on the resolution
+    // For now, we'll just show a toast message
+    const actionMessage =
+      resolution.action === 'update'
+        ? t('dataImport.willUpdateExisting')
+        : t('dataImport.willSkipConflicts');
+
+    showToast(actionMessage, 'info');
   };
 
   const showImportInfo = () => {

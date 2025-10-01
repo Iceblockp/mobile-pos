@@ -8,7 +8,13 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { X, AlertTriangle, Check, Skip, Plus } from 'lucide-react-native';
+import {
+  X,
+  AlertTriangle,
+  Check,
+  Plus,
+  SkipForward,
+} from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import { DataConflict, ConflictResolution } from '@/services/dataImportService';
 
@@ -228,7 +234,7 @@ export const ConflictResolutionModal: React.FC<
                 ]}
                 onPress={() => setSelectedResolution('skip')}
               >
-                <Skip
+                <SkipForward
                   size={20}
                   color={selectedResolution === 'skip' ? '#FFFFFF' : '#F59E0B'}
                 />
