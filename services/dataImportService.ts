@@ -6,6 +6,8 @@ import {
   ValidationResult,
   DatabaseSnapshot,
 } from './validationService';
+import { ErrorHandlingService, ErrorResolution } from './errorHandlingService';
+import { PerformanceOptimizationService } from './performanceOptimizationService';
 
 // Import interfaces
 export interface ImportOptions {
@@ -66,11 +68,16 @@ export interface ImportError {
 export class DataImportService {
   private db: DatabaseService;
   private validationService: ValidationService;
+  private errorHandler: ErrorHandlingService;
+  private performanceOptimizer: PerformanceOptimizationService;
   private progressCallback?: (progress: ImportProgress) => void;
+  private currentCheckpointId?: string;
 
   constructor(database: DatabaseService) {
     this.db = database;
     this.validationService = new ValidationService();
+    this.errorHandler = new ErrorHandlingService();
+    this.performanceOptimizer = new PerformanceOptimizationService();
   }
 
   // Progress tracking

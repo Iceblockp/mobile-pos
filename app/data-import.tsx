@@ -23,7 +23,9 @@ import {
   TrendingUp,
   Tag,
   AlertTriangle,
+  HelpCircle,
 } from 'lucide-react-native';
+import DataManagementGuide from '@/components/DataManagementGuide';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useToast } from '@/context/ToastContext';
 import { useDatabase } from '@/context/DatabaseContext';
@@ -32,7 +34,9 @@ import {
   ImportProgress,
   ImportOptions,
   DataConflict,
+  ConflictResolution,
 } from '@/services/dataImportService';
+import { ConflictResolutionModal } from '@/components/ConflictResolutionModal';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 
@@ -68,6 +72,7 @@ export default function DataImport() {
   );
   const [conflicts, setConflicts] = useState<DataConflict[]>([]);
   const [showConflictModal, setShowConflictModal] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   // Initialize import service when database is ready
   React.useEffect(() => {
@@ -322,9 +327,17 @@ export default function DataImport() {
           <Text style={styles.title}>{t('dataImport.title')}</Text>
           <Text style={styles.subtitle}>{t('dataImport.subtitle')}</Text>
         </View>
-        <TouchableOpacity style={styles.infoButton} onPress={showImportInfo}>
-          <Text style={styles.infoButtonText}>?</Text>
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity
+            style={styles.infoButton}
+            onPress={() => setShowGuide(true)}
+          >
+            <HelpCircle size={16} color="#6B7280" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.infoButton} onPress={showImportInfo}>
+            <Text style={styles.infoButtonText}>?</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -465,79 +478,25 @@ export default function DataImport() {
       </ScrollView>
 
       {/* Conflict Resolution Modal */}
-      {showConflictModal && (
-        <Modal visible={true} animationType="slide" transparent={true}>
-          <View style={styles.conflictModalOverlay}>
-            <View style={styles.conflictModalContainer}>
-              <Text style={styles.conflictModalTitle}>
-                {t('dataImport.conflictsDetected')}
-              </Text>
+      <ConflictResolutionModal
+        visible={showConflictModal}
+        conflicts={conflicts}
+        onResolve={(resolution: ConflictResolution) => {
+          setShowConflictModal(false);
+          handleConflictResolution(resolution);
+        }}
+        onCancel={() => {
+          setShowConflictModal(false);
+          setConflicts([]);
+        }}
+      />
 
-              <Text style={styles.conflictModalSubtitle}>
-                {conflicts.length} {t('dataImport.conflictsFound')}
-              </Text>
-
-              <ScrollView style={styles.conflictsList}>
-                {conflicts.slice(0, 5).map((conflict, index) => (
-                  <View key={index} style={styles.conflictItem}>
-                    <Text style={styles.conflictMessage}>
-                      {conflict.message}
-                    </Text>
-                    <Text style={styles.conflictType}>{conflict.type}</Text>
-                  </View>
-                ))}
-                {conflicts.length > 5 && (
-                  <Text style={styles.moreConflictsText}>
-                    {t('dataImport.andMoreConflicts', {
-                      count: conflicts.length - 5,
-                    })}
-                  </Text>
-                )}
-              </ScrollView>
-
-              <View style={styles.conflictActions}>
-                <TouchableOpacity
-                  style={[styles.conflictButton, styles.updateButton]}
-                  onPress={() => {
-                    setShowConflictModal(false);
-                    // Handle update existing records
-                    showToast(t('dataImport.willUpdateExisting'), 'info');
-                  }}
-                >
-                  <Text style={styles.updateButtonText}>
-                    {t('dataImport.updateExisting')}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.conflictButton, styles.skipButton]}
-                  onPress={() => {
-                    setShowConflictModal(false);
-                    // Handle skip conflicts
-                    showToast(t('dataImport.willSkipConflicts'), 'info');
-                  }}
-                >
-                  <Text style={styles.skipButtonText}>
-                    {t('dataImport.skipConflicts')}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.conflictButton, styles.cancelButton]}
-                  onPress={() => {
-                    setShowConflictModal(false);
-                    setConflicts([]);
-                  }}
-                >
-                  <Text style={styles.cancelButtonText}>
-                    {t('common.cancel')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-      )}
+      {/* Data Management Guide */}
+      <DataManagementGuide
+        visible={showGuide}
+        onClose={() => setShowGuide(false)}
+        initialTab="import"
+      />
     </SafeAreaView>
   );
 }
@@ -562,6 +521,10 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     flex: 1,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 8,
   },
   title: {
     fontSize: 20,

@@ -1,6 +1,8 @@
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { DatabaseService } from './database';
+import { ErrorHandlingService } from './errorHandlingService';
+import { PerformanceOptimizationService } from './performanceOptimizationService';
 
 // Export interfaces
 export interface ExportResult {
@@ -67,10 +69,14 @@ export interface ExportData {
 
 export class DataExportService {
   private db: DatabaseService;
+  private errorHandler: ErrorHandlingService;
+  private performanceOptimizer: PerformanceOptimizationService;
   private progressCallback?: (progress: ExportProgress) => void;
 
   constructor(database: DatabaseService) {
     this.db = database;
+    this.errorHandler = new ErrorHandlingService();
+    this.performanceOptimizer = new PerformanceOptimizationService();
   }
 
   // Progress tracking

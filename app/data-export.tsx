@@ -23,7 +23,9 @@ import {
   Users,
   TrendingUp,
   Tag,
+  HelpCircle,
 } from 'lucide-react-native';
+import DataManagementGuide from '@/components/DataManagementGuide';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useToast } from '@/context/ToastContext';
 import { useDatabase } from '@/context/DatabaseContext';
@@ -64,6 +66,7 @@ export default function DataExport() {
   const [exportService, setExportService] = useState<DataExportService | null>(
     null
   );
+  const [showGuide, setShowGuide] = useState(false);
 
   // Initialize export service when database is ready
   React.useEffect(() => {
@@ -238,9 +241,17 @@ export default function DataExport() {
           <Text style={styles.title}>{t('dataExport.title')}</Text>
           <Text style={styles.subtitle}>{t('dataExport.subtitle')}</Text>
         </View>
-        <TouchableOpacity style={styles.infoButton} onPress={showExportInfo}>
-          <Text style={styles.infoButtonText}>?</Text>
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity
+            style={styles.infoButton}
+            onPress={() => setShowGuide(true)}
+          >
+            <HelpCircle size={16} color="#6B7280" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.infoButton} onPress={showExportInfo}>
+            <Text style={styles.infoButtonText}>?</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -391,6 +402,13 @@ export default function DataExport() {
           </View>
         </Modal>
       )}
+
+      {/* Data Management Guide */}
+      <DataManagementGuide
+        visible={showGuide}
+        onClose={() => setShowGuide(false)}
+        initialTab="export"
+      />
     </SafeAreaView>
   );
 }
@@ -415,6 +433,10 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     flex: 1,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 8,
   },
   title: {
     fontSize: 20,

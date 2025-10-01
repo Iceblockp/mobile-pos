@@ -993,6 +993,15 @@ export const en = {
     importCompleteWithErrors: 'Import Complete with Errors',
     errorsOccurred: 'errors occurred during import',
     checkLogs: 'Check the details for more information',
+    existingRecord: 'Existing Record',
+    importedRecord: 'Imported Record',
+    chooseResolution: 'Choose Resolution',
+    updateExistingDesc: 'Replace existing records with imported data',
+    skipConflictsDesc: 'Keep existing records, skip conflicting imports',
+    createNew: 'Create New',
+    createNewDesc: 'Create new records with modified identifiers',
+    applyToAllConflicts: 'Apply this resolution to all conflicts',
+    resolveConflicts: 'Resolve Conflicts',
   },
   about: {
     title: 'About',
@@ -1280,6 +1289,49 @@ export const en = {
     highVolumeSales: 'High Volume Sales',
     avgQuantity: 'Avg Quantity',
     allOptimized: 'All bulk pricing is optimized!',
+  },
+  guide: {
+    dataManagementGuide: 'Data Management Guide',
+    exportTab: 'Export',
+    importTab: 'Import',
+    getStarted: 'Get Started',
+
+    // Export Guide
+    exportOverview: 'Export Overview',
+    exportDescription:
+      'Export your data to create backups or transfer information to other devices. All data is saved in a secure JSON format.',
+    exportSteps: 'How to Export Data',
+    exportStep1: 'Navigate to Settings > Data Export from the main menu',
+    exportStep2:
+      'Select the type of data you want to export (Products, Sales, Customers, or Stock Movements)',
+    exportStep3: 'Tap the export button and wait for the process to complete',
+    exportStep4: 'Share or save the exported file to your preferred location',
+    exportTips: 'Export Tips',
+    exportTip1: '• Export regularly to keep backups of your important data',
+    exportTip2: '• Large datasets may take longer to export - be patient',
+    exportTip3:
+      '• Exported files can be opened with any text editor or spreadsheet app',
+
+    // Import Guide
+    importOverview: 'Import Overview',
+    importDescription:
+      'Import data from previously exported files or other compatible sources. The system will validate and process your data safely.',
+    importSteps: 'How to Import Data',
+    importStep1: 'Navigate to Settings > Data Import from the main menu',
+    importStep2: 'Select the type of data you want to import',
+    importStep3: 'Choose your import file using the file picker',
+    importStep4: 'Review any conflicts and choose how to resolve them',
+    importStep5: 'Confirm the import and wait for completion',
+    importWarnings: 'Important Warnings',
+    importWarning1: '• Always backup your current data before importing',
+    importWarning2:
+      '• Importing will modify your existing data - this cannot be undone',
+    importWarning3: '• Only import files from trusted sources',
+    importTips: 'Import Tips',
+    importTip1: '• Use "Skip" for conflicts to keep existing data unchanged',
+    importTip2: '• Use "Update" to replace existing data with imported values',
+    importTip3:
+      '• Large imports are processed in batches for better performance',
   },
 };
 
