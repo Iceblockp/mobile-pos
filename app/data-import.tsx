@@ -73,6 +73,10 @@ export default function DataImport() {
   const [conflicts, setConflicts] = useState<DataConflict[]>([]);
   const [showConflictModal, setShowConflictModal] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [pendingImport, setPendingImport] = useState<{
+    fileUri: string;
+    option: ImportOption;
+  } | null>(null);
 
   // Initialize import service when database is ready
   React.useEffect(() => {
@@ -185,6 +189,7 @@ export default function DataImport() {
       // Check for conflicts
       if (preview.conflicts.length > 0) {
         setConflicts(preview.conflicts);
+        setPendingImport({ fileUri: result.assets[0].uri, option });
         setShowConflictModal(true);
         return;
       }
@@ -312,14 +317,104 @@ export default function DataImport() {
     // Clear conflicts after resolution
     setConflicts([]);
 
-    // You can implement additional logic here based on the resolution
-    // For now, we'll just show a toast message
-    const actionMessage =
-      resolution.action === 'update'
-        ? t('dataImport.willUpdateExisting')
-        : t('dataImport.willSkipConflicts');
+    // Continue with the import using the resolved conflicts
+    if (pendingImport) {
+      const actionMessage =
+        resolution.action === 'update'
+          ? t('dataImport.willUpdateExisting')
+          : t('dataImport.willSkipConflicts');
 
-    showToast(actionMessage, 'info');
+      showToast(actionMessage, 'info');
+
+      // Continue with the import process
+      await performImportWithResolution(
+        pendingImport.fileUri,
+        pendingImport.option,
+        resolution
+      );
+
+      // Clear pending import
+      setPendingImport(null);
+    }
+  };
+
+  const performImportWithResolution = async (
+    fileUri: string,
+    option: ImportOption,
+    resolution: ConflictResolution
+  ) => {
+    if (!importService) {
+      showToast('Import service not ready', 'error');
+      return;
+    }
+
+    setIsImporting(option.id);
+    setImportProgress(null);
+
+    try {
+      const importOptions: ImportOptions = {
+        batchSize: 25,
+        conflictResolution: resolution.action === 'update' ? 'update' : 'skip',
+        validateReferences: true,
+        createMissingReferences: true,
+      };
+
+      let result;
+
+      switch (option.dataType) {
+        case 'sales':
+          result = await importService.importSales(fileUri, importOptions);
+          break;
+        case 'products':
+          result = await importService.importProducts(fileUri, importOptions);
+          break;
+        case 'customers':
+          result = await importService.importCustomers(fileUri, importOptions);
+          break;
+        case 'expenses':
+          result = await importService.importExpenses(fileUri, importOptions);
+          break;
+        case 'stockMovements':
+          result = await importService.importStockMovements(
+            fileUri,
+            importOptions
+          );
+          break;
+        default:
+          throw new Error(`Unsupported import type: ${option.dataType}`);
+      }
+
+      if (result.success) {
+        showToast(
+          `${option.title} imported successfully! ${result.imported} records imported, ${result.updated} updated, ${result.skipped} skipped.`,
+          'success'
+        );
+
+        // Show detailed results if there were errors
+        if (result.errors.length > 0) {
+          Alert.alert(
+            t('dataImport.importCompleteWithErrors'),
+            `${result.errors.length} ${t('dataImport.errorsOccurred')}. ${t(
+              'dataImport.checkLogs'
+            )}`,
+            [{ text: t('common.ok'), style: 'default' }]
+          );
+        }
+      } else {
+        throw new Error('Import failed');
+      }
+    } catch (error) {
+      console.error('Import error:', error);
+      showToast(
+        `${t('dataImport.importFailed')}: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+        'error'
+      );
+    } finally {
+      setIsImporting(null);
+      setImportProgress(null);
+    }
   };
 
   const showImportInfo = () => {
@@ -505,6 +600,7 @@ export default function DataImport() {
         onCancel={() => {
           setShowConflictModal(false);
           setConflicts([]);
+          setPendingImport(null);
         }}
       />
 
