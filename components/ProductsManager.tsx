@@ -269,6 +269,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
 
       try {
         // Copy the image to app's document directory for persistence
+        //@ts-ignore
         await FileSystem.copyAsync({
           from: selectedAsset.uri,
           to: newPath,
@@ -310,6 +311,7 @@ export default function Products({ compact = false }: ProductsManagerProps) {
 
       try {
         // Copy the image to app's document directory for persistence
+        //@ts-ignore
         await FileSystem.copyAsync({
           from: selectedAsset.uri,
           to: newPath,

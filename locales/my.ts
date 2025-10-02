@@ -74,6 +74,7 @@ export const my: TranslationKeys = {
     manage: 'စီမံခန့်ခွဲမည်',
     sold: 'အရေအတွက်',
     revenue: 'တန်ဖိုး',
+    thisMonth: 'ဒီလ',
     days30: '၃၀ ရက်',
     days30Long: '၃၀ ရက်',
   },

@@ -72,6 +72,7 @@ export const en = {
     manage: 'Manage',
     sold: 'Sold',
     revenue: 'Value',
+    thisMonth: 'This month',
     days30: '30d',
     days30Long: '30 days',
   },

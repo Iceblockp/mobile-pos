@@ -89,7 +89,7 @@ export default function Dashboard() {
                   {formatPrice(analytics?.totalRevenue || 0)}
                 </Text>
                 <Text style={styles.metricLabel}>
-                  {t('dashboard.totalRevenue')} ({t('dashboard.days30')})
+                  {t('dashboard.totalRevenue')} ({t('dashboard.thisMonth')})
                 </Text>
                 <View style={styles.metricTrend}>
                   <ArrowUpRight size={12} color="#059669" />
@@ -111,7 +111,7 @@ export default function Dashboard() {
                   {analytics?.totalSales || 0}
                 </Text>
                 <Text style={styles.metricLabel}>
-                  {t('dashboard.totalSales')} ({t('dashboard.days30')})
+                  {t('dashboard.totalSales')} ({t('dashboard.thisMonth')})
                 </Text>
                 <View style={styles.metricTrend}>
                   <ArrowUpRight size={12} color="#059669" />
@@ -173,7 +173,7 @@ export default function Dashboard() {
         <Card style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
-              {t('dashboard.topProducts')} ({t('dashboard.days30Long')})
+              {t('dashboard.topProducts')} ({t('dashboard.thisMonth')})
             </Text>
             <TouchableOpacity onPress={() => router.push('/(tabs)/reports')}>
               <Text style={styles.viewAllText}>{t('dashboard.viewAll')}</Text>

@@ -98,6 +98,8 @@ export default function Inventory() {
   const isLoading = productsLoading || suppliersLoading || lowStockLoading;
   const isRefreshing = productsRefetching || lowStockRefetching;
 
+  console.log('is loading', productsLoading, suppliersLoading, lowStockLoading);
+
   // Removed formatMMK function - now using standardized currency formatting
 
   // const getSupplierName = (supplierId: number) => {
