@@ -450,7 +450,7 @@ export const useDashboardAnalytics = () => {
       if (!db) return null;
 
       const [analyticsData, lowStockProducts, allProducts] = await Promise.all([
-        db.getSalesAnalytics(30),
+        db.getCurrentMonthSalesAnalytics(),
         db.getLowStockProducts(),
         db.getProducts(),
       ]);

@@ -1812,6 +1812,131 @@ export class DatabaseService {
     };
   }
 
+  async getCurrentMonthSalesAnalytics(): Promise<{
+    totalSales: number;
+    totalRevenue: number;
+    totalCost: number;
+    totalProfit: number;
+    profitMargin: number;
+    avgSaleValue: number;
+    totalItemsSold: number;
+    topProducts: {
+      name: string;
+      imageUrl?: string;
+      quantity: number;
+      revenue: number;
+      profit: number;
+      margin: number;
+    }[];
+    revenueGrowth?: { percentage: number; isPositive: boolean };
+  }> {
+    // Get current month date range
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const startDateStr = startOfMonth.toISOString().split('T')[0];
+    const endDateStr = endOfMonth.toISOString().split('T')[0];
+
+    const salesResult = (await this.db.getFirstAsync(
+      `SELECT 
+        COUNT(*) as total_sales, 
+        SUM(total) as total_revenue, 
+        AVG(total) as avg_sale 
+       FROM sales 
+       WHERE date(created_at) >= ? AND date(created_at) <= ?`,
+      [startDateStr, endDateStr]
+    )) as { total_sales: number; total_revenue: number; avg_sale: number };
+
+    // Calculate cost and profit
+    const costResult = (await this.db.getFirstAsync(
+      `SELECT 
+        SUM(si.quantity * COALESCE(p.cost, si.cost)) as total_cost,
+        SUM(si.quantity) as total_items
+       FROM sale_items si 
+       LEFT JOIN products p ON si.product_id = p.id 
+       JOIN sales s ON si.sale_id = s.id 
+       WHERE date(s.created_at) >= ? AND date(s.created_at) <= ?`,
+      [startDateStr, endDateStr]
+    )) as { total_cost: number; total_items: number };
+
+    const totalRevenue = salesResult.total_revenue || 0;
+    const totalCost = costResult.total_cost || 0;
+    const totalProfit = totalRevenue - totalCost;
+    const profitMargin =
+      totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+
+    // Get top products with profit calculations
+    const topProductsResult = (await this.db.getAllAsync(
+      `SELECT 
+        p.name, 
+        p.imageUrl,
+        SUM(si.quantity) as quantity, 
+        SUM(si.subtotal) as revenue,
+        SUM(si.quantity * COALESCE(p.cost, 0)) as cost,
+        (SUM(si.subtotal) - SUM(si.quantity * COALESCE(p.cost, 0))) as profit
+       FROM sale_items si 
+       JOIN products p ON si.product_id = p.id 
+       JOIN sales s ON si.sale_id = s.id 
+       WHERE date(s.created_at) >= ? AND date(s.created_at) <= ?
+       GROUP BY p.id 
+       ORDER BY revenue DESC 
+       LIMIT 5`,
+      [startDateStr, endDateStr]
+    )) as {
+      name: string;
+      imageUrl?: string;
+      quantity: number;
+      revenue: number;
+      cost: number;
+      profit: number;
+    }[];
+
+    // Calculate margin for each product
+    const topProducts = topProductsResult.map((product) => ({
+      ...product,
+      margin:
+        product.revenue > 0 ? (product.profit / product.revenue) * 100 : 0,
+    }));
+
+    // Calculate growth compared to previous month
+    const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    const prevStartDateStr = prevMonthStart.toISOString().split('T')[0];
+    const prevEndDateStr = prevMonthEnd.toISOString().split('T')[0];
+
+    const previousMonthResult = (await this.db.getFirstAsync(
+      `SELECT SUM(total) as previous_revenue 
+       FROM sales 
+       WHERE date(created_at) >= ? AND date(created_at) <= ?`,
+      [prevStartDateStr, prevEndDateStr]
+    )) as { previous_revenue: number };
+
+    let revenueGrowth;
+    if (previousMonthResult.previous_revenue > 0) {
+      const growthPercentage =
+        ((totalRevenue - previousMonthResult.previous_revenue) /
+          previousMonthResult.previous_revenue) *
+        100;
+      revenueGrowth = {
+        percentage: Math.abs(growthPercentage),
+        isPositive: growthPercentage >= 0,
+      };
+    }
+
+    return {
+      totalSales: salesResult.total_sales || 0,
+      totalRevenue,
+      totalCost,
+      totalProfit,
+      profitMargin,
+      avgSaleValue: salesResult.avg_sale || 0,
+      totalItemsSold: costResult.total_items || 0,
+      topProducts,
+      revenueGrowth,
+    };
+  }
+
   async getCustomAnalytics(
     startDate: Date,
     endDate: Date
