@@ -10,8 +10,6 @@ import {
   Platform,
   RefreshControl,
 } from 'react-native';
-import { StockAnalytics } from './StockAnalytics';
-import { BulkPricingAnalytics } from './BulkPricingAnalytics';
 import { CustomerAnalytics } from './CustomerAnalytics';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -27,7 +25,6 @@ import {
   Target,
   TrendingDown,
   Users,
-  Package,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -36,7 +33,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from '@/context/LocalizationContext';
 
 type FilterMode = 'day' | 'month' | 'range';
-type AnalyticsTab = 'overview' | 'customers' | 'stock' | 'pricing';
+type AnalyticsTab = 'overview' | 'customers';
 
 interface DateFilter {
   mode: FilterMode;
@@ -71,16 +68,6 @@ export default function Analytics() {
       key: 'customers',
       label: t('analytics.customers'),
       icon: Users,
-    },
-    {
-      key: 'stock',
-      label: t('analytics.stock'),
-      icon: Package,
-    },
-    {
-      key: 'pricing',
-      label: t('analytics.pricing'),
-      icon: Target,
     },
   ];
 
@@ -986,12 +973,6 @@ export default function Analytics() {
       {activeTab === 'customers' && (
         <CustomerAnalytics customerId={undefined} />
       )}
-
-      {/* Stock Tab */}
-      {activeTab === 'stock' && <StockAnalytics />}
-
-      {/* Pricing Tab */}
-      {activeTab === 'pricing' && <BulkPricingAnalytics />}
 
       <Modal
         visible={showFilterModal}
