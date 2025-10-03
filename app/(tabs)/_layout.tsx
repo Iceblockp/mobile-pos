@@ -28,7 +28,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarActiveTintColor: '#059669',
         tabBarInactiveTintColor: '#6B7280',
-        lazy: true,
+        lazy: false,
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
@@ -57,7 +57,7 @@ export default function TabLayout() {
         options={{
           title: t('navigation.dashboard'),
           tabBarIcon: ({ size, color }) => <Home size={size} color={color} />,
-          freezeOnBlur: true,
+          // freezeOnBlur: true,
         }}
       />
       <Tabs.Screen
@@ -67,7 +67,7 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <ShoppingCart size={size} color={color} />
           ),
-          freezeOnBlur: true,
+          // freezeOnBlur: true,
         }}
       />
       <Tabs.Screen
@@ -77,7 +77,7 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <Package size={size} color={color} />
           ),
-          freezeOnBlur: true,
+          // freezeOnBlur: true,
         }}
       />
       <Tabs.Screen
@@ -87,7 +87,7 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <BarChart3 size={size} color={color} />
           ),
-          freezeOnBlur: true,
+          // freezeOnBlur: true,
         }}
       />
       <Tabs.Screen
@@ -97,7 +97,7 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <MoreHorizontal size={size} color={color} />
           ),
-          freezeOnBlur: true,
+          // freezeOnBlur: true,
         }}
       />
     </Tabs>

@@ -123,6 +123,17 @@ export default function Analytics() {
   const isLoading = analyticsLoading || salesLoading;
   const isRefreshing = analyticsRefetching || salesRefetching;
 
+  useEffect(() => {
+    console.log('Analytics loading states:', {
+      analyticsLoading,
+      salesLoading,
+      analyticsRefetching,
+      salesRefetching,
+      isLoading,
+      isRefreshing,
+    });
+  }, [analyticsLoading, salesLoading, analyticsRefetching, salesRefetching]);
+
   const { formatPrice } = useCurrencyFormatter();
 
   const formatDate = (dateString: string) => {

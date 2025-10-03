@@ -42,6 +42,11 @@ import {
   ArrowDownAZ,
   MoreVertical,
   X,
+  ChevronDown,
+  Grid3X3,
+  List,
+  TrendingUp,
+  TrendingDown,
 } from 'lucide-react-native';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import TextScanner from '@/components/TextScanner';
@@ -49,16 +54,19 @@ import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 
 import { useOptimizedList } from '@/hooks/useOptimizedList';
 import { BulkPricingTiers } from '@/components/BulkPricingTiers';
 import { ProductMovementHistory } from '@/components/ProductMovementHistory';
+import { QuickStockActions } from '@/components/QuickStockActions';
+import { StockMovementForm } from '@/components/StockMovementForm';
 
 interface ProductsManagerProps {
   compact?: boolean;
 }
 
-export default function Products({ compact = false }: ProductsManagerProps) {
+export default function Products({}: ProductsManagerProps) {
   const { showToast } = useToast();
   const { t } = useTranslation();
   const { formatPrice } = useCurrencyFormatter();
@@ -77,6 +85,16 @@ export default function Products({ compact = false }: ProductsManagerProps) {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+
+  // Add state for stock movement form
+  const [showStockMovementForm, setShowStockMovementForm] = useState(false);
+  const [selectedProductForMovement, setSelectedProductForMovement] =
+    useState<Product | null>(null);
+  const [movementType, setMovementType] = useState<'stock_in' | 'stock_out'>(
+    'stock_in'
+  );
 
   // Use React Query for optimized data fetching
   const {
@@ -169,8 +187,19 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     }
   };
 
-  const handleClearSort = () => {
-    setSortBy('none');
+  // Get selected category name for display
+  const getSelectedCategoryName = () => {
+    if (selectedCategory === 'All') {
+      return `${t('common.all')} (${products.length})`;
+    }
+    const category = categories.find((c) => c.id === selectedCategory);
+    if (category) {
+      const categoryCount = products.filter(
+        (p) => p.category_id === category.id
+      ).length;
+      return `${category.name} (${categoryCount})`;
+    }
+    return t('common.all');
   };
 
   const resetForm = () => {
@@ -232,12 +261,6 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     setFormData({ ...formData, name: cleanedText });
     setShowTextScanner(false);
     showToast(`Product name scanned: ${cleanedText}`, 'success');
-  };
-
-  const validatePricing = (value: string) => {
-    // Remove any non-digit characters and ensure it's an integer
-    const cleanValue = value.replace(/[^\d]/g, '');
-    return cleanValue;
   };
 
   // Add image picker functions
@@ -574,6 +597,16 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     );
   };
 
+  // Add handler for quick stock movement
+  // const handleQuickStockMovement = (
+  //   product: Product,
+  //   type: 'stock_in' | 'stock_out'
+  // ) => {
+  //   setSelectedProductForMovement(product);
+  //   setMovementType(type);
+  //   setShowStockMovementForm(true);
+  // };
+
   // const getSupplierName = (supplierId: number) => {
   //   const supplier = suppliers.find((s) => s.id === supplierId);
   //   return supplier ? supplier.name : t('products.unknown');
@@ -696,522 +729,549 @@ export default function Products({ compact = false }: ProductsManagerProps) {
     }
   );
 
-  return (
-    <View style={compact ? styles.compactContainer : styles.container}>
-      {!compact && (
-        <SafeAreaView>
-          <View style={styles.header}>
-            <View style={styles.titleContainer}>
-              <Text style={styles.title}>{t('products.title')}</Text>
-              <Text style={styles.dataHint}>
-                {t('products.dataManagementHint')}
-              </Text>
-            </View>
-            <View style={styles.headerActions}>
-              {/* <TouchableOpacity
-                style={[styles.sortDropdown, { backgroundColor: '#6B7280' }]}
-                onPress={() => setShowSortOptions(!showSortOptions)}
-              >
-                <Text style={styles.sortDropdownText}>
-                  {sortBy === 'name' ? (
-                    sortOrder === 'asc' ? (
-                      <ArrowUpAZ size={20} color="#FFFFFF" />
-                    ) : (
-                      <ArrowDownAZ size={20} color="#FFFFFF" />
-                    )
-                  ) : (
-                    <Calendar size={20} color="#FFFFFF" />
-                  )}{' '}
-                  {sortOrder === 'asc' ? '↑' : '↓'}
-                </Text>
-              </TouchableOpacity> */}
+  // Table Header Component
+  const TableHeader = () => {
+    return (
+      <View style={styles.tableHeader}>
+        <View style={[styles.tableHeaderCell, { width: 100 }]}>
+          <Text style={styles.tableHeaderText}>{t('products.image')}</Text>
+        </View>
+        <View style={[styles.tableHeaderCell, { width: 100 }]}>
+          <Text style={styles.tableHeaderText}>{t('products.name')}</Text>
+        </View>
+        <View style={[styles.tableHeaderCell, { width: 100 }]}>
+          <Text style={styles.tableHeaderText}>{t('products.barcode')}</Text>
+        </View>
+        <View style={[styles.tableHeaderCell, { width: 100 }]}>
+          <Text style={styles.tableHeaderText}>{t('products.category')}</Text>
+        </View>
+        <View style={[styles.tableHeaderCell, { width: 100 }]}>
+          <Text style={styles.tableHeaderText}>{t('products.price')}</Text>
+        </View>
+        <View style={[styles.tableHeaderCell, { width: 100 }]}>
+          <Text style={styles.tableHeaderText}>{t('products.cost')}</Text>
+        </View>
+        <View style={[styles.tableHeaderCell, { width: 100 }]}>
+          <Text style={styles.tableHeaderText}>{t('products.stock')}</Text>
+        </View>
+        <View style={[styles.tableHeaderCell, { width: 100 }]}>
+          <Text style={styles.tableHeaderText}>{t('products.minStock')}</Text>
+        </View>
+        <View style={[styles.tableHeaderCell, { width: 100 }]}>
+          <Text style={styles.tableHeaderText}>{t('products.supplier')}</Text>
+        </View>
+        <View style={[styles.tableHeaderCell, { width: 100 }]}>
+          <Text style={styles.tableHeaderText}>{t('products.profit')}</Text>
+        </View>
+        <View style={[styles.tableHeaderCell, { width: 100 }]}>
+          <Text style={styles.tableHeaderText}>
+            {t('products.bulkPricing')}
+          </Text>
+        </View>
+        <View style={[styles.tableHeaderCell, { width: 200 }]}>
+          <Text style={styles.tableHeaderText}>
+            {t('products.stockActions')}
+          </Text>
+        </View>
+        <View style={[styles.tableHeaderCell, { width: 100 }]}>
+          <Text style={styles.tableHeaderText}>{t('products.actions')}</Text>
+        </View>
+      </View>
+    );
+  };
 
-              <TouchableOpacity
-                style={styles.categoryButton}
-                onPress={() => setShowCategoryModal(true)}
-              >
-                <Settings size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => setShowAddForm(true)}
-              >
-                <Plus size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </SafeAreaView>
-      )}
-
-      {/* Compact mode: Clean search bar with dropdown actions */}
-      {compact ? (
-        <>
-          <View style={styles.compactSearchContainer}>
-            <View style={styles.compactSearchBox}>
-              <Search size={16} color="#6B7280" />
-              <TextInput
-                style={styles.compactSearchInput}
-                placeholder={t('products.searchProducts')}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity
-                  style={styles.clearButton}
-                  onPress={() => setSearchQuery('')}
-                >
-                  <X size={16} color="#6B7280" />
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                style={styles.compactScanButton}
-                onPress={() => setShowSearchScanner(true)}
-              >
-                <Scan size={16} color="#3B82F6" />
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity
-              style={styles.compactAddButton}
-              onPress={() => setShowAddForm(true)}
-            >
-              <Plus size={16} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.compactMenuButton}
-              onPress={() => setShowActionsMenu(!showActionsMenu)}
-            >
-              <MoreVertical size={16} color="#6B7280" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Overlay for closing menus */}
-          {(showActionsMenu || showSortOptions) && (
-            <TouchableOpacity
-              style={styles.menuOverlay}
-              activeOpacity={1}
-              onPress={handleOutsidePress}
+  // Table Row Component
+  const ProductTableRow = React.memo(({ product }: { product: Product }) => {
+    return (
+      <View style={styles.tableRow}>
+        {/* Image */}
+        <View style={[styles.tableCell, { width: 100 }]}>
+          {product.imageUrl ? (
+            <Image
+              source={{ uri: product.imageUrl }}
+              style={styles.tableProductImage}
+              resizeMode="cover"
             />
-          )}
-
-          {/* Actions Menu Dropdown */}
-          {showActionsMenu && (
-            <View style={styles.actionsMenuContainer}>
-              <TouchableOpacity
-                style={styles.actionMenuItem}
-                onPress={() => {
-                  setShowSortOptions(!showSortOptions);
-                  setShowActionsMenu(false);
-                }}
-              >
-                <View style={styles.actionMenuItemContent}>
-                  {sortBy === 'name' ? (
-                    sortOrder === 'asc' ? (
-                      <ArrowUpAZ size={16} color="#6B7280" />
-                    ) : (
-                      <ArrowDownAZ size={16} color="#6B7280" />
-                    )
-                  ) : (
-                    <Calendar size={16} color="#6B7280" />
-                  )}
-                  <Text style={styles.actionMenuItemText}>
-                    {t('products.sort')} {sortOrder === 'asc' ? '↑' : '↓'}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionMenuItem}
-                onPress={() => {
-                  setShowCategoryModal(true);
-                  setShowActionsMenu(false);
-                }}
-              >
-                <View style={styles.actionMenuItemContent}>
-                  <Settings size={16} color="#6B7280" />
-                  <Text style={styles.actionMenuItemText}>
-                    {t('products.categories')}
-                  </Text>
-                </View>
-              </TouchableOpacity>
+          ) : (
+            <View style={styles.tableProductImagePlaceholder}>
+              <Package size={16} color="#9CA3AF" />
             </View>
           )}
+        </View>
 
-          {/* Sort Options - appears when sort is selected */}
-          {showSortOptions && (
-            <View style={styles.sortOptionsContainer}>
-              {/* <TouchableOpacity
-                style={[
-                  styles.sortOption,
-                  sortBy === 'name' &&
-                    sortOrder === 'asc' &&
-                    styles.sortOptionActive,
-                ]}
-                onPress={() => {
-                  setSortBy('name');
-                  setSortOrder('asc');
-                  setShowSortOptions(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.sortOptionText,
-                    sortBy === 'name' &&
-                      sortOrder === 'asc' &&
-                      styles.sortOptionTextActive,
-                  ]}
-                >
-                  Name (A to Z)
-                </Text>
-              </TouchableOpacity>
+        {/* Name */}
+        <View style={[styles.tableCell, { width: 100 }]}>
+          <Text style={styles.tableCellText} numberOfLines={2}>
+            {product.name}
+          </Text>
+        </View>
 
-              <TouchableOpacity
-                style={[
-                  styles.sortOption,
-                  sortBy === 'name' &&
-                    sortOrder === 'desc' &&
-                    styles.sortOptionActive,
-                ]}
-                onPress={() => {
-                  setSortBy('name');
-                  setSortOrder('desc');
-                  setShowSortOptions(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.sortOptionText,
-                    sortBy === 'name' &&
-                      sortOrder === 'desc' &&
-                      styles.sortOptionTextActive,
-                  ]}
-                >
-                  Name (Z to A)
-                </Text>
-              </TouchableOpacity> */}
+        {/* Barcode */}
+        <View style={[styles.tableCell, { width: 100 }]}>
+          <Text style={styles.tableCellText} numberOfLines={1}>
+            {product.barcode || '-'}
+          </Text>
+        </View>
 
-              <TouchableOpacity
-                style={[
-                  styles.sortOption,
-                  sortBy === 'updated_at' &&
-                    sortOrder === 'desc' &&
-                    styles.sortOptionActive,
-                ]}
-                onPress={() => {
-                  setSortBy('updated_at');
-                  setSortOrder('desc');
-                  setShowSortOptions(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.sortOptionText,
-                    sortBy === 'updated_at' &&
-                      sortOrder === 'desc' &&
-                      styles.sortOptionTextActive,
-                  ]}
-                >
-                  Newest First
-                </Text>
-              </TouchableOpacity>
+        {/* Category */}
+        <View style={[styles.tableCell, { width: 100 }]}>
+          <Text style={styles.tableCellText} numberOfLines={1}>
+            {product.category || '-'}
+          </Text>
+        </View>
 
-              <TouchableOpacity
-                style={[
-                  styles.sortOption,
-                  sortBy === 'updated_at' &&
-                    sortOrder === 'asc' &&
-                    styles.sortOptionActive,
-                ]}
-                onPress={() => {
-                  setSortBy('updated_at');
-                  setSortOrder('asc');
-                  setShowSortOptions(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.sortOptionText,
-                    sortBy === 'updated_at' &&
-                      sortOrder === 'asc' &&
-                      styles.sortOptionTextActive,
-                  ]}
-                >
-                  Oldest First
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </>
-      ) : (
-        <>
-          {/* Sort options dropdown - only visible when showSortOptions is true */}
-          {showSortOptions && (
-            <View style={styles.sortOptionsContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.sortOption,
-                  sortBy === 'name' &&
-                    sortOrder === 'asc' &&
-                    styles.sortOptionActive,
-                ]}
-                onPress={() => {
-                  setSortBy('name');
-                  setSortOrder('asc');
-                  setShowSortOptions(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.sortOptionText,
-                    sortBy === 'name' &&
-                      sortOrder === 'asc' &&
-                      styles.sortOptionTextActive,
-                  ]}
-                >
-                  Name (A to Z)
-                </Text>
-              </TouchableOpacity>
+        {/* Price */}
+        <View style={[styles.tableCell, { width: 100 }]}>
+          <Text style={styles.tableCellText}>{formatPrice(product.price)}</Text>
+        </View>
 
-              <TouchableOpacity
-                style={[
-                  styles.sortOption,
-                  sortBy === 'name' &&
-                    sortOrder === 'desc' &&
-                    styles.sortOptionActive,
-                ]}
-                onPress={() => {
-                  setSortBy('name');
-                  setSortOrder('desc');
-                  setShowSortOptions(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.sortOptionText,
-                    sortBy === 'name' &&
-                      sortOrder === 'desc' &&
-                      styles.sortOptionTextActive,
-                  ]}
-                >
-                  Name (Z to A)
-                </Text>
-              </TouchableOpacity>
+        {/* Cost */}
+        <View style={[styles.tableCell, { width: 100 }]}>
+          <Text style={styles.tableCellText}>{formatPrice(product.cost)}</Text>
+        </View>
 
-              <TouchableOpacity
-                style={[
-                  styles.sortOption,
-                  sortBy === 'updated_at' &&
-                    sortOrder === 'desc' &&
-                    styles.sortOptionActive,
-                ]}
-                onPress={() => {
-                  setSortBy('updated_at');
-                  setSortOrder('desc');
-                  setShowSortOptions(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.sortOptionText,
-                    sortBy === 'updated_at' &&
-                      sortOrder === 'desc' &&
-                      styles.sortOptionTextActive,
-                  ]}
-                >
-                  Newest First
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.sortOption,
-                  sortBy === 'updated_at' &&
-                    sortOrder === 'asc' &&
-                    styles.sortOptionActive,
-                ]}
-                onPress={() => {
-                  setSortBy('updated_at');
-                  setSortOrder('asc');
-                  setShowSortOptions(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.sortOptionText,
-                    sortBy === 'updated_at' &&
-                      sortOrder === 'asc' &&
-                      styles.sortOptionTextActive,
-                  ]}
-                >
-                  Oldest First
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          <View style={styles.searchContainer}>
-            <View style={styles.searchBox}>
-              <Search size={20} color="#6B7280" />
-              <TextInput
-                style={styles.searchInput}
-                placeholder={t('products.searchProducts')}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-              <TouchableOpacity
-                style={styles.searchScanButton}
-                onPress={() => setShowSearchScanner(true)}
-              >
-                <Scan size={20} color="#3B82F6" />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.categoryScroll}
-            >
-              <TouchableOpacity
-                style={[
-                  styles.categoryChip,
-                  selectedCategory === 'All' && styles.categoryChipActive,
-                ]}
-                onPress={() => setSelectedCategory('All')}
-              >
-                <Text
-                  style={[
-                    styles.categoryChipText,
-                    selectedCategory === 'All' && styles.categoryChipTextActive,
-                  ]}
-                >
-                  {t('common.all')} ({products.length})
-                </Text>
-              </TouchableOpacity>
-              {categories.map((category) => {
-                const categoryCount = products.filter(
-                  (p) => p.category_id === category.id
-                ).length;
-                return (
-                  <TouchableOpacity
-                    key={category.id}
-                    style={[
-                      styles.categoryChip,
-                      selectedCategory === category.id &&
-                        styles.categoryChipActive,
-                    ]}
-                    onPress={() => setSelectedCategory(category.id)}
-                  >
-                    <Text
-                      style={[
-                        styles.categoryChipText,
-                        selectedCategory === category.id &&
-                          styles.categoryChipTextActive,
-                      ]}
-                    >
-                      {category.name} ({categoryCount})
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-        </>
-      )}
-      <View>
-        {/* Compact category filter - horizontal chips below search */}
-        {compact && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.compactCategoryScroll}
+        {/* Stock */}
+        <View style={[styles.tableCell, { width: 100 }]}>
+          <Text
+            style={[
+              styles.tableCellText,
+              product.quantity <= product.min_stock && styles.lowStockText,
+            ]}
           >
+            {product.quantity}
+          </Text>
+        </View>
+
+        {/* Min Stock */}
+        <View style={[styles.tableCell, { width: 100 }]}>
+          <Text style={styles.tableCellText}>{product.min_stock}</Text>
+        </View>
+
+        {/* Supplier */}
+        <View style={[styles.tableCell, { width: 100 }]}>
+          <Text style={styles.tableCellText} numberOfLines={1}>
+            {product.supplier_name || '-'}
+          </Text>
+        </View>
+
+        {/* Profit */}
+        <View style={[styles.tableCell, { width: 100 }]}>
+          <Text style={[styles.tableCellText, styles.profitText]}>
+            {formatPrice(product.price - product.cost)}
+          </Text>
+        </View>
+
+        {/* Bulk Pricing */}
+        <View style={[styles.tableCell, { width: 100 }]}>
+          {product.bulk_pricing && product.bulk_pricing.length > 0 ? (
+            <View style={styles.tableBulkPricingContainer}>
+              {product.bulk_pricing
+                .sort((a, b) => a.min_quantity - b.min_quantity)
+                .slice(0, 2) // Show only first 2 tiers to save space
+                .map((tier, index) => {
+                  const discount =
+                    ((product.price - tier.bulk_price) / product.price) * 100;
+                  return (
+                    <View key={index} style={styles.tableBulkPricingTier}>
+                      <Text style={styles.tableBulkPricingQuantity}>
+                        {tier.min_quantity}+
+                      </Text>
+                      <Text style={styles.tableBulkPricingPrice}>
+                        {formatPrice(tier.bulk_price)}
+                      </Text>
+                      <Text style={styles.tableBulkPricingDiscount}>
+                        ({discount.toFixed(0)}% off)
+                      </Text>
+                    </View>
+                  );
+                })}
+              {product.bulk_pricing.length > 2 && (
+                <Text style={styles.tableBulkPricingMore}>
+                  +{product.bulk_pricing.length - 2} more
+                </Text>
+              )}
+            </View>
+          ) : (
+            <Text style={[styles.tableCellText, { color: '#9CA3AF' }]}>
+              No bulk pricing
+            </Text>
+          )}
+        </View>
+
+        {/* Stock Movement Actions */}
+        <View style={[styles.tableCell, { width: 200 }]}>
+          <View style={styles.stockActionButtons}>
+            <ProductMovementHistory product={product} compact={true} />
+          </View>
+        </View>
+
+        {/* Actions */}
+        <View style={[styles.tableCell, { width: 100 }]}>
+          <View style={styles.tableActions}>
+            <TouchableOpacity
+              style={styles.tableActionButton}
+              onPress={() => handleEdit(product)}
+            >
+              <Edit size={16} color="#6B7280" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.tableActionButton}
+              onPress={() => handleDelete(product)}
+            >
+              <Trash2 size={16} color="#EF4444" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  });
+
+  // Render table view using FlatList with horizontal scrolling
+  const renderTableView = () => {
+    return (
+      <View style={styles.tableContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+          <View style={styles.tableContent}>
+            <TableHeader />
+            <FlatList
+              data={filteredProducts}
+              renderItem={({ item }) => <ProductTableRow product={item} />}
+              keyExtractor={keyExtractor}
+              refreshControl={
+                <RefreshControl
+                  refreshing={isRefreshing}
+                  onRefresh={onRefresh}
+                />
+              }
+              showsVerticalScrollIndicator={true}
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={10}
+              windowSize={10}
+              initialNumToRender={10}
+              getItemLayout={getItemLayout}
+            />
+          </View>
+        </ScrollView>
+      </View>
+    );
+  };
+
+  return (
+    <View style={styles.compactContainer}>
+      <>
+        <View style={styles.compactSearchContainer}>
+          <View style={styles.compactSearchBox}>
+            <Search size={16} color="#6B7280" />
+            <TextInput
+              style={styles.compactSearchInput}
+              placeholder={t('products.searchProducts')}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={() => setSearchQuery('')}
+              >
+                <X size={16} color="#6B7280" />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={styles.compactScanButton}
+              onPress={() => setShowSearchScanner(true)}
+            >
+              <Scan size={16} color="#3B82F6" />
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity
+            style={styles.compactAddButton}
+            onPress={() => setShowAddForm(true)}
+          >
+            <Plus size={16} color="#FFFFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.compactMenuButton}
+            onPress={() => setShowActionsMenu(!showActionsMenu)}
+          >
+            <MoreVertical size={16} color="#6B7280" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Overlay for closing menus */}
+        {(showActionsMenu || showSortOptions) && (
+          <TouchableOpacity
+            style={styles.menuOverlay}
+            activeOpacity={1}
+            onPress={handleOutsidePress}
+          />
+        )}
+
+        {/* Actions Menu Dropdown */}
+        {showActionsMenu && (
+          <View style={styles.actionsMenuContainer}>
+            <TouchableOpacity
+              style={styles.actionMenuItem}
+              onPress={() => {
+                setShowSortOptions(!showSortOptions);
+                setShowActionsMenu(false);
+              }}
+            >
+              <View style={styles.actionMenuItemContent}>
+                {sortBy === 'name' ? (
+                  sortOrder === 'asc' ? (
+                    <ArrowUpAZ size={16} color="#6B7280" />
+                  ) : (
+                    <ArrowDownAZ size={16} color="#6B7280" />
+                  )
+                ) : (
+                  <Calendar size={16} color="#6B7280" />
+                )}
+                <Text style={styles.actionMenuItemText}>
+                  {t('products.sort')} {sortOrder === 'asc' ? '↑' : '↓'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionMenuItem}
+              onPress={() => {
+                setShowCategoryModal(true);
+                setShowActionsMenu(false);
+              }}
+            >
+              <View style={styles.actionMenuItemContent}>
+                <Settings size={16} color="#6B7280" />
+                <Text style={styles.actionMenuItemText}>
+                  {t('products.categories')}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionMenuItem}
+              onPress={() => {
+                setViewMode(viewMode === 'card' ? 'table' : 'card');
+                setShowActionsMenu(false);
+              }}
+            >
+              <View style={styles.actionMenuItemContent}>
+                {viewMode === 'card' ? (
+                  <List size={16} color="#6B7280" />
+                ) : (
+                  <Grid3X3 size={16} color="#6B7280" />
+                )}
+                <Text style={styles.actionMenuItemText}>
+                  {viewMode === 'card'
+                    ? t('products.tableView')
+                    : t('products.cardView')}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Sort Options - appears when sort is selected */}
+        {showSortOptions && (
+          <View style={styles.sortOptionsContainer}>
             <TouchableOpacity
               style={[
-                styles.compactCategoryChip,
-                selectedCategory === 'All' && styles.compactCategoryChipActive,
+                styles.sortOption,
+                sortBy === 'updated_at' &&
+                  sortOrder === 'desc' &&
+                  styles.sortOptionActive,
               ]}
-              onPress={() => setSelectedCategory('All')}
+              onPress={() => {
+                setSortBy('updated_at');
+                setSortOrder('desc');
+                setShowSortOptions(false);
+              }}
             >
               <Text
                 style={[
-                  styles.compactCategoryChipText,
-                  selectedCategory === 'All' &&
-                    styles.compactCategoryChipTextActive,
+                  styles.sortOptionText,
+                  sortBy === 'updated_at' &&
+                    sortOrder === 'desc' &&
+                    styles.sortOptionTextActive,
                 ]}
               >
-                {t('common.all')} ({products.length})
+                Newest First
               </Text>
             </TouchableOpacity>
-            {categories.map((category) => {
-              const categoryCount = products.filter(
-                (p) => p.category_id === category.id
-              ).length;
-              return (
-                <TouchableOpacity
-                  key={category.id}
-                  style={[
-                    styles.compactCategoryChip,
-                    selectedCategory === category.name &&
-                      styles.compactCategoryChipActive,
-                  ]}
-                  onPress={() => setSelectedCategory(category.name)}
-                >
-                  <Text
-                    style={[
-                      styles.compactCategoryChipText,
-                      selectedCategory === category.name &&
-                        styles.compactCategoryChipTextActive,
-                    ]}
-                  >
-                    {category.name} ({categoryCount})
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        )}
-      </View>
 
-      <FlatList
-        data={filteredProducts}
-        keyExtractor={keyExtractor}
-        getItemLayout={getItemLayout}
-        renderItem={({ item }) => <ProductCard product={item} />}
-        ListEmptyComponent={() => (
-          <View style={styles.emptyState}>
-            <Package size={48} color="#9CA3AF" />
-            <Text style={styles.emptyStateText}>
-              {t('products.noProductsFound')}
-            </Text>
-            <Text style={styles.emptyStateSubtext}>
-              {searchQuery
-                ? t('products.tryAdjustingSearch')
-                : t('products.addFirstProductToStart')}
-            </Text>
+            <TouchableOpacity
+              style={[
+                styles.sortOption,
+                sortBy === 'updated_at' &&
+                  sortOrder === 'asc' &&
+                  styles.sortOptionActive,
+              ]}
+              onPress={() => {
+                setSortBy('updated_at');
+                setSortOrder('asc');
+                setShowSortOptions(false);
+              }}
+            >
+              <Text
+                style={[
+                  styles.sortOptionText,
+                  sortBy === 'updated_at' &&
+                    sortOrder === 'asc' &&
+                    styles.sortOptionTextActive,
+                ]}
+              >
+                Oldest First
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
-        contentContainerStyle={
-          filteredProducts.length === 0
-            ? styles.productsListEmptyContent
-            : styles.productsListContent
-        }
-        refreshControl={
-          <RefreshControl
-            refreshing={productsRefetching}
-            onRefresh={onRefresh}
-          />
-        }
-        // Performance optimizations for large lists
-        initialNumToRender={15}
-        maxToRenderPerBatch={15}
-        windowSize={10}
-        removeClippedSubviews={true}
-        updateCellsBatchingPeriod={50}
-        disableVirtualization={false}
-        showsVerticalScrollIndicator={true}
-        style={styles.productsList}
-      />
+      </>
+
+      <View>
+        <View style={styles.compactCategoryContainer}>
+          <TouchableOpacity
+            style={styles.compactCategoryDropdown}
+            onPress={() => setShowCategoryPicker(true)}
+          >
+            <Text style={styles.compactCategoryDropdownText}>
+              {getSelectedCategoryName()}
+            </Text>
+            <ChevronDown size={18} color="#6B7280" />
+          </TouchableOpacity>
+
+          <Modal
+            visible={showCategoryPicker}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setShowCategoryPicker(false)}
+          >
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setShowCategoryPicker(false)}
+            >
+              <View style={styles.categoryPickerContainer}>
+                <View style={styles.categoryPickerHeader}>
+                  <Text style={styles.categoryPickerTitle}>
+                    {t('products.selectCategory')}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setShowCategoryPicker(false)}
+                    style={styles.closeButton}
+                  >
+                    <X size={24} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView style={styles.categoryPickerList}>
+                  {/* All Categories Option */}
+                  <TouchableOpacity
+                    style={[
+                      styles.categoryFilterPickerItem,
+                      selectedCategory === 'All' &&
+                        styles.categoryFilterPickerItemActive,
+                    ]}
+                    onPress={() => {
+                      setSelectedCategory('All');
+                      setShowCategoryPicker(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryPickerItemText,
+                        selectedCategory === 'All' &&
+                          styles.categoryPickerItemTextActive,
+                      ]}
+                    >
+                      {t('common.all')} ({products.length})
+                    </Text>
+                    {selectedCategory === 'All' && (
+                      <View style={styles.selectedIndicator} />
+                    )}
+                  </TouchableOpacity>
+
+                  {/* Individual Categories */}
+                  {categories.map((category) => {
+                    const categoryCount = products.filter(
+                      (p) => p.category_id === category.id
+                    ).length;
+                    const isSelected = selectedCategory === category.id;
+
+                    return (
+                      <TouchableOpacity
+                        key={category.id}
+                        style={[
+                          styles.categoryFilterPickerItem,
+                          isSelected && styles.categoryFilterPickerItemActive,
+                        ]}
+                        onPress={() => {
+                          setSelectedCategory(category.id);
+                          setShowCategoryPicker(false);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.categoryPickerItemText,
+                            isSelected && styles.categoryPickerItemTextActive,
+                          ]}
+                        >
+                          {category.name} ({categoryCount})
+                        </Text>
+                        {isSelected && (
+                          <View style={styles.selectedIndicator} />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            </TouchableOpacity>
+          </Modal>
+        </View>
+      </View>
+
+      {viewMode === 'card' ? (
+        <FlatList
+          data={filteredProducts}
+          keyExtractor={keyExtractor}
+          getItemLayout={getItemLayout}
+          renderItem={({ item }) => <ProductCard product={item} />}
+          ListEmptyComponent={() => (
+            <View style={styles.emptyState}>
+              <Package size={48} color="#9CA3AF" />
+              <Text style={styles.emptyStateText}>
+                {t('products.noProductsFound')}
+              </Text>
+              <Text style={styles.emptyStateSubtext}>
+                {searchQuery
+                  ? t('products.tryAdjustingSearch')
+                  : t('products.addFirstProductToStart')}
+              </Text>
+            </View>
+          )}
+          contentContainerStyle={
+            filteredProducts.length === 0
+              ? styles.productsListEmptyContent
+              : styles.productsListContent
+          }
+          refreshControl={
+            <RefreshControl
+              refreshing={productsRefetching}
+              onRefresh={onRefresh}
+            />
+          }
+          // Performance optimizations for large lists
+          initialNumToRender={15}
+          maxToRenderPerBatch={15}
+          windowSize={10}
+          removeClippedSubviews={true}
+          updateCellsBatchingPeriod={50}
+          disableVirtualization={false}
+          showsVerticalScrollIndicator={true}
+          style={styles.productsList}
+        />
+      ) : (
+        renderTableView()
+      )}
 
       {showSearchScanner && (
         <BarcodeScanner
@@ -1597,11 +1657,64 @@ export default function Products({ compact = false }: ProductsManagerProps) {
           </View>
         </SafeAreaView>
       </Modal>
+
+      {/* Stock Movement Form Modal */}
+      <StockMovementForm
+        visible={showStockMovementForm}
+        onClose={() => {
+          setShowStockMovementForm(false);
+          setSelectedProductForMovement(null);
+        }}
+        product={selectedProductForMovement || undefined}
+        initialType={movementType}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  tableBulkPricingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  tableBulkPricingText: {
+    fontSize: 9,
+    color: '#059669',
+    marginLeft: 2,
+    fontWeight: '500',
+  },
+  tableBulkPricingContainer: {
+    alignItems: 'center',
+  },
+  tableBulkPricingTier: {
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginBottom: 2,
+    alignItems: 'center',
+    minWidth: 80,
+  },
+  tableBulkPricingQuantity: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#059669',
+  },
+  tableBulkPricingPrice: {
+    fontSize: 8,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  tableBulkPricingDiscount: {
+    fontSize: 7,
+    color: '#DC2626',
+  },
+  tableBulkPricingMore: {
+    fontSize: 8,
+    color: '#6B7280',
+    fontStyle: 'italic',
+  },
   productImage: {
     width: 60,
     height: 60,
@@ -1785,30 +1898,25 @@ const styles = StyleSheet.create({
     marginLeft: -4,
     marginRight: 4,
   },
-  compactCategoryScroll: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  compactCategoryChip: {
-    backgroundColor: '#F3F4F6',
+  compactCategoryContainer: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginRight: 8,
+    paddingBottom: 12,
   },
-  compactCategoryChipActive: {
-    backgroundColor: '#059669',
+  compactCategoryDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
-  compactCategoryChipText: {
-    fontSize: 12,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-  },
-  compactCategoryChipTextActive: {
-    color: '#FFFFFF',
+  compactCategoryDropdownText: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '500',
   },
   header: {
     flexDirection: 'row',
@@ -2295,5 +2403,175 @@ const styles = StyleSheet.create({
   },
   categoryActions: {
     flexDirection: 'row',
+  },
+  categoryDropdown: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  categoryDropdownText: {
+    fontSize: 15,
+    fontFamily: 'Inter-Medium',
+    color: '#111827',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  categoryPickerContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    width: '100%',
+    maxHeight: '70%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  categoryPickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  categoryPickerTitle: {
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  categoryPickerList: {
+    maxHeight: 400,
+  },
+  categoryFilterPickerItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F9FAFB',
+  },
+  categoryFilterPickerItemActive: {
+    backgroundColor: '#F0FDF4',
+  },
+  categoryPickerItemText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#374151',
+  },
+  categoryPickerItemTextActive: {
+    color: '#059669',
+    fontFamily: 'Inter-Medium',
+  },
+  selectedIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#059669',
+  },
+  // Table styles
+  tableContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  tableContent: {
+    minWidth: 1400, // Ensure enough width for all columns including new stock actions
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#F9FAFB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    paddingVertical: 12,
+  },
+  tableHeaderCell: {
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  tableHeaderText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
+    textAlign: 'center',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    paddingVertical: 8,
+    minHeight: 60,
+  },
+  tableCell: {
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tableCellText: {
+    fontSize: 12,
+    color: '#374151',
+    textAlign: 'center',
+  },
+  tableProductImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 4,
+  },
+  tableProductImagePlaceholder: {
+    width: 32,
+    height: 32,
+    borderRadius: 4,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Add new styles for stock action buttons
+  stockActionButtons: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  stockActionButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stockInButton: {
+    backgroundColor: '#10B981',
+  },
+  stockOutButton: {
+    backgroundColor: '#EF4444',
+  },
+  tableActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  tableActionButton: {
+    padding: 4,
   },
 });

@@ -180,21 +180,28 @@ export const BulkPricingTiers: React.FC<BulkPricingTiersProps> = ({
     </Card>
   );
 
-  const renderCompactView = () => (
-    <View style={styles.compactContainer}>
-      <View style={styles.compactHeader}>
-        <Text style={styles.compactTitle}>
-          {t('bulkPricing.bulkPricing')} ({tiers.length})
-        </Text>
-        <TouchableOpacity style={styles.addTierButtonCompact} onPress={addTier}>
-          <Plus size={16} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
+  const renderCompactView = () => {
+    // If no tiers, don't render anything in compact mode
+    if (!initialTiers || initialTiers.length === 0) {
+      return null;
+    }
 
-      {tiers.length > 0 && (
+    const sortedTiers = [...initialTiers].sort(
+      (a, b) => a.min_quantity - b.min_quantity
+    );
+
+    return (
+      <View style={styles.compactContainer}>
+        <View style={styles.compactHeader}>
+          <TrendingDown size={14} color="#059669" />
+          <Text style={styles.compactTitle}>
+            {t('bulkPricing.bulkPricing')} ({initialTiers.length})
+          </Text>
+        </View>
+
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.compactTiers}>
-            {getSortedTiers().map((tier, index) => (
+            {sortedTiers.map((tier, index) => (
               <View key={index} style={styles.compactTier}>
                 <Text style={styles.compactTierQuantity}>
                   {tier.min_quantity}+
@@ -209,9 +216,9 @@ export const BulkPricingTiers: React.FC<BulkPricingTiersProps> = ({
             ))}
           </View>
         </ScrollView>
-      )}
-    </View>
-  );
+      </View>
+    );
+  };
 
   if (compact) {
     return renderCompactView();

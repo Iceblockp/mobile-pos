@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
-import { EnhancedMovementHistory } from '@/components/EnhancedMovementHistory';
+import { EnhancedMovementHistory } from '@/components/inventory/EnhancedMovementHistory';
 import { StockMovementForm } from '@/components/StockMovementForm';
 import { Product } from '@/services/database';
 import {

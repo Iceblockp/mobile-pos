@@ -11,13 +11,13 @@ import {
   RefreshControl,
   Image,
   FlatList,
+  Modal,
 } from 'react-native';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import {
   useProducts,
-  useBasicSuppliers,
   useLowStockProducts,
   useProductMutations,
 } from '@/hooks/useQueries';
@@ -27,10 +27,8 @@ import {
   TrendingUp,
   TrendingDown,
   Package,
-  List,
-  Search,
-  Scan,
   RotateCcw,
+  ChevronDown,
 } from 'lucide-react-native';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { useToast } from '@/context/ToastContext';
@@ -39,19 +37,27 @@ import { usePerformanceOptimization } from '@/hooks/usePerformanceOptimization';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
 
 // Import the ProductsManager component
-import ProductsManager from '@/components/ProductsManager';
+import ProductsManager from '@/components/inventory/ProductsManager';
 import { StockMovementForm } from '@/components/StockMovementForm';
-import { EnhancedMovementHistory } from '@/components/EnhancedMovementHistory';
+import { EnhancedMovementHistory } from '@/components/inventory/EnhancedMovementHistory';
 import { MovementSummary } from '@/components/MovementSummary';
 import { QuickStockActions } from '@/components/QuickStockActions';
+import { useDashboardAnalytics } from '@/hooks/useDashboard';
 
 type InventoryTab = 'overview' | 'products' | 'movements';
+
+interface TabOption {
+  key: InventoryTab;
+  label: string;
+  icon: React.ComponentType<{ size: number; color: string }>;
+}
 
 export default function Inventory() {
   const { showToast } = useToast();
   const { formatPrice } = useCurrencyFormatter();
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<InventoryTab>('products');
+  const [showTabPicker, setShowTabPicker] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [adjustmentQuantity, setAdjustmentQuantity] = useState('');
   const [showAdjustment, setShowAdjustment] = useState(false);
@@ -64,6 +70,28 @@ export default function Inventory() {
     'stock_in'
   );
 
+  // Tab options configuration
+  const tabOptions: TabOption[] = [
+    {
+      key: 'products',
+      label: t('inventory.products'),
+      icon: Package,
+    },
+    {
+      key: 'movements',
+      label: t('stockMovement.history'),
+      icon: RotateCcw,
+    },
+    {
+      key: 'overview',
+      label: t('inventory.overview'),
+      icon: TrendingUp,
+    },
+  ];
+
+  // Get current tab info
+  const currentTab = tabOptions.find((tab) => tab.key === activeTab);
+
   // Use React Query for optimized data fetching
   const {
     data: products = [],
@@ -71,9 +99,6 @@ export default function Inventory() {
     isRefetching: productsRefetching,
     refetch: refetchProducts,
   } = useProducts();
-
-  const { data: suppliers = [], isLoading: suppliersLoading } =
-    useBasicSuppliers();
 
   const {
     data: lowStockProducts = [],
@@ -89,23 +114,34 @@ export default function Inventory() {
     products.length,
     'InventoryPage'
   );
-  console.log('inver');
   const onRefresh = () => {
     refetchProducts();
     refetchLowStock();
   };
 
-  const isLoading = productsLoading || suppliersLoading || lowStockLoading;
+  const isLoading = productsLoading || lowStockLoading;
   const isRefreshing = productsRefetching || lowStockRefetching;
 
-  console.log('is loading', productsLoading, suppliersLoading, lowStockLoading);
+  useEffect(() => {
+    console.log('Inventory loading states:', {
+      productsLoading,
+      lowStockLoading,
+      productsRefetching,
+      lowStockRefetching,
+      isLoading,
+      isRefreshing,
+    });
+  }, [
+    productsLoading,
+    lowStockLoading,
+    productsRefetching,
+    lowStockRefetching,
+  ]);
 
-  // Removed formatMMK function - now using standardized currency formatting
-
-  // const getSupplierName = (supplierId: number) => {
-  //   const supplier = suppliers.find((s) => s.id === supplierId);
-  //   return supplier ? supplier.name : t('inventory.unknown');
-  // };
+  const handleTabChange = (tabKey: InventoryTab) => {
+    setActiveTab(tabKey);
+    setShowTabPicker(false);
+  };
 
   const handleBarcodeScanned = async (barcode: string) => {
     try {
@@ -171,36 +207,6 @@ export default function Inventory() {
     } catch (error) {
       Alert.alert(t('common.error'), t('inventory.failedToUpdate'));
       console.error('Error updating stock:', error);
-    }
-  };
-
-  // const getStockStatus = (product: Product) => {
-  //   if (product.quantity <= 0)
-  //     return { text: t('inventory.outOfStock'), color: '#EF4444' };
-  //   if (product.quantity <= product.min_stock)
-  //     return { text: t('inventory.lowStock'), color: '#F59E0B' };
-  //   return { text: t('inventory.inStock'), color: '#10B981' };
-  // };
-
-  // Filter products based on search query
-  // const filteredProducts = products.filter((product) => {
-  //   const matchesSearch =
-  //     product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-  //     product.barcode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-  //     product.category?.toLowerCase().includes(searchQuery.toLowerCase());
-  //   return matchesSearch;
-  // });
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'overview':
-        return renderOverviewContent();
-      case 'products':
-        return <ProductsManager compact={true} />;
-      case 'movements':
-        return renderMovementsContent();
-      default:
-        return renderOverviewContent();
     }
   };
 
@@ -298,14 +304,6 @@ export default function Inventory() {
                       >
                         <TrendingDown size={12} color="#FFFFFF" />
                       </TouchableOpacity>
-                      {/* <TouchableOpacity
-                        style={styles.adjustButton}
-                        onPress={() => handleStockAdjustment(item)}
-                      >
-                        <Text style={styles.adjustButtonText}>
-                          {t('inventory.adjust')}
-                        </Text>
-                      </TouchableOpacity> */}
                     </View>
                   </View>
                 )}
@@ -389,67 +387,77 @@ export default function Inventory() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Dynamic Header with Tab Picker */}
       <View style={styles.header}>
-        <Text style={styles.title}>{t('inventory.title')}</Text>
-        <Text style={styles.subtitle}>{t('inventory.subtitle')}</Text>
+        <View style={styles.headerContent}>
+          <View style={styles.titleSection}>
+            <Text style={styles.title}>
+              {currentTab?.label || t('inventory.title')}
+            </Text>
+            <Text style={styles.subtitle}>{t('inventory.subtitle')}</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.tabPickerButton}
+            onPress={() => setShowTabPicker(true)}
+          >
+            {currentTab && <currentTab.icon size={20} color="#059669" />}
+            <ChevronDown size={16} color="#6B7280" style={styles.chevronIcon} />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Tab Navigation */}
-      <View style={styles.tabContainer}>
+      {/* Tab Picker Modal */}
+      <Modal
+        visible={showTabPicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowTabPicker(false)}
+      >
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'products' && styles.activeTab]}
-          onPress={() => setActiveTab('products')}
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowTabPicker(false)}
         >
-          <Package
-            size={20}
-            color={activeTab === 'products' ? '#059669' : '#6B7280'}
-          />
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'products' && styles.activeTabText,
-            ]}
-          >
-            {t('inventory.products')}
-          </Text>
-        </TouchableOpacity>
+          <View style={styles.tabPickerModal}>
+            <Text style={styles.tabPickerTitle}>
+              {t('inventory.selectView')}
+            </Text>
 
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'movements' && styles.activeTab]}
-          onPress={() => setActiveTab('movements')}
-        >
-          <RotateCcw
-            size={20}
-            color={activeTab === 'movements' ? '#059669' : '#6B7280'}
-          />
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'movements' && styles.activeTabText,
-            ]}
-          >
-            {t('stockMovement.history')}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'overview' && styles.activeTab]}
-          onPress={() => setActiveTab('overview')}
-        >
-          <TrendingUp
-            size={20}
-            color={activeTab === 'overview' ? '#059669' : '#6B7280'}
-          />
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'overview' && styles.activeTabText,
-            ]}
-          >
-            {t('inventory.overview')}
-          </Text>
-        </TouchableOpacity>
-      </View>
+            {tabOptions.map((tab) => {
+              const IconComponent = tab.icon;
+              const isSelected = activeTab === tab.key;
 
+              return (
+                <TouchableOpacity
+                  key={tab.key}
+                  style={[
+                    styles.tabPickerOption,
+                    isSelected && styles.tabPickerOptionSelected,
+                  ]}
+                  onPress={() => handleTabChange(tab.key)}
+                >
+                  <IconComponent
+                    size={20}
+                    color={isSelected ? '#059669' : '#6B7280'}
+                  />
+                  <Text
+                    style={[
+                      styles.tabPickerOptionText,
+                      isSelected && styles.tabPickerOptionTextSelected,
+                    ]}
+                  >
+                    {tab.label}
+                  </Text>
+                  {isSelected && <View style={styles.selectedIndicator} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Content based on active tab */}
       <View
         style={{
           display: activeTab == 'products' ? 'contents' : 'none',
@@ -503,6 +511,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  titleSection: {
+    flex: 1,
+  },
   title: {
     fontSize: 28,
     fontFamily: 'Inter-Bold',
@@ -514,35 +530,74 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 4,
   },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  tab: {
-    flex: 1,
+  tabPickerButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginLeft: 16,
   },
-  activeTab: {
-    borderBottomColor: '#059669',
-    backgroundColor: '#F0FDF4',
-  },
-  tabText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
+  chevronIcon: {
     marginLeft: 8,
   },
-  activeTabText: {
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tabPickerModal: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    margin: 32,
+    minWidth: 280,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  tabPickerTitle: {
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  tabPickerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  tabPickerOptionSelected: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#059669',
+  },
+  tabPickerOptionText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+    marginLeft: 12,
+    flex: 1,
+  },
+  tabPickerOptionTextSelected: {
     color: '#059669',
     fontFamily: 'Inter-SemiBold',
+  },
+  selectedIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#059669',
   },
   tabContent: {
     flex: 1,
@@ -797,51 +852,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    marginRight: 8,
-  },
-  searchIcon: {
-    marginRight: 8,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 12,
     fontSize: 16,
     fontFamily: 'Inter-Regular',
     color: '#111827',
-  },
-  clearButton: {
-    padding: 4,
-  },
-  clearButtonText: {
-    fontSize: 20,
-    color: '#6B7280',
-    fontWeight: 'bold',
+    marginLeft: 8,
   },
   scanButton: {
     backgroundColor: '#059669',
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-    marginTop: 12,
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#9CA3AF',
-    marginTop: 4,
-    textAlign: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginLeft: 12,
   },
 });
