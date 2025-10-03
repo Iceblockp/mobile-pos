@@ -187,7 +187,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({
       <FlatList
         data={filteredCustomers}
         renderItem={renderCustomer}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={[
           styles.listContainer,
           filteredCustomers.length === 0 && styles.emptyListContainer,

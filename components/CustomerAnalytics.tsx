@@ -14,7 +14,7 @@ import { Users, Trophy, TrendingUp } from 'lucide-react-native';
 import { DateFilter, DateFilterComponent } from './DateFilter';
 
 interface CustomerAnalyticsProps {
-  customerId?: number;
+  customerId?: string;
 }
 
 export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({

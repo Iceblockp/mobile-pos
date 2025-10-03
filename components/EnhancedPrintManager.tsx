@@ -29,7 +29,7 @@ import { ShopSettings } from '@/services/shopSettingsStorage';
 
 interface CartItem {
   product: {
-    id: number;
+    id: string;
     name: string;
     price: number;
   };
@@ -39,7 +39,7 @@ interface CartItem {
 }
 
 interface ReceiptData {
-  saleId: number;
+  saleId: string;
   items: CartItem[];
   total: number;
   paymentMethod: string;

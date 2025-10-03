@@ -23,7 +23,7 @@
 // const { width } = Dimensions.get('window');
 
 // interface StockAnalyticsProps {
-//   productId?: number;
+//   productId?: string;
 // }
 
 // export const StockAnalytics: React.FC<StockAnalyticsProps> = ({

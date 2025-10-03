@@ -1,0 +1,51 @@
+{
+  "timestamp": "2025-10-03T18:00:47.216Z",
+  "error": "No UUID mapping found for products.5",
+  "analysis": {
+    "rootCause": "Foreign key constraint violation",
+    "description": "sale_items table contains records referencing non-existent products",
+    "impact": "Migration fails during sale_items processing",
+    "severity": "High - Blocks migration completely"
+  },
+  "diagnosticQueries": [
+    {
+      "purpose": "Find orphaned sale_items",
+      "sql": "SELECT si.id, si.product_id FROM sale_items si LEFT JOIN products p ON si.product_id = p.id WHERE p.id IS NULL;"
+    },
+    {
+      "purpose": "Find orphaned products",
+      "sql": "SELECT p.id, p.category_id FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE c.id IS NULL;"
+    },
+    {
+      "purpose": "Check for null foreign keys in sale_items",
+      "sql": "SELECT * FROM sale_items WHERE product_id IS NULL OR sale_id IS NULL;"
+    },
+    {
+      "purpose": "Verify table counts",
+      "sql": "SELECT 'products' as table_name, COUNT(*) as count FROM products UNION SELECT 'sale_items', COUNT(*) FROM sale_items;"
+    }
+  ],
+  "solutions": [
+    {
+      "type": "Delete orphaned records",
+      "sql": "DELETE FROM sale_items WHERE product_id NOT IN (SELECT id FROM products);",
+      "risk": "Data loss - orphaned sale_items will be deleted"
+    },
+    {
+      "type": "Create missing products",
+      "description": "Manually create missing product records if the data is valid",
+      "risk": "Low - but requires manual data entry"
+    },
+    {
+      "type": "Update foreign keys",
+      "description": "Update invalid foreign keys to point to existing records",
+      "risk": "Medium - may change business logic"
+    }
+  ],
+  "prevention": [
+    "Add foreign key constraints to prevent orphaned records",
+    "Implement data validation in the application",
+    "Regular data integrity checks",
+    "Backup before major operations"
+  ]
+}

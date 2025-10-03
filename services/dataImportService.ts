@@ -8,6 +8,7 @@ import {
 } from './validationService';
 import { ErrorHandlingService, ErrorResolution } from './errorHandlingService';
 import { PerformanceOptimizationService } from './performanceOptimizationService';
+import { isValidUUID } from '../utils/uuid';
 
 // Import interfaces
 export interface ImportOptions {
@@ -187,6 +188,21 @@ export class DataImportService {
       // Validate the data
       const validationSummary = await this.validateImportFile(fileUri);
 
+      // Validate UUID format
+      const uuidErrors = this.validateImportedUUIDs(data);
+      if (uuidErrors.length > 0) {
+        console.warn('UUID validation warnings in import data:', uuidErrors);
+        // Add UUID errors to validation summary
+        validationSummary.warnings.push(
+          ...uuidErrors.map((error) => ({
+            field: 'uuid',
+            message: error,
+            code: 'INVALID_UUID_FORMAT',
+            severity: 'warning' as const,
+          }))
+        );
+      }
+
       // Detect conflicts
       const conflicts = await this.detectConflicts(data, dataType);
 
@@ -326,20 +342,28 @@ export class DataImportService {
       // Get existing data
       const existingProducts = await this.db.getProducts();
       const existingCategories = await this.db.getCategories();
+      const existingSuppliers = await this.db.getSuppliers();
 
       // Import categories first if they don't exist
       let categoryProgress = 0;
       for (const category of categories) {
         const existingCategory = existingCategories.find(
-          (c) => c.name === category.name
+          (c) =>
+            c.name === category.name || (category.id && c.id === category.id)
         );
         if (!existingCategory) {
           try {
-            await this.db.addCategory({
+            const categoryData: any = {
               name: category.name,
               description: category.description || '',
-              created_at: new Date().toISOString(),
-            });
+            };
+
+            // If category has valid UUID, try to use it (for complete backup imports)
+            if (category.id && isValidUUID(category.id)) {
+              categoryData.id = category.id;
+            }
+
+            await this.db.addCategory(categoryData);
           } catch (error) {
             console.error('Error adding category:', error);
           }
@@ -349,6 +373,41 @@ export class DataImportService {
           'Importing categories...',
           categoryProgress,
           categories.length
+        );
+      }
+
+      // Import suppliers if they don't exist
+      let supplierProgress = 0;
+      for (const supplier of suppliers) {
+        const existingSupplier = existingSuppliers.find(
+          (s) =>
+            s.name === supplier.name || (supplier.id && s.id === supplier.id)
+        );
+        if (!existingSupplier) {
+          try {
+            const supplierData: any = {
+              name: supplier.name,
+              contact_name: supplier.contact_name || '',
+              phone: supplier.phone || '',
+              email: supplier.email || '',
+              address: supplier.address || '',
+            };
+
+            // If supplier has valid UUID, try to use it (for complete backup imports)
+            if (supplier.id && isValidUUID(supplier.id)) {
+              supplierData.id = supplier.id;
+            }
+
+            await this.db.addSupplier(supplierData);
+          } catch (error) {
+            console.error('Error adding supplier:', error);
+          }
+        }
+        supplierProgress++;
+        this.updateProgress(
+          'Importing suppliers...',
+          supplierProgress,
+          suppliers.length
         );
       }
 
@@ -390,7 +449,8 @@ export class DataImportService {
             const existingProduct = existingProducts.find(
               (p) =>
                 p.name === product.name ||
-                (product.barcode && p.barcode === product.barcode)
+                (product.barcode && p.barcode === product.barcode) ||
+                (product.id && p.id === product.id) // Check UUID match
             );
 
             if (existingProduct) {
@@ -399,12 +459,16 @@ export class DataImportService {
                 continue;
               } else if (options.conflictResolution === 'update') {
                 // Update existing product
-                const categoryId = await this.findOrCreateCategoryId(
-                  product.category
-                );
-                const supplierId = await this.findOrCreateSupplierId(
-                  product.supplier || suppliers[0]?.name
-                );
+                const categoryId =
+                  product.category_id && isValidUUID(product.category_id)
+                    ? product.category_id
+                    : await this.findOrCreateCategoryId(product.category);
+                const supplierId =
+                  product.supplier_id && isValidUUID(product.supplier_id)
+                    ? product.supplier_id
+                    : await this.findOrCreateSupplierId(
+                        product.supplier || suppliers[0]?.name
+                      );
 
                 await this.db.updateProduct(existingProduct.id, {
                   name: product.name,
@@ -414,7 +478,7 @@ export class DataImportService {
                   cost: product.cost,
                   quantity: product.quantity || 0,
                   min_stock: product.min_stock || 10,
-                  supplier_id: supplierId || null,
+                  supplier_id: supplierId || undefined,
                   imageUrl: product.imageUrl || null,
                 });
                 updated++;
@@ -431,12 +495,16 @@ export class DataImportService {
               }
             } else {
               // Add new product
-              const categoryId = await this.findOrCreateCategoryId(
-                product.category
-              );
-              const supplierId = await this.findOrCreateSupplierId(
-                product.supplier || suppliers[0]?.name
-              );
+              const categoryId =
+                product.category_id && isValidUUID(product.category_id)
+                  ? product.category_id
+                  : await this.findOrCreateCategoryId(product.category);
+              const supplierId =
+                product.supplier_id && isValidUUID(product.supplier_id)
+                  ? product.supplier_id
+                  : await this.findOrCreateSupplierId(
+                      product.supplier || suppliers[0]?.name
+                    );
 
               console.log(
                 'Adding product to database:',
@@ -446,7 +514,9 @@ export class DataImportService {
                 'supplierId:',
                 supplierId
               );
-              const newProductId = await this.db.addProduct({
+
+              // Use existing UUID if valid, otherwise let database generate new one
+              const productData: any = {
                 name: product.name,
                 barcode: product.barcode || null,
                 category_id: categoryId,
@@ -454,9 +524,16 @@ export class DataImportService {
                 cost: product.cost,
                 quantity: product.quantity || 0,
                 min_stock: product.min_stock || 10,
-                supplier_id: supplierId || null,
+                supplier_id: supplierId || undefined,
                 imageUrl: product.imageUrl || null,
-              });
+              };
+
+              // If product has valid UUID, try to use it (for complete backup imports)
+              if (product.id && isValidUUID(product.id)) {
+                productData.id = product.id;
+              }
+
+              const newProductId = await this.db.addProduct(productData);
               console.log('Product added successfully with ID:', newProductId);
               imported++;
             }
@@ -567,7 +644,8 @@ export class DataImportService {
             const existingCustomer = existingCustomers.find(
               (c) =>
                 c.name === customer.name ||
-                (customer.phone && c.phone === customer.phone)
+                (customer.phone && c.phone === customer.phone) ||
+                (customer.id && c.id === customer.id) // Check UUID match
             );
 
             if (existingCustomer) {
@@ -595,12 +673,19 @@ export class DataImportService {
               }
             } else {
               // Add new customer
-              await this.db.addCustomer({
+              const customerData: any = {
                 name: customer.name,
                 phone: customer.phone || '',
                 email: customer.email || '',
                 address: customer.address || '',
-              });
+              };
+
+              // If customer has valid UUID, try to use it (for complete backup imports)
+              if (customer.id && isValidUUID(customer.id)) {
+                customerData.id = customer.id;
+              }
+
+              await this.db.addCustomer(customerData);
               imported++;
             }
           } catch (error) {
@@ -703,18 +788,25 @@ export class DataImportService {
               continue;
             }
 
-            // Find product
-            const product = products.find(
-              (p) => p.name === movement.product_name
-            );
+            // Find product by UUID first, then by name
+            let product = null;
+            if (movement.product_id && isValidUUID(movement.product_id)) {
+              product = products.find((p) => p.id === movement.product_id);
+            }
+            if (!product && movement.product_name) {
+              product = products.find((p) => p.name === movement.product_name);
+            }
+
             if (!product) {
               if (options.createMissingReferences) {
                 // Could create missing product, but for now skip
                 errors.push({
                   index: globalIndex,
                   record: movement,
-                  field: 'product_name',
-                  message: `Product "${movement.product_name}" not found`,
+                  field: 'product_id',
+                  message: `Product "${
+                    movement.product_name || movement.product_id
+                  }" not found`,
                   code: 'MISSING_PRODUCT',
                 });
               }
@@ -832,14 +924,23 @@ export class DataImportService {
             continue;
           }
 
-          // Find product
-          const product = products.find((p) => p.name === item.productName);
+          // Find product by UUID first, then by name
+          let product = null;
+          if (item.productId && isValidUUID(item.productId)) {
+            product = products.find((p) => p.id === item.productId);
+          }
+          if (!product && item.productName) {
+            product = products.find((p) => p.name === item.productName);
+          }
+
           if (!product) {
             errors.push({
               index,
               record: item,
-              field: 'productName',
-              message: `Product "${item.productName}" not found`,
+              field: 'productId',
+              message: `Product "${
+                item.productName || item.productId
+              }" not found`,
               code: 'MISSING_PRODUCT',
             });
             skipped++;
@@ -983,15 +1084,19 @@ export class DataImportService {
                   }))
                 : [];
 
-            await this.db.addSale(
-              {
-                total: sale.total,
-                payment_method: sale.payment_method,
-                note: sale.note || null,
-                customer_id: sale.customer_id || null,
-              },
-              saleItems
-            );
+            const saleData: any = {
+              total: sale.total,
+              payment_method: sale.payment_method,
+              note: sale.note || null,
+              customer_id: sale.customer_id || null,
+            };
+
+            // If sale has valid UUID, try to use it (for complete backup imports)
+            if (sale.id && isValidUUID(sale.id)) {
+              saleData.id = sale.id;
+            }
+
+            await this.db.addSale(saleData, saleItems);
 
             imported++;
           } catch (error) {
@@ -1328,8 +1433,140 @@ export class DataImportService {
     }
   }
 
+  // Validate UUID format in imported data
+  private validateImportedUUIDs(data: any): string[] {
+    const errors: string[] = [];
+
+    // Validate product UUIDs
+    if (data.products && Array.isArray(data.products)) {
+      data.products.forEach((product: any, index: number) => {
+        if (product.id && !isValidUUID(product.id)) {
+          errors.push(
+            `Product ${index}: Invalid UUID format for id: ${product.id}`
+          );
+        }
+        if (product.category_id && !isValidUUID(product.category_id)) {
+          errors.push(
+            `Product ${index}: Invalid UUID format for category_id: ${product.category_id}`
+          );
+        }
+        if (product.supplier_id && !isValidUUID(product.supplier_id)) {
+          errors.push(
+            `Product ${index}: Invalid UUID format for supplier_id: ${product.supplier_id}`
+          );
+        }
+      });
+    }
+
+    // Validate category UUIDs
+    if (data.categories && Array.isArray(data.categories)) {
+      data.categories.forEach((category: any, index: number) => {
+        if (category.id && !isValidUUID(category.id)) {
+          errors.push(
+            `Category ${index}: Invalid UUID format for id: ${category.id}`
+          );
+        }
+      });
+    }
+
+    // Validate supplier UUIDs
+    if (data.suppliers && Array.isArray(data.suppliers)) {
+      data.suppliers.forEach((supplier: any, index: number) => {
+        if (supplier.id && !isValidUUID(supplier.id)) {
+          errors.push(
+            `Supplier ${index}: Invalid UUID format for id: ${supplier.id}`
+          );
+        }
+      });
+    }
+
+    // Validate sale UUIDs
+    if (data.sales && Array.isArray(data.sales)) {
+      data.sales.forEach((sale: any, index: number) => {
+        if (sale.id && !isValidUUID(sale.id)) {
+          errors.push(`Sale ${index}: Invalid UUID format for id: ${sale.id}`);
+        }
+        if (sale.customer_id && !isValidUUID(sale.customer_id)) {
+          errors.push(
+            `Sale ${index}: Invalid UUID format for customer_id: ${sale.customer_id}`
+          );
+        }
+        // Validate sale items
+        if (sale.items && Array.isArray(sale.items)) {
+          sale.items.forEach((item: any, itemIndex: number) => {
+            if (item.id && !isValidUUID(item.id)) {
+              errors.push(
+                `Sale ${index}, Item ${itemIndex}: Invalid UUID format for id: ${item.id}`
+              );
+            }
+            if (item.sale_id && !isValidUUID(item.sale_id)) {
+              errors.push(
+                `Sale ${index}, Item ${itemIndex}: Invalid UUID format for sale_id: ${item.sale_id}`
+              );
+            }
+            if (item.product_id && !isValidUUID(item.product_id)) {
+              errors.push(
+                `Sale ${index}, Item ${itemIndex}: Invalid UUID format for product_id: ${item.product_id}`
+              );
+            }
+          });
+        }
+      });
+    }
+
+    // Validate customer UUIDs
+    if (data.customers && Array.isArray(data.customers)) {
+      data.customers.forEach((customer: any, index: number) => {
+        if (customer.id && !isValidUUID(customer.id)) {
+          errors.push(
+            `Customer ${index}: Invalid UUID format for id: ${customer.id}`
+          );
+        }
+      });
+    }
+
+    // Validate expense UUIDs
+    if (data.expenses && Array.isArray(data.expenses)) {
+      data.expenses.forEach((expense: any, index: number) => {
+        if (expense.id && !isValidUUID(expense.id)) {
+          errors.push(
+            `Expense ${index}: Invalid UUID format for id: ${expense.id}`
+          );
+        }
+        if (expense.category_id && !isValidUUID(expense.category_id)) {
+          errors.push(
+            `Expense ${index}: Invalid UUID format for category_id: ${expense.category_id}`
+          );
+        }
+      });
+    }
+
+    // Validate stock movement UUIDs
+    if (data.stockMovements && Array.isArray(data.stockMovements)) {
+      data.stockMovements.forEach((movement: any, index: number) => {
+        if (movement.id && !isValidUUID(movement.id)) {
+          errors.push(
+            `Stock Movement ${index}: Invalid UUID format for id: ${movement.id}`
+          );
+        }
+        if (movement.product_id && !isValidUUID(movement.product_id)) {
+          errors.push(
+            `Stock Movement ${index}: Invalid UUID format for product_id: ${movement.product_id}`
+          );
+        }
+        if (movement.supplier_id && !isValidUUID(movement.supplier_id)) {
+          errors.push(
+            `Stock Movement ${index}: Invalid UUID format for supplier_id: ${movement.supplier_id}`
+          );
+        }
+      });
+    }
+
+    return errors;
+  }
+
   // Helper method to find or create category ID
-  private async findOrCreateCategoryId(categoryName?: string): Promise<number> {
+  private async findOrCreateCategoryId(categoryName?: string): Promise<string> {
     if (!categoryName) {
       // Return default category ID or create one
       const categories = await this.db.getCategories();
@@ -1362,7 +1599,7 @@ export class DataImportService {
   // Helper method to find or create expense category ID
   private async findOrCreateExpenseCategoryId(
     categoryName?: string
-  ): Promise<number> {
+  ): Promise<string> {
     if (!categoryName) {
       // Return default expense category ID or create one
       const categories = await this.db.getExpenseCategories();
@@ -1390,7 +1627,7 @@ export class DataImportService {
   }
 
   // Helper method to find or create supplier ID
-  private async findOrCreateSupplierId(supplierName?: string): Promise<number> {
+  private async findOrCreateSupplierId(supplierName?: string): Promise<string> {
     if (!supplierName) {
       // Return default supplier ID or create one
       const suppliers = await this.db.getSuppliers();

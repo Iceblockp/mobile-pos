@@ -12,7 +12,7 @@ import {
 import { useTranslation } from '@/context/LocalizationContext';
 
 interface MovementSummaryProps {
-  productId?: number;
+  productId?: string;
   startDate?: Date;
   endDate?: Date;
   compact?: boolean;

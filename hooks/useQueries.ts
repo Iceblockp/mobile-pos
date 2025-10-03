@@ -23,7 +23,7 @@ export const queryKeys = {
     list: (filters: string) =>
       [...queryKeys.products.lists(), { filters }] as const,
     details: () => [...queryKeys.products.all, 'detail'] as const,
-    detail: (id: number) => [...queryKeys.products.details(), id] as const,
+    detail: (id: string) => [...queryKeys.products.details(), id] as const,
   },
 
   // Categories
@@ -42,10 +42,10 @@ export const queryKeys = {
         { searchQuery, page, pageSize },
       ] as const,
     details: () => [...queryKeys.suppliers.all, 'detail'] as const,
-    detail: (id: number) => [...queryKeys.suppliers.details(), id] as const,
-    products: (supplierId: number) =>
+    detail: (id: string) => [...queryKeys.suppliers.details(), id] as const,
+    products: (supplierId: string) =>
       [...queryKeys.suppliers.all, 'products', supplierId] as const,
-    analytics: (supplierId: number) =>
+    analytics: (supplierId: string) =>
       [...queryKeys.suppliers.all, 'analytics', supplierId] as const,
   },
 
@@ -59,8 +59,8 @@ export const queryKeys = {
         { searchQuery, page, pageSize },
       ] as const,
     details: () => [...queryKeys.customers.all, 'detail'] as const,
-    detail: (id: number) => [...queryKeys.customers.details(), id] as const,
-    purchaseHistory: (customerId: number, page?: number, pageSize?: number) =>
+    detail: (id: string) => [...queryKeys.customers.details(), id] as const,
+    purchaseHistory: (customerId: string, page?: number, pageSize?: number) =>
       [
         ...queryKeys.customers.all,
         'purchaseHistory',
@@ -68,16 +68,16 @@ export const queryKeys = {
         page,
         pageSize,
       ] as const,
-    statistics: (customerId: number) =>
+    statistics: (customerId: string) =>
       [...queryKeys.customers.all, 'statistics', customerId] as const,
     analytics: () => [...queryKeys.customers.all, 'analytics'] as const,
-    purchasePatterns: (customerId: number) =>
+    purchasePatterns: (customerId: string) =>
       [
         ...queryKeys.customers.analytics(),
         'purchasePatterns',
         customerId,
       ] as const,
-    lifetimeValue: (customerId: number) =>
+    lifetimeValue: (customerId: string) =>
       [
         ...queryKeys.customers.analytics(),
         'lifetimeValue',
@@ -96,7 +96,7 @@ export const queryKeys = {
         ...queryKeys.stockMovements.lists(),
         { filters, page, pageSize },
       ] as const,
-    byProduct: (productId: number, page?: number, pageSize?: number) =>
+    byProduct: (productId: string, page?: number, pageSize?: number) =>
       [
         ...queryKeys.stockMovements.all,
         'byProduct',
@@ -104,7 +104,7 @@ export const queryKeys = {
         page,
         pageSize,
       ] as const,
-    summary: (productId?: number, startDate?: Date, endDate?: Date) =>
+    summary: (productId?: string, startDate?: Date, endDate?: Date) =>
       [
         ...queryKeys.stockMovements.all,
         'summary',
@@ -117,9 +117,9 @@ export const queryKeys = {
   // Bulk Pricing
   bulkPricing: {
     all: ['bulkPricing'] as const,
-    byProduct: (productId: number) =>
+    byProduct: (productId: string) =>
       [...queryKeys.bulkPricing.all, 'byProduct', productId] as const,
-    calculation: (productId: number, quantity: number) =>
+    calculation: (productId: string, quantity: number) =>
       [
         ...queryKeys.bulkPricing.all,
         'calculation',
@@ -164,7 +164,7 @@ export const queryKeys = {
         page,
         pageSize,
       ] as const,
-    items: (saleId: number) =>
+    items: (saleId: string) =>
       [...queryKeys.sales.all, 'items', saleId] as const,
   },
 
@@ -279,37 +279,37 @@ export const useBasicSuppliers = () => {
   });
 };
 
-export const useSupplier = (id: number) => {
+export const useSupplier = (id: string) => {
   const { db, isReady } = useDatabase();
 
   return useQuery({
     queryKey: queryKeys.suppliers.detail(id),
     queryFn: () => db!.getSupplierById(id),
-    enabled: isReady && !!db && id > 0,
+    enabled: isReady && !!db && id.length > 0,
     staleTime: 15 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   });
 };
 
-export const useSupplierProducts = (supplierId: number) => {
+export const useSupplierProducts = (supplierId: string) => {
   const { db, isReady } = useDatabase();
 
   return useQuery({
     queryKey: queryKeys.suppliers.products(supplierId),
     queryFn: () => db!.getSupplierProducts(supplierId),
-    enabled: isReady && !!db && supplierId > 0,
+    enabled: isReady && !!db && supplierId.length > 0,
     staleTime: 5 * 60 * 1000, // 5 minutes - product data changes more frequently
     gcTime: 15 * 60 * 1000,
   });
 };
 
-export const useSupplierAnalytics = (supplierId: number) => {
+export const useSupplierAnalytics = (supplierId: string) => {
   const { db, isReady } = useDatabase();
 
   return useQuery({
     queryKey: queryKeys.suppliers.analytics(supplierId),
     queryFn: () => db!.getSupplierAnalytics(supplierId),
-    enabled: isReady && !!db && supplierId > 0,
+    enabled: isReady && !!db && supplierId.length > 0,
     staleTime: 5 * 60 * 1000, // 5 minutes - analytics data changes frequently
     gcTime: 15 * 60 * 1000,
   });
@@ -392,13 +392,13 @@ export const useSalesByDateRangePaginated = (
   });
 };
 
-export const useSaleItems = (saleId: number) => {
+export const useSaleItems = (saleId: string) => {
   const { db, isReady } = useDatabase();
 
   return useQuery({
     queryKey: queryKeys.sales.items(saleId),
     queryFn: () => db!.getSaleItems(saleId),
-    enabled: isReady && !!db && saleId > 0,
+    enabled: isReady && !!db && saleId.length > 0,
     staleTime: 5 * 60 * 1000, // 5 minutes - sale items don't change
     gcTime: 15 * 60 * 1000,
   });
@@ -558,7 +558,7 @@ export const useProductMutations = () => {
   });
 
   const updateProduct = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<Product> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<Product> }) =>
       db!.updateProduct(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
@@ -571,7 +571,7 @@ export const useProductMutations = () => {
   });
 
   const deleteProduct = useMutation({
-    mutationFn: (id: number) => db!.deleteProduct(id),
+    mutationFn: (id: string) => db!.deleteProduct(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
@@ -585,7 +585,7 @@ export const useProductMutations = () => {
       productData,
       bulkPricingTiers,
     }: {
-      id: number;
+      id: string;
       productData: Partial<Product>;
       bulkPricingTiers?: Array<{ min_quantity: number; bulk_price: number }>;
     }) => {
@@ -647,7 +647,7 @@ export const useCategoryMutations = () => {
   });
 
   const updateCategory = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<Category> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<Category> }) =>
       db!.updateCategory(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.categories.all });
@@ -656,7 +656,7 @@ export const useCategoryMutations = () => {
   });
 
   const deleteCategory = useMutation({
-    mutationFn: (id: number) => db!.deleteCategory(id),
+    mutationFn: (id: string) => db!.deleteCategory(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.categories.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
@@ -695,7 +695,7 @@ export const useSaleMutations = () => {
   });
 
   const deleteSale = useMutation({
-    mutationFn: (saleId: number) => db!.deleteSale(saleId),
+    mutationFn: (saleId: string) => db!.deleteSale(saleId),
     onSuccess: () => {
       // Invalidate all related queries including chart data
       queryClient.invalidateQueries({ queryKey: queryKeys.sales.all });
@@ -726,7 +726,7 @@ export const useExpenseMutations = () => {
       description,
       date,
     }: {
-      category_id: number;
+      category_id: string;
       amount: number;
       description: string;
       date: string;
@@ -751,8 +751,8 @@ export const useExpenseMutations = () => {
       description,
       date,
     }: {
-      id: number;
-      category_id: number;
+      id: string;
+      category_id: string;
       amount: number;
       description: string;
       date: string;
@@ -770,7 +770,7 @@ export const useExpenseMutations = () => {
   });
 
   const deleteExpense = useMutation({
-    mutationFn: (id: number) => db!.deleteExpense(id),
+    mutationFn: (id: string) => db!.deleteExpense(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.expenses.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.analytics.all });
@@ -804,7 +804,7 @@ export const useExpenseMutations = () => {
       name,
       description,
     }: {
-      id: number;
+      id: string;
       name: string;
       description?: string;
     }) => db!.updateExpenseCategory(id, name, description),
@@ -816,7 +816,7 @@ export const useExpenseMutations = () => {
   });
 
   const deleteExpenseCategory = useMutation({
-    mutationFn: (id: number) => db!.deleteExpenseCategory(id),
+    mutationFn: (id: string) => db!.deleteExpenseCategory(id),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.expenses.categories(),
@@ -853,19 +853,19 @@ export const useCustomers = (
   });
 };
 
-export const useCustomer = (id: number) => {
+export const useCustomer = (id: string) => {
   const { db, isReady } = useDatabase();
 
   return useQuery({
     queryKey: queryKeys.customers.detail(id),
     queryFn: () => db!.getCustomerById(id),
-    enabled: isReady && !!db && id > 0,
+    enabled: isReady && !!db && id.length > 0,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
 
 export const useCustomerPurchaseHistory = (
-  customerId: number,
+  customerId: string,
   page: number = 1,
   pageSize: number = 20
 ) => {
@@ -874,18 +874,18 @@ export const useCustomerPurchaseHistory = (
   return useQuery({
     queryKey: queryKeys.customers.purchaseHistory(customerId, page, pageSize),
     queryFn: () => db!.getCustomerPurchaseHistory(customerId, page, pageSize),
-    enabled: isReady && !!db && customerId > 0,
+    enabled: isReady && !!db && customerId.length > 0,
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 };
 
-export const useCustomerStatistics = (customerId: number) => {
+export const useCustomerStatistics = (customerId: string) => {
   const { db, isReady } = useDatabase();
 
   return useQuery({
     queryKey: queryKeys.customers.statistics(customerId),
     queryFn: () => db!.getCustomerStatistics(customerId),
-    enabled: isReady && !!db && customerId > 0,
+    enabled: isReady && !!db && customerId.length > 0,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
@@ -907,7 +907,7 @@ export const useCustomerMutations = () => {
   });
 
   const updateCustomer = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<Customer> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<Customer> }) =>
       db!.updateCustomer(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
@@ -915,7 +915,7 @@ export const useCustomerMutations = () => {
   });
 
   const deleteCustomer = useMutation({
-    mutationFn: (id: number) => db!.deleteCustomer(id),
+    mutationFn: (id: string) => db!.deleteCustomer(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
     },
@@ -929,24 +929,24 @@ export const useCustomerMutations = () => {
 };
 
 // ============ CUSTOMER ANALYTICS QUERIES ============
-export const useCustomerPurchasePatterns = (customerId: number) => {
+export const useCustomerPurchasePatterns = (customerId: string) => {
   const { db, isReady } = useDatabase();
 
   return useQuery({
     queryKey: queryKeys.customers.purchasePatterns(customerId),
     queryFn: () => db!.getCustomerPurchasePatterns(customerId),
-    enabled: isReady && !!db && customerId > 0,
+    enabled: isReady && !!db && customerId.length > 0,
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
 };
 
-export const useCustomerLifetimeValue = (customerId: number) => {
+export const useCustomerLifetimeValue = (customerId: string) => {
   const { db, isReady } = useDatabase();
 
   return useQuery({
     queryKey: queryKeys.customers.lifetimeValue(customerId),
     queryFn: () => db!.calculateCustomerLifetimeValue(customerId),
-    enabled: isReady && !!db && customerId > 0,
+    enabled: isReady && !!db && customerId.length > 0,
     staleTime: 15 * 60 * 1000, // 15 minutes
   });
 };
@@ -1018,7 +1018,7 @@ export const useLowStockPrediction = () => {
 export const useStockMovementReport = (
   startDate?: Date,
   endDate?: Date,
-  productId?: number
+  productId?: string
 ) => {
   const { db, isReady } = useDatabase();
 
@@ -1076,11 +1076,11 @@ export const useBulkPricingPerformance = (startDate?: Date, endDate?: Date) => {
 // ============ STOCK MOVEMENT QUERIES ============
 export const useStockMovements = (
   filters?: {
-    productId?: number;
+    productId?: string;
     type?: 'stock_in' | 'stock_out';
     startDate?: Date;
     endDate?: Date;
-    supplierId?: number;
+    supplierId?: string;
   },
   page: number = 1,
   pageSize: number = 50
@@ -1098,7 +1098,7 @@ export const useStockMovements = (
 };
 
 export const useStockMovementsByProduct = (
-  productId: number,
+  productId: string,
   page: number = 1,
   pageSize: number = 20
 ) => {
@@ -1107,13 +1107,13 @@ export const useStockMovementsByProduct = (
   return useQuery({
     queryKey: queryKeys.stockMovements.byProduct(productId, page, pageSize),
     queryFn: () => db!.getStockMovementsByProduct(productId, page, pageSize),
-    enabled: isReady && !!db && productId > 0,
+    enabled: isReady && !!db && productId.length > 0,
     staleTime: 1 * 60 * 1000, // 1 minute
   });
 };
 
 export const useStockMovementSummary = (
-  productId?: number,
+  productId?: string,
   startDate?: Date,
   endDate?: Date
 ) => {
@@ -1127,7 +1127,7 @@ export const useStockMovementSummary = (
   });
 };
 
-export const useProductStockSummary = (productId: number) => {
+export const useProductStockSummary = (productId: string) => {
   const { db, isReady } = useDatabase();
 
   return useQuery({
@@ -1141,7 +1141,7 @@ export const useProductStockSummary = (productId: number) => {
       ]);
       return { product, stockSummary };
     },
-    enabled: isReady && !!db && productId > 0,
+    enabled: isReady && !!db && productId.length > 0,
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 };
@@ -1152,11 +1152,11 @@ export const useStockMovementMutations = () => {
 
   const addStockMovement = useMutation({
     mutationFn: (movement: {
-      product_id: number;
+      product_id: string;
       type: 'stock_in' | 'stock_out';
       quantity: number;
       reason?: string;
-      supplier_id?: number;
+      supplier_id?: string;
       reference_number?: string;
       unit_cost?: number;
     }) => db!.addStockMovement(movement),
@@ -1177,11 +1177,11 @@ export const useStockMovementMutations = () => {
       referenceNumber,
       unitCost,
     }: {
-      productId: number;
+      productId: string;
       movementType: 'stock_in' | 'stock_out';
       quantity: number;
       reason?: string;
-      supplierId?: number;
+      supplierId?: string;
       referenceNumber?: string;
       unitCost?: number;
     }) =>
@@ -1208,13 +1208,13 @@ export const useStockMovementMutations = () => {
 };
 
 // ============ BULK PRICING QUERIES ============
-export const useBulkPricing = (productId: number) => {
+export const useBulkPricing = (productId: string) => {
   const { db, isReady } = useDatabase();
 
   return useQuery({
     queryKey: queryKeys.bulkPricing.byProduct(productId),
     queryFn: () => db!.getBulkPricingForProduct(productId),
-    enabled: isReady && !!db && productId > 0,
+    enabled: isReady && !!db && productId.length > 0,
     staleTime: 5 * 60 * 1000, // 5 minutes - longer cache for bulk pricing
     gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
     refetchOnWindowFocus: false, // Don't refetch on window focus
@@ -1222,7 +1222,7 @@ export const useBulkPricing = (productId: number) => {
 };
 
 export const useBulkPriceCalculation = (
-  productId: number,
+  productId: string,
   quantity: number
 ) => {
   const { db, isReady } = useDatabase();
@@ -1230,7 +1230,7 @@ export const useBulkPriceCalculation = (
   return useQuery({
     queryKey: queryKeys.bulkPricing.calculation(productId, quantity),
     queryFn: () => db!.calculateBestPrice(productId, quantity),
-    enabled: isReady && !!db && productId > 0 && quantity > 0,
+    enabled: isReady && !!db && productId.length > 0 && quantity > 0,
     staleTime: 2 * 60 * 1000, // 2 minutes - cache calculations longer
     gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
     refetchOnWindowFocus: false, // Don't refetch on window focus
@@ -1243,7 +1243,7 @@ export const useBulkPricingMutations = () => {
 
   const addBulkPricing = useMutation({
     mutationFn: (bulkPricing: {
-      product_id: number;
+      product_id: string;
       min_quantity: number;
       bulk_price: number;
     }) => db!.addBulkPricing(bulkPricing),
@@ -1256,7 +1256,7 @@ export const useBulkPricingMutations = () => {
   });
 
   const updateBulkPricing = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<BulkPricing> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<BulkPricing> }) =>
       db!.updateBulkPricing(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.bulkPricing.all });
@@ -1265,7 +1265,7 @@ export const useBulkPricingMutations = () => {
   });
 
   const deleteBulkPricing = useMutation({
-    mutationFn: (id: number) => db!.deleteBulkPricing(id),
+    mutationFn: (id: string) => db!.deleteBulkPricing(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.bulkPricing.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
@@ -1277,7 +1277,7 @@ export const useBulkPricingMutations = () => {
       productId,
       tiers,
     }: {
-      productId: number;
+      productId: string;
       tiers: Array<{
         min_quantity: number;
         bulk_price: number;
@@ -1311,7 +1311,7 @@ export const useSupplierMutations = () => {
   });
 
   const updateSupplier = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<Supplier> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<Supplier> }) =>
       db!.updateSupplier(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.suppliers.all });
@@ -1328,7 +1328,7 @@ export const useSupplierMutations = () => {
   });
 
   const deleteSupplier = useMutation({
-    mutationFn: (id: number) => db!.deleteSupplier(id),
+    mutationFn: (id: string) => db!.deleteSupplier(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.suppliers.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });

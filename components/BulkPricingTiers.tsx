@@ -17,7 +17,7 @@ import { useCurrencyFormatter } from '@/hooks/useCurrency';
 // import { useCurrencyFormatter } from '@/context/CurrencyContext';
 
 interface BulkPricingTier {
-  id?: number;
+  id?: string;
   min_quantity: number;
   bulk_price: number;
 }

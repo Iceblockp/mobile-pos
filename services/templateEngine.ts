@@ -10,10 +10,10 @@ export interface ReceiptTemplate {
 }
 
 export interface ReceiptData {
-  saleId: number;
+  saleId: string;
   items: Array<{
     product: {
-      id: number;
+      id: string;
       name: string;
       price: number;
     };
@@ -216,7 +216,7 @@ export class TemplateEngine {
       }
 
       // Replace receipt data
-      html = html.replace(/{{saleId}}/g, context.receiptData.saleId.toString());
+      html = html.replace(/{{saleId}}/g, context.receiptData.saleId);
       html = html.replace(
         /{{date}}/g,
         context.formatters.formatDate(context.receiptData.date)
@@ -293,28 +293,28 @@ export class TemplateEngine {
     isPreview: boolean = true
   ): Promise<string> {
     const sampleData: ReceiptData = {
-      saleId: 12345,
+      saleId: '12345',
       items: [
         {
-          product: { id: 1, name: 'Coca Cola 330ml', price: 800 },
+          product: { id: '1', name: 'Coca Cola 330ml', price: 800 },
           quantity: 3,
           discount: 0,
           subtotal: 2400,
         },
         {
-          product: { id: 2, name: 'Instant Noodles', price: 1200 },
+          product: { id: '2', name: 'Instant Noodles', price: 1200 },
           quantity: 2,
           discount: 100,
           subtotal: 2300,
         },
         {
-          product: { id: 3, name: 'White Rice 1kg', price: 2500 },
+          product: { id: '3', name: 'White Rice 1kg', price: 2500 },
           quantity: 1,
           discount: 0,
           subtotal: 2500,
         },
         {
-          product: { id: 4, name: 'Cooking Oil 1L', price: 3500 },
+          product: { id: '4', name: 'Cooking Oil 1L', price: 3500 },
           quantity: 1,
           discount: 200,
           subtotal: 3300,

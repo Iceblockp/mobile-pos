@@ -90,7 +90,7 @@ export default function Products({}: ProductsManagerProps) {
 
   // Add state for remembering last selected category and supplier
   const [lastSelectedCategoryId, setLastSelectedCategoryId] = useState<
-    number | null
+    string | null
   >(null);
   const [showSupplierPicker, setShowSupplierPicker] = useState(false);
   const [showCategoryFormPicker, setShowCategoryFormPicker] = useState(false);
@@ -132,7 +132,7 @@ export default function Products({}: ProductsManagerProps) {
   const [formData, setFormData] = useState({
     name: '',
     barcode: '',
-    category_id: 0,
+    category_id: '',
     price: '',
     cost: '',
     quantity: '0', // Default to 0
@@ -213,9 +213,7 @@ export default function Products({}: ProductsManagerProps) {
     setFormData({
       name: '',
       barcode: '',
-      category_id:
-        lastSelectedCategoryId ||
-        (categories.length > 0 ? categories[0].id : 0), // Use remembered category
+      category_id: lastSelectedCategoryId || '', // Use remembered category
       price: '',
       cost: '',
       quantity: '0', // Default to 0
@@ -391,9 +389,7 @@ export default function Products({}: ProductsManagerProps) {
         cost: cost,
         quantity: parseInt(formData.quantity) || 0,
         min_stock: parseInt(formData.min_stock) || 10,
-        supplier_id: formData.supplier_id
-          ? parseInt(formData.supplier_id)
-          : undefined, // Optional supplier
+        supplier_id: formData.supplier_id || undefined, // Optional supplier
         imageUrl: formData.imageUrl || undefined,
       };
 
@@ -490,7 +486,7 @@ export default function Products({}: ProductsManagerProps) {
       cost: product.cost.toString(),
       quantity: product.quantity.toString(),
       min_stock: product.min_stock?.toString() || '10',
-      supplier_id: product.supplier_id?.toString() || '', // Handle optional supplier
+      supplier_id: product.supplier_id || '', // Handle optional supplier
       imageUrl: product.imageUrl || '',
     });
 
@@ -619,13 +615,9 @@ export default function Products({}: ProductsManagerProps) {
   //   setShowStockMovementForm(true);
   // };
 
-  const getSupplierName = (supplierId: string | number | undefined) => {
+  const getSupplierName = (supplierId: string | undefined) => {
     if (!supplierId) return t('products.noSupplier');
-    const supplier = suppliers.find(
-      (s) =>
-        s.id ===
-        (typeof supplierId === 'string' ? parseInt(supplierId) : supplierId)
-    );
+    const supplier = suppliers.find((s) => s.id === supplierId);
     return supplier ? supplier.name : t('products.unknown');
   };
 
@@ -1085,13 +1077,13 @@ export default function Products({}: ProductsManagerProps) {
                   key={supplier.id}
                   style={[
                     styles.categoryFilterPickerItem,
-                    formData.supplier_id === supplier.id.toString() &&
+                    formData.supplier_id === supplier.id &&
                       styles.categoryFilterPickerItemActive,
                   ]}
                   onPress={() => {
                     setFormData({
                       ...formData,
-                      supplier_id: supplier.id.toString(),
+                      supplier_id: supplier.id,
                     });
                     setShowSupplierPicker(false);
                   }}
@@ -1099,13 +1091,13 @@ export default function Products({}: ProductsManagerProps) {
                   <Text
                     style={[
                       styles.categoryPickerItemText,
-                      formData.supplier_id === supplier.id.toString() &&
+                      formData.supplier_id === supplier.id &&
                         styles.categoryPickerItemTextActive,
                     ]}
                   >
                     {supplier.name}
                   </Text>
-                  {formData.supplier_id === supplier.id.toString() && (
+                  {formData.supplier_id === supplier.id && (
                     <View style={styles.selectedIndicator} />
                   )}
                 </TouchableOpacity>

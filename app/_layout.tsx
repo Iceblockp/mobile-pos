@@ -11,6 +11,7 @@ import {
 } from '@expo-google-fonts/inter';
 import { SplashScreen } from 'expo-router';
 import { DatabaseProvider } from '@/context/DatabaseContext';
+import { MigrationProvider } from '@/context/MigrationContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { LocalizationProvider } from '@/context/LocalizationContext';
 import { ShopSettingsProvider } from '@/context/ShopSettingsContext';
@@ -46,34 +47,36 @@ export default function RootLayout() {
   }
 
   return (
-    <DatabaseProvider>
-      <QueryClientProvider client={queryClient}>
-        <LocalizationProvider>
-          <ShopSettingsProvider>
-            <CurrencyProvider>
-              <ToastProvider>
-                <SafeAreaProvider>
-                  <SafeAreaView style={{ flex: 1 }}>
-                    <Stack screenOptions={{ headerShown: false }}>
-                      <Stack.Screen name="index" />
-                      <Stack.Screen
-                        name="(tabs)"
-                        options={{
-                          headerShown: false,
-                          statusBarStyle: 'dark',
-                          statusBarBackgroundColor: 'white',
-                        }}
-                      />
-                      <Stack.Screen name="+not-found" />
-                    </Stack>
-                    <StatusBar style="auto" />
-                  </SafeAreaView>
-                </SafeAreaProvider>
-              </ToastProvider>
-            </CurrencyProvider>
-          </ShopSettingsProvider>
-        </LocalizationProvider>
-      </QueryClientProvider>
-    </DatabaseProvider>
+    <MigrationProvider>
+      <DatabaseProvider>
+        <QueryClientProvider client={queryClient}>
+          <LocalizationProvider>
+            <ShopSettingsProvider>
+              <CurrencyProvider>
+                <ToastProvider>
+                  <SafeAreaProvider>
+                    <SafeAreaView style={{ flex: 1 }}>
+                      <Stack screenOptions={{ headerShown: false }}>
+                        <Stack.Screen name="index" />
+                        <Stack.Screen
+                          name="(tabs)"
+                          options={{
+                            headerShown: false,
+                            statusBarStyle: 'dark',
+                            statusBarBackgroundColor: 'white',
+                          }}
+                        />
+                        <Stack.Screen name="+not-found" />
+                      </Stack>
+                      <StatusBar style="auto" />
+                    </SafeAreaView>
+                  </SafeAreaProvider>
+                </ToastProvider>
+              </CurrencyProvider>
+            </ShopSettingsProvider>
+          </LocalizationProvider>
+        </QueryClientProvider>
+      </DatabaseProvider>
+    </MigrationProvider>
   );
 }

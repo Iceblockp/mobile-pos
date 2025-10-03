@@ -35,7 +35,7 @@ import { useTranslation } from '@/context/LocalizationContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 interface EnhancedMovementHistoryProps {
-  productId?: number;
+  productId?: string;
   showProductName?: boolean;
   compact?: boolean;
   showFilters?: boolean;
@@ -44,8 +44,8 @@ interface EnhancedMovementHistoryProps {
 
 interface MovementFilters {
   type?: 'stock_in' | 'stock_out' | 'all';
-  productId?: number;
-  supplierId?: number;
+  productId?: string;
+  supplierId?: string;
   startDate?: Date;
   endDate?: Date;
   searchQuery?: string;
@@ -532,7 +532,7 @@ export const EnhancedMovementHistory: React.FC<EnhancedMovementHistoryProps> =
 
           <FlatList
             data={filteredMovements}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={(item) => item.id}
             renderItem={renderMovementItem}
             ListEmptyComponent={renderEmptyState}
             ListHeaderComponent={headerComponent}

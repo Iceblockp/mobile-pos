@@ -3,6 +3,7 @@ import * as Sharing from 'expo-sharing';
 import { DatabaseService } from './database';
 import { ErrorHandlingService } from './errorHandlingService';
 import { PerformanceOptimizationService } from './performanceOptimizationService';
+import { isValidUUID } from '../utils/uuid';
 
 // Export interfaces
 export interface ExportResult {
@@ -56,9 +57,9 @@ export interface ExportData {
     bulkPricing?: any[];
   };
   relationships?: {
-    productCategories: Record<number, number>;
-    productSuppliers: Record<number, number>;
-    saleCustomers: Record<number, number>;
+    productCategories: Record<string, string>;
+    productSuppliers: Record<string, string>;
+    saleCustomers: Record<string, string>;
   };
   integrity: {
     checksum: string;
@@ -146,7 +147,7 @@ export class DataExportService {
         data: {
           products: products.map((product) => ({
             ...product,
-            id: undefined, // Remove IDs for import compatibility
+            // Keep UUID IDs for referential integrity
             created_at: undefined,
             updated_at: undefined,
           })),
@@ -156,11 +157,12 @@ export class DataExportService {
             (item) => item.bulkTiers.length > 0
           ),
         },
-        relationships: {
-          productCategories: {},
-          productSuppliers: {},
-          saleCustomers: {},
-        },
+        relationships: this.buildRelationshipMappings(
+          products,
+          categories,
+          suppliers,
+          []
+        ),
         integrity: {
           checksum: '',
           recordCounts: {
@@ -253,7 +255,11 @@ export class DataExportService {
         data: {
           sales: salesWithItems,
         },
-        relationships: {},
+        relationships: {
+          productCategories: {},
+          productSuppliers: {},
+          saleCustomers: {},
+        },
         integrity: {
           checksum: '',
           recordCounts: {
@@ -353,7 +359,11 @@ export class DataExportService {
         data: {
           customers: customersWithHistory,
         },
-        relationships: {},
+        relationships: {
+          productCategories: {},
+          productSuppliers: {},
+          saleCustomers: {},
+        },
         integrity: {
           checksum: '',
           recordCounts: {
@@ -426,7 +436,11 @@ export class DataExportService {
           expenses,
           expenseCategories,
         },
-        relationships: {},
+        relationships: {
+          productCategories: {},
+          productSuppliers: {},
+          saleCustomers: {},
+        },
         integrity: {
           checksum: '',
           recordCounts: {
@@ -493,7 +507,11 @@ export class DataExportService {
         data: {
           stockMovements,
         },
-        relationships: {},
+        relationships: {
+          productCategories: {},
+          productSuppliers: {},
+          saleCustomers: {},
+        },
         integrity: {
           checksum: '',
           recordCounts: {
@@ -587,7 +605,11 @@ export class DataExportService {
         data: {
           bulkPricing: filteredBulkPricing,
         },
-        relationships: {},
+        relationships: {
+          productCategories: {},
+          productSuppliers: {},
+          saleCustomers: {},
+        },
         integrity: {
           checksum: '',
           recordCounts: {
@@ -720,7 +742,7 @@ export class DataExportService {
         data: {
           products: products.map((product) => ({
             ...product,
-            id: undefined,
+            // Keep UUID IDs for referential integrity
             created_at: undefined,
             updated_at: undefined,
           })),
@@ -735,7 +757,12 @@ export class DataExportService {
             (item) => item.bulkTiers.length > 0
           ),
         },
-        relationships: {},
+        relationships: this.buildRelationshipMappings(
+          products,
+          categories,
+          suppliers,
+          customers
+        ),
         integrity: {
           checksum: '',
           recordCounts: {
@@ -803,6 +830,14 @@ export class DataExportService {
     data: ExportData,
     filename: string
   ): Promise<{ fileUri: string; filename: string }> {
+    // Validate UUID format in exported data
+    const uuidErrors = this.validateExportedUUIDs(data);
+    if (uuidErrors.length > 0) {
+      console.warn('UUID validation warnings in export data:', uuidErrors);
+      // Add UUID validation warnings to integrity section
+      data.integrity.validationRules.push('uuid_format_validation');
+    }
+
     const jsonString = JSON.stringify(data, null, 2);
     const fileUri = FileSystem.documentDirectory + filename;
 
@@ -842,5 +877,182 @@ export class DataExportService {
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash).toString(16);
+  }
+
+  // Build relationship mappings for UUID-based foreign keys
+  private buildRelationshipMappings(
+    products: any[] = [],
+    categories: any[] = [],
+    suppliers: any[] = [],
+    customers: any[] = []
+  ): {
+    productCategories: Record<string, string>;
+    productSuppliers: Record<string, string>;
+    saleCustomers: Record<string, string>;
+  } {
+    const productCategories: Record<string, string> = {};
+    const productSuppliers: Record<string, string> = {};
+    const saleCustomers: Record<string, string> = {};
+
+    // Map product to category relationships
+    products.forEach((product) => {
+      if (product.id && product.category_id) {
+        const category = categories.find((c) => c.id === product.category_id);
+        if (category) {
+          productCategories[product.id] = category.name;
+        }
+      }
+    });
+
+    // Map product to supplier relationships
+    products.forEach((product) => {
+      if (product.id && product.supplier_id) {
+        const supplier = suppliers.find((s) => s.id === product.supplier_id);
+        if (supplier) {
+          productSuppliers[product.id] = supplier.name;
+        }
+      }
+    });
+
+    // Map sale to customer relationships (if customers are provided)
+    // This would be populated in sales export methods
+
+    return {
+      productCategories,
+      productSuppliers,
+      saleCustomers,
+    };
+  }
+
+  // Validate UUID format in exported data
+  private validateExportedUUIDs(data: ExportData): string[] {
+    const errors: string[] = [];
+
+    // Validate product UUIDs
+    if (data.data.products) {
+      data.data.products.forEach((product: any, index: number) => {
+        if (product.id && !isValidUUID(product.id)) {
+          errors.push(
+            `Product ${index}: Invalid UUID format for id: ${product.id}`
+          );
+        }
+        if (product.category_id && !isValidUUID(product.category_id)) {
+          errors.push(
+            `Product ${index}: Invalid UUID format for category_id: ${product.category_id}`
+          );
+        }
+        if (product.supplier_id && !isValidUUID(product.supplier_id)) {
+          errors.push(
+            `Product ${index}: Invalid UUID format for supplier_id: ${product.supplier_id}`
+          );
+        }
+      });
+    }
+
+    // Validate category UUIDs
+    if (data.data.categories) {
+      data.data.categories.forEach((category: any, index: number) => {
+        if (category.id && !isValidUUID(category.id)) {
+          errors.push(
+            `Category ${index}: Invalid UUID format for id: ${category.id}`
+          );
+        }
+      });
+    }
+
+    // Validate supplier UUIDs
+    if (data.data.suppliers) {
+      data.data.suppliers.forEach((supplier: any, index: number) => {
+        if (supplier.id && !isValidUUID(supplier.id)) {
+          errors.push(
+            `Supplier ${index}: Invalid UUID format for id: ${supplier.id}`
+          );
+        }
+      });
+    }
+
+    // Validate sale UUIDs
+    if (data.data.sales) {
+      data.data.sales.forEach((sale: any, index: number) => {
+        if (sale.id && !isValidUUID(sale.id)) {
+          errors.push(`Sale ${index}: Invalid UUID format for id: ${sale.id}`);
+        }
+        if (sale.customer_id && !isValidUUID(sale.customer_id)) {
+          errors.push(
+            `Sale ${index}: Invalid UUID format for customer_id: ${sale.customer_id}`
+          );
+        }
+        // Validate sale items
+        if (sale.items) {
+          sale.items.forEach((item: any, itemIndex: number) => {
+            if (item.id && !isValidUUID(item.id)) {
+              errors.push(
+                `Sale ${index}, Item ${itemIndex}: Invalid UUID format for id: ${item.id}`
+              );
+            }
+            if (item.sale_id && !isValidUUID(item.sale_id)) {
+              errors.push(
+                `Sale ${index}, Item ${itemIndex}: Invalid UUID format for sale_id: ${item.sale_id}`
+              );
+            }
+            if (item.product_id && !isValidUUID(item.product_id)) {
+              errors.push(
+                `Sale ${index}, Item ${itemIndex}: Invalid UUID format for product_id: ${item.product_id}`
+              );
+            }
+          });
+        }
+      });
+    }
+
+    // Validate customer UUIDs
+    if (data.data.customers) {
+      data.data.customers.forEach((customer: any, index: number) => {
+        if (customer.id && !isValidUUID(customer.id)) {
+          errors.push(
+            `Customer ${index}: Invalid UUID format for id: ${customer.id}`
+          );
+        }
+      });
+    }
+
+    // Validate expense UUIDs
+    if (data.data.expenses) {
+      data.data.expenses.forEach((expense: any, index: number) => {
+        if (expense.id && !isValidUUID(expense.id)) {
+          errors.push(
+            `Expense ${index}: Invalid UUID format for id: ${expense.id}`
+          );
+        }
+        if (expense.category_id && !isValidUUID(expense.category_id)) {
+          errors.push(
+            `Expense ${index}: Invalid UUID format for category_id: ${expense.category_id}`
+          );
+        }
+      });
+    }
+
+    // Validate stock movement UUIDs
+    if (data.data.stockMovements) {
+      data.data.stockMovements.forEach((movement: any, index: number) => {
+        if (movement.id && !isValidUUID(movement.id)) {
+          errors.push(
+            `Stock Movement ${index}: Invalid UUID format for id: ${movement.id}`
+          );
+        }
+        if (movement.product_id && !isValidUUID(movement.product_id)) {
+          errors.push(
+            `Stock Movement ${index}: Invalid UUID format for product_id: ${movement.product_id}`
+          );
+        }
+        if (movement.supplier_id && !isValidUUID(movement.supplier_id)) {
+          errors.push(
+            `Stock Movement ${index}: Invalid UUID format for supplier_id: ${movement.supplier_id}`
+          );
+        }
+      });
+    }
+
+    return errors;
   }
 }

@@ -22,12 +22,12 @@ import {
 import { useTranslation } from '@/context/LocalizationContext';
 
 interface MovementHistoryProps {
-  productId?: number;
+  productId?: string;
   filters?: {
     type?: 'stock_in' | 'stock_out';
     startDate?: Date;
     endDate?: Date;
-    supplierId?: number;
+    supplierId?: string;
   };
   showProductName?: boolean;
   compact?: boolean;
@@ -223,7 +223,7 @@ export const MovementHistory: React.FC<MovementHistoryProps> = ({
 
       <FlatList
         data={movements}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item.id}
         renderItem={renderMovementItem}
         ListEmptyComponent={renderEmptyState}
         ListFooterComponent={renderFooter}

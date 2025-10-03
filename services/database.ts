@@ -3,18 +3,21 @@ import {
   DatabaseOptimizer,
   PerformanceMonitor,
 } from '../utils/databaseOptimization';
+import { generateUUID } from '../utils/uuid';
+import { UUIDMigrationService, MigrationReport } from './uuidMigrationService';
+import { MigrationStatusService } from './migrationStatusService';
 
 export interface Product {
-  id: number;
+  id: string;
   name: string;
   barcode?: string; // Make barcode optional
-  category_id: number; // Changed from category string to category_id number
+  category_id: string; // Changed from category string to category_id string
   category?: string; // Optional category name for joined queries
   price: number;
   cost: number;
   quantity: number;
   min_stock: number;
-  supplier_id?: number; // Make supplier_id optional
+  supplier_id?: string; // Make supplier_id optional
   supplier_name?: string; // For joined queries
   imageUrl?: string; // Optional image URL property
   bulk_pricing?: BulkPricing[]; // For joined queries
@@ -23,19 +26,19 @@ export interface Product {
 }
 
 export interface Sale {
-  id: number;
+  id: string;
   total: number;
   payment_method: string;
   note?: string; // Optional note field
-  customer_id?: number; // Optional customer relationship
+  customer_id?: string; // Optional customer relationship
   customer_name?: string; // For joined queries
   created_at: string;
 }
 
 export interface SaleItem {
-  id: number;
-  sale_id: number;
-  product_id: number;
+  id: string;
+  sale_id: string;
+  product_id: string;
   quantity: number;
   price: number;
   cost: number;
@@ -44,7 +47,7 @@ export interface SaleItem {
 }
 
 export interface Supplier {
-  id: number;
+  id: string;
   name: string;
   contact_name: string;
   phone: string;
@@ -54,22 +57,22 @@ export interface Supplier {
 }
 
 export interface Category {
-  id: number;
+  id: string;
   name: string;
   description?: string;
   created_at: string;
 }
 
 export interface ExpenseCategory {
-  id: number;
+  id: string;
   name: string;
   description?: string;
   created_at: string;
 }
 
 export interface Expense {
-  id: number;
-  category_id: number;
+  id: string;
+  category_id: string;
   amount: number;
   description: string;
   date: string;
@@ -78,7 +81,7 @@ export interface Expense {
 }
 
 export interface Customer {
-  id: number;
+  id: string;
   name: string;
   phone?: string;
   email?: string;
@@ -90,13 +93,13 @@ export interface Customer {
 }
 
 export interface StockMovement {
-  id: number;
-  product_id: number;
+  id: string;
+  product_id: string;
   product_name?: string; // For joined queries
   type: 'stock_in' | 'stock_out';
   quantity: number;
   reason?: string;
-  supplier_id?: number; // Optional: some stock_in may not be from suppliers
+  supplier_id?: string; // Optional: some stock_in may not be from suppliers
   supplier_name?: string; // For joined queries
   reference_number?: string;
   unit_cost?: number;
@@ -104,8 +107,8 @@ export interface StockMovement {
 }
 
 export interface BulkPricing {
-  id: number;
-  product_id: number;
+  id: string;
+  product_id: string;
   min_quantity: number;
   bulk_price: number;
   created_at: string;
@@ -113,7 +116,7 @@ export interface BulkPricing {
 
 // Enhanced supplier management interfaces
 export interface SupplierWithStats {
-  id: number;
+  id: string;
   name: string;
   contact_name: string;
   phone: string;
@@ -127,7 +130,7 @@ export interface SupplierWithStats {
 }
 
 export interface SupplierProduct {
-  product_id: number;
+  product_id: string;
   product_name: string;
   current_stock: number;
   last_delivery_date?: string;
@@ -138,8 +141,8 @@ export interface SupplierProduct {
 
 export class DatabaseService {
   private db: SQLite.SQLiteDatabase;
-  private bulkPricingCache = new Map<number, BulkPricing[]>();
-  private cacheExpiry = new Map<number, number>();
+  private bulkPricingCache = new Map<string, BulkPricing[]>();
+  private cacheExpiry = new Map<string, number>();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   constructor(database: SQLite.SQLiteDatabase) {
@@ -302,7 +305,7 @@ export class DatabaseService {
           'SELECT id, name FROM categories'
         );
 
-        for (const category of categories as { id: number; name: string }[]) {
+        for (const category of categories as { id: string; name: string }[]) {
           await this.db.runAsync(
             'UPDATE products SET category_id = ? WHERE category = ?',
             [category.id, category.name]
@@ -312,7 +315,7 @@ export class DatabaseService {
         // Step 3: Set default category for products without valid category
         const defaultCategory = (await this.db.getFirstAsync(
           'SELECT id FROM categories LIMIT 1'
-        )) as { id: number } | null;
+        )) as { id: string } | null;
 
         if (defaultCategory) {
           await this.db.runAsync(
@@ -1068,10 +1071,10 @@ export class DatabaseService {
     // Only seed products if no products exist yet
     if (!hasProducts) {
       // Get category IDs for seeding products
-      const categoryMap = new Map<string, number>();
+      const categoryMap = new Map<string, string>();
       const categoriesForSeeding = (await this.db.getAllAsync(
         'SELECT id, name FROM categories'
-      )) as { id: number; name: string }[];
+      )) as { id: string; name: string }[];
 
       categoriesForSeeding.forEach((cat) => {
         categoryMap.set(cat.name, cat.id);
@@ -1197,7 +1200,7 @@ export class DatabaseService {
     )) as BulkPricing[];
 
     // Group bulk pricing by product_id
-    const bulkPricingMap = new Map<number, BulkPricing[]>();
+    const bulkPricingMap = new Map<string, BulkPricing[]>();
     bulkPricingResult.forEach((bp) => {
       if (!bulkPricingMap.has(bp.product_id)) {
         bulkPricingMap.set(bp.product_id, []);
@@ -1212,7 +1215,7 @@ export class DatabaseService {
     }));
   }
 
-  async getProductsByCategory(categoryId: number): Promise<Product[]> {
+  async getProductsByCategory(categoryId: string): Promise<Product[]> {
     const result = await this.db.getAllAsync(
       'SELECT p.*, c.name as category FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.category_id = ? ORDER BY p.name',
       [categoryId]
@@ -1230,10 +1233,12 @@ export class DatabaseService {
 
   async addProduct(
     product: Omit<Product, 'id' | 'created_at' | 'updated_at'>
-  ): Promise<number> {
-    const result = await this.db.runAsync(
-      'INSERT INTO products (name, barcode, category_id, price, cost, quantity, min_stock, supplier_id, imageUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+  ): Promise<string> {
+    const id = generateUUID();
+    await this.db.runAsync(
+      'INSERT INTO products (id, name, barcode, category_id, price, cost, quantity, min_stock, supplier_id, imageUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
+        id,
         product.name,
         product.barcode || null, // Handle empty barcode
         product.category_id,
@@ -1245,10 +1250,10 @@ export class DatabaseService {
         product.imageUrl || null,
       ]
     );
-    return result.lastInsertRowId;
+    return id;
   }
 
-  async updateProduct(id: number, product: Partial<Product>): Promise<void> {
+  async updateProduct(id: string, product: Partial<Product>): Promise<void> {
     // Filter out fields that shouldn't be updated and complex objects
     const allowedFields = [
       'name',
@@ -1282,11 +1287,11 @@ export class DatabaseService {
     );
   }
 
-  async deleteProduct(id: number): Promise<void> {
+  async deleteProduct(id: string): Promise<void> {
     await this.db.runAsync('DELETE FROM products WHERE id = ?', [id]);
   }
 
-  async getProductById(id: number): Promise<Product | null> {
+  async getProductById(id: string): Promise<Product | null> {
     const result = await this.db.getFirstAsync(
       'SELECT * FROM products WHERE id = ?',
       [id]
@@ -1310,24 +1315,25 @@ export class DatabaseService {
 
   async addCategory(
     category: Omit<Category, 'id' | 'created_at'>
-  ): Promise<number> {
+  ): Promise<string> {
+    const id = generateUUID();
     try {
-      const result = await this.db.runAsync(
-        'INSERT INTO categories (name, description) VALUES (?, ?)',
-        [category.name, category.description || '']
+      await this.db.runAsync(
+        'INSERT INTO categories (id, name, description) VALUES (?, ?, ?)',
+        [id, category.name, category.description || '']
       );
-      return result.lastInsertRowId;
+      return id;
     } catch (error) {
       // Fallback for databases without description column
-      const result = await this.db.runAsync(
-        'INSERT INTO categories (name) VALUES (?)',
-        [category.name]
+      await this.db.runAsync(
+        'INSERT INTO categories (id, name) VALUES (?, ?)',
+        [id, category.name]
       );
-      return result.lastInsertRowId;
+      return id;
     }
   }
 
-  async updateCategory(id: number, category: Partial<Category>): Promise<void> {
+  async updateCategory(id: string, category: Partial<Category>): Promise<void> {
     const fields = Object.keys(category)
       .map((key) => `${key} = ?`)
       .join(', ');
@@ -1349,7 +1355,7 @@ export class DatabaseService {
     }
   }
 
-  async deleteCategory(id: number): Promise<void> {
+  async deleteCategory(id: string): Promise<void> {
     // Check if category is being used by products
     const productsUsingCategory = (await this.db.getFirstAsync(
       'SELECT COUNT(*) as count FROM products WHERE category_id = ?',
@@ -1370,7 +1376,7 @@ export class DatabaseService {
     return result as Supplier[];
   }
 
-  async getSupplierById(id: number): Promise<Supplier | null> {
+  async getSupplierById(id: string): Promise<Supplier | null> {
     const result = await this.db.getFirstAsync(
       'SELECT * FROM suppliers WHERE id = ?',
       [id]
@@ -1413,10 +1419,12 @@ export class DatabaseService {
 
   async addSupplier(
     supplier: Omit<Supplier, 'id' | 'created_at'>
-  ): Promise<number> {
-    const result = await this.db.runAsync(
-      'INSERT INTO suppliers (name, contact_name, phone, email, address) VALUES (?, ?, ?, ?, ?)',
+  ): Promise<string> {
+    const id = generateUUID();
+    await this.db.runAsync(
+      'INSERT INTO suppliers (id, name, contact_name, phone, email, address) VALUES (?, ?, ?, ?, ?, ?)',
       [
+        id,
         supplier.name,
         supplier.contact_name,
         supplier.phone,
@@ -1424,10 +1432,10 @@ export class DatabaseService {
         supplier.address,
       ]
     );
-    return result.lastInsertRowId;
+    return id;
   }
 
-  async updateSupplier(id: number, supplier: Partial<Supplier>): Promise<void> {
+  async updateSupplier(id: string, supplier: Partial<Supplier>): Promise<void> {
     const fields = Object.keys(supplier)
       .filter((key) => key !== 'id' && key !== 'created_at')
       .map((key) => `${key} = ?`)
@@ -1442,7 +1450,7 @@ export class DatabaseService {
     ]);
   }
 
-  async deleteSupplier(id: number): Promise<void> {
+  async deleteSupplier(id: string): Promise<void> {
     // Check if supplier has any products
     const productsCount = (await this.db.getFirstAsync(
       'SELECT COUNT(*) as count FROM products WHERE supplier_id = ?',
@@ -1458,7 +1466,7 @@ export class DatabaseService {
     await this.db.runAsync('DELETE FROM suppliers WHERE id = ?', [id]);
   }
 
-  async getSupplierProducts(supplierId: number): Promise<SupplierProduct[]> {
+  async getSupplierProducts(supplierId: string): Promise<SupplierProduct[]> {
     const result = await this.db.getAllAsync(
       `SELECT 
         p.id as product_id,
@@ -1476,7 +1484,7 @@ export class DatabaseService {
     return result as SupplierProduct[];
   }
 
-  async getSupplierAnalytics(supplierId: number): Promise<{
+  async getSupplierAnalytics(supplierId: string): Promise<{
     totalProducts: number;
     totalPurchaseValue: number;
     recentDeliveries: StockMovement[];
@@ -1531,14 +1539,16 @@ export class DatabaseService {
   async addSale(
     sale: Omit<Sale, 'id' | 'created_at'>,
     items: Omit<SaleItem, 'id' | 'sale_id'>[]
-  ): Promise<number> {
+  ): Promise<string> {
     // Start transaction for atomic operation
     await this.db.execAsync('BEGIN TRANSACTION');
 
     try {
-      const saleResult = await this.db.runAsync(
-        'INSERT INTO sales (total, payment_method, note, customer_id) VALUES (?, ?, ?, ?)',
+      const saleId = generateUUID();
+      await this.db.runAsync(
+        'INSERT INTO sales (id, total, payment_method, note, customer_id) VALUES (?, ?, ?, ?, ?)',
         [
+          saleId,
           sale.total,
           sale.payment_method,
           sale.note || null,
@@ -1546,12 +1556,12 @@ export class DatabaseService {
         ]
       );
 
-      const saleId = saleResult.lastInsertRowId;
-
       for (const item of items) {
+        const itemId = generateUUID();
         await this.db.runAsync(
-          'INSERT INTO sale_items (sale_id, product_id, quantity, price, cost, discount, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO sale_items (id, sale_id, product_id, quantity, price, cost, discount, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
           [
+            itemId,
             saleId,
             item.product_id,
             item.quantity,
@@ -1619,7 +1629,7 @@ export class DatabaseService {
   }
 
   async getSalesByCustomer(
-    customerId: number,
+    customerId: string,
     page: number = 1,
     pageSize: number = 20
   ): Promise<Sale[]> {
@@ -1655,7 +1665,7 @@ export class DatabaseService {
   }
 
   async getSaleItems(
-    saleId: number
+    saleId: string
   ): Promise<(SaleItem & { product_name: string })[]> {
     const result = await this.db.getAllAsync(
       'SELECT si.*, COALESCE(p.name, "[Deleted Product]") as product_name FROM sale_items si LEFT JOIN products p ON si.product_id = p.id WHERE si.sale_id = ?',
@@ -1664,7 +1674,7 @@ export class DatabaseService {
     return result as (SaleItem & { product_name: string })[];
   }
 
-  async deleteSale(saleId: number): Promise<void> {
+  async deleteSale(saleId: string): Promise<void> {
     // Start a transaction to ensure data integrity
     await this.db.execAsync('BEGIN TRANSACTION');
 
@@ -2045,16 +2055,17 @@ export class DatabaseService {
   async addExpenseCategory(
     name: string,
     description?: string
-  ): Promise<number> {
-    const result = await this.db.runAsync(
-      'INSERT INTO expense_categories (name, description) VALUES (?, ?)',
-      [name, description || null]
+  ): Promise<string> {
+    const id = generateUUID();
+    await this.db.runAsync(
+      'INSERT INTO expense_categories (id, name, description) VALUES (?, ?, ?)',
+      [id, name, description || null]
     );
-    return result.lastInsertRowId;
+    return id;
   }
 
   async updateExpenseCategory(
-    id: number,
+    id: string,
     name: string,
     description?: string
   ): Promise<void> {
@@ -2064,7 +2075,7 @@ export class DatabaseService {
     );
   }
 
-  async deleteExpenseCategory(id: number): Promise<void> {
+  async deleteExpenseCategory(id: string): Promise<void> {
     // Check if category is in use
     const expensesCount = (await this.db.getFirstAsync(
       'SELECT COUNT(*) as count FROM expenses WHERE category_id = ?',
@@ -2143,23 +2154,24 @@ export class DatabaseService {
   }
 
   async addExpense(
-    category_id: number,
+    category_id: string,
     amount: number,
     description: string,
     date: string
-  ): Promise<number> {
-    const result = await this.db.runAsync(
+  ): Promise<string> {
+    const id = generateUUID();
+    await this.db.runAsync(
       `INSERT INTO expenses 
-     (category_id, amount, description, date, updated_at) 
-     VALUES (?, ?, ?, ?, datetime('now'))`,
-      [category_id, amount, description, date]
+     (id, category_id, amount, description, date, updated_at) 
+     VALUES (?, ?, ?, ?, ?, datetime('now'))`,
+      [id, category_id, amount, description, date]
     );
-    return result.lastInsertRowId;
+    return id;
   }
 
   async updateExpense(
-    id: number,
-    category_id: number,
+    id: string,
+    category_id: string,
     amount: number,
     description: string,
     date: string
@@ -2172,7 +2184,7 @@ export class DatabaseService {
     );
   }
 
-  async deleteExpense(id: number): Promise<void> {
+  async deleteExpense(id: string): Promise<void> {
     await this.db.runAsync('DELETE FROM expenses WHERE id = ?', [id]);
   }
 
@@ -2254,7 +2266,10 @@ export class DatabaseService {
     );
 
     // Get all unique dates
-    const allDates = new Set([...revenueMap.keys(), ...expenseMap.keys()]);
+    const allDates = new Set([
+      ...Array.from(revenueMap.keys()),
+      ...Array.from(expenseMap.keys()),
+    ]);
 
     const result = Array.from(allDates)
       .map((date) => {
@@ -2405,7 +2420,7 @@ export class DatabaseService {
   }
 
   // Bulk Pricing Methods
-  private clearBulkPricingCache(productId: number) {
+  private clearBulkPricingCache(productId: string) {
     this.bulkPricingCache.delete(productId);
     this.cacheExpiry.delete(productId);
   }
@@ -2455,7 +2470,7 @@ export class DatabaseService {
 
   async addBulkPricing(
     bulkPricing: Omit<BulkPricing, 'id' | 'created_at'>
-  ): Promise<number> {
+  ): Promise<string> {
     // Validate that bulk price is less than regular price
     const product = (await this.db.getFirstAsync(
       'SELECT price FROM products WHERE id = ?',
@@ -2482,19 +2497,25 @@ export class DatabaseService {
       throw new Error('A bulk pricing tier already exists for this quantity');
     }
 
-    const result = await this.db.runAsync(
-      'INSERT INTO bulk_pricing (product_id, min_quantity, bulk_price) VALUES (?, ?, ?)',
-      [bulkPricing.product_id, bulkPricing.min_quantity, bulkPricing.bulk_price]
+    const id = generateUUID();
+    await this.db.runAsync(
+      'INSERT INTO bulk_pricing (id, product_id, min_quantity, bulk_price) VALUES (?, ?, ?, ?)',
+      [
+        id,
+        bulkPricing.product_id,
+        bulkPricing.min_quantity,
+        bulkPricing.bulk_price,
+      ]
     );
 
     // Clear cache for this product
     this.clearBulkPricingCache(bulkPricing.product_id);
 
-    return result.lastInsertRowId;
+    return id;
   }
 
   async updateBulkPricing(
-    id: number,
+    id: string,
     bulkPricing: Partial<BulkPricing>
   ): Promise<void> {
     // If updating price, validate it's less than regular price
@@ -2502,7 +2523,7 @@ export class DatabaseService {
       const existingTier = (await this.db.getFirstAsync(
         'SELECT product_id FROM bulk_pricing WHERE id = ?',
         [id]
-      )) as { product_id: number } | null;
+      )) as { product_id: string } | null;
 
       if (existingTier) {
         const product = (await this.db.getFirstAsync(
@@ -2533,19 +2554,19 @@ export class DatabaseService {
     const existingTier = (await this.db.getFirstAsync(
       'SELECT product_id FROM bulk_pricing WHERE id = ?',
       [id]
-    )) as { product_id: number } | null;
+    )) as { product_id: string } | null;
 
     if (existingTier) {
       this.clearBulkPricingCache(existingTier.product_id);
     }
   }
 
-  async deleteBulkPricing(id: number): Promise<void> {
+  async deleteBulkPricing(id: string): Promise<void> {
     // Get product_id before deletion for cache clearing
     const existingTier = (await this.db.getFirstAsync(
       'SELECT product_id FROM bulk_pricing WHERE id = ?',
       [id]
-    )) as { product_id: number } | null;
+    )) as { product_id: string } | null;
 
     await this.db.runAsync('DELETE FROM bulk_pricing WHERE id = ?', [id]);
 
@@ -2555,7 +2576,7 @@ export class DatabaseService {
     }
   }
 
-  async getBulkPricingForProduct(productId: number): Promise<BulkPricing[]> {
+  async getBulkPricingForProduct(productId: string): Promise<BulkPricing[]> {
     // Check cache first
     const now = Date.now();
     const cacheKey = productId;
@@ -2583,7 +2604,7 @@ export class DatabaseService {
   }
 
   async calculateBestPrice(
-    productId: number,
+    productId: string,
     quantity: number
   ): Promise<{
     price: number;
@@ -2635,7 +2656,7 @@ export class DatabaseService {
   }
 
   async validateBulkPricingTiers(
-    productId: number,
+    productId: string,
     tiers: Omit<BulkPricing, 'id' | 'product_id' | 'created_at'>[]
   ): Promise<{
     isValid: boolean;
@@ -2694,17 +2715,19 @@ export class DatabaseService {
       StockMovement,
       'id' | 'created_at' | 'product_name' | 'supplier_name'
     >
-  ): Promise<number> {
+  ): Promise<string> {
     // Start transaction for atomic operation
     await this.db.execAsync('BEGIN TRANSACTION');
 
     try {
       // Add the stock movement record
-      const result = await this.db.runAsync(
+      const id = generateUUID();
+      await this.db.runAsync(
         `INSERT INTO stock_movements 
-         (product_id, type, quantity, reason, supplier_id, reference_number, unit_cost) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+         (id, product_id, type, quantity, reason, supplier_id, reference_number, unit_cost) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
+          id,
           movement.product_id,
           movement.type,
           movement.quantity,
@@ -2729,7 +2752,7 @@ export class DatabaseService {
       }
 
       await this.db.execAsync('COMMIT');
-      return result.lastInsertRowId;
+      return id;
     } catch (error) {
       await this.db.execAsync('ROLLBACK');
       throw error;
@@ -2738,11 +2761,11 @@ export class DatabaseService {
 
   async getStockMovements(
     filters?: {
-      productId?: number;
+      productId?: string;
       type?: 'stock_in' | 'stock_out';
       startDate?: Date;
       endDate?: Date;
-      supplierId?: number;
+      supplierId?: string;
     },
     page: number = 1,
     pageSize: number = 50
@@ -2797,7 +2820,7 @@ export class DatabaseService {
   }
 
   async getStockMovementsByProduct(
-    productId: number,
+    productId: string,
     page: number = 1,
     pageSize: number = 20
   ): Promise<StockMovement[]> {
@@ -2805,14 +2828,14 @@ export class DatabaseService {
   }
 
   async updateProductQuantityWithMovement(
-    productId: number,
+    productId: string,
     movementType: 'stock_in' | 'stock_out',
     quantity: number,
     reason?: string,
-    supplierId?: number,
+    supplierId?: string,
     referenceNumber?: string,
     unitCost?: number
-  ): Promise<number> {
+  ): Promise<string> {
     return this.addStockMovement({
       product_id: productId,
       type: movementType,
@@ -2825,7 +2848,7 @@ export class DatabaseService {
   }
 
   async getStockMovementSummary(
-    productId?: number,
+    productId?: string,
     startDate?: Date,
     endDate?: Date
   ): Promise<{
@@ -2904,7 +2927,7 @@ export class DatabaseService {
     return result as Customer[];
   }
 
-  async getCustomerById(id: number): Promise<Customer | null> {
+  async getCustomerById(id: string): Promise<Customer | null> {
     const result = await this.db.getFirstAsync(
       'SELECT * FROM customers WHERE id = ?',
       [id]
@@ -2917,20 +2940,22 @@ export class DatabaseService {
       Customer,
       'id' | 'total_spent' | 'visit_count' | 'created_at' | 'updated_at'
     >
-  ): Promise<number> {
-    const result = await this.db.runAsync(
-      'INSERT INTO customers (name, phone, email, address) VALUES (?, ?, ?, ?)',
+  ): Promise<string> {
+    const id = generateUUID();
+    await this.db.runAsync(
+      'INSERT INTO customers (id, name, phone, email, address) VALUES (?, ?, ?, ?, ?)',
       [
+        id,
         customer.name,
         customer.phone || null,
         customer.email || null,
         customer.address || null,
       ]
     );
-    return result.lastInsertRowId;
+    return id;
   }
 
-  async updateCustomer(id: number, customer: Partial<Customer>): Promise<void> {
+  async updateCustomer(id: string, customer: Partial<Customer>): Promise<void> {
     const fields = Object.keys(customer)
       .filter((key) => key !== 'id' && key !== 'created_at')
       .map((key) => `${key} = ?`)
@@ -2945,7 +2970,7 @@ export class DatabaseService {
     );
   }
 
-  async deleteCustomer(id: number): Promise<void> {
+  async deleteCustomer(id: string): Promise<void> {
     // Check if customer has any sales
     const salesCount = (await this.db.getFirstAsync(
       'SELECT COUNT(*) as count FROM sales WHERE customer_id = ?',
@@ -2960,7 +2985,7 @@ export class DatabaseService {
   }
 
   async getCustomerPurchaseHistory(
-    customerId: number,
+    customerId: string,
     page: number = 1,
     pageSize: number = 20
   ): Promise<Sale[]> {
@@ -2973,7 +2998,7 @@ export class DatabaseService {
   }
 
   async updateCustomerStatistics(
-    customerId: number,
+    customerId: string,
     saleAmount: number
   ): Promise<void> {
     await this.db.runAsync(
@@ -2986,7 +3011,7 @@ export class DatabaseService {
     );
   }
 
-  async getCustomerStatistics(customerId: number): Promise<{
+  async getCustomerStatistics(customerId: string): Promise<{
     totalSpent: number;
     visitCount: number;
     averageOrderValue: number;
@@ -3016,7 +3041,7 @@ export class DatabaseService {
   }
 
   // Customer Analytics Methods
-  async getCustomerPurchasePatterns(customerId: number): Promise<{
+  async getCustomerPurchasePatterns(customerId: string): Promise<{
     monthlySpending: { month: string; amount: number }[];
     topCategories: { category: string; amount: number; percentage: number }[];
     purchaseFrequency: { dayOfWeek: string; count: number }[];
@@ -3106,7 +3131,7 @@ export class DatabaseService {
     };
   }
 
-  async calculateCustomerLifetimeValue(customerId: number): Promise<{
+  async calculateCustomerLifetimeValue(customerId: string): Promise<{
     currentLTV: number;
     predictedLTV: number;
     customerSegment:
@@ -3262,7 +3287,7 @@ export class DatabaseService {
     totalCustomers: number;
     totalRevenue: number;
     topCustomers: {
-      id: number;
+      id: string;
       name: string;
       total_spent: number;
       total_orders: number;
@@ -3292,7 +3317,7 @@ export class DatabaseService {
     `,
       [startDate.toISOString(), endDate.toISOString()]
     )) as {
-      id: number;
+      id: string;
       name: string;
       total_spent: number;
       total_orders: number;
@@ -3351,7 +3376,7 @@ export class DatabaseService {
       netChange: number;
     }[];
     topMovingProducts: {
-      productId: number;
+      productId: string;
       productName: string;
       totalMovement: number;
       netChange: number;
@@ -3447,7 +3472,7 @@ export class DatabaseService {
     `,
       params
     )) as {
-      productId: number;
+      productId: string;
       productName: string;
       totalMovement: number;
       netChange: number;
@@ -3463,14 +3488,14 @@ export class DatabaseService {
 
   async calculateStockTurnoverRates(): Promise<{
     productTurnover: {
-      productId: number;
+      productId: string;
       productName: string;
       turnoverRate: number;
       daysOfStock: number;
       category: string;
     }[];
     categoryTurnover: {
-      categoryId: number;
+      categoryId: string;
       categoryName: string;
       avgTurnoverRate: number;
       totalValue: number;
@@ -3506,7 +3531,7 @@ export class DatabaseService {
       ) sales_data ON p.id = sales_data.product_id
       ORDER BY turnoverRate DESC
     `)) as {
-      productId: number;
+      productId: string;
       productName: string;
       turnoverRate: number;
       daysOfStock: number;
@@ -3534,7 +3559,7 @@ export class DatabaseService {
       GROUP BY c.id, c.name
       ORDER BY avgTurnoverRate DESC
     `)) as {
-      categoryId: number;
+      categoryId: string;
       categoryName: string;
       avgTurnoverRate: number;
       totalValue: number;
@@ -3565,7 +3590,7 @@ export class DatabaseService {
 
   async predictLowStockItems(): Promise<{
     criticalItems: {
-      productId: number;
+      productId: string;
       productName: string;
       currentStock: number;
       minStock: number;
@@ -3574,7 +3599,7 @@ export class DatabaseService {
       category: string;
     }[];
     warningItems: {
-      productId: number;
+      productId: string;
       productName: string;
       currentStock: number;
       minStock: number;
@@ -3610,7 +3635,7 @@ export class DatabaseService {
       WHERE p.quantity > 0
       ORDER BY predictedDaysUntilEmpty ASC
     `)) as {
-      productId: number;
+      productId: string;
       productName: string;
       currentStock: number;
       minStock: number;
@@ -3640,7 +3665,7 @@ export class DatabaseService {
   async getStockMovementReport(
     startDate?: Date,
     endDate?: Date,
-    productId?: number
+    productId?: string
   ): Promise<{
     summary: {
       totalStockIn: number;
@@ -3650,7 +3675,7 @@ export class DatabaseService {
       avgTransactionSize: number;
     };
     movements: {
-      id: number;
+      id: string;
       productName: string;
       type: 'stock_in' | 'stock_out';
       quantity: number;
@@ -3721,7 +3746,7 @@ export class DatabaseService {
     `,
       params
     )) as {
-      id: number;
+      id: string;
       productName: string;
       type: 'stock_in' | 'stock_out';
       quantity: number;
@@ -3775,7 +3800,7 @@ export class DatabaseService {
       discountPenetration: number; // percentage of sales with discounts
     };
     bulkPricingEffectiveness: {
-      productId: number;
+      productId: string;
       productName: string;
       totalBulkSales: number;
       totalBulkDiscount: number;
@@ -3839,7 +3864,7 @@ export class DatabaseService {
       ORDER BY totalBulkDiscount DESC
       LIMIT 20
     `)) as {
-      productId: number;
+      productId: string;
       productName: string;
       totalBulkSales: number;
       totalBulkDiscount: number;
@@ -3902,7 +3927,7 @@ export class DatabaseService {
 
   async getBulkPricingOptimizationSuggestions(): Promise<{
     underperformingProducts: {
-      productId: number;
+      productId: string;
       productName: string;
       currentBulkTiers: number;
       salesWithoutBulk: number;
@@ -3910,7 +3935,7 @@ export class DatabaseService {
       suggestedAction: string;
     }[];
     overDiscountedProducts: {
-      productId: number;
+      productId: string;
       productName: string;
       avgDiscountGiven: number;
       profitMargin: number;
@@ -3918,7 +3943,7 @@ export class DatabaseService {
       suggestedAction: string;
     }[];
     opportunityProducts: {
-      productId: number;
+      productId: string;
       productName: string;
       highVolumeSales: number;
       noBulkPricing: boolean;
@@ -3946,7 +3971,7 @@ export class DatabaseService {
       ORDER BY salesWithoutBulk DESC
       LIMIT 10
     `)) as {
-      productId: number;
+      productId: string;
       productName: string;
       currentBulkTiers: number;
       salesWithoutBulk: number;
@@ -3973,7 +3998,7 @@ export class DatabaseService {
       ORDER BY avgDiscountGiven DESC
       LIMIT 10
     `)) as {
-      productId: number;
+      productId: string;
       productName: string;
       avgDiscountGiven: number;
       profitMargin: number;
@@ -4002,7 +4027,7 @@ export class DatabaseService {
       ORDER BY highVolumeSales DESC
       LIMIT 10
     `)) as {
-      productId: number;
+      productId: string;
       productName: string;
       highVolumeSales: number;
       noBulkPricing: boolean;
@@ -4042,7 +4067,7 @@ export class DatabaseService {
       };
     };
     topPerformingTiers: {
-      productId: number;
+      productId: string;
       productName: string;
       tierMinQuantity: number;
       tierDiscount: number;
@@ -4164,7 +4189,7 @@ export class DatabaseService {
     `,
       [currentStartDate.toISOString(), currentEndDate.toISOString()]
     )) as {
-      productId: number;
+      productId: string;
       productName: string;
       tierMinQuantity: number;
       tierDiscount: number;
@@ -4266,11 +4291,61 @@ export class DatabaseService {
   // Shop Settings Methods removed - now using AsyncStorage (see shopSettingsStorage.ts)
 }
 
-export const initializeDatabase = async (): Promise<DatabaseService> => {
+export const initializeDatabase = async (
+  onMigrationProgress?: (status: any) => void
+): Promise<DatabaseService> => {
   const db = await SQLite.openDatabaseAsync('grocery_pos.db');
   const service = new DatabaseService(db);
 
   await service.createTables();
+
+  // Check if UUID migration is needed
+  const migrationStatus = await MigrationStatusService.getMigrationStatus();
+  if (!migrationStatus.uuidMigrationComplete) {
+    console.log('Checking if UUID migration is needed...');
+
+    // Check if database already has UUID format
+    const migrationService = new UUIDMigrationService(db);
+    const isAlreadyMigrated = await migrationService.isMigrationComplete();
+
+    if (isAlreadyMigrated) {
+      console.log(
+        'Database already uses UUID format, marking migration as complete'
+      );
+      await MigrationStatusService.markUUIDMigrationComplete();
+    } else {
+      console.log('Starting UUID migration...');
+
+      // Record migration attempt
+      await MigrationStatusService.recordMigrationAttempt();
+
+      // Set up progress callback if provided
+      if (onMigrationProgress) {
+        const originalUpdateStatus = (migrationService as any).updateStatus;
+        (migrationService as any).updateStatus = (
+          step: string,
+          progress: number
+        ) => {
+          originalUpdateStatus.call(migrationService, step, progress);
+          onMigrationProgress(migrationService.getMigrationStatus());
+        };
+      }
+
+      const migrationReport = await migrationService.executeMigration();
+
+      if (migrationReport.success) {
+        // Mark migration as complete
+        await MigrationStatusService.markUUIDMigrationComplete();
+        console.log('UUID migration completed successfully');
+      } else {
+        console.error('UUID migration failed:', migrationReport.errors);
+        throw new Error(
+          `UUID migration failed: ${migrationReport.errors.join(', ')}`
+        );
+      }
+    }
+  }
+
   await service.seedInitialData();
 
   return service;

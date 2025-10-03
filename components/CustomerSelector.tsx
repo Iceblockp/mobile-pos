@@ -226,7 +226,7 @@ export const CustomerSelector: React.FC<CustomerSelectorProps> = ({
                 <FlatList
                   data={filteredCustomers}
                   renderItem={renderCustomerItem}
-                  keyExtractor={(item) => item.id.toString()}
+                  keyExtractor={(item) => item.id}
                   ListEmptyComponent={renderEmptyState}
                   showsVerticalScrollIndicator={false}
                   style={styles.customerList}

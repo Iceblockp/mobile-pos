@@ -63,7 +63,7 @@ export default function Expenses() {
 
   // Form state
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-  const [formCategory, setFormCategory] = useState<number>(0);
+  const [formCategory, setFormCategory] = useState<string>('');
   const [formAmount, setFormAmount] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formDate, setFormDate] = useState(new Date());
@@ -199,7 +199,7 @@ export default function Expenses() {
     }
   };
 
-  const handleDeleteExpense = async (id: number) => {
+  const handleDeleteExpense = async (id: string) => {
     Alert.alert(t('expenses.confirmDelete'), t('expenses.areYouSureDelete'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
@@ -229,7 +229,7 @@ export default function Expenses() {
 
   const resetForm = () => {
     setEditingExpense(null);
-    setFormCategory(0);
+    setFormCategory('');
     setFormAmount('');
     setFormDescription('');
     setFormDate(new Date());
@@ -284,7 +284,7 @@ export default function Expenses() {
     setCategoryDescription(category.description || '');
   };
 
-  const handleDeleteCategory = async (id: number) => {
+  const handleDeleteCategory = async (id: string) => {
     // Find the category name for better error messages
     const category = categories.find((c) => c.id === id);
     const categoryName = category?.name || 'this category';
@@ -529,7 +529,7 @@ export default function Expenses() {
 
       <FlatList
         data={expenses}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item.id}
         renderItem={renderExpenseItem}
         ListHeaderComponent={renderListHeader}
         ListEmptyComponent={

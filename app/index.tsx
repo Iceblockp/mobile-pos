@@ -22,6 +22,8 @@ import { LICENSE_PACKAGES } from '@/utils/admin';
 import { router } from 'expo-router';
 import { LanguageIconButton } from '@/components/LanguageIconButton';
 import { useTranslation } from '@/context/LocalizationContext';
+import { MigrationProgress } from '@/components/MigrationProgress';
+import { useMigration } from '@/context/MigrationContext';
 
 const Index = () => {
   const {
@@ -34,6 +36,7 @@ const Index = () => {
     getExpiryDate,
   } = useLicense();
   const { t } = useTranslation();
+  const { isMigrationInProgress } = useMigration();
 
   const [selectedDuration, setSelectedDuration] = useState('trial');
   const [modalVisible, setModalVisible] = useState(false);
@@ -296,6 +299,8 @@ const Index = () => {
         onClose={() => setShowWarningModal(false)}
         onProceed={handleProceedRegeneration}
       />
+
+      <MigrationProgress visible={isMigrationInProgress} />
     </SafeAreaView>
   );
 };
