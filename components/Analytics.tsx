@@ -36,6 +36,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from '@/context/LocalizationContext';
 
 type FilterMode = 'day' | 'month' | 'range';
+type AnalyticsTab = 'overview' | 'customers' | 'stock' | 'pricing';
 
 interface DateFilter {
   mode: FilterMode;
@@ -46,13 +47,45 @@ interface DateFilter {
   endDate: Date;
 }
 
+interface TabOption {
+  key: AnalyticsTab;
+  label: string;
+  icon: React.ComponentType<{ size: number; color: string }>;
+}
+
 export default function Analytics() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<
-    'overview' | 'customers' | 'stock' | 'pricing'
-  >('overview');
+  const [activeTab, setActiveTab] = useState<AnalyticsTab>('overview');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showTabPicker, setShowTabPicker] = useState(false);
+
+  // Tab options configuration
+  const tabOptions: TabOption[] = [
+    {
+      key: 'overview',
+      label: t('analytics.overview'),
+      icon: BarChart3,
+    },
+    {
+      key: 'customers',
+      label: t('analytics.customers'),
+      icon: Users,
+    },
+    {
+      key: 'stock',
+      label: t('analytics.stock'),
+      icon: Package,
+    },
+    {
+      key: 'pricing',
+      label: t('analytics.pricing'),
+      icon: Target,
+    },
+  ];
+
+  // Get current tab info
+  const currentTab = tabOptions.find((tab) => tab.key === activeTab);
 
   // Initialize with today as default
   const today = new Date();
@@ -122,17 +155,6 @@ export default function Analytics() {
 
   const isLoading = analyticsLoading || salesLoading;
   const isRefreshing = analyticsRefetching || salesRefetching;
-
-  useEffect(() => {
-    console.log('Analytics loading states:', {
-      analyticsLoading,
-      salesLoading,
-      analyticsRefetching,
-      salesRefetching,
-      isLoading,
-      isRefreshing,
-    });
-  }, [analyticsLoading, salesLoading, analyticsRefetching, salesRefetching]);
 
   const { formatPrice } = useCurrencyFormatter();
 
@@ -443,72 +465,86 @@ export default function Analytics() {
     });
   };
 
+  const handleTabChange = (tabKey: AnalyticsTab) => {
+    setActiveTab(tabKey);
+    setShowTabPicker(false);
+  };
+
   if (isLoading && !isRefreshing) {
     return <LoadingSpinner />;
   }
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Dynamic Header with Tab Picker */}
       <View style={styles.header}>
-        <Text style={styles.title}>{t('analytics.title')}</Text>
-        <Text style={styles.subtitle}>{t('analytics.subtitle')}</Text>
+        <View style={styles.headerContent}>
+          <View style={styles.titleSection}>
+            <Text style={styles.title}>
+              {currentTab?.label || t('analytics.title')}
+            </Text>
+            <Text style={styles.subtitle}>{t('analytics.subtitle')}</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.tabPickerButton}
+            onPress={() => setShowTabPicker(true)}
+          >
+            {currentTab && <currentTab.icon size={20} color="#059669" />}
+            <ChevronDown size={16} color="#6B7280" style={styles.chevronIcon} />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Tab Navigation */}
-      <View style={styles.tabBar}>
+      {/* Tab Picker Modal */}
+      <Modal
+        visible={showTabPicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowTabPicker(false)}
+      >
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'overview' && styles.activeTab]}
-          onPress={() => setActiveTab('overview')}
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowTabPicker(false)}
         >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'overview' && styles.activeTabText,
-            ]}
-          >
-            {t('analytics.overview')}
-          </Text>
+          <View style={styles.tabPickerModal}>
+            <Text style={styles.tabPickerTitle}>
+              {t('analytics.selectView')}
+            </Text>
+
+            {tabOptions.map((tab) => {
+              const IconComponent = tab.icon;
+              const isSelected = activeTab === tab.key;
+
+              return (
+                <TouchableOpacity
+                  key={tab.key}
+                  style={[
+                    styles.tabPickerOption,
+                    isSelected && styles.tabPickerOptionSelected,
+                  ]}
+                  onPress={() => handleTabChange(tab.key)}
+                >
+                  <IconComponent
+                    size={20}
+                    color={isSelected ? '#059669' : '#6B7280'}
+                  />
+                  <Text
+                    style={[
+                      styles.tabPickerOptionText,
+                      isSelected && styles.tabPickerOptionTextSelected,
+                    ]}
+                  >
+                    {tab.label}
+                  </Text>
+                  {isSelected && <View style={styles.selectedIndicator} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'customers' && styles.activeTab]}
-          onPress={() => setActiveTab('customers')}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'customers' && styles.activeTabText,
-            ]}
-          >
-            {t('analytics.customers')}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'stock' && styles.activeTab]}
-          onPress={() => setActiveTab('stock')}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'stock' && styles.activeTabText,
-            ]}
-          >
-            {t('analytics.stock')}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'pricing' && styles.activeTab]}
-          onPress={() => setActiveTab('pricing')}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'pricing' && styles.activeTabText,
-            ]}
-          >
-            {t('analytics.pricing')}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      </Modal>
 
       {/* Tab Content */}
       {activeTab === 'overview' && (
@@ -523,39 +559,25 @@ export default function Analytics() {
             />
           }
         >
-          {/* Enhanced Period Selector */}
-          <Card style={styles.periodCard}>
-            <View style={styles.periodHeader}>
-              <Text style={styles.sectionTitle}>
-                {t('analytics.analysisPeriod')}
-              </Text>
-              <TouchableOpacity
-                style={styles.filterButton}
-                onPress={() => setShowFilterModal(true)}
-              >
-                <Calendar size={16} color="#059669" />
-                <Text style={styles.filterButtonText}>
-                  {t('common.filter')}
-                </Text>
-                <ChevronDown size={16} color="#059669" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Current Filter Display */}
-            <View style={styles.currentFilterContainer}>
-              <View style={styles.currentFilterDisplay}>
-                <Text style={styles.currentFilterLabel}>
-                  {t('analytics.currentPeriod')}:
-                </Text>
-                <Text style={styles.currentFilterValue}>
-                  {getFilterDisplayText()}
-                </Text>
+          {/* Compact Period Selector */}
+          <View style={styles.compactPeriodSelector}>
+            <View style={styles.periodRow}>
+              <View style={styles.periodInfo}>
+                <Text style={styles.periodLabel}>{t('analytics.period')}:</Text>
+                <TouchableOpacity
+                  style={styles.periodValue}
+                  onPress={() => setShowFilterModal(true)}
+                >
+                  <Text style={styles.periodValueText}>
+                    {getFilterDisplayText()}
+                  </Text>
+                  <ChevronDown size={14} color="#6B7280" />
+                </TouchableOpacity>
               </View>
 
-              {/* Navigation Controls */}
-              <View style={styles.navigationControls}>
+              <View style={styles.periodActions}>
                 <TouchableOpacity
-                  style={styles.navButton}
+                  style={styles.compactNavButton}
                   onPress={() => {
                     if (dateFilter.mode === 'day') {
                       navigateDay('prev');
@@ -566,11 +588,18 @@ export default function Analytics() {
                     }
                   }}
                 >
-                  <ChevronLeft size={20} color="#6B7280" />
+                  <ChevronLeft size={16} color="#6B7280" />
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={styles.navButton}
+                  style={styles.compactFilterButton}
+                  onPress={() => setShowFilterModal(true)}
+                >
+                  <Calendar size={14} color="#059669" />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.compactNavButton}
                   onPress={() => {
                     if (dateFilter.mode === 'day') {
                       navigateDay('next');
@@ -581,30 +610,30 @@ export default function Analytics() {
                     }
                   }}
                 >
-                  <ChevronRight size={20} color="#6B7280" />
+                  <ChevronRight size={16} color="#6B7280" />
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* Quick Filter Chips */}
-            <View style={styles.quickFilters}>
+            {/* Compact Quick Filters */}
+            <View style={styles.compactQuickFilters}>
               <TouchableOpacity
                 style={[
-                  styles.quickFilterChip,
+                  styles.compactFilterChip,
                   dateFilter.mode === 'day' &&
                     dateFilter.selectedDate.toDateString() ===
                       new Date().toDateString() &&
-                    styles.quickFilterChipActive,
+                    styles.compactFilterChipActive,
                 ]}
                 onPress={() => handleQuickFilter('day', 'today')}
               >
                 <Text
                   style={[
-                    styles.quickFilterText,
+                    styles.compactFilterText,
                     dateFilter.mode === 'day' &&
                       dateFilter.selectedDate.toDateString() ===
                         new Date().toDateString() &&
-                      styles.quickFilterTextActive,
+                      styles.compactFilterTextActive,
                   ]}
                 >
                   {t('common.today')}
@@ -613,19 +642,19 @@ export default function Analytics() {
 
               <TouchableOpacity
                 style={[
-                  styles.quickFilterChip,
+                  styles.compactFilterChip,
                   dateFilter.mode === 'month' &&
                     dateFilter.selectedMonth === new Date().getMonth() &&
-                    styles.quickFilterChipActive,
+                    styles.compactFilterChipActive,
                 ]}
                 onPress={() => handleQuickFilter('month', 'current')}
               >
                 <Text
                   style={[
-                    styles.quickFilterText,
+                    styles.compactFilterText,
                     dateFilter.mode === 'month' &&
                       dateFilter.selectedMonth === new Date().getMonth() &&
-                      styles.quickFilterTextActive,
+                      styles.compactFilterTextActive,
                   ]}
                 >
                   {t('common.thisMonth')}
@@ -634,32 +663,30 @@ export default function Analytics() {
 
               <TouchableOpacity
                 style={[
-                  styles.quickFilterChip,
-                  isCurrentWeek() && styles.quickFilterChipActive,
+                  styles.compactFilterChip,
+                  isCurrentWeek() && styles.compactFilterChipActive,
                 ]}
                 onPress={() => handleQuickFilter('range', 'week')}
               >
                 <Text
                   style={[
-                    styles.quickFilterText,
-                    isCurrentWeek() && styles.quickFilterTextActive,
+                    styles.compactFilterText,
+                    isCurrentWeek() && styles.compactFilterTextActive,
                   ]}
                 >
                   {t('common.thisWeek')}
                 </Text>
               </TouchableOpacity>
-            </View>
 
-            <View style={styles.periodSummary}>
-              <Text style={styles.periodSummaryText}>
-                {getDaysInPeriod()}{' '}
-                {getDaysInPeriod() === 1
-                  ? t('analytics.day')
-                  : t('analytics.days')}{' '}
-                • {analytics?.totalSales || 0} {t('analytics.sales')}
-              </Text>
+              <View style={styles.periodStats}>
+                <Text style={styles.periodStatsText}>
+                  {getDaysInPeriod()}
+                  {getDaysInPeriod() === 1 ? 'd' : 'd'} •{' '}
+                  {analytics?.totalSales || 0} sales
+                </Text>
+              </View>
             </View>
-          </Card>
+          </View>
 
           {/* Key Metrics */}
           <View style={styles.metricsGrid}>
@@ -1273,6 +1300,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  titleSection: {
+    flex: 1,
+  },
   title: {
     fontSize: 28,
     fontFamily: 'Inter-Bold',
@@ -1282,131 +1317,180 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
-    marginTop: 6,
+    marginTop: 4,
+  },
+  tabPickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginLeft: 16,
+  },
+  chevronIcon: {
+    marginLeft: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tabPickerModal: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    margin: 32,
+    minWidth: 280,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  tabPickerTitle: {
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  tabPickerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  tabPickerOptionSelected: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#059669',
+  },
+  tabPickerOptionText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+    marginLeft: 12,
+    flex: 1,
+  },
+  tabPickerOptionTextSelected: {
+    color: '#059669',
+    fontFamily: 'Inter-SemiBold',
+  },
+  selectedIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#059669',
   },
   content: {
     flex: 1,
     padding: 20,
   },
-  periodCard: {
-    marginBottom: 28,
+  compactPeriodSelector: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  periodHeader: {
+  periodRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 12,
+  },
+  periodInfo: {
+    flex: 1,
+  },
+  periodLabel: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  periodValue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  periodValueText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+    marginRight: 6,
+  },
+  periodActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  compactNavButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  compactFilterButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F0FDF4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  compactQuickFilters: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  compactFilterChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  compactFilterChipActive: {
+    backgroundColor: '#059669',
+    borderColor: '#059669',
+  },
+  compactFilterText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  compactFilterTextActive: {
+    color: '#FFFFFF',
+  },
+  periodStats: {
+    marginLeft: 'auto',
+  },
+  periodStatsText: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '500',
   },
   sectionTitle: {
     fontSize: 18,
     fontFamily: 'Inter-SemiBold',
     color: '#111827',
-  },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0FDF4',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-  },
-  filterButtonText: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#059669',
-    marginHorizontal: 6,
-  },
-  currentFilterContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  currentFilterDisplay: {
-    flex: 1,
-  },
-  currentFilterLabel: {
-    fontSize: 12,
-    fontFamily: 'Inter-Medium',
-    color: '#64748B',
-    marginBottom: 4,
-  },
-  currentFilterValue: {
-    fontSize: 18,
-    fontFamily: 'Inter-Bold',
-    color: '#1E293B',
-  },
-  navigationControls: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  navButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  quickFilters: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
-  quickFilterChip: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  quickFilterChipActive: {
-    backgroundColor: '#059669',
-    borderColor: '#059669',
-  },
-  quickFilterText: {
-    fontSize: 13,
-    fontFamily: 'Inter-Medium',
-    color: '#64748B',
-  },
-  quickFilterTextActive: {
-    color: '#FFFFFF',
-  },
-  periodSummary: {
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  periodSummaryText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#64748B',
-    textAlign: 'center',
   },
   metricsGrid: {
     marginBottom: 24,
@@ -1718,31 +1802,5 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontStyle: 'italic',
     marginTop: 8,
-  },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  tab: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-  },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#059669',
-  },
-  tabText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-    textAlign: 'center',
-  },
-  activeTabText: {
-    color: '#059669',
-    fontFamily: 'Inter-SemiBold',
   },
 });

@@ -88,6 +88,13 @@ export default function Products({}: ProductsManagerProps) {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
+  // Add state for remembering last selected category and supplier
+  const [lastSelectedCategoryId, setLastSelectedCategoryId] = useState<
+    number | null
+  >(null);
+  const [showSupplierPicker, setShowSupplierPicker] = useState(false);
+  const [showCategoryFormPicker, setShowCategoryFormPicker] = useState(false);
+
   // Add state for stock movement form
   const [showStockMovementForm, setShowStockMovementForm] = useState(false);
   const [selectedProductForMovement, setSelectedProductForMovement] =
@@ -206,7 +213,9 @@ export default function Products({}: ProductsManagerProps) {
     setFormData({
       name: '',
       barcode: '',
-      category_id: 0,
+      category_id:
+        lastSelectedCategoryId ||
+        (categories.length > 0 ? categories[0].id : 0), // Use remembered category
       price: '',
       cost: '',
       quantity: '0', // Default to 0
@@ -350,32 +359,30 @@ export default function Products({}: ProductsManagerProps) {
   };
 
   const handleSubmit = async () => {
-    if (
-      !formData.name ||
-      !formData.category_id ||
-      formData.category_id === 0 ||
-      !formData.price ||
-      !formData.cost
-    ) {
-      Alert.alert(t('common.error'), t('products.fillRequiredFields'));
+    if (!formData.name.trim()) {
+      showToast(t('products.nameRequired'), 'error');
       return;
     }
 
-    // Validate that price and cost are integers
-    const price = parseInt(formData.price);
-    const cost = parseInt(formData.cost);
-
-    if (isNaN(price) || isNaN(cost) || price <= 0 || cost <= 0) {
-      Alert.alert(t('common.error'), t('products.validPositiveNumbers'));
+    if (!formData.category_id) {
+      showToast(t('products.categoryRequired'), 'error');
       return;
     }
 
-    if (price <= cost) {
-      Alert.alert(t('products.warning'), t('products.priceShouldBeHigher'));
+    if (!formData.price || parseInt(formData.price) <= 0) {
+      showToast(t('products.priceRequired'), 'error');
+      return;
+    }
+
+    if (!formData.cost || parseInt(formData.cost) <= 0) {
+      showToast(t('products.costRequired'), 'error');
       return;
     }
 
     try {
+      const price = parseInt(formData.price);
+      const cost = parseInt(formData.cost);
+
       const productData = {
         name: formData.name,
         barcode: formData.barcode ? formData.barcode : undefined,
@@ -384,9 +391,14 @@ export default function Products({}: ProductsManagerProps) {
         cost: cost,
         quantity: parseInt(formData.quantity) || 0,
         min_stock: parseInt(formData.min_stock) || 10,
-        supplier_id: parseInt(formData.supplier_id) || 1,
+        supplier_id: formData.supplier_id
+          ? parseInt(formData.supplier_id)
+          : undefined, // Optional supplier
         imageUrl: formData.imageUrl || undefined,
       };
+
+      // Remember the selected category for next time
+      setLastSelectedCategoryId(formData.category_id);
 
       if (editingProduct) {
         // Use bulk pricing mutation if there are tiers, otherwise use regular update
@@ -423,8 +435,8 @@ export default function Products({}: ProductsManagerProps) {
         'success'
       );
     } catch (error) {
-      Alert.alert(t('common.error'), t('products.failedToSave'));
       console.error('Error saving product:', error);
+      showToast(t('common.error'), 'error');
     }
   };
 
@@ -477,8 +489,8 @@ export default function Products({}: ProductsManagerProps) {
       price: product.price.toString(),
       cost: product.cost.toString(),
       quantity: product.quantity.toString(),
-      min_stock: product.min_stock.toString(),
-      supplier_id: product.supplier_id?.toString() || '',
+      min_stock: product.min_stock?.toString() || '10',
+      supplier_id: product.supplier_id?.toString() || '', // Handle optional supplier
       imageUrl: product.imageUrl || '',
     });
 
@@ -607,11 +619,17 @@ export default function Products({}: ProductsManagerProps) {
   //   setShowStockMovementForm(true);
   // };
 
-  // const getSupplierName = (supplierId: number) => {
-  //   const supplier = suppliers.find((s) => s.id === supplierId);
-  //   return supplier ? supplier.name : t('products.unknown');
-  // };
+  const getSupplierName = (supplierId: string | number | undefined) => {
+    if (!supplierId) return t('products.noSupplier');
+    const supplier = suppliers.find(
+      (s) =>
+        s.id ===
+        (typeof supplierId === 'string' ? parseInt(supplierId) : supplierId)
+    );
+    return supplier ? supplier.name : t('products.unknown');
+  };
 
+  console.log('products ', products);
   if (isLoading && !isRefreshing) {
     return <LoadingSpinner />;
   }
@@ -641,6 +659,9 @@ export default function Products({}: ProductsManagerProps) {
             <View style={styles.productInfo}>
               <Text style={styles.productName}>{product.name}</Text>
               <Text style={styles.productCategory}>{product.category}</Text>
+              <Text style={styles.productDetailValue}>
+                {getSupplierName(product.supplier_id)}
+              </Text>
             </View>
 
             <View style={styles.productActions}>
@@ -757,7 +778,7 @@ export default function Products({}: ProductsManagerProps) {
         <View style={[styles.tableHeaderCell, { width: 100 }]}>
           <Text style={styles.tableHeaderText}>{t('products.minStock')}</Text>
         </View>
-        <View style={[styles.tableHeaderCell, { width: 100 }]}>
+        <View style={[styles.tableHeaderCell, { width: 150 }]}>
           <Text style={styles.tableHeaderText}>{t('products.supplier')}</Text>
         </View>
         <View style={[styles.tableHeaderCell, { width: 100 }]}>
@@ -848,9 +869,9 @@ export default function Products({}: ProductsManagerProps) {
         </View>
 
         {/* Supplier */}
-        <View style={[styles.tableCell, { width: 100 }]}>
+        <View style={[styles.tableCell, { width: 150 }]}>
           <Text style={styles.tableCellText} numberOfLines={1}>
-            {product.supplier_name || '-'}
+            {product.supplier_id ? getSupplierName(product.supplier_id) : '-'}
           </Text>
         </View>
 
@@ -953,6 +974,146 @@ export default function Products({}: ProductsManagerProps) {
           </View>
         </ScrollView>
       </View>
+    );
+  };
+
+  const categoryModal = () => {
+    return (
+      <Modal
+        visible={showCategoryFormPicker}
+        animationType="slide"
+        transparent={true}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.categoryPickerContainer}>
+            <View style={styles.categoryPickerHeader}>
+              <Text style={styles.categoryPickerTitle}>
+                {t('products.selectCategory')}
+              </Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowCategoryFormPicker(false)}
+              >
+                <X size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.categoryPickerList}>
+              {categories.map((category) => (
+                <TouchableOpacity
+                  key={category.id}
+                  style={[
+                    styles.categoryFilterPickerItem,
+                    formData.category_id === category.id &&
+                      styles.categoryFilterPickerItemActive,
+                  ]}
+                  onPress={() => {
+                    setFormData({ ...formData, category_id: category.id });
+                    setShowCategoryFormPicker(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.categoryPickerItemText,
+                      formData.category_id === category.id &&
+                        styles.categoryPickerItemTextActive,
+                    ]}
+                  >
+                    {category.name}
+                  </Text>
+                  {formData.category_id === category.id && (
+                    <View style={styles.selectedIndicator} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
+  const supplierModal = () => {
+    return (
+      <Modal
+        visible={showSupplierPicker}
+        animationType="slide"
+        transparent={true}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.categoryPickerContainer}>
+            <View style={styles.categoryPickerHeader}>
+              <Text style={styles.categoryPickerTitle}>
+                {t('products.selectSupplier')}
+              </Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowSupplierPicker(false)}
+              >
+                <X size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.categoryPickerList}>
+              {/* No Supplier Option */}
+              <TouchableOpacity
+                style={[
+                  styles.categoryFilterPickerItem,
+                  !formData.supplier_id &&
+                    styles.categoryFilterPickerItemActive,
+                ]}
+                onPress={() => {
+                  setFormData({ ...formData, supplier_id: '' });
+                  setShowSupplierPicker(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.categoryPickerItemText,
+                    !formData.supplier_id &&
+                      styles.categoryPickerItemTextActive,
+                  ]}
+                >
+                  {t('products.noSupplier')}
+                </Text>
+                {!formData.supplier_id && (
+                  <View style={styles.selectedIndicator} />
+                )}
+              </TouchableOpacity>
+
+              {/* Supplier Options */}
+              {suppliers.map((supplier) => (
+                <TouchableOpacity
+                  key={supplier.id}
+                  style={[
+                    styles.categoryFilterPickerItem,
+                    formData.supplier_id === supplier.id.toString() &&
+                      styles.categoryFilterPickerItemActive,
+                  ]}
+                  onPress={() => {
+                    setFormData({
+                      ...formData,
+                      supplier_id: supplier.id.toString(),
+                    });
+                    setShowSupplierPicker(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.categoryPickerItemText,
+                      formData.supplier_id === supplier.id.toString() &&
+                        styles.categoryPickerItemTextActive,
+                    ]}
+                  >
+                    {supplier.name}
+                  </Text>
+                  {formData.supplier_id === supplier.id.toString() && (
+                    <View style={styles.selectedIndicator} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     );
   };
 
@@ -1389,35 +1550,33 @@ export default function Products({}: ProductsManagerProps) {
 
             <View style={styles.pickerContainer}>
               <Text style={styles.pickerLabel}>{t('common.category')} *</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.categoryPicker}
+              <TouchableOpacity
+                style={styles.categoryDropdown}
+                onPress={() => setShowCategoryFormPicker(true)}
               >
-                {categories.map((category) => (
-                  <TouchableOpacity
-                    key={category.id}
-                    style={[
-                      styles.categoryPickerItem,
-                      formData.category_id === category.id &&
-                        styles.categoryPickerItemActive,
-                    ]}
-                    onPress={() =>
-                      setFormData({ ...formData, category_id: category.id })
-                    }
-                  >
-                    <Text
-                      style={[
-                        styles.categoryPickerText,
-                        formData.category_id === category.id &&
-                          styles.categoryPickerTextActive,
-                      ]}
-                    >
-                      {category.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+                <Text style={styles.categoryDropdownText}>
+                  {formData.category_id
+                    ? categories.find((c) => c.id === formData.category_id)
+                        ?.name || t('products.selectCategory')
+                    : t('products.selectCategory')}
+                </Text>
+                <ChevronDown size={20} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.pickerContainer}>
+              <Text style={styles.pickerLabel}>
+                {t('products.supplier')} ({t('products.optional')})
+              </Text>
+              <TouchableOpacity
+                style={styles.categoryDropdown}
+                onPress={() => setShowSupplierPicker(true)}
+              >
+                <Text style={styles.categoryDropdownText}>
+                  {getSupplierName(formData.supplier_id)}
+                </Text>
+                <ChevronDown size={20} color="#6B7280" />
+              </TouchableOpacity>
             </View>
 
             <PriceInput
@@ -1539,6 +1698,8 @@ export default function Products({}: ProductsManagerProps) {
             />
           )}
         </SafeAreaView>
+        {categoryModal()}
+        {supplierModal()}
       </Modal>
 
       {/* Category Management Modal */}
@@ -2108,7 +2269,7 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   productCategory: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
@@ -2142,7 +2303,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   productDetailValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginTop: 2,
