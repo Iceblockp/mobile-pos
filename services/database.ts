@@ -3255,6 +3255,78 @@ export class DatabaseService {
     };
   }
 
+  async getCustomerAnalytics(
+    startDate: Date,
+    endDate: Date
+  ): Promise<{
+    totalCustomers: number;
+    totalRevenue: number;
+    topCustomers: {
+      id: number;
+      name: string;
+      total_spent: number;
+      total_orders: number;
+      visit_count: number;
+      avg_order_value: number;
+    }[];
+  }> {
+    // Get customers with their spending in the date range
+    const topCustomers = (await this.db.getAllAsync(
+      `
+      SELECT 
+        c.id,
+        c.name,
+        COALESCE(SUM(s.total), 0) as total_spent,
+        COUNT(s.id) as total_orders,
+        c.visit_count,
+        CASE 
+          WHEN COUNT(s.id) > 0 THEN COALESCE(SUM(s.total), 0) / COUNT(s.id)
+          ELSE 0 
+        END as avg_order_value
+      FROM customers c
+      LEFT JOIN sales s ON c.id = s.customer_id 
+        AND s.created_at BETWEEN ? AND ?
+      GROUP BY c.id, c.name, c.visit_count
+      ORDER BY total_spent DESC
+      LIMIT 50
+    `,
+      [startDate.toISOString(), endDate.toISOString()]
+    )) as {
+      id: number;
+      name: string;
+      total_spent: number;
+      total_orders: number;
+      visit_count: number;
+      avg_order_value: number;
+    }[];
+
+    // Get total revenue in the date range
+    const revenueResult = (await this.db.getFirstAsync(
+      `
+      SELECT COALESCE(SUM(total), 0) as totalRevenue
+      FROM sales 
+      WHERE created_at BETWEEN ? AND ?
+    `,
+      [startDate.toISOString(), endDate.toISOString()]
+    )) as { totalRevenue: number };
+
+    // Get total unique customers who made purchases in the date range
+    const customerCountResult = (await this.db.getFirstAsync(
+      `
+      SELECT COUNT(DISTINCT customer_id) as totalCustomers
+      FROM sales 
+      WHERE created_at BETWEEN ? AND ? AND customer_id IS NOT NULL
+    `,
+      [startDate.toISOString(), endDate.toISOString()]
+    )) as { totalCustomers: number };
+
+    return {
+      totalCustomers: customerCountResult.totalCustomers,
+      totalRevenue: revenueResult.totalRevenue,
+      topCustomers,
+    };
+  }
+
   // Stock Movement Analytics Methods
   async getStockMovementTrends(
     startDate?: Date,

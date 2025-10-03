@@ -962,6 +962,21 @@ export const useCustomerSegmentation = () => {
   });
 };
 
+export const useCustomerAnalytics = (startDate: Date, endDate: Date) => {
+  const { db, isReady } = useDatabase();
+
+  // Create stable query key by using date strings rounded to the day
+  const startDateKey = startDate.toISOString().split('T')[0];
+  const endDateKey = endDate.toISOString().split('T')[0];
+
+  return useQuery({
+    queryKey: ['customerAnalytics', startDateKey, endDateKey],
+    queryFn: () => db!.getCustomerAnalytics(startDate, endDate),
+    enabled: isReady && !!db,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+};
+
 // ============ STOCK MOVEMENT ANALYTICS QUERIES ============
 export const useStockMovementTrends = (startDate?: Date, endDate?: Date) => {
   const { db, isReady } = useDatabase();
