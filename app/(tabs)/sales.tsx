@@ -280,7 +280,7 @@ export default function Sales() {
     setShowProductDialog(false);
   };
 
-  const updateQuantity = (productId: number, newQuantity: number) => {
+  const updateQuantity = (productId: string, newQuantity: number) => {
     const item = cart.find((item) => item.product.id === productId);
     if (!item) return;
 
@@ -318,7 +318,7 @@ export default function Sales() {
     );
   };
 
-  const updateDiscount = (productId: number, newDiscount: number) => {
+  const updateDiscount = (productId: string, newDiscount: number) => {
     const item = cart.find((item) => item.product.id === productId);
     if (!item) return;
 
@@ -358,7 +358,7 @@ export default function Sales() {
     );
   };
 
-  const removeFromCart = (productId: number) => {
+  const removeFromCart = (productId: string) => {
     setCart(cart.filter((item) => item.product.id !== productId));
   };
 
@@ -785,7 +785,7 @@ export default function Sales() {
 
             <FlatList
               data={filteredProducts}
-              keyExtractor={(item) => item.id.toString()}
+              keyExtractor={(item) => item.id}
               style={styles.dialogProductsList}
               showsVerticalScrollIndicator={false}
               renderItem={({ item: product }) => (
@@ -1073,7 +1073,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const filteredSales = sales.filter((sale) => {
     if (!searchQuery) return true;
     return (
-      sale.id.toString().includes(searchQuery) ||
+      sale.id.includes(searchQuery) ||
       sale.payment_method.toLowerCase().includes(searchQuery.toLowerCase())
     );
   });
@@ -1294,42 +1294,42 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         const totalProfit = totalRevenue - totalCost;
 
         excelData.push({
-          'Sale ID': 0,
+          'Sale ID': '',
           Date: '',
           'Payment Method': '',
           'Total Amount': 0,
           Note: '',
         });
         excelData.push({
-          'Sale ID': 0,
+          'Sale ID': '',
           Date: 'SUMMARY',
           'Payment Method': '',
           'Total Amount': 0,
           Note: '',
         });
         excelData.push({
-          'Sale ID': 0,
+          'Sale ID': '',
           Date: 'Total Sales',
           'Payment Method': totalSales.toString(),
           'Total Amount': 0,
           Note: '',
         });
         excelData.push({
-          'Sale ID': 0,
+          'Sale ID': '',
           Date: 'Total Revenue',
           'Payment Method': '',
           'Total Amount': totalRevenue,
           Note: '',
         });
         excelData.push({
-          'Sale ID': 0,
+          'Sale ID': '',
           Date: 'Total Cost',
           'Payment Method': '',
           'Total Amount': totalCost,
           Note: '',
         });
         excelData.push({
-          'Sale ID': 0,
+          'Sale ID': '',
           Date: 'Total Profit',
           'Payment Method': '',
           'Total Amount': totalProfit,
@@ -1400,7 +1400,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       const totalProfit = totalRevenue - totalCost;
 
       excelData.push({
-        'Sale ID': 0,
+        'Sale ID': '',
         Date: '',
         'Total Amount': 0,
         'Total Amount (MMK)': '',
@@ -1409,7 +1409,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         Day: '',
       });
       excelData.push({
-        'Sale ID': 0,
+        'Sale ID': '',
         Date: 'SUMMARY',
         'Total Amount': 0,
         'Total Amount (MMK)': '',
@@ -1418,7 +1418,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         Day: '',
       });
       excelData.push({
-        'Sale ID': 0,
+        'Sale ID': '',
         Date: 'Total Sales',
         'Total Amount': 0,
         'Total Amount (MMK)': '',
@@ -1427,7 +1427,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         Day: '',
       });
       excelData.push({
-        'Sale ID': 0,
+        'Sale ID': '',
         Date: 'Total Revenue',
         'Total Amount': totalRevenue,
         'Total Amount (MMK)': formatPrice(totalRevenue),
@@ -1436,7 +1436,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         Day: '',
       });
       excelData.push({
-        'Sale ID': 0,
+        'Sale ID': '',
         Date: 'Total Cost',
         'Total Amount': totalCost,
         'Total Amount (MMK)': formatPrice(totalCost),
@@ -1445,7 +1445,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         Day: '',
       });
       excelData.push({
-        'Sale ID': 0,
+        'Sale ID': '',
         Date: 'Total Profit',
         'Total Amount': totalProfit,
         'Total Amount (MMK)': formatPrice(totalProfit),
@@ -1541,7 +1541,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         );
         const totalProfit = totalSales - totalCost;
         excelData.push({
-          'Sale ID': 0,
+          'Sale ID': '',
           Date: '',
           Product: '',
           Quantity: 0,
@@ -1552,7 +1552,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           Profit: 0,
         });
         excelData.push({
-          'Sale ID': 0,
+          'Sale ID': '',
           Date: '',
           Product: 'SUMMARY',
           Quantity: 0,
@@ -1563,7 +1563,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           Profit: 0,
         });
         excelData.push({
-          'Sale ID': 0,
+          'Sale ID': '',
           Date: '',
           Product: 'Total Items',
           Quantity: totalQuantity,
@@ -1574,7 +1574,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           Profit: 0,
         });
         excelData.push({
-          'Sale ID': 0,
+          'Sale ID': '',
           Date: '',
           Product: 'Total Sales',
           Quantity: 0,
@@ -1585,7 +1585,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           Profit: 0,
         });
         excelData.push({
-          'Sale ID': 0,
+          'Sale ID': '',
           Date: '',
           Product: 'Total Cost',
           Quantity: 0,
@@ -1596,7 +1596,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           Profit: totalCost,
         });
         excelData.push({
-          'Sale ID': 0,
+          'Sale ID': '',
           Date: '',
           Product: 'Total Profit',
           Quantity: 0,
@@ -1683,7 +1683,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       const totalProfit = totalSales - totalCost;
 
       excelData.push({
-        'Sale ID': 0,
+        'Sale ID': '',
         Date: '',
         Product: '',
         Quantity: 0,
@@ -1699,7 +1699,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Profit (MMK)': '',
       });
       excelData.push({
-        'Sale ID': 0,
+        'Sale ID': '',
         Date: '',
         Product: 'SUMMARY',
         Quantity: 0,
@@ -1715,7 +1715,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Profit (MMK)': '',
       });
       excelData.push({
-        'Sale ID': 0,
+        'Sale ID': '',
         Date: '',
         Product: 'Total Items',
         Quantity: totalQuantity,
@@ -1731,7 +1731,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Profit (MMK)': '',
       });
       excelData.push({
-        'Sale ID': 0,
+        'Sale ID': '',
         Date: '',
         Product: 'Total Sales',
         Quantity: 0,
@@ -1747,7 +1747,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Profit (MMK)': '',
       });
       excelData.push({
-        'Sale ID': 0,
+        'Sale ID': '',
         Date: '',
         Product: 'Total Cost',
         Quantity: 0,
@@ -1763,7 +1763,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Profit (MMK)': formatPrice(totalCost),
       });
       excelData.push({
-        'Sale ID': 0,
+        'Sale ID': '',
         Date: '',
         Product: 'Total Profit',
         Quantity: 0,
@@ -2058,7 +2058,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
         <FlatList
           data={filteredSales}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => item.id}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           ListFooterComponent={

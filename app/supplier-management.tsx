@@ -185,7 +185,7 @@ export default function SupplierManagement() {
       <FlatList
         data={suppliers}
         renderItem={renderSupplierItem}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmptyState}

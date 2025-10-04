@@ -270,7 +270,7 @@ export default function Inventory() {
 
               <FlatList
                 data={lowStockProducts}
-                keyExtractor={(item) => item.id.toString()}
+                keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                   <View style={styles.alertItem}>
                     {item.imageUrl && (

@@ -25,7 +25,7 @@ import { useCurrencyFormatter } from '@/context/CurrencyContext';
 
 export default function SupplierDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const supplierId = parseInt(id || '0', 10);
+  const supplierId = id || '';
   const [showEditModal, setShowEditModal] = useState(false);
   const { formatPrice } = useCurrencyFormatter();
 
@@ -252,7 +252,7 @@ export default function SupplierDetail() {
             <FlatList
               data={products}
               renderItem={renderProductItem}
-              keyExtractor={(item) => item.product_id.toString()}
+              keyExtractor={(item) => item.product_id}
               scrollEnabled={false}
               showsVerticalScrollIndicator={false}
             />

@@ -29,7 +29,7 @@ describe('TemplateEngine', () => {
     mockFileSystem.readAsStringAsync.mockResolvedValue('base64ImageData');
 
     mockShopSettings = {
-      id: 1,
+      id: '1',
       shopName: 'Test Shop',
       address: '123 Test Street',
       phone: '+95-9-123-456-789',
@@ -42,16 +42,16 @@ describe('TemplateEngine', () => {
     };
 
     mockReceiptData = {
-      saleId: 12345,
+      saleId: '12345',
       items: [
         {
-          product: { id: 1, name: 'Test Product 1', price: 2500 },
+          product: { id: '1', name: 'Test Product 1', price: 2500 },
           quantity: 2,
           discount: 0,
           subtotal: 5000,
         },
         {
-          product: { id: 2, name: 'Test Product 2', price: 1500 },
+          product: { id: '2', name: 'Test Product 2', price: 1500 },
           quantity: 1,
           discount: 200,
           subtotal: 1300,
