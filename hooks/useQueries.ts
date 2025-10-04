@@ -234,7 +234,7 @@ export const useProducts = (includeBulkPricing: boolean = false) => {
 
 // Note: getProduct method doesn't exist in database service
 // If needed, implement getProduct in database service or use getProducts and filter
-// export const useProduct = (id: number) => { ... }
+// export const useProduct = (id: string) => { ... }
 
 // ============ CATEGORY QUERIES ============
 export const useCategories = () => {

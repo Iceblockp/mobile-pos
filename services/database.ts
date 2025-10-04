@@ -152,13 +152,13 @@ export class DatabaseService {
   async createTables() {
     await this.db.execAsync(`
       CREATE TABLE IF NOT EXISTS categories (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id TEXT PRIMARY KEY,
         name TEXT NOT NULL UNIQUE,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
 
       CREATE TABLE IF NOT EXISTS suppliers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         contact_name TEXT,
         phone TEXT,
@@ -168,15 +168,15 @@ export class DatabaseService {
       );
 
       CREATE TABLE IF NOT EXISTS products (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         barcode TEXT, /* Removed UNIQUE constraint */
-        category_id INTEGER NOT NULL,
+        category_id TEXT NOT NULL,
         price REAL NOT NULL,
         cost REAL NOT NULL,
         quantity INTEGER NOT NULL DEFAULT 0,
         min_stock INTEGER NOT NULL DEFAULT 10,
-        supplier_id INTEGER,
+        supplier_id TEXT,
         imageUrl TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -185,19 +185,19 @@ export class DatabaseService {
       );
 
       CREATE TABLE IF NOT EXISTS sales (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id TEXT PRIMARY KEY,
         total REAL NOT NULL,
         payment_method TEXT NOT NULL,
         note TEXT,
-        customer_id INTEGER,
+        customer_id TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (customer_id) REFERENCES customers (id)
       );
 
       CREATE TABLE IF NOT EXISTS sale_items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        sale_id INTEGER NOT NULL,
-        product_id INTEGER NOT NULL,
+        id TEXT PRIMARY KEY,
+        sale_id TEXT NOT NULL,
+        product_id TEXT NOT NULL,
         quantity INTEGER NOT NULL,
         price REAL NOT NULL,
         cost REAL NOT NULL,
@@ -208,15 +208,15 @@ export class DatabaseService {
       );
 
       CREATE TABLE IF NOT EXISTS expense_categories (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id TEXT PRIMARY KEY,
         name TEXT NOT NULL UNIQUE,
         description TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
 
       CREATE TABLE IF NOT EXISTS expenses (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        category_id INTEGER NOT NULL,
+        id TEXT PRIMARY KEY,
+        category_id TEXT NOT NULL,
         amount REAL NOT NULL,
         description TEXT,
         date TEXT NOT NULL,
@@ -442,7 +442,7 @@ export class DatabaseService {
     if (!tableExists) {
       await this.db.execAsync(`
         CREATE TABLE customers (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id TEXT PRIMARY KEY,
           name TEXT NOT NULL,
           phone TEXT,
           email TEXT,
@@ -466,12 +466,12 @@ export class DatabaseService {
     if (!tableExists) {
       await this.db.execAsync(`
         CREATE TABLE stock_movements (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          product_id INTEGER NOT NULL,
+          id TEXT PRIMARY KEY,
+          product_id TEXT NOT NULL,
           type TEXT NOT NULL CHECK (type IN ('stock_in', 'stock_out')),
           quantity INTEGER NOT NULL,
           reason TEXT,
-          supplier_id INTEGER,
+          supplier_id TEXT,
           reference_number TEXT,
           unit_cost REAL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -492,8 +492,8 @@ export class DatabaseService {
     if (!tableExists) {
       await this.db.execAsync(`
         CREATE TABLE bulk_pricing (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          product_id INTEGER NOT NULL,
+          id TEXT PRIMARY KEY,
+          product_id TEXT NOT NULL,
           min_quantity INTEGER NOT NULL,
           bulk_price REAL NOT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

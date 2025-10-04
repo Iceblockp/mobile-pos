@@ -106,7 +106,7 @@ export class UUIDMigrationService {
    */
   async isMigrationComplete(): Promise<boolean> {
     try {
-      // Check if any table still has INTEGER PRIMARY KEY
+      // Check if any table still has old primary key format (should be TEXT after migration)
       const tableInfo = (await this.db.getAllAsync(
         'PRAGMA table_info(products)'
       )) as Array<{ name: string; type: string }>;
