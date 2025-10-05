@@ -225,12 +225,50 @@ export class DatabaseService {
         FOREIGN KEY (category_id) REFERENCES expense_categories (id)
       );
 
+      CREATE TABLE IF NOT EXISTS customers (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        phone TEXT,
+        email TEXT,
+        address TEXT,
+        total_spent REAL DEFAULT 0,
+        visit_count INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS stock_movements (
+        id TEXT PRIMARY KEY,
+        product_id TEXT NOT NULL,
+        type TEXT NOT NULL CHECK (type IN ('stock_in', 'stock_out')),
+        quantity INTEGER NOT NULL,
+        reason TEXT,
+        supplier_id TEXT,
+        reference_number TEXT,
+        unit_cost REAL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (product_id) REFERENCES products (id),
+        FOREIGN KEY (supplier_id) REFERENCES suppliers (id)
+      );
+
+      CREATE TABLE IF NOT EXISTS bulk_pricing (
+        id TEXT PRIMARY KEY,
+        product_id TEXT NOT NULL,
+        min_quantity INTEGER NOT NULL,
+        bulk_price REAL NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (product_id) REFERENCES products (id)
+      );
+
       -- shop_settings table removed (now using AsyncStorage)
       
       CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
       CREATE INDEX IF NOT EXISTS idx_expenses_category_id ON expenses(category_id);
       CREATE INDEX IF NOT EXISTS idx_sales_created_at ON sales(created_at);
       CREATE INDEX IF NOT EXISTS idx_sale_items_sale_id ON sale_items(sale_id);
+      CREATE INDEX IF NOT EXISTS idx_stock_movements_product_id ON stock_movements(product_id);
+      CREATE INDEX IF NOT EXISTS idx_stock_movements_supplier_id ON stock_movements(supplier_id);
+      CREATE INDEX IF NOT EXISTS idx_bulk_pricing_product_id ON bulk_pricing(product_id);
     `);
 
     // Add description column to categories if it doesn't exist
@@ -1274,6 +1312,15 @@ export class DatabaseService {
       }
     }
 
+    // If no fields to update, just update the timestamp
+    if (Object.keys(updateData).length === 0) {
+      await this.db.runAsync(
+        `UPDATE products SET updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        [id]
+      );
+      return;
+    }
+
     const fields = Object.keys(updateData)
       .map((key) => `${key} = ?`)
       .join(', ');
@@ -1334,6 +1381,11 @@ export class DatabaseService {
   }
 
   async updateCategory(id: string, category: Partial<Category>): Promise<void> {
+    // If no fields to update, return early
+    if (Object.keys(category).length === 0) {
+      return;
+    }
+
     const fields = Object.keys(category)
       .map((key) => `${key} = ?`)
       .join(', ');
@@ -1436,13 +1488,17 @@ export class DatabaseService {
   }
 
   async updateSupplier(id: string, supplier: Partial<Supplier>): Promise<void> {
-    const fields = Object.keys(supplier)
-      .filter((key) => key !== 'id' && key !== 'created_at')
-      .map((key) => `${key} = ?`)
-      .join(', ');
-    const values = Object.keys(supplier)
-      .filter((key) => key !== 'id' && key !== 'created_at')
-      .map((key) => (supplier as any)[key] || null);
+    const filteredKeys = Object.keys(supplier).filter(
+      (key) => key !== 'id' && key !== 'created_at'
+    );
+
+    // If no fields to update, return early
+    if (filteredKeys.length === 0) {
+      return;
+    }
+
+    const fields = filteredKeys.map((key) => `${key} = ?`).join(', ');
+    const values = filteredKeys.map((key) => (supplier as any)[key] || null);
 
     await this.db.runAsync(`UPDATE suppliers SET ${fields} WHERE id = ?`, [
       ...values,
@@ -2537,13 +2593,17 @@ export class DatabaseService {
       }
     }
 
-    const fields = Object.keys(bulkPricing)
-      .filter((key) => key !== 'id' && key !== 'created_at')
-      .map((key) => `${key} = ?`)
-      .join(', ');
-    const values = Object.keys(bulkPricing)
-      .filter((key) => key !== 'id' && key !== 'created_at')
-      .map((key) => (bulkPricing as any)[key]);
+    const filteredKeys = Object.keys(bulkPricing).filter(
+      (key) => key !== 'id' && key !== 'created_at'
+    );
+
+    // If no fields to update, return early
+    if (filteredKeys.length === 0) {
+      return;
+    }
+
+    const fields = filteredKeys.map((key) => `${key} = ?`).join(', ');
+    const values = filteredKeys.map((key) => (bulkPricing as any)[key]);
 
     await this.db.runAsync(`UPDATE bulk_pricing SET ${fields} WHERE id = ?`, [
       ...values,
@@ -2956,13 +3016,21 @@ export class DatabaseService {
   }
 
   async updateCustomer(id: string, customer: Partial<Customer>): Promise<void> {
-    const fields = Object.keys(customer)
-      .filter((key) => key !== 'id' && key !== 'created_at')
-      .map((key) => `${key} = ?`)
-      .join(', ');
-    const values = Object.keys(customer)
-      .filter((key) => key !== 'id' && key !== 'created_at')
-      .map((key) => (customer as any)[key]);
+    const filteredKeys = Object.keys(customer).filter(
+      (key) => key !== 'id' && key !== 'created_at'
+    );
+
+    // If no fields to update, just update the timestamp
+    if (filteredKeys.length === 0) {
+      await this.db.runAsync(
+        `UPDATE customers SET updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        [id]
+      );
+      return;
+    }
+
+    const fields = filteredKeys.map((key) => `${key} = ?`).join(', ');
+    const values = filteredKeys.map((key) => (customer as any)[key]);
 
     await this.db.runAsync(
       `UPDATE customers SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
