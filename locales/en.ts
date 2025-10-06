@@ -793,6 +793,8 @@ export const en = {
   more: {
     title: 'More',
     subtitle: 'Additional features and settings',
+    customers: 'Customer Management',
+    customersSubtitle: 'Manage customer information and history',
     shopSettings: 'Shop Settings',
     shopSettingsSubtitle: 'Configure your business information and branding',
     expenses: 'Expenses',

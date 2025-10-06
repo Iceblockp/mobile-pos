@@ -1,7 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Card } from '@/components/Card';
-import { User, Phone, Mail, MapPin, Edit, Trash2 } from 'lucide-react-native';
+import {
+  User,
+  Phone,
+  Mail,
+  MapPin,
+  Edit,
+  Trash2,
+  ChevronRight,
+} from 'lucide-react-native';
 import { Customer } from '@/services/database';
 import { useTranslation } from '@/context/LocalizationContext';
 
@@ -10,6 +19,8 @@ interface CustomerCardProps {
   onEdit?: (customer: Customer) => void;
   onDelete?: (customer: Customer) => void;
   showActions?: boolean;
+  onPress?: (customer: Customer) => void;
+  showNavigation?: boolean;
 }
 
 export const CustomerCard: React.FC<CustomerCardProps> = ({
@@ -17,8 +28,11 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
   onEdit,
   onDelete,
   showActions = true,
+  onPress,
+  showNavigation = false,
 }) => {
   const { t } = useTranslation();
+  const router = useRouter();
 
   const formatMMK = (amount: number) => {
     return (
@@ -29,13 +43,24 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
     );
   };
 
-  return (
-    <Card style={styles.customerCard}>
+  const handlePress = () => {
+    if (onPress) {
+      onPress(customer);
+    } else if (showNavigation) {
+      router.push(`/customer-detail?id=${customer.id}`);
+    }
+  };
+
+  const CardContent = (
+    <>
       <View style={styles.customerHeader}>
         <View style={styles.customerInfo}>
           <View style={styles.nameRow}>
             <User size={18} color="#059669" />
             <Text style={styles.customerName}>{customer.name}</Text>
+            {showNavigation && (
+              <ChevronRight size={16} color="#9CA3AF" style={styles.chevron} />
+            )}
           </View>
 
           {customer.phone && (
@@ -67,7 +92,10 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
             {onEdit && (
               <TouchableOpacity
                 style={styles.actionButton}
-                onPress={() => onEdit(customer)}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onEdit(customer);
+                }}
               >
                 <Edit size={18} color="#6B7280" />
               </TouchableOpacity>
@@ -75,7 +103,10 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
             {onDelete && (
               <TouchableOpacity
                 style={styles.actionButton}
-                onPress={() => onDelete(customer)}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onDelete(customer);
+                }}
               >
                 <Trash2 size={18} color="#EF4444" />
               </TouchableOpacity>
@@ -106,6 +137,18 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
           </View>
         )}
       </View>
+    </>
+  );
+
+  return (
+    <Card style={styles.customerCard}>
+      {onPress || showNavigation ? (
+        <TouchableOpacity onPress={handlePress} activeOpacity={0.7}>
+          {CardContent}
+        </TouchableOpacity>
+      ) : (
+        CardContent
+      )}
     </Card>
   );
 };
@@ -127,6 +170,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  chevron: {
+    marginLeft: 'auto',
   },
   customerName: {
     fontSize: 16,

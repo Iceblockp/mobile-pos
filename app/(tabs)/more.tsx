@@ -18,6 +18,7 @@ import {
   Settings,
   Store,
   Truck,
+  Users,
   ChevronRight,
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
@@ -35,6 +36,15 @@ export default function More() {
       color: '#059669',
       backgroundColor: '#ECFDF5',
       route: '/shop-settings',
+    },
+    {
+      id: 'customers',
+      title: t('more.customers'),
+      subtitle: t('more.customersSubtitle'),
+      icon: Users,
+      color: '#059669',
+      backgroundColor: '#ECFDF5',
+      route: '/customer-management',
     },
     {
       id: 'suppliers',

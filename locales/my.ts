@@ -843,6 +843,8 @@ export const my: TranslationKeys = {
   more: {
     title: 'နောက်ထပ်',
     subtitle: 'နောက်ထပ်လုပ်ဆောင်ချက်များနှင့် ဆက်တင်များ',
+    customers: 'ဖောက်သည်စီမံခန့်ခွဲမှု',
+    customersSubtitle: 'ဖောက်သည်အချက်အလက်နှင့် မှတ်တမ်းများစီမံခန့်ခွဲမည်',
     shopSettings: 'ဆိုင်ဆက်တင်များ',
     shopSettingsSubtitle: 'သင့်လုပ်ငန်းအချက်အလက်နှင့် အမှတ်တံဆိပ်ပြင်ဆင်မည်',
     expenses: 'ကုန်ကျစရိတ်များ',
