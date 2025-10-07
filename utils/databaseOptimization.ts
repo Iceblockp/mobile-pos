@@ -619,7 +619,7 @@ export class QueryCache {
   static invalidate(pattern?: string): void {
     if (pattern) {
       const regex = new RegExp(pattern);
-      for (const key of this.cache.keys()) {
+      for (const key of Array.from(this.cache.keys())) {
         if (regex.test(key)) {
           this.cache.delete(key);
         }

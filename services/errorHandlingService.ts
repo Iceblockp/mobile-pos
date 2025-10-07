@@ -72,6 +72,55 @@ export class ErrorHandlingService {
       userPrompt: 'Records with incorrect data types will be skipped.',
     });
 
+    // Edge case errors for selective export/import
+    this.errorStrategies.set('EMPTY_DATA_TYPE', {
+      errorType: 'EMPTY_DATA_TYPE',
+      strategy: 'user_intervention',
+      userPrompt:
+        'The selected data type has no records. An empty export file will be created.',
+    });
+
+    this.errorStrategies.set('MISSING_DATA_TYPE', {
+      errorType: 'MISSING_DATA_TYPE',
+      strategy: 'user_intervention',
+      userPrompt:
+        'The import file does not contain the selected data type. Please check available data types.',
+    });
+
+    this.errorStrategies.set('CORRUPTED_DATA_SECTION', {
+      errorType: 'CORRUPTED_DATA_SECTION',
+      strategy: 'skip',
+      userPrompt:
+        'Some data sections are corrupted and will be skipped. Valid data will still be processed.',
+    });
+
+    this.errorStrategies.set('MALFORMED_RECORDS', {
+      errorType: 'MALFORMED_RECORDS',
+      strategy: 'skip',
+      userPrompt:
+        'Some records are malformed and will be skipped. Valid records will still be processed.',
+    });
+
+    this.errorStrategies.set('CIRCULAR_REFERENCE', {
+      errorType: 'CIRCULAR_REFERENCE',
+      strategy: 'skip',
+      userPrompt:
+        'Records with circular references will be skipped to prevent processing errors.',
+    });
+
+    this.errorStrategies.set('INVALID_NUMERIC_DATA', {
+      errorType: 'INVALID_NUMERIC_DATA',
+      strategy: 'skip',
+      userPrompt:
+        'Records with invalid numeric data will be skipped or sanitized where possible.',
+    });
+
+    this.errorStrategies.set('DATA_TYPE_VALIDATION_FAILED', {
+      errorType: 'DATA_TYPE_VALIDATION_FAILED',
+      strategy: 'skip',
+      userPrompt: 'Records that fail data type validation will be skipped.',
+    });
+
     // Database errors
     this.errorStrategies.set('CONSTRAINT_VIOLATION', {
       errorType: 'CONSTRAINT_VIOLATION',
@@ -300,7 +349,7 @@ export class ErrorHandlingService {
 
     // Remove checkpoints created after this one
     const checkpointTime = new Date(checkpoint.timestamp).getTime();
-    for (const [id, cp] of this.checkpoints.entries()) {
+    for (const [id, cp] of Array.from(this.checkpoints.entries())) {
       if (new Date(cp.timestamp).getTime() > checkpointTime) {
         this.checkpoints.delete(id);
       }
@@ -337,6 +386,42 @@ export class ErrorHandlingService {
     }
     if (message.includes('type mismatch') || message.includes('invalid type')) {
       return 'DATA_TYPE_MISMATCH';
+    }
+
+    // Edge case errors for selective export/import
+    if (message.includes('no records') || message.includes('empty data type')) {
+      return 'EMPTY_DATA_TYPE';
+    }
+    if (message.includes('does not contain') && message.includes('data type')) {
+      return 'MISSING_DATA_TYPE';
+    }
+    if (
+      message.includes('corrupted data section') ||
+      message.includes('corrupted section')
+    ) {
+      return 'CORRUPTED_DATA_SECTION';
+    }
+    if (
+      message.includes('malformed records') ||
+      message.includes('invalid records')
+    ) {
+      return 'MALFORMED_RECORDS';
+    }
+    if (message.includes('circular reference')) {
+      return 'CIRCULAR_REFERENCE';
+    }
+    if (
+      message.includes('invalid numeric') ||
+      message.includes('nan') ||
+      message.includes('not a number')
+    ) {
+      return 'INVALID_NUMERIC_DATA';
+    }
+    if (
+      message.includes('validation failed') ||
+      message.includes('data type validation')
+    ) {
+      return 'DATA_TYPE_VALIDATION_FAILED';
     }
 
     // Database errors
@@ -403,5 +488,168 @@ export class ErrorHandlingService {
   // Get all checkpoints
   getCheckpoints(): Checkpoint[] {
     return Array.from(this.checkpoints.values());
+  }
+
+  // Handle empty data type export scenario
+  async handleEmptyDataTypeExport(dataType: string): Promise<ErrorResolution> {
+    console.log(`Handling empty data type export for: ${dataType}`);
+
+    return {
+      action: 'skip',
+      message: `No ${dataType} data found. Creating empty export file for consistency.`,
+    };
+  }
+
+  // Handle missing data type in import scenario
+  async handleMissingDataTypeImport(
+    selectedType: string,
+    availableTypes: string[]
+  ): Promise<ErrorResolution> {
+    console.log(
+      `Handling missing data type import. Selected: ${selectedType}, Available: ${availableTypes.join(
+        ', '
+      )}`
+    );
+
+    const availableTypesText =
+      availableTypes.length > 0
+        ? `Available data types: ${availableTypes.join(', ')}`
+        : 'No valid data types found in import file';
+
+    return {
+      action: 'abort',
+      message: `Import file does not contain ${selectedType} data. ${availableTypesText}`,
+    };
+  }
+
+  // Handle corrupted data sections
+  async handleCorruptedDataSections(
+    corruptedSections: string[],
+    validSections: string[]
+  ): Promise<ErrorResolution> {
+    console.log(
+      `Handling corrupted data sections: ${corruptedSections.join(', ')}`
+    );
+
+    if (validSections.length === 0) {
+      return {
+        action: 'abort',
+        message: `All data sections are corrupted: ${corruptedSections.join(
+          ', '
+        )}. Cannot proceed with import.`,
+      };
+    }
+
+    return {
+      action: 'skip',
+      message: `Some data sections are corrupted and will be skipped: ${corruptedSections.join(
+        ', '
+      )}. Valid sections will be processed: ${validSections.join(', ')}.`,
+    };
+  }
+
+  // Handle malformed records
+  async handleMalformedRecords(
+    sectionName: string,
+    totalRecords: number,
+    validRecords: number
+  ): Promise<ErrorResolution> {
+    const malformedCount = totalRecords - validRecords;
+    console.log(
+      `Handling malformed records in ${sectionName}: ${malformedCount}/${totalRecords} records are malformed`
+    );
+
+    if (validRecords === 0) {
+      return {
+        action: 'skip',
+        message: `All ${totalRecords} records in ${sectionName} section are malformed and will be skipped.`,
+      };
+    }
+
+    return {
+      action: 'skip',
+      message: `${malformedCount} malformed records in ${sectionName} section will be skipped. ${validRecords} valid records will be processed.`,
+    };
+  }
+
+  // Handle validation failures with detailed feedback
+  async handleValidationFailures(
+    validationErrors: string[]
+  ): Promise<ErrorResolution> {
+    console.log('Handling validation failures:', validationErrors);
+
+    const errorSummary =
+      validationErrors.length > 3
+        ? `${validationErrors.slice(0, 3).join('; ')}... and ${
+            validationErrors.length - 3
+          } more errors`
+        : validationErrors.join('; ');
+
+    return {
+      action: 'skip',
+      message: `Validation errors found: ${errorSummary}. Invalid data will be skipped.`,
+    };
+  }
+
+  // Generate comprehensive error report for edge cases
+  generateEdgeCaseErrorReport(
+    dataType: string,
+    availableTypes: string[],
+    corruptedSections: string[],
+    validationErrors: string[],
+    detailedCounts: Record<string, number>
+  ): string {
+    const report: string[] = [];
+
+    report.push(`=== Data Import/Export Error Report ===`);
+    report.push(`Selected Data Type: ${dataType}`);
+    report.push(`Timestamp: ${new Date().toISOString()}`);
+    report.push('');
+
+    if (availableTypes.length > 0) {
+      report.push('Available Data Types:');
+      availableTypes.forEach((type) => {
+        const count = detailedCounts[type] || 0;
+        report.push(`  - ${type}: ${count} records`);
+      });
+      report.push('');
+    } else {
+      report.push('No valid data types found in file.');
+      report.push('');
+    }
+
+    if (corruptedSections.length > 0) {
+      report.push('Corrupted Data Sections:');
+      corruptedSections.forEach((section) => {
+        report.push(`  - ${section}: Contains invalid or malformed data`);
+      });
+      report.push('');
+    }
+
+    if (validationErrors.length > 0) {
+      report.push('Validation Errors:');
+      validationErrors.forEach((error, index) => {
+        report.push(`  ${index + 1}. ${error}`);
+      });
+      report.push('');
+    }
+
+    report.push('Recommendations:');
+    if (availableTypes.length > 0 && !availableTypes.includes(dataType)) {
+      report.push(
+        `  - Select one of the available data types: ${availableTypes.join(
+          ', '
+        )}`
+      );
+    }
+    if (corruptedSections.length > 0) {
+      report.push('  - Fix corrupted data sections in the source file');
+      report.push('  - Or select a different data type that is not corrupted');
+    }
+    if (validationErrors.length > 0) {
+      report.push('  - Validate and fix data format issues in the source file');
+    }
+
+    return report.join('\n');
   }
 }

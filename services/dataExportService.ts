@@ -13,6 +13,8 @@ export interface ExportResult {
   recordCount: number;
   error?: string;
   metadata: ExportMetadata;
+  emptyExport?: boolean; // Indicates if no records were found for the data type
+  actualDataType?: string; // The actual data type that was exported
 }
 
 export interface ExportProgress {
@@ -30,6 +32,8 @@ export interface ExportMetadata {
   recordCount: number;
   fileSize: number;
   checksum?: string;
+  emptyExport?: boolean; // Indicates if this was an empty export
+  actualRecordCount?: number; // Actual count of records for the selected data type
 }
 
 export interface ExportData {
@@ -80,16 +84,569 @@ export class DataExportService {
     this.performanceOptimizer = new PerformanceOptimizationService();
   }
 
-  // Progress tracking
-  onProgress(callback: (progress: ExportProgress) => void): void {
-    this.progressCallback = callback;
+  // Enhanced data filtering logic to ensure exports contain only selected data type
+  private filterDataByType(allData: any, dataType: string): any {
+    const filteredData: any = {};
+
+    try {
+      // Validate input data structure
+      if (!allData || typeof allData !== 'object') {
+        throw new Error('Invalid data structure provided for filtering');
+      }
+
+      switch (dataType) {
+        case 'products':
+          filteredData.products = this.validateAndSanitizeArray(
+            allData.products,
+            'products'
+          );
+          filteredData.categories = this.validateAndSanitizeArray(
+            allData.categories,
+            'categories'
+          );
+          filteredData.suppliers = this.validateAndSanitizeArray(
+            allData.suppliers,
+            'suppliers'
+          );
+          filteredData.bulkPricing = this.validateAndSanitizeArray(
+            allData.bulkPricing,
+            'bulkPricing'
+          );
+          break;
+        case 'sales':
+          filteredData.sales = this.validateAndSanitizeArray(
+            allData.sales,
+            'sales'
+          );
+          filteredData.saleItems = this.validateAndSanitizeArray(
+            allData.saleItems,
+            'saleItems'
+          );
+          break;
+        case 'customers':
+          filteredData.customers = this.validateAndSanitizeArray(
+            allData.customers,
+            'customers'
+          );
+          break;
+        case 'expenses':
+          filteredData.expenses = this.validateAndSanitizeArray(
+            allData.expenses,
+            'expenses'
+          );
+          filteredData.expenseCategories = this.validateAndSanitizeArray(
+            allData.expenseCategories,
+            'expenseCategories'
+          );
+          break;
+        case 'stock_movements':
+          filteredData.stockMovements = this.validateAndSanitizeArray(
+            allData.stockMovements,
+            'stockMovements'
+          );
+          break;
+        case 'bulk_pricing':
+          filteredData.bulkPricing = this.validateAndSanitizeArray(
+            allData.bulkPricing,
+            'bulkPricing'
+          );
+          break;
+        case 'complete':
+          // Validate all data sections for complete backup
+          const validatedData: any = {};
+          Object.keys(allData).forEach((key) => {
+            validatedData[key] = this.validateAndSanitizeArray(
+              allData[key],
+              key
+            );
+          });
+          return validatedData;
+        default:
+          throw new Error(`Unsupported data type: ${dataType}`);
+      }
+
+      return filteredData;
+    } catch (error) {
+      console.error('Error filtering data by type:', error);
+      throw new Error(
+        `Failed to filter data for type '${dataType}': ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`
+      );
+    }
   }
 
-  private updateProgress(stage: string, current: number, total: number): void {
+  // Validate and sanitize array data to handle corrupted or malformed data
+  private validateAndSanitizeArray(data: any, dataTypeName: string): any[] {
+    try {
+      // Handle null or undefined
+      if (data === null || data === undefined) {
+        return [];
+      }
+
+      // Handle non-array data
+      if (!Array.isArray(data)) {
+        console.warn(
+          `Expected array for ${dataTypeName}, got ${typeof data}. Converting to empty array.`
+        );
+        return [];
+      }
+
+      // Filter out corrupted records and validate each item
+      const sanitizedData = data.filter((item, index) => {
+        try {
+          // Basic validation - must be an object
+          if (!item || typeof item !== 'object') {
+            console.warn(
+              `Skipping invalid ${dataTypeName} record at index ${index}: not an object`
+            );
+            return false;
+          }
+
+          // Check for required fields based on data type
+          if (!this.validateRequiredFields(item, dataTypeName)) {
+            console.warn(
+              `Skipping invalid ${dataTypeName} record at index ${index}: missing required fields`
+            );
+            return false;
+          }
+
+          // Sanitize the item to remove potentially problematic data
+          return this.sanitizeRecord(item, dataTypeName);
+        } catch (error) {
+          console.warn(
+            `Skipping corrupted ${dataTypeName} record at index ${index}:`,
+            error
+          );
+          return false;
+        }
+      });
+
+      console.log(
+        `Validated ${dataTypeName}: ${sanitizedData.length}/${data.length} records passed validation`
+      );
+      return sanitizedData;
+    } catch (error) {
+      console.error(`Error validating ${dataTypeName} data:`, error);
+      return [];
+    }
+  }
+
+  // Validate required fields for different data types
+  private validateRequiredFields(item: any, dataTypeName: string): boolean {
+    try {
+      switch (dataTypeName) {
+        case 'products':
+          return !!(
+            item.name &&
+            typeof item.price === 'number' &&
+            typeof item.cost === 'number'
+          );
+        case 'sales':
+          return !!(
+            item.total &&
+            typeof item.total === 'number' &&
+            item.payment_method
+          );
+        case 'customers':
+          return !!item.name;
+        case 'expenses':
+          return !!(
+            item.amount &&
+            typeof item.amount === 'number' &&
+            item.description
+          );
+        case 'stockMovements':
+          return !!(
+            item.product_id &&
+            item.movement_type &&
+            typeof item.quantity === 'number'
+          );
+        case 'bulkPricing':
+          return !!(
+            item.product_id &&
+            typeof item.min_quantity === 'number' &&
+            typeof item.bulk_price === 'number'
+          );
+        case 'categories':
+          return !!item.name;
+        case 'suppliers':
+          return !!item.name;
+        case 'expenseCategories':
+          return !!item.name;
+        case 'saleItems':
+          return !!(
+            item.product_id &&
+            typeof item.quantity === 'number' &&
+            typeof item.price === 'number'
+          );
+        default:
+          return true; // For unknown types, assume valid
+      }
+    } catch (error) {
+      console.error(
+        `Error validating required fields for ${dataTypeName}:`,
+        error
+      );
+      return false;
+    }
+  }
+
+  // Sanitize individual records to remove problematic data
+  private sanitizeRecord(item: any, dataTypeName: string): any {
+    try {
+      const sanitized = { ...item };
+
+      // Remove circular references and functions
+      Object.keys(sanitized).forEach((key) => {
+        const value = sanitized[key];
+        if (typeof value === 'function') {
+          delete sanitized[key];
+        } else if (value && typeof value === 'object') {
+          try {
+            JSON.stringify(value); // Test for circular references
+          } catch (error) {
+            console.warn(
+              `Removing circular reference in ${dataTypeName}.${key}`
+            );
+            delete sanitized[key];
+          }
+        }
+      });
+
+      // Sanitize numeric fields
+      if (dataTypeName === 'products') {
+        if (sanitized.price && typeof sanitized.price !== 'number') {
+          sanitized.price = parseFloat(sanitized.price) || 0;
+        }
+        if (sanitized.cost && typeof sanitized.cost !== 'number') {
+          sanitized.cost = parseFloat(sanitized.cost) || 0;
+        }
+        if (sanitized.quantity && typeof sanitized.quantity !== 'number') {
+          sanitized.quantity = parseInt(sanitized.quantity) || 0;
+        }
+      }
+
+      // Sanitize string fields
+      Object.keys(sanitized).forEach((key) => {
+        if (typeof sanitized[key] === 'string') {
+          // Remove null bytes and control characters
+          sanitized[key] = sanitized[key].replace(/[\x00-\x1F\x7F]/g, '');
+        }
+      });
+
+      return sanitized;
+    } catch (error) {
+      console.error(`Error sanitizing ${dataTypeName} record:`, error);
+      return item; // Return original if sanitization fails
+    }
+  }
+
+  // Calculate actual record count for the selected data type
+  private calculateActualRecordCount(data: any, dataType: string): number {
+    switch (dataType) {
+      case 'products':
+        return (
+          (data.products?.length || 0) +
+          (data.categories?.length || 0) +
+          (data.suppliers?.length || 0) +
+          (data.bulkPricing?.length || 0)
+        );
+      case 'sales':
+        const saleItemsCount =
+          data.sales?.reduce(
+            (sum: number, sale: any) => sum + (sale.items?.length || 0),
+            0
+          ) || 0;
+        return (data.sales?.length || 0) + saleItemsCount;
+      case 'customers':
+        return data.customers?.length || 0;
+      case 'expenses':
+        return (
+          (data.expenses?.length || 0) + (data.expenseCategories?.length || 0)
+        );
+      case 'stock_movements':
+        return data.stockMovements?.length || 0;
+      case 'bulk_pricing':
+        return data.bulkPricing?.length || 0;
+      case 'complete':
+        let totalCount = 0;
+        for (const value of Object.values(data)) {
+          if (Array.isArray(value)) {
+            totalCount += value.length;
+          }
+        }
+        return totalCount;
+      default:
+        return 0;
+    }
+  }
+
+  // Check if the export is empty for the selected data type
+  private isEmptyExport(data: any, dataType: string): boolean {
+    return this.calculateActualRecordCount(data, dataType) === 0;
+  }
+
+  // Create a standardized export result with proper feedback
+  private createExportResult(
+    success: boolean,
+    dataType: string,
+    actualRecordCount: number,
+    fileUri?: string,
+    filename?: string,
+    error?: string
+  ): ExportResult {
+    const isEmpty = actualRecordCount === 0;
+
+    return {
+      success,
+      fileUri,
+      filename,
+      recordCount: actualRecordCount,
+      error,
+      emptyExport: isEmpty,
+      actualDataType: dataType,
+      metadata: {
+        exportDate: new Date().toISOString(),
+        dataType,
+        version: '2.0',
+        recordCount: actualRecordCount,
+        fileSize: 0, // Will be updated after file creation
+        emptyExport: isEmpty,
+        actualRecordCount,
+      },
+    };
+  }
+
+  // Handle empty data type exports with proper user notification
+  private async handleEmptyExport(dataType: string): Promise<ExportResult> {
+    try {
+      console.log(`Handling empty export for data type: ${dataType}`);
+
+      // Create empty export data structure
+      const emptyExportData: ExportData = {
+        version: '2.0',
+        exportDate: new Date().toISOString(),
+        dataType: dataType as any,
+        metadata: {
+          exportDate: new Date().toISOString(),
+          dataType,
+          version: '2.0',
+          recordCount: 0,
+          fileSize: 0,
+          emptyExport: true,
+          actualRecordCount: 0,
+        },
+        data: this.createEmptyDataStructure(dataType),
+        relationships: {
+          productCategories: {},
+          productSuppliers: {},
+          saleCustomers: {},
+        },
+        integrity: {
+          checksum: '',
+          recordCounts: this.createEmptyRecordCounts(dataType),
+          validationRules: this.getValidationRulesForDataType(dataType),
+        },
+      };
+
+      // Generate empty export file
+      const filename = `${dataType}_export_${
+        new Date().toISOString().split('T')[0]
+      }_empty.json`;
+      const fileResult = await this.generateExportFile(
+        emptyExportData,
+        filename
+      );
+
+      return this.createExportResult(
+        true,
+        dataType,
+        0,
+        fileResult.fileUri,
+        fileResult.filename
+      );
+    } catch (error) {
+      console.error('Error handling empty export:', error);
+      return this.createExportResult(
+        false,
+        dataType,
+        0,
+        undefined,
+        undefined,
+        `Failed to create empty export: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`
+      );
+    }
+  }
+
+  // Create empty data structure for a specific data type
+  private createEmptyDataStructure(dataType: string): any {
+    const emptyData: any = {};
+
+    switch (dataType) {
+      case 'products':
+        emptyData.products = [];
+        emptyData.categories = [];
+        emptyData.suppliers = [];
+        emptyData.bulkPricing = [];
+        break;
+      case 'sales':
+        emptyData.sales = [];
+        emptyData.saleItems = [];
+        break;
+      case 'customers':
+        emptyData.customers = [];
+        break;
+      case 'expenses':
+        emptyData.expenses = [];
+        emptyData.expenseCategories = [];
+        break;
+      case 'stock_movements':
+        emptyData.stockMovements = [];
+        break;
+      case 'bulk_pricing':
+        emptyData.bulkPricing = [];
+        break;
+      case 'complete':
+        emptyData.products = [];
+        emptyData.categories = [];
+        emptyData.suppliers = [];
+        emptyData.sales = [];
+        emptyData.saleItems = [];
+        emptyData.customers = [];
+        emptyData.expenses = [];
+        emptyData.expenseCategories = [];
+        emptyData.stockMovements = [];
+        emptyData.bulkPricing = [];
+        break;
+    }
+
+    return emptyData;
+  }
+
+  // Create empty record counts for a specific data type
+  private createEmptyRecordCounts(dataType: string): Record<string, number> {
+    const counts: Record<string, number> = {};
+
+    switch (dataType) {
+      case 'products':
+        counts.products = 0;
+        counts.categories = 0;
+        counts.suppliers = 0;
+        counts.bulkPricing = 0;
+        break;
+      case 'sales':
+        counts.sales = 0;
+        counts.saleItems = 0;
+        break;
+      case 'customers':
+        counts.customers = 0;
+        break;
+      case 'expenses':
+        counts.expenses = 0;
+        counts.expenseCategories = 0;
+        break;
+      case 'stock_movements':
+        counts.stockMovements = 0;
+        break;
+      case 'bulk_pricing':
+        counts.bulkPricing = 0;
+        break;
+      case 'complete':
+        counts.products = 0;
+        counts.categories = 0;
+        counts.suppliers = 0;
+        counts.sales = 0;
+        counts.saleItems = 0;
+        counts.customers = 0;
+        counts.expenses = 0;
+        counts.expenseCategories = 0;
+        counts.stockMovements = 0;
+        counts.bulkPricing = 0;
+        break;
+    }
+
+    return counts;
+  }
+
+  // Get validation rules for a specific data type
+  private getValidationRulesForDataType(dataType: string): string[] {
+    switch (dataType) {
+      case 'products':
+        return ['required_fields', 'positive_prices', 'valid_categories'];
+      case 'sales':
+        return ['positive_amounts', 'valid_dates', 'valid_payment_methods'];
+      case 'customers':
+        return ['valid_contact_info', 'unique_identifiers'];
+      case 'expenses':
+        return ['positive_amounts', 'valid_dates', 'valid_categories'];
+      case 'stock_movements':
+        return [
+          'valid_movement_types',
+          'positive_quantities',
+          'valid_products',
+        ];
+      case 'bulk_pricing':
+        return ['positive_quantities', 'positive_prices', 'valid_products'];
+      case 'complete':
+        return [
+          'required_fields',
+          'positive_amounts',
+          'valid_dates',
+          'valid_references',
+        ];
+      default:
+        return ['basic_validation'];
+    }
+  }
+
+  // Generate user-friendly feedback message for export results
+  generateExportFeedbackMessage(result: ExportResult): string {
+    if (!result.success) {
+      return `Export failed: ${result.error || 'Unknown error'}`;
+    }
+
+    const dataTypeName = this.getDataTypeDisplayName(
+      result.actualDataType || 'unknown'
+    );
+
+    if (result.emptyExport) {
+      return `${dataTypeName} export completed, but no data was found. An empty export file has been created for consistency.`;
+    }
+
+    const recordText = result.recordCount === 1 ? 'record' : 'records';
+    return `${dataTypeName} export completed successfully! ${result.recordCount} ${recordText} exported.`;
+  }
+
+  // Get user-friendly display name for data types
+  private getDataTypeDisplayName(dataType: string): string {
+    const displayNames: Record<string, string> = {
+      products: 'Products & Inventory',
+      sales: 'Sales Data',
+      customers: 'Customer Data',
+      expenses: 'Expenses',
+      stock_movements: 'Stock Movements',
+      bulk_pricing: 'Bulk Pricing',
+      complete: 'Complete Backup',
+    };
+
+    return displayNames[dataType] || dataType;
+  }
+
+  // Enhanced progress reporting that reflects actual data being processed
+  private updateProgressWithDataType(
+    stage: string,
+    current: number,
+    total: number,
+    dataType?: string
+  ): void {
     if (this.progressCallback) {
       const percentage = total > 0 ? (current / total) * 100 : 0;
+      const enhancedStage = dataType ? `${stage} (${dataType})` : stage;
       this.progressCallback({
-        stage,
+        stage: enhancedStage,
         current,
         total,
         percentage,
@@ -97,19 +654,44 @@ export class DataExportService {
     }
   }
 
+  // Progress tracking
+  onProgress(callback: (progress: ExportProgress) => void): void {
+    this.progressCallback = callback;
+  }
+
   // Export products with categories, suppliers, and bulk pricing
   async exportProducts(): Promise<ExportResult> {
     try {
-      this.updateProgress('Fetching products data...', 0, 4);
+      this.updateProgressWithDataType(
+        'Fetching products data...',
+        0,
+        4,
+        'products'
+      );
 
       const products = await this.db.getProducts();
-      this.updateProgress('Fetching categories...', 1, 4);
+      this.updateProgressWithDataType(
+        'Fetching categories...',
+        1,
+        4,
+        'products'
+      );
 
       const categories = await this.db.getCategories();
-      this.updateProgress('Fetching suppliers...', 2, 4);
+      this.updateProgressWithDataType(
+        'Fetching suppliers...',
+        2,
+        4,
+        'products'
+      );
 
       const suppliers = await this.db.getSuppliers();
-      this.updateProgress('Fetching bulk pricing...', 3, 4);
+      this.updateProgressWithDataType(
+        'Fetching bulk pricing...',
+        3,
+        4,
+        'products'
+      );
 
       // Get bulk pricing for all products
       const bulkPricingData = await Promise.all(
@@ -133,30 +715,45 @@ export class DataExportService {
         })
       );
 
+      // Filter bulk pricing to only include products with tiers
+      const filteredBulkPricing = bulkPricingData.filter(
+        (item) => item.bulkTiers.length > 0
+      );
+
+      // Apply data filtering to ensure only products-related data is included
+      const allData = {
+        products: products.map((product) => ({
+          ...product,
+          created_at: undefined,
+          updated_at: undefined,
+        })),
+        categories,
+        suppliers,
+        bulkPricing: filteredBulkPricing,
+      };
+
+      const filteredData = this.filterDataByType(allData, 'products');
+      const actualRecordCount = this.calculateActualRecordCount(
+        filteredData,
+        'products'
+      );
+
+      // Create initial export result
+      const initialResult = this.createExportResult(
+        true,
+        'products',
+        actualRecordCount
+      );
+
       const exportData: ExportData = {
         version: '2.0',
         exportDate: new Date().toISOString(),
         dataType: 'products',
         metadata: {
-          exportDate: new Date().toISOString(),
-          dataType: 'products',
-          version: '2.0',
-          recordCount: products.length,
+          ...initialResult.metadata,
           fileSize: 0, // Will be calculated after file creation
         },
-        data: {
-          products: products.map((product) => ({
-            ...product,
-            // Keep UUID IDs for referential integrity
-            created_at: undefined,
-            updated_at: undefined,
-          })),
-          categories,
-          suppliers,
-          bulkPricing: bulkPricingData.filter(
-            (item) => item.bulkTiers.length > 0
-          ),
-        },
+        data: filteredData,
         relationships: this.buildRelationshipMappings(
           products,
           categories,
@@ -166,12 +763,10 @@ export class DataExportService {
         integrity: {
           checksum: '',
           recordCounts: {
-            products: products.length,
-            categories: categories.length,
-            suppliers: suppliers.length,
-            bulkPricing: bulkPricingData.filter(
-              (item) => item.bulkTiers.length > 0
-            ).length,
+            products: filteredData.products?.length || 0,
+            categories: filteredData.categories?.length || 0,
+            suppliers: filteredData.suppliers?.length || 0,
+            bulkPricing: filteredData.bulkPricing?.length || 0,
           },
           validationRules: [
             'required_fields',
@@ -181,41 +776,49 @@ export class DataExportService {
         },
       };
 
-      this.updateProgress('Generating export file...', 4, 4);
+      this.updateProgressWithDataType(
+        'Generating export file...',
+        4,
+        4,
+        'products'
+      );
 
       const filename = `products_export_${
         new Date().toISOString().split('T')[0]
       }.json`;
-      const result = await this.generateExportFile(exportData, filename);
+      const fileResult = await this.generateExportFile(exportData, filename);
 
-      return {
-        success: true,
-        fileUri: result.fileUri,
-        filename: result.filename,
-        recordCount: products.length,
-        metadata: exportData.metadata,
-      };
+      // Update the result with file information
+      const finalResult = this.createExportResult(
+        true,
+        'products',
+        actualRecordCount,
+        fileResult.fileUri,
+        fileResult.filename
+      );
+
+      // Update metadata with actual file size
+      finalResult.metadata.fileSize = exportData.metadata.fileSize;
+      finalResult.metadata.checksum = exportData.integrity.checksum;
+
+      return finalResult;
     } catch (error) {
       console.error('Products export error:', error);
-      return {
-        success: false,
-        recordCount: 0,
-        error: error instanceof Error ? error.message : 'Unknown export error',
-        metadata: {
-          exportDate: new Date().toISOString(),
-          dataType: 'products',
-          version: '2.0',
-          recordCount: 0,
-          fileSize: 0,
-        },
-      };
+      return this.createExportResult(
+        false,
+        'products',
+        0,
+        undefined,
+        undefined,
+        error instanceof Error ? error.message : 'Unknown export error'
+      );
     }
   }
 
   // Export sales with items and customer information
   async exportSales(): Promise<ExportResult> {
     try {
-      this.updateProgress('Fetching sales data...', 0, 3);
+      this.updateProgressWithDataType('Fetching sales data...', 0, 3, 'sales');
 
       // Get sales from a very early date to get all records
       const startDate = new Date('2020-01-01');
@@ -226,7 +829,7 @@ export class DataExportService {
         10000
       );
 
-      this.updateProgress('Fetching sale items...', 1, 3);
+      this.updateProgressWithDataType('Fetching sale items...', 1, 3, 'sales');
 
       // Get sale items for each sale
       const salesWithItems = await Promise.all(
@@ -239,22 +842,41 @@ export class DataExportService {
         })
       );
 
-      this.updateProgress('Preparing export data...', 2, 3);
+      this.updateProgressWithDataType(
+        'Preparing export data...',
+        2,
+        3,
+        'sales'
+      );
+
+      // Apply data filtering to ensure only sales-related data is included
+      const allData = {
+        sales: salesWithItems,
+        saleItems: salesWithItems.flatMap((sale) => sale.items || []),
+      };
+
+      const filteredData = this.filterDataByType(allData, 'sales');
+      const actualRecordCount = this.calculateActualRecordCount(
+        filteredData,
+        'sales'
+      );
+
+      // Create initial export result
+      const initialResult = this.createExportResult(
+        true,
+        'sales',
+        actualRecordCount
+      );
 
       const exportData: ExportData = {
         version: '2.0',
         exportDate: new Date().toISOString(),
         dataType: 'sales',
         metadata: {
-          exportDate: new Date().toISOString(),
-          dataType: 'sales',
-          version: '2.0',
-          recordCount: sales.length,
-          fileSize: 0,
+          ...initialResult.metadata,
+          fileSize: 0, // Will be calculated after file creation
         },
-        data: {
-          sales: salesWithItems,
-        },
+        data: filteredData,
         relationships: {
           productCategories: {},
           productSuppliers: {},
@@ -263,11 +885,12 @@ export class DataExportService {
         integrity: {
           checksum: '',
           recordCounts: {
-            sales: sales.length,
-            saleItems: salesWithItems.reduce(
-              (sum, sale) => sum + sale.items.length,
-              0
-            ),
+            sales: filteredData.sales?.length || 0,
+            saleItems:
+              filteredData.sales?.reduce(
+                (sum: number, sale: any) => sum + (sale.items?.length || 0),
+                0
+              ) || 0,
           },
           validationRules: [
             'positive_amounts',
@@ -277,45 +900,63 @@ export class DataExportService {
         },
       };
 
-      this.updateProgress('Generating export file...', 3, 3);
+      this.updateProgressWithDataType(
+        'Generating export file...',
+        3,
+        3,
+        'sales'
+      );
 
       const filename = `sales_export_${
         new Date().toISOString().split('T')[0]
       }.json`;
-      const result = await this.generateExportFile(exportData, filename);
+      const fileResult = await this.generateExportFile(exportData, filename);
 
-      return {
-        success: true,
-        fileUri: result.fileUri,
-        filename: result.filename,
-        recordCount: sales.length,
-        metadata: exportData.metadata,
-      };
+      // Update the result with file information
+      const finalResult = this.createExportResult(
+        true,
+        'sales',
+        actualRecordCount,
+        fileResult.fileUri,
+        fileResult.filename
+      );
+
+      // Update metadata with actual file size
+      finalResult.metadata.fileSize = exportData.metadata.fileSize;
+      finalResult.metadata.checksum = exportData.integrity.checksum;
+
+      return finalResult;
     } catch (error) {
       console.error('Sales export error:', error);
-      return {
-        success: false,
-        recordCount: 0,
-        error: error instanceof Error ? error.message : 'Unknown export error',
-        metadata: {
-          exportDate: new Date().toISOString(),
-          dataType: 'sales',
-          version: '2.0',
-          recordCount: 0,
-          fileSize: 0,
-        },
-      };
+      return this.createExportResult(
+        false,
+        'sales',
+        0,
+        undefined,
+        undefined,
+        error instanceof Error ? error.message : 'Unknown export error'
+      );
     }
   }
 
   // Export customers with purchase history and statistics
   async exportCustomers(): Promise<ExportResult> {
     try {
-      this.updateProgress('Fetching customers...', 0, 2);
+      this.updateProgressWithDataType(
+        'Fetching customers...',
+        0,
+        2,
+        'customers'
+      );
 
       const customers = await this.db.getCustomers();
 
-      this.updateProgress('Fetching customer statistics...', 1, 2);
+      this.updateProgressWithDataType(
+        'Fetching customer statistics...',
+        1,
+        2,
+        'customers'
+      );
 
       // Get purchase history and statistics for each customer
       const customersWithHistory = await Promise.all(
@@ -345,20 +986,33 @@ export class DataExportService {
         })
       );
 
+      // Apply data filtering to ensure only customer-related data is included
+      const allData = {
+        customers: customersWithHistory,
+      };
+
+      const filteredData = this.filterDataByType(allData, 'customers');
+      const actualRecordCount = this.calculateActualRecordCount(
+        filteredData,
+        'customers'
+      );
+
+      // Create initial export result
+      const initialResult = this.createExportResult(
+        true,
+        'customers',
+        actualRecordCount
+      );
+
       const exportData: ExportData = {
         version: '2.0',
         exportDate: new Date().toISOString(),
         dataType: 'customers',
         metadata: {
-          exportDate: new Date().toISOString(),
-          dataType: 'customers',
-          version: '2.0',
-          recordCount: customers.length,
-          fileSize: 0,
+          ...initialResult.metadata,
+          fileSize: 0, // Will be calculated after file creation
         },
-        data: {
-          customers: customersWithHistory,
-        },
+        data: filteredData,
         relationships: {
           productCategories: {},
           productSuppliers: {},
@@ -367,47 +1021,55 @@ export class DataExportService {
         integrity: {
           checksum: '',
           recordCounts: {
-            customers: customers.length,
+            customers: filteredData.customers?.length || 0,
           },
           validationRules: ['valid_contact_info', 'unique_identifiers'],
         },
       };
 
-      this.updateProgress('Generating export file...', 2, 2);
+      this.updateProgressWithDataType(
+        'Generating export file...',
+        2,
+        2,
+        'customers'
+      );
 
       const filename = `customers_export_${
         new Date().toISOString().split('T')[0]
       }.json`;
-      const result = await this.generateExportFile(exportData, filename);
+      const fileResult = await this.generateExportFile(exportData, filename);
 
-      return {
-        success: true,
-        fileUri: result.fileUri,
-        filename: result.filename,
-        recordCount: customers.length,
-        metadata: exportData.metadata,
-      };
+      // Update the result with file information
+      const finalResult = this.createExportResult(
+        true,
+        'customers',
+        actualRecordCount,
+        fileResult.fileUri,
+        fileResult.filename
+      );
+
+      // Update metadata with actual file size
+      finalResult.metadata.fileSize = exportData.metadata.fileSize;
+      finalResult.metadata.checksum = exportData.integrity.checksum;
+
+      return finalResult;
     } catch (error) {
       console.error('Customers export error:', error);
-      return {
-        success: false,
-        recordCount: 0,
-        error: error instanceof Error ? error.message : 'Unknown export error',
-        metadata: {
-          exportDate: new Date().toISOString(),
-          dataType: 'customers',
-          version: '2.0',
-          recordCount: 0,
-          fileSize: 0,
-        },
-      };
+      return this.createExportResult(
+        false,
+        'customers',
+        0,
+        undefined,
+        undefined,
+        error instanceof Error ? error.message : 'Unknown export error'
+      );
     }
   }
 
   // Export expenses with categories
   async exportExpenses(): Promise<ExportResult> {
     try {
-      this.updateProgress('Fetching expenses...', 0, 2);
+      this.updateProgressWithDataType('Fetching expenses...', 0, 2, 'expenses');
 
       const startDate = new Date('2020-01-01');
       const endDate = new Date();
@@ -417,25 +1079,43 @@ export class DataExportService {
         10000
       );
 
-      this.updateProgress('Fetching expense categories...', 1, 2);
+      this.updateProgressWithDataType(
+        'Fetching expense categories...',
+        1,
+        2,
+        'expenses'
+      );
 
       const expenseCategories = await this.db.getExpenseCategories();
+
+      // Apply data filtering to ensure only expense-related data is included
+      const allData = {
+        expenses,
+        expenseCategories,
+      };
+
+      const filteredData = this.filterDataByType(allData, 'expenses');
+      const actualRecordCount = this.calculateActualRecordCount(
+        filteredData,
+        'expenses'
+      );
+
+      // Create initial export result
+      const initialResult = this.createExportResult(
+        true,
+        'expenses',
+        actualRecordCount
+      );
 
       const exportData: ExportData = {
         version: '2.0',
         exportDate: new Date().toISOString(),
         dataType: 'expenses',
         metadata: {
-          exportDate: new Date().toISOString(),
-          dataType: 'expenses',
-          version: '2.0',
-          recordCount: expenses.length,
-          fileSize: 0,
+          ...initialResult.metadata,
+          fileSize: 0, // Will be calculated after file creation
         },
-        data: {
-          expenses,
-          expenseCategories,
-        },
+        data: filteredData,
         relationships: {
           productCategories: {},
           productSuppliers: {},
@@ -444,8 +1124,8 @@ export class DataExportService {
         integrity: {
           checksum: '',
           recordCounts: {
-            expenses: expenses.length,
-            expenseCategories: expenseCategories.length,
+            expenses: filteredData.expenses?.length || 0,
+            expenseCategories: filteredData.expenseCategories?.length || 0,
           },
           validationRules: [
             'positive_amounts',
@@ -455,58 +1135,84 @@ export class DataExportService {
         },
       };
 
-      this.updateProgress('Generating export file...', 2, 2);
+      this.updateProgressWithDataType(
+        'Generating export file...',
+        2,
+        2,
+        'expenses'
+      );
 
       const filename = `expenses_export_${
         new Date().toISOString().split('T')[0]
       }.json`;
-      const result = await this.generateExportFile(exportData, filename);
+      const fileResult = await this.generateExportFile(exportData, filename);
 
-      return {
-        success: true,
-        fileUri: result.fileUri,
-        filename: result.filename,
-        recordCount: expenses.length,
-        metadata: exportData.metadata,
-      };
+      // Update the result with file information
+      const finalResult = this.createExportResult(
+        true,
+        'expenses',
+        actualRecordCount,
+        fileResult.fileUri,
+        fileResult.filename
+      );
+
+      // Update metadata with actual file size
+      finalResult.metadata.fileSize = exportData.metadata.fileSize;
+      finalResult.metadata.checksum = exportData.integrity.checksum;
+
+      return finalResult;
     } catch (error) {
       console.error('Expenses export error:', error);
-      return {
-        success: false,
-        recordCount: 0,
-        error: error instanceof Error ? error.message : 'Unknown export error',
-        metadata: {
-          exportDate: new Date().toISOString(),
-          dataType: 'expenses',
-          version: '2.0',
-          recordCount: 0,
-          fileSize: 0,
-        },
-      };
+      return this.createExportResult(
+        false,
+        'expenses',
+        0,
+        undefined,
+        undefined,
+        error instanceof Error ? error.message : 'Unknown export error'
+      );
     }
   }
 
   // Export stock movements
   async exportStockMovements(): Promise<ExportResult> {
     try {
-      this.updateProgress('Fetching stock movements...', 0, 1);
+      this.updateProgressWithDataType(
+        'Fetching stock movements...',
+        0,
+        1,
+        'stock movements'
+      );
 
       const stockMovements = await this.db.getStockMovements({}, 1, 10000);
+
+      // Apply data filtering to ensure only stock movement data is included
+      const allData = {
+        stockMovements,
+      };
+
+      const filteredData = this.filterDataByType(allData, 'stock_movements');
+      const actualRecordCount = this.calculateActualRecordCount(
+        filteredData,
+        'stock_movements'
+      );
+
+      // Create initial export result
+      const initialResult = this.createExportResult(
+        true,
+        'stock_movements',
+        actualRecordCount
+      );
 
       const exportData: ExportData = {
         version: '2.0',
         exportDate: new Date().toISOString(),
         dataType: 'stock_movements',
         metadata: {
-          exportDate: new Date().toISOString(),
-          dataType: 'stock_movements',
-          version: '2.0',
-          recordCount: stockMovements.length,
-          fileSize: 0,
+          ...initialResult.metadata,
+          fileSize: 0, // Will be calculated after file creation
         },
-        data: {
-          stockMovements,
-        },
+        data: filteredData,
         relationships: {
           productCategories: {},
           productSuppliers: {},
@@ -515,7 +1221,7 @@ export class DataExportService {
         integrity: {
           checksum: '',
           recordCounts: {
-            stockMovements: stockMovements.length,
+            stockMovements: filteredData.stockMovements?.length || 0,
           },
           validationRules: [
             'valid_movement_types',
@@ -525,45 +1231,63 @@ export class DataExportService {
         },
       };
 
-      this.updateProgress('Generating export file...', 1, 1);
+      this.updateProgressWithDataType(
+        'Generating export file...',
+        1,
+        1,
+        'stock movements'
+      );
 
       const filename = `stock_movements_export_${
         new Date().toISOString().split('T')[0]
       }.json`;
-      const result = await this.generateExportFile(exportData, filename);
+      const fileResult = await this.generateExportFile(exportData, filename);
 
-      return {
-        success: true,
-        fileUri: result.fileUri,
-        filename: result.filename,
-        recordCount: stockMovements.length,
-        metadata: exportData.metadata,
-      };
+      // Update the result with file information
+      const finalResult = this.createExportResult(
+        true,
+        'stock_movements',
+        actualRecordCount,
+        fileResult.fileUri,
+        fileResult.filename
+      );
+
+      // Update metadata with actual file size
+      finalResult.metadata.fileSize = exportData.metadata.fileSize;
+      finalResult.metadata.checksum = exportData.integrity.checksum;
+
+      return finalResult;
     } catch (error) {
       console.error('Stock movements export error:', error);
-      return {
-        success: false,
-        recordCount: 0,
-        error: error instanceof Error ? error.message : 'Unknown export error',
-        metadata: {
-          exportDate: new Date().toISOString(),
-          dataType: 'stock_movements',
-          version: '2.0',
-          recordCount: 0,
-          fileSize: 0,
-        },
-      };
+      return this.createExportResult(
+        false,
+        'stock_movements',
+        0,
+        undefined,
+        undefined,
+        error instanceof Error ? error.message : 'Unknown export error'
+      );
     }
   }
 
   // Export bulk pricing data
   async exportBulkPricing(): Promise<ExportResult> {
     try {
-      this.updateProgress('Fetching products...', 0, 2);
+      this.updateProgressWithDataType(
+        'Fetching products...',
+        0,
+        2,
+        'bulk pricing'
+      );
 
       const products = await this.db.getProducts();
 
-      this.updateProgress('Fetching bulk pricing data...', 1, 2);
+      this.updateProgressWithDataType(
+        'Fetching bulk pricing data...',
+        1,
+        2,
+        'bulk pricing'
+      );
 
       const bulkPricingData = await Promise.all(
         products.map(async (product) => {
@@ -591,20 +1315,33 @@ export class DataExportService {
         (item) => item.bulkTiers.length > 0
       );
 
+      // Apply data filtering to ensure only bulk pricing data is included
+      const allData = {
+        bulkPricing: filteredBulkPricing,
+      };
+
+      const filteredData = this.filterDataByType(allData, 'bulk_pricing');
+      const actualRecordCount = this.calculateActualRecordCount(
+        filteredData,
+        'bulk_pricing'
+      );
+
+      // Create initial export result
+      const initialResult = this.createExportResult(
+        true,
+        'bulk_pricing',
+        actualRecordCount
+      );
+
       const exportData: ExportData = {
         version: '2.0',
         exportDate: new Date().toISOString(),
         dataType: 'bulk_pricing',
         metadata: {
-          exportDate: new Date().toISOString(),
-          dataType: 'bulk_pricing',
-          version: '2.0',
-          recordCount: filteredBulkPricing.length,
-          fileSize: 0,
+          ...initialResult.metadata,
+          fileSize: 0, // Will be calculated after file creation
         },
-        data: {
-          bulkPricing: filteredBulkPricing,
-        },
+        data: filteredData,
         relationships: {
           productCategories: {},
           productSuppliers: {},
@@ -613,7 +1350,7 @@ export class DataExportService {
         integrity: {
           checksum: '',
           recordCounts: {
-            bulkPricing: filteredBulkPricing.length,
+            bulkPricing: filteredData.bulkPricing?.length || 0,
           },
           validationRules: [
             'positive_quantities',
@@ -623,51 +1360,79 @@ export class DataExportService {
         },
       };
 
-      this.updateProgress('Generating export file...', 2, 2);
+      this.updateProgressWithDataType(
+        'Generating export file...',
+        2,
+        2,
+        'bulk pricing'
+      );
 
       const filename = `bulk_pricing_export_${
         new Date().toISOString().split('T')[0]
       }.json`;
-      const result = await this.generateExportFile(exportData, filename);
+      const fileResult = await this.generateExportFile(exportData, filename);
 
-      return {
-        success: true,
-        fileUri: result.fileUri,
-        filename: result.filename,
-        recordCount: filteredBulkPricing.length,
-        metadata: exportData.metadata,
-      };
+      // Update the result with file information
+      const finalResult = this.createExportResult(
+        true,
+        'bulk_pricing',
+        actualRecordCount,
+        fileResult.fileUri,
+        fileResult.filename
+      );
+
+      // Update metadata with actual file size
+      finalResult.metadata.fileSize = exportData.metadata.fileSize;
+      finalResult.metadata.checksum = exportData.integrity.checksum;
+
+      return finalResult;
     } catch (error) {
       console.error('Bulk pricing export error:', error);
-      return {
-        success: false,
-        recordCount: 0,
-        error: error instanceof Error ? error.message : 'Unknown export error',
-        metadata: {
-          exportDate: new Date().toISOString(),
-          dataType: 'bulk_pricing',
-          version: '2.0',
-          recordCount: 0,
-          fileSize: 0,
-        },
-      };
+      return this.createExportResult(
+        false,
+        'bulk_pricing',
+        0,
+        undefined,
+        undefined,
+        error instanceof Error ? error.message : 'Unknown export error'
+      );
     }
   }
 
   // Export complete backup with all data
   async exportCompleteBackup(): Promise<ExportResult> {
     try {
-      this.updateProgress('Fetching all data...', 0, 8);
+      this.updateProgressWithDataType(
+        'Fetching all data...',
+        0,
+        8,
+        'complete backup'
+      );
 
       // Fetch all data types
       const products = await this.db.getProducts();
-      this.updateProgress('Fetched products...', 1, 8);
+      this.updateProgressWithDataType(
+        'Fetched products...',
+        1,
+        8,
+        'complete backup'
+      );
 
       const categories = await this.db.getCategories();
-      this.updateProgress('Fetched categories...', 2, 8);
+      this.updateProgressWithDataType(
+        'Fetched categories...',
+        2,
+        8,
+        'complete backup'
+      );
 
       const suppliers = await this.db.getSuppliers();
-      this.updateProgress('Fetched suppliers...', 3, 8);
+      this.updateProgressWithDataType(
+        'Fetched suppliers...',
+        3,
+        8,
+        'complete backup'
+      );
 
       const startDate = new Date('2020-01-01');
       const endDate = new Date();
@@ -676,7 +1441,12 @@ export class DataExportService {
         endDate,
         10000
       );
-      this.updateProgress('Fetched sales...', 4, 8);
+      this.updateProgressWithDataType(
+        'Fetched sales...',
+        4,
+        8,
+        'complete backup'
+      );
 
       const salesWithItems = await Promise.all(
         sales.map(async (sale) => {
@@ -684,7 +1454,12 @@ export class DataExportService {
           return { ...sale, items };
         })
       );
-      this.updateProgress('Fetched sale items...', 5, 8);
+      this.updateProgressWithDataType(
+        'Fetched sale items...',
+        5,
+        8,
+        'complete backup'
+      );
 
       const expenses = await this.db.getExpensesByDateRange(
         startDate,
@@ -692,11 +1467,21 @@ export class DataExportService {
         10000
       );
       const expenseCategories = await this.db.getExpenseCategories();
-      this.updateProgress('Fetched expenses...', 6, 8);
+      this.updateProgressWithDataType(
+        'Fetched expenses...',
+        6,
+        8,
+        'complete backup'
+      );
 
       const customers = await this.db.getCustomers();
       const stockMovements = await this.db.getStockMovements({}, 1, 10000);
-      this.updateProgress('Fetched customers and stock movements...', 7, 8);
+      this.updateProgressWithDataType(
+        'Fetched customers and stock movements...',
+        7,
+        8,
+        'complete backup'
+      );
 
       // Get bulk pricing
       const bulkPricingData = await Promise.all(
@@ -720,43 +1505,47 @@ export class DataExportService {
         })
       );
 
-      const totalRecords =
-        products.length +
-        sales.length +
-        customers.length +
-        expenses.length +
-        stockMovements.length +
-        bulkPricingData.filter((item) => item.bulkTiers.length > 0).length;
+      // Apply data filtering for complete backup (returns all data)
+      const allData = {
+        products: products.map((product) => ({
+          ...product,
+          created_at: undefined,
+          updated_at: undefined,
+        })),
+        categories,
+        suppliers,
+        sales: salesWithItems,
+        customers,
+        expenses,
+        expenseCategories,
+        stockMovements,
+        bulkPricing: bulkPricingData.filter(
+          (item) => item.bulkTiers.length > 0
+        ),
+      };
+
+      const filteredData = this.filterDataByType(allData, 'complete');
+      const actualRecordCount = this.calculateActualRecordCount(
+        filteredData,
+        'complete'
+      );
+
+      // Create initial export result
+      const initialResult = this.createExportResult(
+        true,
+        'complete',
+        actualRecordCount
+      );
 
       const exportData: ExportData = {
         version: '2.0',
         exportDate: new Date().toISOString(),
         dataType: 'complete',
         metadata: {
-          exportDate: new Date().toISOString(),
-          dataType: 'complete',
-          version: '2.0',
-          recordCount: totalRecords,
-          fileSize: 0,
+          ...initialResult.metadata,
+          fileSize: 0, // Will be calculated after file creation
         },
-        data: {
-          products: products.map((product) => ({
-            ...product,
-            // Keep UUID IDs for referential integrity
-            created_at: undefined,
-            updated_at: undefined,
-          })),
-          categories,
-          suppliers,
-          sales: salesWithItems,
-          customers,
-          expenses,
-          expenseCategories,
-          stockMovements,
-          bulkPricing: bulkPricingData.filter(
-            (item) => item.bulkTiers.length > 0
-          ),
-        },
+        data: filteredData,
         relationships: this.buildRelationshipMappings(
           products,
           categories,
@@ -766,17 +1555,15 @@ export class DataExportService {
         integrity: {
           checksum: '',
           recordCounts: {
-            products: products.length,
-            categories: categories.length,
-            suppliers: suppliers.length,
-            sales: sales.length,
-            customers: customers.length,
-            expenses: expenses.length,
-            expenseCategories: expenseCategories.length,
-            stockMovements: stockMovements.length,
-            bulkPricing: bulkPricingData.filter(
-              (item) => item.bulkTiers.length > 0
-            ).length,
+            products: filteredData.products?.length || 0,
+            categories: filteredData.categories?.length || 0,
+            suppliers: filteredData.suppliers?.length || 0,
+            sales: filteredData.sales?.length || 0,
+            customers: filteredData.customers?.length || 0,
+            expenses: filteredData.expenses?.length || 0,
+            expenseCategories: filteredData.expenseCategories?.length || 0,
+            stockMovements: filteredData.stockMovements?.length || 0,
+            bulkPricing: filteredData.bulkPricing?.length || 0,
           },
           validationRules: [
             'required_fields',
@@ -794,34 +1581,42 @@ export class DataExportService {
         },
       };
 
-      this.updateProgress('Generating complete backup file...', 8, 8);
+      this.updateProgressWithDataType(
+        'Generating complete backup file...',
+        8,
+        8,
+        'complete backup'
+      );
 
       const filename = `complete_backup_${
         new Date().toISOString().split('T')[0]
       }.json`;
-      const result = await this.generateExportFile(exportData, filename);
+      const fileResult = await this.generateExportFile(exportData, filename);
 
-      return {
-        success: true,
-        fileUri: result.fileUri,
-        filename: result.filename,
-        recordCount: totalRecords,
-        metadata: exportData.metadata,
-      };
+      // Update the result with file information
+      const finalResult = this.createExportResult(
+        true,
+        'complete',
+        actualRecordCount,
+        fileResult.fileUri,
+        fileResult.filename
+      );
+
+      // Update metadata with actual file size
+      finalResult.metadata.fileSize = exportData.metadata.fileSize;
+      finalResult.metadata.checksum = exportData.integrity.checksum;
+
+      return finalResult;
     } catch (error) {
       console.error('Complete backup export error:', error);
-      return {
-        success: false,
-        recordCount: 0,
-        error: error instanceof Error ? error.message : 'Unknown export error',
-        metadata: {
-          exportDate: new Date().toISOString(),
-          dataType: 'complete',
-          version: '2.0',
-          recordCount: 0,
-          fileSize: 0,
-        },
-      };
+      return this.createExportResult(
+        false,
+        'complete',
+        0,
+        undefined,
+        undefined,
+        error instanceof Error ? error.message : 'Unknown export error'
+      );
     }
   }
 
@@ -837,6 +1632,9 @@ export class DataExportService {
       // Add UUID validation warnings to integrity section
       data.integrity.validationRules.push('uuid_format_validation');
     }
+
+    // Ensure consistent export file structure regardless of data type
+    this.ensureConsistentFileStructure(data);
 
     const jsonString = JSON.stringify(data, null, 2);
     const fileUri = FileSystem.documentDirectory + filename;
@@ -854,6 +1652,103 @@ export class DataExportService {
     await FileSystem.writeAsStringAsync(fileUri, finalJsonString);
 
     return { fileUri, filename };
+  }
+
+  // Ensure consistent export file structure with proper dataType field
+  private ensureConsistentFileStructure(data: ExportData): void {
+    // Ensure all required fields are present
+    if (!data.version) data.version = '2.0';
+    if (!data.exportDate) data.exportDate = new Date().toISOString();
+    if (!data.dataType) throw new Error('dataType field is required');
+
+    // Ensure metadata is complete
+    if (!data.metadata) {
+      data.metadata = {
+        exportDate: data.exportDate,
+        dataType: data.dataType,
+        version: data.version,
+        recordCount: 0,
+        fileSize: 0,
+      };
+    }
+
+    // Ensure metadata.dataType matches root dataType
+    data.metadata.dataType = data.dataType;
+
+    // Ensure data section exists
+    if (!data.data) data.data = {};
+
+    // Ensure relationships section exists
+    if (!data.relationships) {
+      data.relationships = {
+        productCategories: {},
+        productSuppliers: {},
+        saleCustomers: {},
+      };
+    }
+
+    // Ensure integrity section exists
+    if (!data.integrity) {
+      data.integrity = {
+        checksum: '',
+        recordCounts: {},
+        validationRules: [],
+      };
+    }
+
+    // Validate that only relevant data sections are populated based on dataType
+    this.validateDataSectionsForType(data);
+  }
+
+  // Validate that only relevant data sections are populated for the selected data type
+  private validateDataSectionsForType(data: ExportData): void {
+    const allowedSections: Record<string, string[]> = {
+      products: ['products', 'categories', 'suppliers', 'bulkPricing'],
+      sales: ['sales', 'saleItems'],
+      customers: ['customers'],
+      expenses: ['expenses', 'expenseCategories'],
+      stock_movements: ['stockMovements'],
+      bulk_pricing: ['bulkPricing'],
+      complete: [
+        'products',
+        'categories',
+        'suppliers',
+        'sales',
+        'saleItems',
+        'customers',
+        'expenses',
+        'expenseCategories',
+        'stockMovements',
+        'bulkPricing',
+      ],
+    };
+
+    const allowed = allowedSections[data.dataType] || [];
+    const allPossibleSections = [
+      'products',
+      'categories',
+      'suppliers',
+      'sales',
+      'saleItems',
+      'customers',
+      'expenses',
+      'expenseCategories',
+      'stockMovements',
+      'bulkPricing',
+    ];
+
+    // Remove sections that shouldn't be present for this data type
+    for (const section of allPossibleSections) {
+      if (
+        !allowed.includes(section) &&
+        data.data[section as keyof typeof data.data]
+      ) {
+        console.warn(
+          `Removing unexpected data section '${section}' from ${data.dataType} export`
+        );
+        delete data.data[section as keyof typeof data.data];
+      }
+    }
   }
 
   // Share export file

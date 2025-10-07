@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -18,11 +17,9 @@ import {
   DollarSign,
   Database,
   CheckCircle,
-  Store,
   Users,
   TrendingUp,
   Tag,
-  AlertTriangle,
   HelpCircle,
 } from 'lucide-react-native';
 import DataManagementGuide from '@/components/DataManagementGuide';
@@ -77,6 +74,21 @@ export default function DataImport() {
     fileUri: string;
     option: ImportOption;
   } | null>(null);
+
+  // Get user-friendly display name for data types
+  const getDataTypeDisplayName = (dataType: string): string => {
+    const displayNames: Record<string, string> = {
+      products: 'Products & Inventory',
+      sales: 'Sales Data',
+      customers: 'Customer Data',
+      expenses: 'Expenses',
+      stockMovements: 'Stock Movements',
+      bulkPricing: 'Bulk Pricing',
+      all: 'Complete Backup',
+    };
+
+    return displayNames[dataType] || dataType;
+  };
 
   // Initialize import service when database is ready
   React.useEffect(() => {
@@ -181,6 +193,38 @@ export default function DataImport() {
         return;
       }
 
+      // Check if the file contains the selected data type
+      const fileContent = await FileSystem.readAsStringAsync(
+        result.assets[0].uri
+      );
+      const importData = JSON.parse(fileContent);
+      const dataTypeValidation =
+        await importService.validateDataTypeAvailability(
+          importData,
+          option.dataType
+        );
+
+      if (!dataTypeValidation.isValid) {
+        const availableTypesText =
+          dataTypeValidation.availableTypes.length > 0
+            ? `Available data types in this file:\n${dataTypeValidation.availableTypes
+                .map(
+                  (type) =>
+                    `• ${type} (${
+                      dataTypeValidation.detailedCounts?.[type] || 0
+                    } records)`
+                )
+                .join('\n')}`
+            : 'This file does not contain any valid data.';
+
+        Alert.alert(
+          'Data Type Not Available',
+          `${dataTypeValidation.message}\n\n${availableTypesText}`,
+          [{ text: 'OK', style: 'default' }]
+        );
+        return;
+      }
+
       // Preview the import data
       const preview = await importService.previewImportData(
         result.assets[0].uri
@@ -216,7 +260,29 @@ export default function DataImport() {
       );
     } catch (error) {
       console.error('Import error:', error);
-      showToast(t('dataImport.importFailed'), 'error');
+      let errorMessage = t('dataImport.importFailed');
+
+      // Provide more specific error messages
+      if (error instanceof Error) {
+        if (
+          error.message.includes('No') &&
+          error.message.includes('data found')
+        ) {
+          errorMessage = `Import failed: The selected file does not contain ${getDataTypeDisplayName(
+            option.dataType
+          ).toLowerCase()} data.`;
+        } else if (
+          error.message.includes('Invalid') ||
+          error.message.includes('format')
+        ) {
+          errorMessage =
+            'Import failed: Invalid file format. Please select a valid backup file.';
+        } else {
+          errorMessage = `Import failed: ${error.message}`;
+        }
+      }
+
+      showToast(errorMessage, 'error');
     }
   };
 
@@ -274,14 +340,35 @@ export default function DataImport() {
       }
 
       if (result.success) {
-        showToast(
-          `${t('dataImport.importComplete')} ${result.imported} ${t(
-            'dataImport.imported'
-          )}, ${result.updated} ${t('dataImport.updated')}, ${
-            result.skipped
-          } ${t('dataImport.skipped')}`,
-          'success'
-        );
+        // Generate enhanced success message with data type information
+        const dataTypeName = getDataTypeDisplayName(option.dataType);
+        let successMessage = `${dataTypeName} import completed successfully!`;
+
+        // Add detailed counts if available
+        if (
+          result.actualProcessedCounts &&
+          Object.keys(result.actualProcessedCounts).length > 0
+        ) {
+          const processedDetails = Object.entries(result.actualProcessedCounts)
+            .map(([type, counts]) => {
+              const total = counts.imported + counts.updated + counts.skipped;
+              if (total > 0) {
+                return `${type}: ${counts.imported} imported, ${counts.updated} updated, ${counts.skipped} skipped`;
+              }
+              return null;
+            })
+            .filter(Boolean)
+            .join('\n');
+
+          if (processedDetails) {
+            successMessage += `\n\nDetails:\n${processedDetails}`;
+          }
+        } else {
+          // Fallback to basic counts
+          successMessage += ` ${result.imported} imported, ${result.updated} updated, ${result.skipped} skipped.`;
+        }
+
+        showToast(successMessage, 'success');
 
         // Show detailed results if there were errors
         if (result.errors.length > 0) {
@@ -298,12 +385,30 @@ export default function DataImport() {
       }
     } catch (error) {
       console.error('Import error:', error);
-      showToast(
-        `${t('dataImport.importFailed')}: ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`,
-        'error'
-      );
+      let errorMessage = t('dataImport.importFailed');
+
+      // Provide more specific error messages based on the error type
+      if (error instanceof Error) {
+        if (
+          error.message.includes('MISSING_DATA_TYPE') ||
+          error.message.includes('not available')
+        ) {
+          const dataTypeName = getDataTypeDisplayName(option.dataType);
+          errorMessage = `Import failed: The selected file does not contain ${dataTypeName.toLowerCase()} data. Please select a file that contains the data type you want to import.`;
+        } else if (
+          error.message.includes('Invalid') ||
+          error.message.includes('format')
+        ) {
+          errorMessage =
+            'Import failed: Invalid file format. Please select a valid JSON backup file.';
+        } else if (error.message.includes('validation')) {
+          errorMessage = `Import failed: Data validation error. ${error.message}`;
+        } else {
+          errorMessage = `Import failed: ${error.message}`;
+        }
+      }
+
+      showToast(errorMessage, 'error');
     } finally {
       setIsImporting(null);
       setImportProgress(null);
@@ -385,10 +490,35 @@ export default function DataImport() {
       }
 
       if (result.success) {
-        showToast(
-          `${option.title} imported successfully! ${result.imported} records imported, ${result.updated} updated, ${result.skipped} skipped.`,
-          'success'
-        );
+        // Generate enhanced success message with data type information
+        const dataTypeName = getDataTypeDisplayName(option.dataType);
+        let successMessage = `${dataTypeName} import completed successfully!`;
+
+        // Add detailed counts if available
+        if (
+          result.actualProcessedCounts &&
+          Object.keys(result.actualProcessedCounts).length > 0
+        ) {
+          const processedDetails = Object.entries(result.actualProcessedCounts)
+            .map(([type, counts]) => {
+              const total = counts.imported + counts.updated + counts.skipped;
+              if (total > 0) {
+                return `${type}: ${counts.imported} imported, ${counts.updated} updated, ${counts.skipped} skipped`;
+              }
+              return null;
+            })
+            .filter(Boolean)
+            .join('\n');
+
+          if (processedDetails) {
+            successMessage += `\n\nDetails:\n${processedDetails}`;
+          }
+        } else {
+          // Fallback to basic counts
+          successMessage += ` ${result.imported} imported, ${result.updated} updated, ${result.skipped} skipped.`;
+        }
+
+        showToast(successMessage, 'success');
 
         // Show detailed results if there were errors
         if (result.errors.length > 0) {
@@ -405,12 +535,30 @@ export default function DataImport() {
       }
     } catch (error) {
       console.error('Import error:', error);
-      showToast(
-        `${t('dataImport.importFailed')}: ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`,
-        'error'
-      );
+      let errorMessage = t('dataImport.importFailed');
+
+      // Provide more specific error messages based on the error type
+      if (error instanceof Error) {
+        if (
+          error.message.includes('MISSING_DATA_TYPE') ||
+          error.message.includes('not available')
+        ) {
+          const dataTypeName = getDataTypeDisplayName(option.dataType);
+          errorMessage = `Import failed: The selected file does not contain ${dataTypeName.toLowerCase()} data. Please select a file that contains the data type you want to import.`;
+        } else if (
+          error.message.includes('Invalid') ||
+          error.message.includes('format')
+        ) {
+          errorMessage =
+            'Import failed: Invalid file format. Please select a valid JSON backup file.';
+        } else if (error.message.includes('validation')) {
+          errorMessage = `Import failed: Data validation error. ${error.message}`;
+        } else {
+          errorMessage = `Import failed: ${error.message}`;
+        }
+      }
+
+      showToast(errorMessage, 'error');
     } finally {
       setIsImporting(null);
       setImportProgress(null);
@@ -472,6 +620,12 @@ export default function DataImport() {
                 {importProgress.current} / {importProgress.total}{' '}
                 {t('dataImport.items')}
               </Text>
+              {/* Show percentage for better feedback */}
+              {importProgress.percentage > 0 && (
+                <Text style={styles.progressPercentage}>
+                  {Math.round(importProgress.percentage)}% complete
+                </Text>
+              )}
             </View>
           </View>
         )}
@@ -702,6 +856,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',
+  },
+  progressPercentage: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#3B82F6',
+    textAlign: 'center',
+    marginTop: 4,
   },
   section: {
     padding: 20,

@@ -19,7 +19,6 @@ import {
   Database,
   Share,
   CheckCircle,
-  Store,
   Users,
   TrendingUp,
   Tag,
@@ -33,8 +32,6 @@ import {
   DataExportService,
   ExportProgress,
 } from '@/services/dataExportService';
-import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
 
 interface ExportOption {
   id: string;
@@ -67,6 +64,21 @@ export default function DataExport() {
     null
   );
   const [showGuide, setShowGuide] = useState(false);
+
+  // Get user-friendly display name for data types
+  const getDataTypeDisplayName = (dataType: string): string => {
+    const displayNames: Record<string, string> = {
+      products: 'Products & Inventory',
+      sales: 'Sales Data',
+      customers: 'Customer Data',
+      expenses: 'Expenses',
+      stockMovements: 'Stock Movements',
+      bulkPricing: 'Bulk Pricing',
+      all: 'Complete Backup',
+    };
+
+    return displayNames[dataType] || dataType;
+  };
 
   // Initialize export service when database is ready
   React.useEffect(() => {
@@ -185,22 +197,43 @@ export default function DataExport() {
       }
 
       if (result.success && result.fileUri) {
-        // Share the file
-        try {
-          await exportService.shareExportFile(
-            result.fileUri,
-            `Export ${option.title}`
-          );
-          showToast(
-            `${option.title} exported successfully! ${result.recordCount} records exported.`,
-            'success'
-          );
-        } catch (shareError) {
-          // If sharing fails, still show success but mention file location
-          showToast(
-            `${option.title} exported successfully! File saved: ${result.filename}`,
-            'success'
-          );
+        // Generate enhanced user-friendly feedback message with specific data type information
+        const dataTypeName = getDataTypeDisplayName(option.dataType);
+        let feedbackMessage: string;
+
+        if (result.emptyExport) {
+          feedbackMessage = `${dataTypeName} export completed, but no data was found. An empty export file has been created for consistency.`;
+        } else {
+          const recordText = result.recordCount === 1 ? 'record' : 'records';
+          feedbackMessage = `${dataTypeName} export completed successfully! ${result.recordCount} ${recordText} exported.`;
+        }
+
+        // Handle empty exports with special messaging
+        if (result.emptyExport) {
+          showToast(feedbackMessage, 'info');
+          // Still try to share the empty file for consistency
+          try {
+            await exportService.shareExportFile(
+              result.fileUri,
+              `Empty Export - ${option.title}`
+            );
+          } catch (shareError) {
+            // If sharing fails, mention file location
+            showToast(`Empty export file saved: ${result.filename}`, 'info');
+          }
+        } else {
+          // Share the file for non-empty exports
+          try {
+            await exportService.shareExportFile(
+              result.fileUri,
+              `Export ${option.title}`
+            );
+            showToast(feedbackMessage, 'success');
+          } catch (shareError) {
+            // If sharing fails, still show success but mention file location
+            const fileLocationMessage = `${feedbackMessage} File saved: ${result.filename}`;
+            showToast(fileLocationMessage, 'success');
+          }
         }
       } else {
         throw new Error(result.error || 'Export failed');
@@ -376,6 +409,13 @@ export default function DataExport() {
               <Text style={styles.progressModalStage}>
                 {exportProgress.stage}
               </Text>
+
+              {/* Show more specific progress information */}
+              {exportProgress.percentage > 0 && (
+                <Text style={styles.progressModalPercentage}>
+                  {Math.round(exportProgress.percentage)}% complete
+                </Text>
+              )}
 
               <View style={styles.progressBarContainer}>
                 <View style={styles.progressBarBackground}>
@@ -660,5 +700,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',
+  },
+  progressModalPercentage: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#10B981',
+    textAlign: 'center',
+    marginBottom: 8,
   },
 });

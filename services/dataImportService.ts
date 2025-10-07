@@ -26,6 +26,15 @@ export interface ImportResult {
   errors: ImportError[];
   conflicts: DataConflict[];
   duration: number;
+  dataType?: string; // The specific data type that was imported
+  availableDataTypes?: string[]; // Data types available in the import file
+  processedDataTypes?: string[]; // Data types actually processed
+  detailedCounts?: Record<string, number>; // Detailed counts for each data type in the file
+  actualProcessedCounts?: Record<
+    string,
+    { imported: number; updated: number; skipped: number }
+  >; // Actual counts processed per data type
+  validationMessage?: string; // Detailed validation message about data type availability
 }
 
 export interface ImportProgress {
@@ -160,6 +169,426 @@ export class DataImportService {
     }
   }
 
+  // Validate that import file contains the selected data type
+  validateDataTypeAvailability(
+    importData: any,
+    selectedType: string
+  ): {
+    isValid: boolean;
+    availableTypes: string[];
+    message?: string;
+    detailedCounts?: Record<string, number>;
+    corruptedSections?: string[];
+    validationErrors?: string[];
+  } {
+    const dataTypeMap: Record<string, string[]> = {
+      sales: ['sales'],
+      products: ['products'],
+      customers: ['customers'],
+      expenses: ['expenses'],
+      stockMovements: ['stockMovements'],
+      bulkPricing: ['bulkPricing'],
+      all: [
+        'products',
+        'sales',
+        'customers',
+        'expenses',
+        'stockMovements',
+        'bulkPricing',
+      ],
+    };
+
+    const validationErrors: string[] = [];
+    const corruptedSections: string[] = [];
+
+    try {
+      // Comprehensive validation of import data structure
+      if (!importData) {
+        return {
+          isValid: false,
+          availableTypes: [],
+          message: 'Import file is empty or null',
+          detailedCounts: {},
+          corruptedSections: [],
+          validationErrors: ['Import file is empty or null'],
+        };
+      }
+
+      if (typeof importData !== 'object') {
+        return {
+          isValid: false,
+          availableTypes: [],
+          message: 'Import file does not contain valid JSON object',
+          detailedCounts: {},
+          corruptedSections: [],
+          validationErrors: ['Import file does not contain valid JSON object'],
+        };
+      }
+
+      if (!importData.data) {
+        return {
+          isValid: false,
+          availableTypes: [],
+          message:
+            'Import file does not contain valid data structure (missing "data" field)',
+          detailedCounts: {},
+          corruptedSections: [],
+          validationErrors: ['Missing "data" field in import file'],
+        };
+      }
+
+      if (typeof importData.data !== 'object') {
+        return {
+          isValid: false,
+          availableTypes: [],
+          message: 'Import file data field is not a valid object',
+          detailedCounts: {},
+          corruptedSections: [],
+          validationErrors: ['Data field is not a valid object'],
+        };
+      }
+
+      // Get available data types in the file with counts and validate each section
+      const availableTypes: string[] = [];
+      const detailedCounts: Record<string, number> = {};
+
+      Object.keys(importData.data).forEach((key) => {
+        try {
+          const section = importData.data[key];
+
+          if (!Array.isArray(section)) {
+            if (section !== null && section !== undefined) {
+              validationErrors.push(
+                `Data section "${key}" is not an array (found ${typeof section})`
+              );
+              corruptedSections.push(key);
+            }
+            detailedCounts[key] = 0;
+            return;
+          }
+
+          // Validate array contents
+          const validRecords = this.validateDataSection(section, key);
+          const count = validRecords.length;
+          detailedCounts[key] = count;
+
+          if (count > 0) {
+            availableTypes.push(key);
+          }
+
+          // Report corrupted records
+          if (validRecords.length < section.length) {
+            const corruptedCount = section.length - validRecords.length;
+            validationErrors.push(
+              `Data section "${key}" has ${corruptedCount} corrupted/invalid records out of ${section.length}`
+            );
+            if (validRecords.length === 0) {
+              corruptedSections.push(key);
+            }
+          }
+        } catch (error) {
+          validationErrors.push(
+            `Error validating data section "${key}": ${
+              error instanceof Error ? error.message : 'Unknown error'
+            }`
+          );
+          corruptedSections.push(key);
+          detailedCounts[key] = 0;
+        }
+      });
+
+      // Check if selected type is supported
+      if (!dataTypeMap[selectedType]) {
+        return {
+          isValid: false,
+          availableTypes,
+          message: `Unsupported data type: ${selectedType}. Supported types: ${Object.keys(
+            dataTypeMap
+          ).join(', ')}`,
+          detailedCounts,
+          corruptedSections,
+          validationErrors,
+        };
+      }
+
+      // For 'all' type, we accept any available data
+      if (selectedType === 'all') {
+        const hasValidData = availableTypes.length > 0;
+        let message: string | undefined;
+
+        if (!hasValidData) {
+          if (corruptedSections.length > 0) {
+            message = `Import file contains only corrupted data sections: ${corruptedSections.join(
+              ', '
+            )}`;
+          } else {
+            message = 'Import file does not contain any valid data';
+          }
+        } else if (corruptedSections.length > 0) {
+          message = `Some data sections are corrupted and will be skipped: ${corruptedSections.join(
+            ', '
+          )}`;
+        }
+
+        return {
+          isValid: hasValidData,
+          availableTypes,
+          message,
+          detailedCounts,
+          corruptedSections,
+          validationErrors,
+        };
+      }
+
+      // Check if the required fields for the selected type are available
+      const requiredFields = dataTypeMap[selectedType];
+      const hasRequiredData = requiredFields.some((field) =>
+        availableTypes.includes(field)
+      );
+
+      if (!hasRequiredData) {
+        const availableTypesWithCounts = availableTypes
+          .map((type) => `${type} (${detailedCounts[type]} records)`)
+          .join(', ');
+
+        let message = `Import file does not contain ${selectedType} data.`;
+
+        if (availableTypes.length > 0) {
+          message += ` Available data types: ${availableTypesWithCounts}`;
+        } else {
+          message += ' No valid data found in import file.';
+        }
+
+        if (corruptedSections.length > 0) {
+          message += ` Corrupted sections: ${corruptedSections.join(', ')}`;
+        }
+
+        return {
+          isValid: false,
+          availableTypes,
+          message,
+          detailedCounts,
+          corruptedSections,
+          validationErrors,
+        };
+      }
+
+      // Validate that the file's dataType matches the selected type (if specified)
+      if (
+        importData.dataType &&
+        importData.dataType !== selectedType &&
+        importData.dataType !== 'all' &&
+        importData.dataType !== 'complete'
+      ) {
+        const availableTypesWithCounts = availableTypes
+          .map((type) => `${type} (${detailedCounts[type]} records)`)
+          .join(', ');
+
+        let message = `Import file dataType (${importData.dataType}) does not match selected import option (${selectedType}).`;
+
+        if (availableTypes.length > 0) {
+          message += ` Available data types: ${availableTypesWithCounts}`;
+        }
+
+        return {
+          isValid: false,
+          availableTypes,
+          message,
+          detailedCounts,
+          corruptedSections,
+          validationErrors,
+        };
+      }
+
+      return {
+        isValid: true,
+        availableTypes,
+        detailedCounts,
+        corruptedSections,
+        validationErrors:
+          validationErrors.length > 0 ? validationErrors : undefined,
+      };
+    } catch (error) {
+      return {
+        isValid: false,
+        availableTypes: [],
+        message: `Error validating import file: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+        detailedCounts: {},
+        corruptedSections: [],
+        validationErrors: [
+          `Validation error: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`,
+        ],
+      };
+    }
+  }
+
+  // Validate individual data section for corrupted or malformed data
+  private validateDataSection(section: any[], sectionName: string): any[] {
+    if (!Array.isArray(section)) {
+      return [];
+    }
+
+    const validRecords: any[] = [];
+
+    section.forEach((record, index) => {
+      try {
+        // Basic validation - must be an object
+        if (!record || typeof record !== 'object') {
+          console.warn(
+            `Skipping invalid ${sectionName} record at index ${index}: not an object`
+          );
+          return;
+        }
+
+        // Check for circular references
+        try {
+          JSON.stringify(record);
+        } catch (error) {
+          console.warn(
+            `Skipping ${sectionName} record at index ${index}: circular reference or non-serializable data`
+          );
+          return;
+        }
+
+        // Validate required fields based on section type
+        if (!this.validateRecordRequiredFields(record, sectionName)) {
+          console.warn(
+            `Skipping ${sectionName} record at index ${index}: missing required fields`
+          );
+          return;
+        }
+
+        // Validate data types
+        if (!this.validateRecordDataTypes(record, sectionName)) {
+          console.warn(
+            `Skipping ${sectionName} record at index ${index}: invalid data types`
+          );
+          return;
+        }
+
+        validRecords.push(record);
+      } catch (error) {
+        console.warn(
+          `Skipping corrupted ${sectionName} record at index ${index}:`,
+          error
+        );
+      }
+    });
+
+    return validRecords;
+  }
+
+  // Validate required fields for different record types
+  private validateRecordRequiredFields(
+    record: any,
+    sectionName: string
+  ): boolean {
+    try {
+      switch (sectionName) {
+        case 'products':
+          return !!(
+            record.name &&
+            record.price !== undefined &&
+            record.cost !== undefined
+          );
+        case 'sales':
+          return !!(record.total !== undefined && record.payment_method);
+        case 'customers':
+          return !!record.name;
+        case 'expenses':
+          return !!(record.amount !== undefined && record.description);
+        case 'stockMovements':
+          return !!(
+            record.product_id &&
+            record.movement_type &&
+            record.quantity !== undefined
+          );
+        case 'bulkPricing':
+          return !!(
+            record.product_id &&
+            record.min_quantity !== undefined &&
+            record.bulk_price !== undefined
+          );
+        case 'categories':
+          return !!record.name;
+        case 'suppliers':
+          return !!record.name;
+        case 'expenseCategories':
+          return !!record.name;
+        case 'saleItems':
+          return !!(
+            record.product_id &&
+            record.quantity !== undefined &&
+            record.price !== undefined
+          );
+        default:
+          return true; // For unknown types, assume valid
+      }
+    } catch (error) {
+      console.error(
+        `Error validating required fields for ${sectionName}:`,
+        error
+      );
+      return false;
+    }
+  }
+
+  // Validate data types for record fields
+  private validateRecordDataTypes(record: any, sectionName: string): boolean {
+    try {
+      switch (sectionName) {
+        case 'products':
+          return (
+            typeof record.name === 'string' &&
+            typeof record.price === 'number' &&
+            !isNaN(record.price) &&
+            typeof record.cost === 'number' &&
+            !isNaN(record.cost) &&
+            (record.quantity === undefined ||
+              (typeof record.quantity === 'number' && !isNaN(record.quantity)))
+          );
+        case 'sales':
+          return (
+            typeof record.total === 'number' &&
+            !isNaN(record.total) &&
+            typeof record.payment_method === 'string'
+          );
+        case 'customers':
+          return typeof record.name === 'string';
+        case 'expenses':
+          return (
+            typeof record.amount === 'number' &&
+            !isNaN(record.amount) &&
+            typeof record.description === 'string'
+          );
+        case 'stockMovements':
+          return (
+            typeof record.product_id === 'string' &&
+            typeof record.movement_type === 'string' &&
+            typeof record.quantity === 'number' &&
+            !isNaN(record.quantity)
+          );
+        case 'bulkPricing':
+          return (
+            typeof record.product_id === 'string' &&
+            typeof record.min_quantity === 'number' &&
+            !isNaN(record.min_quantity) &&
+            typeof record.bulk_price === 'number' &&
+            !isNaN(record.bulk_price)
+          );
+        default:
+          return true; // For unknown types, assume valid
+      }
+    } catch (error) {
+      console.error(`Error validating data types for ${sectionName}:`, error);
+      return false;
+    }
+  }
+
   // Preview import data
   async previewImportData(fileUri: string): Promise<ImportPreview> {
     try {
@@ -238,32 +667,64 @@ export class DataImportService {
       // Check for product conflicts
       if (data.products && Array.isArray(data.products)) {
         data.products.forEach((product: any, index: number) => {
-          const existingProduct = existingProducts.find(
-            (p) =>
-              p.name === product.name ||
-              (product.barcode && p.barcode === product.barcode)
-          );
+          try {
+            // Validate product data before checking conflicts
+            if (!this.validateRecordRequiredFields(product, 'products')) {
+              conflicts.push({
+                type: 'validation_failed',
+                record: product,
+                message: `Product at index ${index} has missing required fields`,
+                index,
+              });
+              return;
+            }
 
-          if (existingProduct) {
-            conflicts.push({
-              type: 'duplicate',
-              record: product,
-              existingRecord: existingProduct,
-              message: `Product "${product.name}" already exists`,
-              index,
-            });
-          }
+            if (!this.validateRecordDataTypes(product, 'products')) {
+              conflicts.push({
+                type: 'validation_failed',
+                record: product,
+                message: `Product at index ${index} has invalid data types`,
+                index,
+              });
+              return;
+            }
 
-          // Check category reference
-          if (
-            product.category &&
-            !existingCategories.find((c) => c.name === product.category)
-          ) {
+            const existingProduct = existingProducts.find(
+              (p) =>
+                p.name === product.name ||
+                (product.barcode && p.barcode === product.barcode)
+            );
+
+            if (existingProduct) {
+              conflicts.push({
+                type: 'duplicate',
+                record: product,
+                existingRecord: existingProduct,
+                message: `Product "${product.name}" already exists`,
+                index,
+              });
+            }
+
+            // Check category reference
+            if (
+              product.category &&
+              !existingCategories.find((c) => c.name === product.category)
+            ) {
+              conflicts.push({
+                type: 'reference_missing',
+                record: product,
+                field: 'category',
+                message: `Category "${product.category}" not found`,
+                index,
+              });
+            }
+          } catch (error) {
             conflicts.push({
-              type: 'reference_missing',
+              type: 'validation_failed',
               record: product,
-              field: 'category',
-              message: `Category "${product.category}" not found`,
+              message: `Product at index ${index} is corrupted: ${
+                error instanceof Error ? error.message : 'Unknown error'
+              }`,
               index,
             });
           }
@@ -273,30 +734,479 @@ export class DataImportService {
       // Check for customer conflicts
       if (data.customers && Array.isArray(data.customers)) {
         data.customers.forEach((customer: any, index: number) => {
-          const existingCustomer = existingCustomers.find(
-            (c) =>
-              c.name === customer.name ||
-              (customer.phone && c.phone === customer.phone)
-          );
+          try {
+            // Validate customer data before checking conflicts
+            if (!this.validateRecordRequiredFields(customer, 'customers')) {
+              conflicts.push({
+                type: 'validation_failed',
+                record: customer,
+                message: `Customer at index ${index} has missing required fields`,
+                index,
+              });
+              return;
+            }
 
-          if (existingCustomer) {
+            if (!this.validateRecordDataTypes(customer, 'customers')) {
+              conflicts.push({
+                type: 'validation_failed',
+                record: customer,
+                message: `Customer at index ${index} has invalid data types`,
+                index,
+              });
+              return;
+            }
+
+            const existingCustomer = existingCustomers.find(
+              (c) =>
+                c.name === customer.name ||
+                (customer.phone && c.phone === customer.phone)
+            );
+
+            if (existingCustomer) {
+              conflicts.push({
+                type: 'duplicate',
+                record: customer,
+                existingRecord: existingCustomer,
+                message: `Customer "${customer.name}" already exists`,
+                index,
+              });
+            }
+          } catch (error) {
             conflicts.push({
-              type: 'duplicate',
+              type: 'validation_failed',
               record: customer,
-              existingRecord: existingCustomer,
-              message: `Customer "${customer.name}" already exists`,
+              message: `Customer at index ${index} is corrupted: ${
+                error instanceof Error ? error.message : 'Unknown error'
+              }`,
               index,
             });
           }
         });
       }
 
-      // Add more conflict detection for other data types as needed
+      // Check for sales conflicts and validation
+      if (data.sales && Array.isArray(data.sales)) {
+        data.sales.forEach((sale: any, index: number) => {
+          try {
+            if (!this.validateRecordRequiredFields(sale, 'sales')) {
+              conflicts.push({
+                type: 'validation_failed',
+                record: sale,
+                message: `Sale at index ${index} has missing required fields`,
+                index,
+              });
+              return;
+            }
+
+            if (!this.validateRecordDataTypes(sale, 'sales')) {
+              conflicts.push({
+                type: 'validation_failed',
+                record: sale,
+                message: `Sale at index ${index} has invalid data types`,
+                index,
+              });
+              return;
+            }
+          } catch (error) {
+            conflicts.push({
+              type: 'validation_failed',
+              record: sale,
+              message: `Sale at index ${index} is corrupted: ${
+                error instanceof Error ? error.message : 'Unknown error'
+              }`,
+              index,
+            });
+          }
+        });
+      }
+
+      // Check for expense conflicts and validation
+      if (data.expenses && Array.isArray(data.expenses)) {
+        data.expenses.forEach((expense: any, index: number) => {
+          try {
+            if (!this.validateRecordRequiredFields(expense, 'expenses')) {
+              conflicts.push({
+                type: 'validation_failed',
+                record: expense,
+                message: `Expense at index ${index} has missing required fields`,
+                index,
+              });
+              return;
+            }
+
+            if (!this.validateRecordDataTypes(expense, 'expenses')) {
+              conflicts.push({
+                type: 'validation_failed',
+                record: expense,
+                message: `Expense at index ${index} has invalid data types`,
+                index,
+              });
+              return;
+            }
+          } catch (error) {
+            conflicts.push({
+              type: 'validation_failed',
+              record: expense,
+              message: `Expense at index ${index} is corrupted: ${
+                error instanceof Error ? error.message : 'Unknown error'
+              }`,
+              index,
+            });
+          }
+        });
+      }
+
+      // Check for stock movement conflicts and validation
+      if (data.stockMovements && Array.isArray(data.stockMovements)) {
+        data.stockMovements.forEach((movement: any, index: number) => {
+          try {
+            if (
+              !this.validateRecordRequiredFields(movement, 'stockMovements')
+            ) {
+              conflicts.push({
+                type: 'validation_failed',
+                record: movement,
+                message: `Stock movement at index ${index} has missing required fields`,
+                index,
+              });
+              return;
+            }
+
+            if (!this.validateRecordDataTypes(movement, 'stockMovements')) {
+              conflicts.push({
+                type: 'validation_failed',
+                record: movement,
+                message: `Stock movement at index ${index} has invalid data types`,
+                index,
+              });
+              return;
+            }
+
+            // Check if referenced product exists
+            if (
+              movement.product_id &&
+              !existingProducts.find((p) => p.id === movement.product_id)
+            ) {
+              conflicts.push({
+                type: 'reference_missing',
+                record: movement,
+                field: 'product_id',
+                message: `Product with ID "${movement.product_id}" not found`,
+                index,
+              });
+            }
+          } catch (error) {
+            conflicts.push({
+              type: 'validation_failed',
+              record: movement,
+              message: `Stock movement at index ${index} is corrupted: ${
+                error instanceof Error ? error.message : 'Unknown error'
+              }`,
+              index,
+            });
+          }
+        });
+      }
+
+      // Check for bulk pricing conflicts and validation
+      if (data.bulkPricing && Array.isArray(data.bulkPricing)) {
+        data.bulkPricing.forEach((bulkItem: any, index: number) => {
+          try {
+            if (!this.validateRecordRequiredFields(bulkItem, 'bulkPricing')) {
+              conflicts.push({
+                type: 'validation_failed',
+                record: bulkItem,
+                message: `Bulk pricing at index ${index} has missing required fields`,
+                index,
+              });
+              return;
+            }
+
+            if (!this.validateRecordDataTypes(bulkItem, 'bulkPricing')) {
+              conflicts.push({
+                type: 'validation_failed',
+                record: bulkItem,
+                message: `Bulk pricing at index ${index} has invalid data types`,
+                index,
+              });
+              return;
+            }
+
+            // Check if referenced product exists
+            if (
+              bulkItem.product_id &&
+              !existingProducts.find((p) => p.id === bulkItem.product_id)
+            ) {
+              conflicts.push({
+                type: 'reference_missing',
+                record: bulkItem,
+                field: 'product_id',
+                message: `Product with ID "${bulkItem.product_id}" not found`,
+                index,
+              });
+            }
+          } catch (error) {
+            conflicts.push({
+              type: 'validation_failed',
+              record: bulkItem,
+              message: `Bulk pricing at index ${index} is corrupted: ${
+                error instanceof Error ? error.message : 'Unknown error'
+              }`,
+              index,
+            });
+          }
+        });
+      }
     } catch (error) {
       console.error('Error detecting conflicts:', error);
+      conflicts.push({
+        type: 'validation_failed',
+        record: null,
+        message: `Error during conflict detection: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+        index: -1,
+      });
     }
 
     return conflicts;
+  }
+
+  // Sanitize and recover corrupted data where possible
+  private sanitizeImportRecord(record: any, sectionName: string): any | null {
+    try {
+      if (!record || typeof record !== 'object') {
+        return null;
+      }
+
+      const sanitized = { ...record };
+
+      // Remove circular references and functions
+      Object.keys(sanitized).forEach((key) => {
+        const value = sanitized[key];
+        if (typeof value === 'function') {
+          delete sanitized[key];
+        } else if (value && typeof value === 'object') {
+          try {
+            JSON.stringify(value);
+          } catch (error) {
+            console.warn(
+              `Removing circular reference in ${sectionName}.${key}`
+            );
+            delete sanitized[key];
+          }
+        }
+      });
+
+      // Sanitize based on section type
+      switch (sectionName) {
+        case 'products':
+          return this.sanitizeProductRecord(sanitized);
+        case 'sales':
+          return this.sanitizeSaleRecord(sanitized);
+        case 'customers':
+          return this.sanitizeCustomerRecord(sanitized);
+        case 'expenses':
+          return this.sanitizeExpenseRecord(sanitized);
+        case 'stockMovements':
+          return this.sanitizeStockMovementRecord(sanitized);
+        case 'bulkPricing':
+          return this.sanitizeBulkPricingRecord(sanitized);
+        default:
+          return sanitized;
+      }
+    } catch (error) {
+      console.error(`Error sanitizing ${sectionName} record:`, error);
+      return null;
+    }
+  }
+
+  // Sanitize product records
+  private sanitizeProductRecord(product: any): any | null {
+    try {
+      // Ensure required fields exist
+      if (!product.name || typeof product.name !== 'string') {
+        return null;
+      }
+
+      // Sanitize numeric fields
+      if (product.price !== undefined) {
+        const price = parseFloat(product.price);
+        if (isNaN(price) || price <= 0) {
+          return null;
+        }
+        product.price = price;
+      }
+
+      if (product.cost !== undefined) {
+        const cost = parseFloat(product.cost);
+        if (isNaN(cost) || cost <= 0) {
+          return null;
+        }
+        product.cost = cost;
+      }
+
+      if (product.quantity !== undefined) {
+        const quantity = parseInt(product.quantity);
+        if (isNaN(quantity) || quantity < 0) {
+          product.quantity = 0;
+        } else {
+          product.quantity = quantity;
+        }
+      }
+
+      // Sanitize string fields
+      product.name = product.name.toString().trim();
+      if (product.barcode) {
+        product.barcode = product.barcode.toString().trim();
+      }
+
+      return product;
+    } catch (error) {
+      console.error('Error sanitizing product record:', error);
+      return null;
+    }
+  }
+
+  // Sanitize sale records
+  private sanitizeSaleRecord(sale: any): any | null {
+    try {
+      // Ensure required fields exist
+      if (sale.total === undefined || sale.total === null) {
+        return null;
+      }
+
+      const total = parseFloat(sale.total);
+      if (isNaN(total) || total <= 0) {
+        return null;
+      }
+      sale.total = total;
+
+      if (!sale.payment_method || typeof sale.payment_method !== 'string') {
+        return null;
+      }
+
+      sale.payment_method = sale.payment_method.toString().trim();
+
+      return sale;
+    } catch (error) {
+      console.error('Error sanitizing sale record:', error);
+      return null;
+    }
+  }
+
+  // Sanitize customer records
+  private sanitizeCustomerRecord(customer: any): any | null {
+    try {
+      if (!customer.name || typeof customer.name !== 'string') {
+        return null;
+      }
+
+      customer.name = customer.name.toString().trim();
+
+      if (customer.phone) {
+        customer.phone = customer.phone.toString().trim();
+      }
+
+      if (customer.email) {
+        customer.email = customer.email.toString().trim();
+      }
+
+      return customer;
+    } catch (error) {
+      console.error('Error sanitizing customer record:', error);
+      return null;
+    }
+  }
+
+  // Sanitize expense records
+  private sanitizeExpenseRecord(expense: any): any | null {
+    try {
+      if (expense.amount === undefined || expense.amount === null) {
+        return null;
+      }
+
+      const amount = parseFloat(expense.amount);
+      if (isNaN(amount) || amount <= 0) {
+        return null;
+      }
+      expense.amount = amount;
+
+      if (!expense.description || typeof expense.description !== 'string') {
+        return null;
+      }
+
+      expense.description = expense.description.toString().trim();
+
+      return expense;
+    } catch (error) {
+      console.error('Error sanitizing expense record:', error);
+      return null;
+    }
+  }
+
+  // Sanitize stock movement records
+  private sanitizeStockMovementRecord(movement: any): any | null {
+    try {
+      if (!movement.product_id || !movement.movement_type) {
+        return null;
+      }
+
+      if (movement.quantity === undefined || movement.quantity === null) {
+        return null;
+      }
+
+      const quantity = parseFloat(movement.quantity);
+      if (isNaN(quantity)) {
+        return null;
+      }
+      movement.quantity = quantity;
+
+      movement.product_id = movement.product_id.toString().trim();
+      movement.movement_type = movement.movement_type.toString().trim();
+
+      return movement;
+    } catch (error) {
+      console.error('Error sanitizing stock movement record:', error);
+      return null;
+    }
+  }
+
+  // Sanitize bulk pricing records
+  private sanitizeBulkPricingRecord(bulkPricing: any): any | null {
+    try {
+      if (!bulkPricing.product_id) {
+        return null;
+      }
+
+      if (
+        bulkPricing.min_quantity === undefined ||
+        bulkPricing.bulk_price === undefined
+      ) {
+        return null;
+      }
+
+      const minQuantity = parseInt(bulkPricing.min_quantity);
+      const bulkPrice = parseFloat(bulkPricing.bulk_price);
+
+      if (
+        isNaN(minQuantity) ||
+        minQuantity <= 0 ||
+        isNaN(bulkPrice) ||
+        bulkPrice <= 0
+      ) {
+        return null;
+      }
+
+      bulkPricing.min_quantity = minQuantity;
+      bulkPricing.bulk_price = bulkPrice;
+      bulkPricing.product_id = bulkPricing.product_id.toString().trim();
+
+      return bulkPricing;
+    } catch (error) {
+      console.error('Error sanitizing bulk pricing record:', error);
+      return null;
+    }
   }
 
   // Import products
@@ -323,6 +1233,36 @@ export class DataImportService {
         importData.data ? Object.keys(importData.data) : 'No data field'
       );
 
+      // Validate that the file contains products data
+      const dataTypeValidation = this.validateDataTypeAvailability(
+        importData,
+        'products'
+      );
+      if (!dataTypeValidation.isValid) {
+        return {
+          success: false,
+          imported: 0,
+          updated: 0,
+          skipped: 0,
+          errors: [
+            {
+              index: -1,
+              record: null,
+              message:
+                dataTypeValidation.message || 'Products data not available',
+              code: 'MISSING_DATA_TYPE',
+            },
+          ],
+          conflicts: [],
+          duration: Date.now() - startTime,
+          dataType: 'products',
+          availableDataTypes: dataTypeValidation.availableTypes,
+          processedDataTypes: [],
+          detailedCounts: dataTypeValidation.detailedCounts,
+          validationMessage: dataTypeValidation.message,
+        };
+      }
+
       if (!importData.data || !importData.data.products) {
         throw new Error('No products data found in import file');
       }
@@ -330,13 +1270,15 @@ export class DataImportService {
       console.log('Products to import:', importData.data.products.length);
 
       const products = importData.data.products;
+      // Only process products-related data: products, categories, suppliers, and bulk pricing
       const categories = importData.data.categories || [];
       const suppliers = importData.data.suppliers || [];
+      const bulkPricing = importData.data.bulkPricing || [];
 
       this.updateProgress(
         'Validating data...',
         0,
-        products.length + categories.length
+        products.length + categories.length + suppliers.length
       );
 
       // Get existing data
@@ -344,7 +1286,7 @@ export class DataImportService {
       const existingCategories = await this.db.getCategories();
       const existingSuppliers = await this.db.getSuppliers();
 
-      // Import categories first if they don't exist
+      // Import categories first if they exist in the file and don't exist in database
       let categoryProgress = 0;
       for (const category of categories) {
         const existingCategory = existingCategories.find(
@@ -376,7 +1318,7 @@ export class DataImportService {
         );
       }
 
-      // Import suppliers if they don't exist
+      // Import suppliers if they exist in the file and don't exist in database
       let supplierProgress = 0;
       for (const supplier of suppliers) {
         const existingSupplier = existingSuppliers.find(
@@ -559,7 +1501,103 @@ export class DataImportService {
         await new Promise((resolve) => setTimeout(resolve, 10));
       }
 
+      // Process bulk pricing data if available
+      if (bulkPricing.length > 0) {
+        this.updateProgress('Importing bulk pricing...', 0, bulkPricing.length);
+
+        for (const [index, item] of bulkPricing.entries()) {
+          try {
+            // Find product by UUID first, then by name
+            let product = null;
+            if (item.productId && isValidUUID(item.productId)) {
+              const allProducts = await this.db.getProducts();
+              product = allProducts.find((p) => p.id === item.productId);
+            }
+            if (!product && item.productName) {
+              const allProducts = await this.db.getProducts();
+              product = allProducts.find((p) => p.name === item.productName);
+            }
+
+            if (product) {
+              // Clear existing bulk pricing for this product
+              const existingTiers = await this.db.getBulkPricingForProduct(
+                product.id
+              );
+              for (const tier of existingTiers) {
+                await this.db.deleteBulkPricing(tier.id);
+              }
+
+              // Add new bulk pricing tiers
+              for (const tier of item.bulkTiers || []) {
+                try {
+                  await this.db.addBulkPricing({
+                    product_id: product.id,
+                    min_quantity: tier.min_quantity,
+                    bulk_price: tier.bulk_price,
+                  });
+                } catch (error) {
+                  console.error('Bulk pricing tier import error:', error);
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Bulk pricing import error:', error);
+          }
+
+          this.updateProgress(
+            'Importing bulk pricing...',
+            index + 1,
+            bulkPricing.length
+          );
+        }
+      }
+
       const duration = Date.now() - startTime;
+
+      // Calculate actual processed counts for each data type
+      const actualProcessedCounts: Record<
+        string,
+        { imported: number; updated: number; skipped: number }
+      > = {};
+
+      // For products import, we process products, categories, suppliers, and bulk pricing
+      const processedTypes = [
+        'products',
+        'categories',
+        'suppliers',
+        'bulkPricing',
+      ].filter(
+        (type) =>
+          importData.data[type] &&
+          Array.isArray(importData.data[type]) &&
+          importData.data[type].length > 0
+      );
+
+      // Set counts for products (main data type)
+      actualProcessedCounts.products = { imported, updated, skipped };
+
+      // Set counts for related data types (categories and suppliers are typically all imported)
+      if (importData.data.categories?.length > 0) {
+        actualProcessedCounts.categories = {
+          imported: categories.length,
+          updated: 0,
+          skipped: 0,
+        };
+      }
+      if (importData.data.suppliers?.length > 0) {
+        actualProcessedCounts.suppliers = {
+          imported: suppliers.length,
+          updated: 0,
+          skipped: 0,
+        };
+      }
+      if (importData.data.bulkPricing?.length > 0) {
+        actualProcessedCounts.bulkPricing = {
+          imported: bulkPricing.length,
+          updated: 0,
+          skipped: 0,
+        };
+      }
 
       return {
         success: true,
@@ -569,6 +1607,12 @@ export class DataImportService {
         errors,
         conflicts,
         duration,
+        dataType: 'products',
+        availableDataTypes: dataTypeValidation.availableTypes,
+        processedDataTypes: processedTypes,
+        detailedCounts: dataTypeValidation.detailedCounts,
+        actualProcessedCounts,
+        validationMessage: `Successfully processed products data. ${imported} products imported, ${updated} updated, ${skipped} skipped.`,
       };
     } catch (error) {
       return {
@@ -587,6 +1631,14 @@ export class DataImportService {
         ],
         conflicts,
         duration: Date.now() - startTime,
+        dataType: 'products',
+        availableDataTypes: [],
+        processedDataTypes: [],
+        detailedCounts: {},
+        actualProcessedCounts: {},
+        validationMessage: `Import failed: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
       };
     }
   }
@@ -607,11 +1659,42 @@ export class DataImportService {
       const fileContent = await FileSystem.readAsStringAsync(fileUri);
       const importData = JSON.parse(fileContent);
 
+      // Validate that the file contains customers data
+      const dataTypeValidation = this.validateDataTypeAvailability(
+        importData,
+        'customers'
+      );
+      if (!dataTypeValidation.isValid) {
+        return {
+          success: false,
+          imported: 0,
+          updated: 0,
+          skipped: 0,
+          errors: [
+            {
+              index: -1,
+              record: null,
+              message:
+                dataTypeValidation.message || 'Customers data not available',
+              code: 'MISSING_DATA_TYPE',
+            },
+          ],
+          conflicts: [],
+          duration: Date.now() - startTime,
+          dataType: 'customers',
+          availableDataTypes: dataTypeValidation.availableTypes,
+          processedDataTypes: [],
+          detailedCounts: dataTypeValidation.detailedCounts,
+          validationMessage: dataTypeValidation.message,
+        };
+      }
+
       if (!importData.data || !importData.data.customers) {
         throw new Error('No customers data found in import file');
       }
 
       const customers = importData.data.customers;
+      // Only process customer data - no related data types for customers
       const existingCustomers = await this.db.getCustomers();
 
       this.updateProgress('Importing customers...', 0, customers.length);
@@ -717,6 +1800,14 @@ export class DataImportService {
         errors,
         conflicts,
         duration: Date.now() - startTime,
+        dataType: 'customers',
+        availableDataTypes: dataTypeValidation.availableTypes,
+        processedDataTypes: ['customers'],
+        detailedCounts: dataTypeValidation.detailedCounts,
+        actualProcessedCounts: {
+          customers: { imported, updated, skipped },
+        },
+        validationMessage: `Successfully processed customers data. ${imported} customers imported, ${updated} updated, ${skipped} skipped.`,
       };
     } catch (error) {
       return {
@@ -735,6 +1826,14 @@ export class DataImportService {
         ],
         conflicts,
         duration: Date.now() - startTime,
+        dataType: 'customers',
+        availableDataTypes: [],
+        processedDataTypes: [],
+        detailedCounts: {},
+        actualProcessedCounts: {},
+        validationMessage: `Import failed: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
       };
     }
   }
@@ -755,11 +1854,43 @@ export class DataImportService {
       const fileContent = await FileSystem.readAsStringAsync(fileUri);
       const importData = JSON.parse(fileContent);
 
+      // Validate that the file contains stock movements data
+      const dataTypeValidation = this.validateDataTypeAvailability(
+        importData,
+        'stockMovements'
+      );
+      if (!dataTypeValidation.isValid) {
+        return {
+          success: false,
+          imported: 0,
+          updated: 0,
+          skipped: 0,
+          errors: [
+            {
+              index: -1,
+              record: null,
+              message:
+                dataTypeValidation.message ||
+                'Stock movements data not available',
+              code: 'MISSING_DATA_TYPE',
+            },
+          ],
+          conflicts: [],
+          duration: Date.now() - startTime,
+          dataType: 'stockMovements',
+          availableDataTypes: dataTypeValidation.availableTypes,
+          processedDataTypes: [],
+          detailedCounts: dataTypeValidation.detailedCounts,
+          validationMessage: dataTypeValidation.message,
+        };
+      }
+
       if (!importData.data || !importData.data.stockMovements) {
         throw new Error('No stock movements data found in import file');
       }
 
       const movements = importData.data.stockMovements;
+      // Only process stock movements data - no related data types
       const products = await this.db.getProducts();
 
       this.updateProgress('Importing stock movements...', 0, movements.length);
@@ -854,6 +1985,14 @@ export class DataImportService {
         errors,
         conflicts,
         duration: Date.now() - startTime,
+        dataType: 'stockMovements',
+        availableDataTypes: dataTypeValidation.availableTypes,
+        processedDataTypes: ['stockMovements'],
+        detailedCounts: dataTypeValidation.detailedCounts,
+        actualProcessedCounts: {
+          stockMovements: { imported, updated, skipped },
+        },
+        validationMessage: `Successfully processed stock movements data. ${imported} movements imported, ${updated} updated, ${skipped} skipped.`,
       };
     } catch (error) {
       return {
@@ -872,6 +2011,14 @@ export class DataImportService {
         ],
         conflicts,
         duration: Date.now() - startTime,
+        dataType: 'stockMovements',
+        availableDataTypes: [],
+        processedDataTypes: [],
+        detailedCounts: {},
+        actualProcessedCounts: {},
+        validationMessage: `Import failed: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
       };
     }
   }
@@ -892,11 +2039,42 @@ export class DataImportService {
       const fileContent = await FileSystem.readAsStringAsync(fileUri);
       const importData = JSON.parse(fileContent);
 
+      // Validate that the file contains bulk pricing data
+      const dataTypeValidation = this.validateDataTypeAvailability(
+        importData,
+        'bulkPricing'
+      );
+      if (!dataTypeValidation.isValid) {
+        return {
+          success: false,
+          imported: 0,
+          updated: 0,
+          skipped: 0,
+          errors: [
+            {
+              index: -1,
+              record: null,
+              message:
+                dataTypeValidation.message || 'Bulk pricing data not available',
+              code: 'MISSING_DATA_TYPE',
+            },
+          ],
+          conflicts: [],
+          duration: Date.now() - startTime,
+          dataType: 'bulkPricing',
+          availableDataTypes: dataTypeValidation.availableTypes,
+          processedDataTypes: [],
+          detailedCounts: dataTypeValidation.detailedCounts,
+          validationMessage: dataTypeValidation.message,
+        };
+      }
+
       if (!importData.data || !importData.data.bulkPricing) {
         throw new Error('No bulk pricing data found in import file');
       }
 
       const bulkPricingData = importData.data.bulkPricing;
+      // Only process bulk pricing data - no related data types
       const products = await this.db.getProducts();
 
       this.updateProgress(
@@ -1001,6 +2179,14 @@ export class DataImportService {
         errors,
         conflicts,
         duration: Date.now() - startTime,
+        dataType: 'bulkPricing',
+        availableDataTypes: dataTypeValidation.availableTypes,
+        processedDataTypes: ['bulkPricing'],
+        detailedCounts: dataTypeValidation.detailedCounts,
+        actualProcessedCounts: {
+          bulkPricing: { imported, updated, skipped },
+        },
+        validationMessage: `Successfully processed bulk pricing data. ${imported} bulk pricing rules imported, ${updated} updated, ${skipped} skipped.`,
       };
     } catch (error) {
       return {
@@ -1019,6 +2205,14 @@ export class DataImportService {
         ],
         conflicts,
         duration: Date.now() - startTime,
+        dataType: 'bulkPricing',
+        availableDataTypes: [],
+        processedDataTypes: [],
+        detailedCounts: {},
+        actualProcessedCounts: {},
+        validationMessage: `Import failed: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
       };
     }
   }
@@ -1039,11 +2233,41 @@ export class DataImportService {
       const fileContent = await FileSystem.readAsStringAsync(fileUri);
       const importData = JSON.parse(fileContent);
 
+      // Validate that the file contains sales data
+      const dataTypeValidation = this.validateDataTypeAvailability(
+        importData,
+        'sales'
+      );
+      if (!dataTypeValidation.isValid) {
+        return {
+          success: false,
+          imported: 0,
+          updated: 0,
+          skipped: 0,
+          errors: [
+            {
+              index: -1,
+              record: null,
+              message: dataTypeValidation.message || 'Sales data not available',
+              code: 'MISSING_DATA_TYPE',
+            },
+          ],
+          conflicts: [],
+          duration: Date.now() - startTime,
+          dataType: 'sales',
+          availableDataTypes: dataTypeValidation.availableTypes,
+          processedDataTypes: [],
+          detailedCounts: dataTypeValidation.detailedCounts,
+          validationMessage: dataTypeValidation.message,
+        };
+      }
+
       if (!importData.data || !importData.data.sales) {
         throw new Error('No sales data found in import file');
       }
 
       const sales = importData.data.sales;
+      // Only process sales data and their associated sale items
 
       this.updateProgress('Importing sales...', 0, sales.length);
 
@@ -1128,6 +2352,19 @@ export class DataImportService {
         errors,
         conflicts,
         duration: Date.now() - startTime,
+        dataType: 'sales',
+        availableDataTypes: dataTypeValidation.availableTypes,
+        processedDataTypes: ['sales'].filter(
+          (type) =>
+            importData.data[type] &&
+            Array.isArray(importData.data[type]) &&
+            importData.data[type].length > 0
+        ),
+        detailedCounts: dataTypeValidation.detailedCounts,
+        actualProcessedCounts: {
+          sales: { imported, updated, skipped },
+        },
+        validationMessage: `Successfully processed sales data. ${imported} sales imported, ${updated} updated, ${skipped} skipped.`,
       };
     } catch (error) {
       return {
@@ -1146,6 +2383,14 @@ export class DataImportService {
         ],
         conflicts,
         duration: Date.now() - startTime,
+        dataType: 'sales',
+        availableDataTypes: [],
+        processedDataTypes: [],
+        detailedCounts: {},
+        actualProcessedCounts: {},
+        validationMessage: `Import failed: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
       };
     }
   }
@@ -1166,11 +2411,42 @@ export class DataImportService {
       const fileContent = await FileSystem.readAsStringAsync(fileUri);
       const importData = JSON.parse(fileContent);
 
+      // Validate that the file contains expenses data
+      const dataTypeValidation = this.validateDataTypeAvailability(
+        importData,
+        'expenses'
+      );
+      if (!dataTypeValidation.isValid) {
+        return {
+          success: false,
+          imported: 0,
+          updated: 0,
+          skipped: 0,
+          errors: [
+            {
+              index: -1,
+              record: null,
+              message:
+                dataTypeValidation.message || 'Expenses data not available',
+              code: 'MISSING_DATA_TYPE',
+            },
+          ],
+          conflicts: [],
+          duration: Date.now() - startTime,
+          dataType: 'expenses',
+          availableDataTypes: dataTypeValidation.availableTypes,
+          processedDataTypes: [],
+          detailedCounts: dataTypeValidation.detailedCounts,
+          validationMessage: dataTypeValidation.message,
+        };
+      }
+
       if (!importData.data || !importData.data.expenses) {
         throw new Error('No expenses data found in import file');
       }
 
       const expenses = importData.data.expenses;
+      // Only process expenses-related data: expenses and expense categories
       const expenseCategories = importData.data.expenseCategories || [];
 
       this.updateProgress(
@@ -1179,7 +2455,7 @@ export class DataImportService {
         expenses.length + expenseCategories.length
       );
 
-      // Import expense categories first
+      // Import expense categories first if they exist in the file
       const existingExpenseCategories = await this.db.getExpenseCategories();
       let categoryProgress = 0;
 
@@ -1266,6 +2542,28 @@ export class DataImportService {
         await new Promise((resolve) => setTimeout(resolve, 10));
       }
 
+      const processedTypes = ['expenses', 'expenseCategories'].filter(
+        (type) =>
+          importData.data[type] &&
+          Array.isArray(importData.data[type]) &&
+          importData.data[type].length > 0
+      );
+
+      // Calculate actual processed counts for each data type
+      const actualProcessedCounts: Record<
+        string,
+        { imported: number; updated: number; skipped: number }
+      > = {};
+      actualProcessedCounts.expenses = { imported, updated, skipped };
+
+      if (importData.data.expenseCategories?.length > 0) {
+        actualProcessedCounts.expenseCategories = {
+          imported: expenseCategories.length,
+          updated: 0,
+          skipped: 0,
+        };
+      }
+
       return {
         success: true,
         imported,
@@ -1274,6 +2572,12 @@ export class DataImportService {
         errors,
         conflicts,
         duration: Date.now() - startTime,
+        dataType: 'expenses',
+        availableDataTypes: dataTypeValidation.availableTypes,
+        processedDataTypes: processedTypes,
+        detailedCounts: dataTypeValidation.detailedCounts,
+        actualProcessedCounts,
+        validationMessage: `Successfully processed expenses data. ${imported} expenses imported, ${updated} updated, ${skipped} skipped.`,
       };
     } catch (error) {
       return {
@@ -1292,6 +2596,14 @@ export class DataImportService {
         ],
         conflicts,
         duration: Date.now() - startTime,
+        dataType: 'expenses',
+        availableDataTypes: [],
+        processedDataTypes: [],
+        detailedCounts: {},
+        actualProcessedCounts: {},
+        validationMessage: `Import failed: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
       };
     }
   }
@@ -1403,6 +2715,18 @@ export class DataImportService {
         currentStage++;
       }
 
+      const processedDataTypes = Object.keys(data).filter(
+        (key) => Array.isArray(data[key]) && data[key].length > 0
+      );
+
+      // Calculate detailed counts for all data types
+      const detailedCounts: Record<string, number> = {};
+      Object.keys(data).forEach((key) => {
+        if (Array.isArray(data[key])) {
+          detailedCounts[key] = data[key].length;
+        }
+      });
+
       return {
         success: true,
         imported: totalImported,
@@ -1411,6 +2735,11 @@ export class DataImportService {
         errors: allErrors,
         conflicts: allConflicts,
         duration: Date.now() - startTime,
+        dataType: 'all',
+        availableDataTypes: processedDataTypes,
+        processedDataTypes: processedDataTypes,
+        detailedCounts,
+        validationMessage: `Successfully processed complete backup. ${totalImported} records imported, ${totalUpdated} updated, ${totalSkipped} skipped across ${processedDataTypes.length} data types.`,
       };
     } catch (error) {
       return {
@@ -1429,6 +2758,13 @@ export class DataImportService {
         ],
         conflicts: allConflicts,
         duration: Date.now() - startTime,
+        dataType: 'all',
+        availableDataTypes: [],
+        processedDataTypes: [],
+        detailedCounts: {},
+        validationMessage: `Complete backup import failed: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
       };
     }
   }
@@ -1660,6 +2996,100 @@ export class DataImportService {
         email: '',
         address: '',
       });
+    }
+  }
+
+  // Generate detailed import summary for UI display
+  generateImportSummary(result: ImportResult): string {
+    if (!result.success) {
+      return (
+        result.validationMessage ||
+        `Import failed: ${result.errors[0]?.message || 'Unknown error'}`
+      );
+    }
+
+    let summary = result.validationMessage || '';
+
+    if (
+      result.detailedCounts &&
+      Object.keys(result.detailedCounts).length > 0
+    ) {
+      summary += '\n\nFile contents:';
+      Object.entries(result.detailedCounts).forEach(([type, count]) => {
+        summary += `\n- ${type}: ${count} records`;
+      });
+    }
+
+    if (
+      result.actualProcessedCounts &&
+      Object.keys(result.actualProcessedCounts).length > 0
+    ) {
+      summary += '\n\nProcessed:';
+      Object.entries(result.actualProcessedCounts).forEach(([type, counts]) => {
+        summary += `\n- ${type}: ${counts.imported} imported, ${counts.updated} updated, ${counts.skipped} skipped`;
+      });
+    }
+
+    if (result.errors.length > 0) {
+      summary += `\n\nWarnings: ${result.errors.length} issues encountered during import`;
+    }
+
+    return summary;
+  }
+
+  // Validate import file and provide detailed feedback about available data types
+  async validateImportFileWithFeedback(
+    fileUri: string,
+    selectedDataType: string
+  ): Promise<{
+    isValid: boolean;
+    message: string;
+    availableTypes: string[];
+    detailedCounts: Record<string, number>;
+    canProceed: boolean;
+  }> {
+    try {
+      const fileContent = await FileSystem.readAsStringAsync(fileUri);
+      const importData = JSON.parse(fileContent);
+
+      const validation = this.validateDataTypeAvailability(
+        importData,
+        selectedDataType
+      );
+
+      let message = '';
+      if (validation.isValid) {
+        message = `✓ Import file contains ${selectedDataType} data and is ready for import.`;
+        if (validation.detailedCounts) {
+          const availableTypesWithCounts = Object.entries(
+            validation.detailedCounts
+          )
+            .filter(([_, count]) => count > 0)
+            .map(([type, count]) => `${type} (${count} records)`)
+            .join(', ');
+          message += `\n\nAvailable data: ${availableTypesWithCounts}`;
+        }
+      } else {
+        message = validation.message || 'Import file validation failed';
+      }
+
+      return {
+        isValid: validation.isValid,
+        message,
+        availableTypes: validation.availableTypes,
+        detailedCounts: validation.detailedCounts || {},
+        canProceed: validation.isValid,
+      };
+    } catch (error) {
+      return {
+        isValid: false,
+        message: `Failed to read import file: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+        availableTypes: [],
+        detailedCounts: {},
+        canProceed: false,
+      };
     }
   }
 
