@@ -23,7 +23,7 @@
   - Create ExportPreview interface with detailed count information
   - _Requirements: 2.1, 2.2, 2.3_
 
-- [ ] 4. Simplify import service for "all data" only
+- [x] 4. Simplify import service for "all data" only
 
   - Modify DataImportService to keep only importCompleteBackup method
   - Rename importCompleteBackup to importAllData for clarity
