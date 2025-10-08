@@ -13,15 +13,9 @@ import { useRouter } from 'expo-router';
 import {
   ArrowLeft,
   Download,
-  FileText,
-  Package,
-  DollarSign,
   Database,
   Share,
   CheckCircle,
-  Users,
-  TrendingUp,
-  Tag,
   HelpCircle,
 } from 'lucide-react-native';
 import DataManagementGuide from '@/components/DataManagementGuide';
@@ -40,15 +34,7 @@ interface ExportOption {
   icon: any;
   color: string;
   backgroundColor: string;
-  dataType:
-    | 'sales'
-    | 'products'
-    | 'expenses'
-    | 'shopSettings'
-    | 'customers'
-    | 'stockMovements'
-    | 'bulkPricing'
-    | 'all';
+  dataType: 'all';
 }
 
 export default function DataExport() {
@@ -68,13 +54,7 @@ export default function DataExport() {
   // Get user-friendly display name for data types
   const getDataTypeDisplayName = (dataType: string): string => {
     const displayNames: Record<string, string> = {
-      products: 'Products & Inventory',
-      sales: 'Sales Data',
-      customers: 'Customer Data',
-      expenses: 'Expenses',
-      stockMovements: 'Stock Movements',
-      bulkPricing: 'Bulk Pricing',
-      all: 'Complete Backup',
+      all: 'Export All Data',
     };
 
     return displayNames[dataType] || dataType;
@@ -93,64 +73,9 @@ export default function DataExport() {
 
   const exportOptions: ExportOption[] = [
     {
-      id: 'sales',
-      title: t('dataExport.salesData'),
-      description: t('dataExport.salesDataDesc'),
-      icon: DollarSign,
-      color: '#10B981',
-      backgroundColor: '#ECFDF5',
-      dataType: 'sales',
-    },
-    {
-      id: 'products',
-      title: t('dataExport.productsInventory'),
-      description: t('dataExport.productsInventoryDesc'),
-      icon: Package,
-      color: '#3B82F6',
-      backgroundColor: '#EFF6FF',
-      dataType: 'products',
-    },
-    {
-      id: 'customers',
-      title: t('dataExport.customersData'),
-      description: t('dataExport.customersDataDesc'),
-      icon: Users,
-      color: '#F59E0B',
-      backgroundColor: '#FFFBEB',
-      dataType: 'customers',
-    },
-    {
-      id: 'stockMovements',
-      title: t('dataExport.stockMovements'),
-      description: t('dataExport.stockMovementsDesc'),
-      icon: TrendingUp,
-      color: '#06B6D4',
-      backgroundColor: '#ECFEFF',
-      dataType: 'stockMovements',
-    },
-    {
-      id: 'bulkPricing',
-      title: t('dataExport.bulkPricing'),
-      description: t('dataExport.bulkPricingDesc'),
-      icon: Tag,
-      color: '#8B5CF6',
-      backgroundColor: '#F5F3FF',
-      dataType: 'bulkPricing',
-    },
-    {
-      id: 'expenses',
-      title: t('dataExport.expensesData'),
-      description: t('dataExport.expensesDataDesc'),
-      icon: FileText,
-      color: '#EF4444',
-      backgroundColor: '#FEF2F2',
-      dataType: 'expenses',
-    },
-
-    {
-      id: 'complete',
-      title: t('dataExport.completeBackup'),
-      description: t('dataExport.completeBackupDesc'),
+      id: 'exportAll',
+      title: t('dataExport.exportAllData'),
+      description: t('dataExport.exportAllDataDesc'),
       icon: Database,
       color: '#8B5CF6',
       backgroundColor: '#F5F3FF',
@@ -168,27 +93,18 @@ export default function DataExport() {
     setExportProgress(null);
 
     try {
-      let result;
-
-      // Only 'all' data export is supported now
-      if (option.dataType !== 'all') {
-        throw new Error(
-          `Unsupported export type: ${option.dataType}. Only 'all' data export is supported.`
-        );
-      }
-
-      result = await exportService.exportAllData();
+      const result = await exportService.exportAllData();
 
       if (result.success && result.fileUri) {
-        // Generate enhanced user-friendly feedback message with specific data type information
+        // Generate enhanced user-friendly feedback message
         const dataTypeName = getDataTypeDisplayName(option.dataType);
         let feedbackMessage: string;
 
         if (result.emptyExport) {
-          feedbackMessage = `${dataTypeName} export completed, but no data was found. An empty export file has been created for consistency.`;
+          feedbackMessage = `${dataTypeName} completed, but no data was found. An empty export file has been created for consistency.`;
         } else {
           const recordText = result.recordCount === 1 ? 'record' : 'records';
-          feedbackMessage = `${dataTypeName} export completed successfully! ${result.recordCount} ${recordText} exported.`;
+          feedbackMessage = `${dataTypeName} completed successfully! ${result.recordCount} ${recordText} exported.`;
         }
 
         // Handle empty exports with special messaging

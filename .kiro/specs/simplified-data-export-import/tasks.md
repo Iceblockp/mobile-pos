@@ -39,7 +39,7 @@
   - Add conflict statistics (total conflicts, conflicts per data type)
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-- [ ] 6. Update export UI to show only "Export All Data" option
+- [x] 6. Update export UI to show only "Export All Data" option
 
   - Remove individual export options from app/data-export.tsx
   - Keep only the "Complete Backup" option and rename it to "Export All Data"

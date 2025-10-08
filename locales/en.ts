@@ -916,6 +916,9 @@ export const en = {
     completeBackup: 'Complete Backup',
     completeBackupDesc:
       'Export all data including sales, products, expenses, customers, and settings',
+    exportAllData: 'Export All Data',
+    exportAllDataDesc:
+      'Export all data including sales, products, expenses, customers, and settings',
     exporting: 'Exporting...',
     exportInfo: 'Export Information',
     exportInfoTitle: 'Export Information',
