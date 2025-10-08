@@ -330,10 +330,7 @@ export default function DataImport() {
           );
           break;
         case 'all':
-          result = await importService.importCompleteBackup(
-            fileUri,
-            importOptions
-          );
+          result = await importService.importAllData(fileUri, importOptions);
           break;
         default:
           throw new Error(`Unsupported import type: ${option.dataType}`);

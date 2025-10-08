@@ -39,14 +39,7 @@ export interface ExportMetadata {
 export interface ExportData {
   version: string;
   exportDate: string;
-  dataType:
-    | 'products'
-    | 'sales'
-    | 'customers'
-    | 'expenses'
-    | 'stock_movements'
-    | 'bulk_pricing'
-    | 'complete';
+  dataType: 'all';
   metadata: ExportMetadata;
   data: {
     products?: any[];
@@ -84,92 +77,24 @@ export class DataExportService {
     this.performanceOptimizer = new PerformanceOptimizationService();
   }
 
-  // Enhanced data filtering logic to ensure exports contain only selected data type
-  private filterDataByType(allData: any, dataType: string): any {
-    const filteredData: any = {};
-
+  // Simplified data validation for all data export
+  private validateAllData(allData: any): any {
     try {
       // Validate input data structure
       if (!allData || typeof allData !== 'object') {
-        throw new Error('Invalid data structure provided for filtering');
+        throw new Error('Invalid data structure provided for validation');
       }
 
-      switch (dataType) {
-        case 'products':
-          filteredData.products = this.validateAndSanitizeArray(
-            allData.products,
-            'products'
-          );
-          filteredData.categories = this.validateAndSanitizeArray(
-            allData.categories,
-            'categories'
-          );
-          filteredData.suppliers = this.validateAndSanitizeArray(
-            allData.suppliers,
-            'suppliers'
-          );
-          filteredData.bulkPricing = this.validateAndSanitizeArray(
-            allData.bulkPricing,
-            'bulkPricing'
-          );
-          break;
-        case 'sales':
-          filteredData.sales = this.validateAndSanitizeArray(
-            allData.sales,
-            'sales'
-          );
-          filteredData.saleItems = this.validateAndSanitizeArray(
-            allData.saleItems,
-            'saleItems'
-          );
-          break;
-        case 'customers':
-          filteredData.customers = this.validateAndSanitizeArray(
-            allData.customers,
-            'customers'
-          );
-          break;
-        case 'expenses':
-          filteredData.expenses = this.validateAndSanitizeArray(
-            allData.expenses,
-            'expenses'
-          );
-          filteredData.expenseCategories = this.validateAndSanitizeArray(
-            allData.expenseCategories,
-            'expenseCategories'
-          );
-          break;
-        case 'stock_movements':
-          filteredData.stockMovements = this.validateAndSanitizeArray(
-            allData.stockMovements,
-            'stockMovements'
-          );
-          break;
-        case 'bulk_pricing':
-          filteredData.bulkPricing = this.validateAndSanitizeArray(
-            allData.bulkPricing,
-            'bulkPricing'
-          );
-          break;
-        case 'complete':
-          // Validate all data sections for complete backup
-          const validatedData: any = {};
-          Object.keys(allData).forEach((key) => {
-            validatedData[key] = this.validateAndSanitizeArray(
-              allData[key],
-              key
-            );
-          });
-          return validatedData;
-        default:
-          throw new Error(`Unsupported data type: ${dataType}`);
-      }
-
-      return filteredData;
+      // Validate all data sections for complete backup
+      const validatedData: any = {};
+      Object.keys(allData).forEach((key) => {
+        validatedData[key] = this.validateAndSanitizeArray(allData[key], key);
+      });
+      return validatedData;
     } catch (error) {
-      console.error('Error filtering data by type:', error);
+      console.error('Error validating all data:', error);
       throw new Error(
-        `Failed to filter data for type '${dataType}': ${
+        `Failed to validate data: ${
           error instanceof Error ? error.message : 'Unknown error'
         }`
       );
@@ -342,55 +267,25 @@ export class DataExportService {
     }
   }
 
-  // Calculate actual record count for the selected data type
-  private calculateActualRecordCount(data: any, dataType: string): number {
-    switch (dataType) {
-      case 'products':
-        return (
-          (data.products?.length || 0) +
-          (data.categories?.length || 0) +
-          (data.suppliers?.length || 0) +
-          (data.bulkPricing?.length || 0)
-        );
-      case 'sales':
-        const saleItemsCount =
-          data.sales?.reduce(
-            (sum: number, sale: any) => sum + (sale.items?.length || 0),
-            0
-          ) || 0;
-        return (data.sales?.length || 0) + saleItemsCount;
-      case 'customers':
-        return data.customers?.length || 0;
-      case 'expenses':
-        return (
-          (data.expenses?.length || 0) + (data.expenseCategories?.length || 0)
-        );
-      case 'stock_movements':
-        return data.stockMovements?.length || 0;
-      case 'bulk_pricing':
-        return data.bulkPricing?.length || 0;
-      case 'complete':
-        let totalCount = 0;
-        for (const value of Object.values(data)) {
-          if (Array.isArray(value)) {
-            totalCount += value.length;
-          }
-        }
-        return totalCount;
-      default:
-        return 0;
+  // Calculate total record count for all data export
+  private calculateTotalRecordCount(data: any): number {
+    let totalCount = 0;
+    for (const value of Object.values(data)) {
+      if (Array.isArray(value)) {
+        totalCount += value.length;
+      }
     }
+    return totalCount;
   }
 
-  // Check if the export is empty for the selected data type
-  private isEmptyExport(data: any, dataType: string): boolean {
-    return this.calculateActualRecordCount(data, dataType) === 0;
+  // Check if the export is empty
+  private isEmptyExport(data: any): boolean {
+    return this.calculateTotalRecordCount(data) === 0;
   }
 
   // Create a standardized export result with proper feedback
   private createExportResult(
     success: boolean,
-    dataType: string,
     actualRecordCount: number,
     fileUri?: string,
     filename?: string,
@@ -405,10 +300,10 @@ export class DataExportService {
       recordCount: actualRecordCount,
       error,
       emptyExport: isEmpty,
-      actualDataType: dataType,
+      actualDataType: 'all',
       metadata: {
         exportDate: new Date().toISOString(),
-        dataType,
+        dataType: 'all',
         version: '2.0',
         recordCount: actualRecordCount,
         fileSize: 0, // Will be updated after file creation
@@ -418,26 +313,26 @@ export class DataExportService {
     };
   }
 
-  // Handle empty data type exports with proper user notification
-  private async handleEmptyExport(dataType: string): Promise<ExportResult> {
+  // Handle empty data exports with proper user notification
+  private async handleEmptyExport(): Promise<ExportResult> {
     try {
-      console.log(`Handling empty export for data type: ${dataType}`);
+      console.log('Handling empty export for all data');
 
       // Create empty export data structure
       const emptyExportData: ExportData = {
         version: '2.0',
         exportDate: new Date().toISOString(),
-        dataType: dataType as any,
+        dataType: 'all',
         metadata: {
           exportDate: new Date().toISOString(),
-          dataType,
+          dataType: 'all',
           version: '2.0',
           recordCount: 0,
           fileSize: 0,
           emptyExport: true,
           actualRecordCount: 0,
         },
-        data: this.createEmptyDataStructure(dataType),
+        data: this.createEmptyDataStructure(),
         relationships: {
           productCategories: {},
           productSuppliers: {},
@@ -445,13 +340,13 @@ export class DataExportService {
         },
         integrity: {
           checksum: '',
-          recordCounts: this.createEmptyRecordCounts(dataType),
-          validationRules: this.getValidationRulesForDataType(dataType),
+          recordCounts: this.createEmptyRecordCounts(),
+          validationRules: this.getValidationRulesForAllData(),
         },
       };
 
       // Generate empty export file
-      const filename = `${dataType}_export_${
+      const filename = `all_data_export_${
         new Date().toISOString().split('T')[0]
       }_empty.json`;
       const fileResult = await this.generateExportFile(
@@ -461,7 +356,6 @@ export class DataExportService {
 
       return this.createExportResult(
         true,
-        dataType,
         0,
         fileResult.fileUri,
         fileResult.filename
@@ -470,7 +364,6 @@ export class DataExportService {
       console.error('Error handling empty export:', error);
       return this.createExportResult(
         false,
-        dataType,
         0,
         undefined,
         undefined,
@@ -481,125 +374,46 @@ export class DataExportService {
     }
   }
 
-  // Create empty data structure for a specific data type
-  private createEmptyDataStructure(dataType: string): any {
-    const emptyData: any = {};
-
-    switch (dataType) {
-      case 'products':
-        emptyData.products = [];
-        emptyData.categories = [];
-        emptyData.suppliers = [];
-        emptyData.bulkPricing = [];
-        break;
-      case 'sales':
-        emptyData.sales = [];
-        emptyData.saleItems = [];
-        break;
-      case 'customers':
-        emptyData.customers = [];
-        break;
-      case 'expenses':
-        emptyData.expenses = [];
-        emptyData.expenseCategories = [];
-        break;
-      case 'stock_movements':
-        emptyData.stockMovements = [];
-        break;
-      case 'bulk_pricing':
-        emptyData.bulkPricing = [];
-        break;
-      case 'complete':
-        emptyData.products = [];
-        emptyData.categories = [];
-        emptyData.suppliers = [];
-        emptyData.sales = [];
-        emptyData.saleItems = [];
-        emptyData.customers = [];
-        emptyData.expenses = [];
-        emptyData.expenseCategories = [];
-        emptyData.stockMovements = [];
-        emptyData.bulkPricing = [];
-        break;
-    }
-
-    return emptyData;
+  // Create empty data structure for all data export
+  private createEmptyDataStructure(): any {
+    return {
+      products: [],
+      categories: [],
+      suppliers: [],
+      sales: [],
+      saleItems: [],
+      customers: [],
+      expenses: [],
+      expenseCategories: [],
+      stockMovements: [],
+      bulkPricing: [],
+    };
   }
 
-  // Create empty record counts for a specific data type
-  private createEmptyRecordCounts(dataType: string): Record<string, number> {
-    const counts: Record<string, number> = {};
-
-    switch (dataType) {
-      case 'products':
-        counts.products = 0;
-        counts.categories = 0;
-        counts.suppliers = 0;
-        counts.bulkPricing = 0;
-        break;
-      case 'sales':
-        counts.sales = 0;
-        counts.saleItems = 0;
-        break;
-      case 'customers':
-        counts.customers = 0;
-        break;
-      case 'expenses':
-        counts.expenses = 0;
-        counts.expenseCategories = 0;
-        break;
-      case 'stock_movements':
-        counts.stockMovements = 0;
-        break;
-      case 'bulk_pricing':
-        counts.bulkPricing = 0;
-        break;
-      case 'complete':
-        counts.products = 0;
-        counts.categories = 0;
-        counts.suppliers = 0;
-        counts.sales = 0;
-        counts.saleItems = 0;
-        counts.customers = 0;
-        counts.expenses = 0;
-        counts.expenseCategories = 0;
-        counts.stockMovements = 0;
-        counts.bulkPricing = 0;
-        break;
-    }
-
-    return counts;
+  // Create empty record counts for all data export
+  private createEmptyRecordCounts(): Record<string, number> {
+    return {
+      products: 0,
+      categories: 0,
+      suppliers: 0,
+      sales: 0,
+      saleItems: 0,
+      customers: 0,
+      expenses: 0,
+      expenseCategories: 0,
+      stockMovements: 0,
+      bulkPricing: 0,
+    };
   }
 
-  // Get validation rules for a specific data type
-  private getValidationRulesForDataType(dataType: string): string[] {
-    switch (dataType) {
-      case 'products':
-        return ['required_fields', 'positive_prices', 'valid_categories'];
-      case 'sales':
-        return ['positive_amounts', 'valid_dates', 'valid_payment_methods'];
-      case 'customers':
-        return ['valid_contact_info', 'unique_identifiers'];
-      case 'expenses':
-        return ['positive_amounts', 'valid_dates', 'valid_categories'];
-      case 'stock_movements':
-        return [
-          'valid_movement_types',
-          'positive_quantities',
-          'valid_products',
-        ];
-      case 'bulk_pricing':
-        return ['positive_quantities', 'positive_prices', 'valid_products'];
-      case 'complete':
-        return [
-          'required_fields',
-          'positive_amounts',
-          'valid_dates',
-          'valid_references',
-        ];
-      default:
-        return ['basic_validation'];
-    }
+  // Get validation rules for all data export
+  private getValidationRulesForAllData(): string[] {
+    return [
+      'required_fields',
+      'positive_amounts',
+      'valid_dates',
+      'valid_references',
+    ];
   }
 
   // Generate user-friendly feedback message for export results
@@ -608,45 +422,20 @@ export class DataExportService {
       return `Export failed: ${result.error || 'Unknown error'}`;
     }
 
-    const dataTypeName = this.getDataTypeDisplayName(
-      result.actualDataType || 'unknown'
-    );
-
     if (result.emptyExport) {
-      return `${dataTypeName} export completed, but no data was found. An empty export file has been created for consistency.`;
+      return `All data export completed, but no data was found. An empty export file has been created for consistency.`;
     }
 
     const recordText = result.recordCount === 1 ? 'record' : 'records';
-    return `${dataTypeName} export completed successfully! ${result.recordCount} ${recordText} exported.`;
+    return `All data export completed successfully! ${result.recordCount} ${recordText} exported.`;
   }
 
-  // Get user-friendly display name for data types
-  private getDataTypeDisplayName(dataType: string): string {
-    const displayNames: Record<string, string> = {
-      products: 'Products & Inventory',
-      sales: 'Sales Data',
-      customers: 'Customer Data',
-      expenses: 'Expenses',
-      stock_movements: 'Stock Movements',
-      bulk_pricing: 'Bulk Pricing',
-      complete: 'Complete Backup',
-    };
-
-    return displayNames[dataType] || dataType;
-  }
-
-  // Enhanced progress reporting that reflects actual data being processed
-  private updateProgressWithDataType(
-    stage: string,
-    current: number,
-    total: number,
-    dataType?: string
-  ): void {
+  // Progress reporting for export operations
+  private updateProgress(stage: string, current: number, total: number): void {
     if (this.progressCallback) {
       const percentage = total > 0 ? (current / total) * 100 : 0;
-      const enhancedStage = dataType ? `${stage} (${dataType})` : stage;
       this.progressCallback({
-        stage: enhancedStage,
+        stage,
         current,
         total,
         percentage,
@@ -659,780 +448,20 @@ export class DataExportService {
     this.progressCallback = callback;
   }
 
-  // Export products with categories, suppliers, and bulk pricing
-  async exportProducts(): Promise<ExportResult> {
+  // Export all data
+  async exportAllData(): Promise<ExportResult> {
     try {
-      this.updateProgressWithDataType(
-        'Fetching products data...',
-        0,
-        4,
-        'products'
-      );
-
-      const products = await this.db.getProducts();
-      this.updateProgressWithDataType(
-        'Fetching categories...',
-        1,
-        4,
-        'products'
-      );
-
-      const categories = await this.db.getCategories();
-      this.updateProgressWithDataType(
-        'Fetching suppliers...',
-        2,
-        4,
-        'products'
-      );
-
-      const suppliers = await this.db.getSuppliers();
-      this.updateProgressWithDataType(
-        'Fetching bulk pricing...',
-        3,
-        4,
-        'products'
-      );
-
-      // Get bulk pricing for all products
-      const bulkPricingData = await Promise.all(
-        products.map(async (product) => {
-          try {
-            const bulkTiers = await this.db.getBulkPricingForProduct(
-              product.id
-            );
-            return {
-              productId: product.id,
-              productName: product.name,
-              bulkTiers,
-            };
-          } catch (error) {
-            return {
-              productId: product.id,
-              productName: product.name,
-              bulkTiers: [],
-            };
-          }
-        })
-      );
-
-      // Filter bulk pricing to only include products with tiers
-      const filteredBulkPricing = bulkPricingData.filter(
-        (item) => item.bulkTiers.length > 0
-      );
-
-      // Apply data filtering to ensure only products-related data is included
-      const allData = {
-        products: products.map((product) => ({
-          ...product,
-          created_at: undefined,
-          updated_at: undefined,
-        })),
-        categories,
-        suppliers,
-        bulkPricing: filteredBulkPricing,
-      };
-
-      const filteredData = this.filterDataByType(allData, 'products');
-      const actualRecordCount = this.calculateActualRecordCount(
-        filteredData,
-        'products'
-      );
-
-      // Create initial export result
-      const initialResult = this.createExportResult(
-        true,
-        'products',
-        actualRecordCount
-      );
-
-      const exportData: ExportData = {
-        version: '2.0',
-        exportDate: new Date().toISOString(),
-        dataType: 'products',
-        metadata: {
-          ...initialResult.metadata,
-          fileSize: 0, // Will be calculated after file creation
-        },
-        data: filteredData,
-        relationships: this.buildRelationshipMappings(
-          products,
-          categories,
-          suppliers,
-          []
-        ),
-        integrity: {
-          checksum: '',
-          recordCounts: {
-            products: filteredData.products?.length || 0,
-            categories: filteredData.categories?.length || 0,
-            suppliers: filteredData.suppliers?.length || 0,
-            bulkPricing: filteredData.bulkPricing?.length || 0,
-          },
-          validationRules: [
-            'required_fields',
-            'positive_prices',
-            'valid_categories',
-          ],
-        },
-      };
-
-      this.updateProgressWithDataType(
-        'Generating export file...',
-        4,
-        4,
-        'products'
-      );
-
-      const filename = `products_export_${
-        new Date().toISOString().split('T')[0]
-      }.json`;
-      const fileResult = await this.generateExportFile(exportData, filename);
-
-      // Update the result with file information
-      const finalResult = this.createExportResult(
-        true,
-        'products',
-        actualRecordCount,
-        fileResult.fileUri,
-        fileResult.filename
-      );
-
-      // Update metadata with actual file size
-      finalResult.metadata.fileSize = exportData.metadata.fileSize;
-      finalResult.metadata.checksum = exportData.integrity.checksum;
-
-      return finalResult;
-    } catch (error) {
-      console.error('Products export error:', error);
-      return this.createExportResult(
-        false,
-        'products',
-        0,
-        undefined,
-        undefined,
-        error instanceof Error ? error.message : 'Unknown export error'
-      );
-    }
-  }
-
-  // Export sales with items and customer information
-  async exportSales(): Promise<ExportResult> {
-    try {
-      this.updateProgressWithDataType('Fetching sales data...', 0, 3, 'sales');
-
-      // Get sales from a very early date to get all records
-      const startDate = new Date('2020-01-01');
-      const endDate = new Date();
-      const sales = await this.db.getSalesByDateRange(
-        startDate,
-        endDate,
-        10000
-      );
-
-      this.updateProgressWithDataType('Fetching sale items...', 1, 3, 'sales');
-
-      // Get sale items for each sale
-      const salesWithItems = await Promise.all(
-        sales.map(async (sale) => {
-          const items = await this.db.getSaleItems(sale.id);
-          return {
-            ...sale,
-            items,
-          };
-        })
-      );
-
-      this.updateProgressWithDataType(
-        'Preparing export data...',
-        2,
-        3,
-        'sales'
-      );
-
-      // Apply data filtering to ensure only sales-related data is included
-      const allData = {
-        sales: salesWithItems,
-        saleItems: salesWithItems.flatMap((sale) => sale.items || []),
-      };
-
-      const filteredData = this.filterDataByType(allData, 'sales');
-      const actualRecordCount = this.calculateActualRecordCount(
-        filteredData,
-        'sales'
-      );
-
-      // Create initial export result
-      const initialResult = this.createExportResult(
-        true,
-        'sales',
-        actualRecordCount
-      );
-
-      const exportData: ExportData = {
-        version: '2.0',
-        exportDate: new Date().toISOString(),
-        dataType: 'sales',
-        metadata: {
-          ...initialResult.metadata,
-          fileSize: 0, // Will be calculated after file creation
-        },
-        data: filteredData,
-        relationships: {
-          productCategories: {},
-          productSuppliers: {},
-          saleCustomers: {},
-        },
-        integrity: {
-          checksum: '',
-          recordCounts: {
-            sales: filteredData.sales?.length || 0,
-            saleItems:
-              filteredData.sales?.reduce(
-                (sum: number, sale: any) => sum + (sale.items?.length || 0),
-                0
-              ) || 0,
-          },
-          validationRules: [
-            'positive_amounts',
-            'valid_dates',
-            'valid_payment_methods',
-          ],
-        },
-      };
-
-      this.updateProgressWithDataType(
-        'Generating export file...',
-        3,
-        3,
-        'sales'
-      );
-
-      const filename = `sales_export_${
-        new Date().toISOString().split('T')[0]
-      }.json`;
-      const fileResult = await this.generateExportFile(exportData, filename);
-
-      // Update the result with file information
-      const finalResult = this.createExportResult(
-        true,
-        'sales',
-        actualRecordCount,
-        fileResult.fileUri,
-        fileResult.filename
-      );
-
-      // Update metadata with actual file size
-      finalResult.metadata.fileSize = exportData.metadata.fileSize;
-      finalResult.metadata.checksum = exportData.integrity.checksum;
-
-      return finalResult;
-    } catch (error) {
-      console.error('Sales export error:', error);
-      return this.createExportResult(
-        false,
-        'sales',
-        0,
-        undefined,
-        undefined,
-        error instanceof Error ? error.message : 'Unknown export error'
-      );
-    }
-  }
-
-  // Export customers with purchase history and statistics
-  async exportCustomers(): Promise<ExportResult> {
-    try {
-      this.updateProgressWithDataType(
-        'Fetching customers...',
-        0,
-        2,
-        'customers'
-      );
-
-      const customers = await this.db.getCustomers();
-
-      this.updateProgressWithDataType(
-        'Fetching customer statistics...',
-        1,
-        2,
-        'customers'
-      );
-
-      // Get purchase history and statistics for each customer
-      const customersWithHistory = await Promise.all(
-        customers.map(async (customer) => {
-          try {
-            const purchaseHistory = await this.db.getCustomerPurchaseHistory(
-              customer.id
-            );
-            const statistics = await this.db.getCustomerStatistics(customer.id);
-            return {
-              ...customer,
-              purchaseHistory,
-              statistics,
-            };
-          } catch (error) {
-            return {
-              ...customer,
-              purchaseHistory: [],
-              statistics: {
-                totalSpent: 0,
-                visitCount: 0,
-                averageOrderValue: 0,
-                lastVisit: null,
-              },
-            };
-          }
-        })
-      );
-
-      // Apply data filtering to ensure only customer-related data is included
-      const allData = {
-        customers: customersWithHistory,
-      };
-
-      const filteredData = this.filterDataByType(allData, 'customers');
-      const actualRecordCount = this.calculateActualRecordCount(
-        filteredData,
-        'customers'
-      );
-
-      // Create initial export result
-      const initialResult = this.createExportResult(
-        true,
-        'customers',
-        actualRecordCount
-      );
-
-      const exportData: ExportData = {
-        version: '2.0',
-        exportDate: new Date().toISOString(),
-        dataType: 'customers',
-        metadata: {
-          ...initialResult.metadata,
-          fileSize: 0, // Will be calculated after file creation
-        },
-        data: filteredData,
-        relationships: {
-          productCategories: {},
-          productSuppliers: {},
-          saleCustomers: {},
-        },
-        integrity: {
-          checksum: '',
-          recordCounts: {
-            customers: filteredData.customers?.length || 0,
-          },
-          validationRules: ['valid_contact_info', 'unique_identifiers'],
-        },
-      };
-
-      this.updateProgressWithDataType(
-        'Generating export file...',
-        2,
-        2,
-        'customers'
-      );
-
-      const filename = `customers_export_${
-        new Date().toISOString().split('T')[0]
-      }.json`;
-      const fileResult = await this.generateExportFile(exportData, filename);
-
-      // Update the result with file information
-      const finalResult = this.createExportResult(
-        true,
-        'customers',
-        actualRecordCount,
-        fileResult.fileUri,
-        fileResult.filename
-      );
-
-      // Update metadata with actual file size
-      finalResult.metadata.fileSize = exportData.metadata.fileSize;
-      finalResult.metadata.checksum = exportData.integrity.checksum;
-
-      return finalResult;
-    } catch (error) {
-      console.error('Customers export error:', error);
-      return this.createExportResult(
-        false,
-        'customers',
-        0,
-        undefined,
-        undefined,
-        error instanceof Error ? error.message : 'Unknown export error'
-      );
-    }
-  }
-
-  // Export expenses with categories
-  async exportExpenses(): Promise<ExportResult> {
-    try {
-      this.updateProgressWithDataType('Fetching expenses...', 0, 2, 'expenses');
-
-      const startDate = new Date('2020-01-01');
-      const endDate = new Date();
-      const expenses = await this.db.getExpensesByDateRange(
-        startDate,
-        endDate,
-        10000
-      );
-
-      this.updateProgressWithDataType(
-        'Fetching expense categories...',
-        1,
-        2,
-        'expenses'
-      );
-
-      const expenseCategories = await this.db.getExpenseCategories();
-
-      // Apply data filtering to ensure only expense-related data is included
-      const allData = {
-        expenses,
-        expenseCategories,
-      };
-
-      const filteredData = this.filterDataByType(allData, 'expenses');
-      const actualRecordCount = this.calculateActualRecordCount(
-        filteredData,
-        'expenses'
-      );
-
-      // Create initial export result
-      const initialResult = this.createExportResult(
-        true,
-        'expenses',
-        actualRecordCount
-      );
-
-      const exportData: ExportData = {
-        version: '2.0',
-        exportDate: new Date().toISOString(),
-        dataType: 'expenses',
-        metadata: {
-          ...initialResult.metadata,
-          fileSize: 0, // Will be calculated after file creation
-        },
-        data: filteredData,
-        relationships: {
-          productCategories: {},
-          productSuppliers: {},
-          saleCustomers: {},
-        },
-        integrity: {
-          checksum: '',
-          recordCounts: {
-            expenses: filteredData.expenses?.length || 0,
-            expenseCategories: filteredData.expenseCategories?.length || 0,
-          },
-          validationRules: [
-            'positive_amounts',
-            'valid_dates',
-            'valid_categories',
-          ],
-        },
-      };
-
-      this.updateProgressWithDataType(
-        'Generating export file...',
-        2,
-        2,
-        'expenses'
-      );
-
-      const filename = `expenses_export_${
-        new Date().toISOString().split('T')[0]
-      }.json`;
-      const fileResult = await this.generateExportFile(exportData, filename);
-
-      // Update the result with file information
-      const finalResult = this.createExportResult(
-        true,
-        'expenses',
-        actualRecordCount,
-        fileResult.fileUri,
-        fileResult.filename
-      );
-
-      // Update metadata with actual file size
-      finalResult.metadata.fileSize = exportData.metadata.fileSize;
-      finalResult.metadata.checksum = exportData.integrity.checksum;
-
-      return finalResult;
-    } catch (error) {
-      console.error('Expenses export error:', error);
-      return this.createExportResult(
-        false,
-        'expenses',
-        0,
-        undefined,
-        undefined,
-        error instanceof Error ? error.message : 'Unknown export error'
-      );
-    }
-  }
-
-  // Export stock movements
-  async exportStockMovements(): Promise<ExportResult> {
-    try {
-      this.updateProgressWithDataType(
-        'Fetching stock movements...',
-        0,
-        1,
-        'stock movements'
-      );
-
-      const stockMovements = await this.db.getStockMovements({}, 1, 10000);
-
-      // Apply data filtering to ensure only stock movement data is included
-      const allData = {
-        stockMovements,
-      };
-
-      const filteredData = this.filterDataByType(allData, 'stock_movements');
-      const actualRecordCount = this.calculateActualRecordCount(
-        filteredData,
-        'stock_movements'
-      );
-
-      // Create initial export result
-      const initialResult = this.createExportResult(
-        true,
-        'stock_movements',
-        actualRecordCount
-      );
-
-      const exportData: ExportData = {
-        version: '2.0',
-        exportDate: new Date().toISOString(),
-        dataType: 'stock_movements',
-        metadata: {
-          ...initialResult.metadata,
-          fileSize: 0, // Will be calculated after file creation
-        },
-        data: filteredData,
-        relationships: {
-          productCategories: {},
-          productSuppliers: {},
-          saleCustomers: {},
-        },
-        integrity: {
-          checksum: '',
-          recordCounts: {
-            stockMovements: filteredData.stockMovements?.length || 0,
-          },
-          validationRules: [
-            'valid_movement_types',
-            'positive_quantities',
-            'valid_products',
-          ],
-        },
-      };
-
-      this.updateProgressWithDataType(
-        'Generating export file...',
-        1,
-        1,
-        'stock movements'
-      );
-
-      const filename = `stock_movements_export_${
-        new Date().toISOString().split('T')[0]
-      }.json`;
-      const fileResult = await this.generateExportFile(exportData, filename);
-
-      // Update the result with file information
-      const finalResult = this.createExportResult(
-        true,
-        'stock_movements',
-        actualRecordCount,
-        fileResult.fileUri,
-        fileResult.filename
-      );
-
-      // Update metadata with actual file size
-      finalResult.metadata.fileSize = exportData.metadata.fileSize;
-      finalResult.metadata.checksum = exportData.integrity.checksum;
-
-      return finalResult;
-    } catch (error) {
-      console.error('Stock movements export error:', error);
-      return this.createExportResult(
-        false,
-        'stock_movements',
-        0,
-        undefined,
-        undefined,
-        error instanceof Error ? error.message : 'Unknown export error'
-      );
-    }
-  }
-
-  // Export bulk pricing data
-  async exportBulkPricing(): Promise<ExportResult> {
-    try {
-      this.updateProgressWithDataType(
-        'Fetching products...',
-        0,
-        2,
-        'bulk pricing'
-      );
-
-      const products = await this.db.getProducts();
-
-      this.updateProgressWithDataType(
-        'Fetching bulk pricing data...',
-        1,
-        2,
-        'bulk pricing'
-      );
-
-      const bulkPricingData = await Promise.all(
-        products.map(async (product) => {
-          try {
-            const bulkTiers = await this.db.getBulkPricingForProduct(
-              product.id
-            );
-            return {
-              productId: product.id,
-              productName: product.name,
-              bulkTiers,
-            };
-          } catch (error) {
-            return {
-              productId: product.id,
-              productName: product.name,
-              bulkTiers: [],
-            };
-          }
-        })
-      );
-
-      // Filter out products without bulk pricing
-      const filteredBulkPricing = bulkPricingData.filter(
-        (item) => item.bulkTiers.length > 0
-      );
-
-      // Apply data filtering to ensure only bulk pricing data is included
-      const allData = {
-        bulkPricing: filteredBulkPricing,
-      };
-
-      const filteredData = this.filterDataByType(allData, 'bulk_pricing');
-      const actualRecordCount = this.calculateActualRecordCount(
-        filteredData,
-        'bulk_pricing'
-      );
-
-      // Create initial export result
-      const initialResult = this.createExportResult(
-        true,
-        'bulk_pricing',
-        actualRecordCount
-      );
-
-      const exportData: ExportData = {
-        version: '2.0',
-        exportDate: new Date().toISOString(),
-        dataType: 'bulk_pricing',
-        metadata: {
-          ...initialResult.metadata,
-          fileSize: 0, // Will be calculated after file creation
-        },
-        data: filteredData,
-        relationships: {
-          productCategories: {},
-          productSuppliers: {},
-          saleCustomers: {},
-        },
-        integrity: {
-          checksum: '',
-          recordCounts: {
-            bulkPricing: filteredData.bulkPricing?.length || 0,
-          },
-          validationRules: [
-            'positive_quantities',
-            'positive_prices',
-            'valid_products',
-          ],
-        },
-      };
-
-      this.updateProgressWithDataType(
-        'Generating export file...',
-        2,
-        2,
-        'bulk pricing'
-      );
-
-      const filename = `bulk_pricing_export_${
-        new Date().toISOString().split('T')[0]
-      }.json`;
-      const fileResult = await this.generateExportFile(exportData, filename);
-
-      // Update the result with file information
-      const finalResult = this.createExportResult(
-        true,
-        'bulk_pricing',
-        actualRecordCount,
-        fileResult.fileUri,
-        fileResult.filename
-      );
-
-      // Update metadata with actual file size
-      finalResult.metadata.fileSize = exportData.metadata.fileSize;
-      finalResult.metadata.checksum = exportData.integrity.checksum;
-
-      return finalResult;
-    } catch (error) {
-      console.error('Bulk pricing export error:', error);
-      return this.createExportResult(
-        false,
-        'bulk_pricing',
-        0,
-        undefined,
-        undefined,
-        error instanceof Error ? error.message : 'Unknown export error'
-      );
-    }
-  }
-
-  // Export complete backup with all data
-  async exportCompleteBackup(): Promise<ExportResult> {
-    try {
-      this.updateProgressWithDataType(
-        'Fetching all data...',
-        0,
-        8,
-        'complete backup'
-      );
+      this.updateProgress('Fetching all data...', 0, 8);
 
       // Fetch all data types
       const products = await this.db.getProducts();
-      this.updateProgressWithDataType(
-        'Fetched products...',
-        1,
-        8,
-        'complete backup'
-      );
+      this.updateProgress('Fetched products...', 1, 8);
 
       const categories = await this.db.getCategories();
-      this.updateProgressWithDataType(
-        'Fetched categories...',
-        2,
-        8,
-        'complete backup'
-      );
+      this.updateProgress('Fetched categories...', 2, 8);
 
       const suppliers = await this.db.getSuppliers();
-      this.updateProgressWithDataType(
-        'Fetched suppliers...',
-        3,
-        8,
-        'complete backup'
-      );
+      this.updateProgress('Fetched suppliers...', 3, 8);
 
       const startDate = new Date('2020-01-01');
       const endDate = new Date();
@@ -1441,12 +470,7 @@ export class DataExportService {
         endDate,
         10000
       );
-      this.updateProgressWithDataType(
-        'Fetched sales...',
-        4,
-        8,
-        'complete backup'
-      );
+      this.updateProgress('Fetched sales...', 4, 8);
 
       const salesWithItems = await Promise.all(
         sales.map(async (sale) => {
@@ -1454,12 +478,7 @@ export class DataExportService {
           return { ...sale, items };
         })
       );
-      this.updateProgressWithDataType(
-        'Fetched sale items...',
-        5,
-        8,
-        'complete backup'
-      );
+      this.updateProgress('Fetched sale items...', 5, 8);
 
       const expenses = await this.db.getExpensesByDateRange(
         startDate,
@@ -1467,21 +486,11 @@ export class DataExportService {
         10000
       );
       const expenseCategories = await this.db.getExpenseCategories();
-      this.updateProgressWithDataType(
-        'Fetched expenses...',
-        6,
-        8,
-        'complete backup'
-      );
+      this.updateProgress('Fetched expenses...', 6, 8);
 
       const customers = await this.db.getCustomers();
       const stockMovements = await this.db.getStockMovements({}, 1, 10000);
-      this.updateProgressWithDataType(
-        'Fetched customers and stock movements...',
-        7,
-        8,
-        'complete backup'
-      );
+      this.updateProgress('Fetched customers and stock movements...', 7, 8);
 
       // Get bulk pricing
       const bulkPricingData = await Promise.all(
@@ -1505,7 +514,7 @@ export class DataExportService {
         })
       );
 
-      // Apply data filtering for complete backup (returns all data)
+      // Prepare all data
       const allData = {
         products: products.map((product) => ({
           ...product,
@@ -1515,6 +524,7 @@ export class DataExportService {
         categories,
         suppliers,
         sales: salesWithItems,
+        saleItems: salesWithItems.flatMap((sale) => sale.items || []),
         customers,
         expenses,
         expenseCategories,
@@ -1524,28 +534,26 @@ export class DataExportService {
         ),
       };
 
-      const filteredData = this.filterDataByType(allData, 'complete');
-      const actualRecordCount = this.calculateActualRecordCount(
-        filteredData,
-        'complete'
-      );
+      const validatedData = this.validateAllData(allData);
+      const totalRecordCount = this.calculateTotalRecordCount(validatedData);
 
-      // Create initial export result
-      const initialResult = this.createExportResult(
-        true,
-        'complete',
-        actualRecordCount
-      );
+      // Check if export is empty
+      if (this.isEmptyExport(validatedData)) {
+        return await this.handleEmptyExport();
+      }
+
+      // Create export result
+      const initialResult = this.createExportResult(true, totalRecordCount);
 
       const exportData: ExportData = {
         version: '2.0',
         exportDate: new Date().toISOString(),
-        dataType: 'complete',
+        dataType: 'all',
         metadata: {
           ...initialResult.metadata,
           fileSize: 0, // Will be calculated after file creation
         },
-        data: filteredData,
+        data: validatedData,
         relationships: this.buildRelationshipMappings(
           products,
           categories,
@@ -1555,40 +563,24 @@ export class DataExportService {
         integrity: {
           checksum: '',
           recordCounts: {
-            products: filteredData.products?.length || 0,
-            categories: filteredData.categories?.length || 0,
-            suppliers: filteredData.suppliers?.length || 0,
-            sales: filteredData.sales?.length || 0,
-            customers: filteredData.customers?.length || 0,
-            expenses: filteredData.expenses?.length || 0,
-            expenseCategories: filteredData.expenseCategories?.length || 0,
-            stockMovements: filteredData.stockMovements?.length || 0,
-            bulkPricing: filteredData.bulkPricing?.length || 0,
+            products: validatedData.products?.length || 0,
+            categories: validatedData.categories?.length || 0,
+            suppliers: validatedData.suppliers?.length || 0,
+            sales: validatedData.sales?.length || 0,
+            saleItems: validatedData.saleItems?.length || 0,
+            customers: validatedData.customers?.length || 0,
+            expenses: validatedData.expenses?.length || 0,
+            expenseCategories: validatedData.expenseCategories?.length || 0,
+            stockMovements: validatedData.stockMovements?.length || 0,
+            bulkPricing: validatedData.bulkPricing?.length || 0,
           },
-          validationRules: [
-            'required_fields',
-            'positive_prices',
-            'valid_categories',
-            'positive_amounts',
-            'valid_dates',
-            'valid_payment_methods',
-            'valid_contact_info',
-            'unique_identifiers',
-            'valid_movement_types',
-            'positive_quantities',
-            'valid_products',
-          ],
+          validationRules: this.getValidationRulesForAllData(),
         },
       };
 
-      this.updateProgressWithDataType(
-        'Generating complete backup file...',
-        8,
-        8,
-        'complete backup'
-      );
+      this.updateProgress('Generating export file...', 8, 8);
 
-      const filename = `complete_backup_${
+      const filename = `all_data_export_${
         new Date().toISOString().split('T')[0]
       }.json`;
       const fileResult = await this.generateExportFile(exportData, filename);
@@ -1596,8 +588,7 @@ export class DataExportService {
       // Update the result with file information
       const finalResult = this.createExportResult(
         true,
-        'complete',
-        actualRecordCount,
+        totalRecordCount,
         fileResult.fileUri,
         fileResult.filename
       );
@@ -1608,10 +599,9 @@ export class DataExportService {
 
       return finalResult;
     } catch (error) {
-      console.error('Complete backup export error:', error);
+      console.error('All data export error:', error);
       return this.createExportResult(
         false,
-        'complete',
         0,
         undefined,
         undefined,

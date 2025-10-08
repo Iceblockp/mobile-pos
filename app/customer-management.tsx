@@ -129,8 +129,11 @@ export default function CustomerManagement() {
   };
 
   const handleExportCustomers = () => {
-    // TODO: Implement customer export functionality
-    showToast('Export feature coming soon', 'info');
+    // TODO: Implement customer export functionality - now part of all data export
+    showToast(
+      'Customer export is now part of the all data export feature',
+      'info'
+    );
   };
 
   const renderCustomer = ({ item }: { item: Customer }) => (

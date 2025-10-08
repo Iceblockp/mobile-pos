@@ -184,12 +184,6 @@ export class DataImportService {
     validationErrors?: string[];
   } {
     const dataTypeMap: Record<string, string[]> = {
-      sales: ['sales'],
-      products: ['products'],
-      customers: ['customers'],
-      expenses: ['expenses'],
-      stockMovements: ['stockMovements'],
-      bulkPricing: ['bulkPricing'],
       all: [
         'products',
         'sales',
@@ -299,14 +293,12 @@ export class DataImportService {
         }
       });
 
-      // Check if selected type is supported
-      if (!dataTypeMap[selectedType]) {
+      // Only 'all' data type is supported now
+      if (selectedType !== 'all') {
         return {
           isValid: false,
           availableTypes,
-          message: `Unsupported data type: ${selectedType}. Supported types: ${Object.keys(
-            dataTypeMap
-          ).join(', ')}`,
+          message: `Unsupported data type: ${selectedType}. Only 'all' data import is supported.`,
           detailedCounts,
           corruptedSections,
           validationErrors,
@@ -314,88 +306,41 @@ export class DataImportService {
       }
 
       // For 'all' type, we accept any available data
-      if (selectedType === 'all') {
-        const hasValidData = availableTypes.length > 0;
-        let message: string | undefined;
+      const hasValidData = availableTypes.length > 0;
+      let message: string | undefined;
 
-        if (!hasValidData) {
-          if (corruptedSections.length > 0) {
-            message = `Import file contains only corrupted data sections: ${corruptedSections.join(
-              ', '
-            )}`;
-          } else {
-            message = 'Import file does not contain any valid data';
-          }
-        } else if (corruptedSections.length > 0) {
-          message = `Some data sections are corrupted and will be skipped: ${corruptedSections.join(
+      if (!hasValidData) {
+        if (corruptedSections.length > 0) {
+          message = `Import file contains only corrupted data sections: ${corruptedSections.join(
             ', '
           )}`;
-        }
-
-        return {
-          isValid: hasValidData,
-          availableTypes,
-          message,
-          detailedCounts,
-          corruptedSections,
-          validationErrors,
-        };
-      }
-
-      // Check if the required fields for the selected type are available
-      const requiredFields = dataTypeMap[selectedType];
-      const hasRequiredData = requiredFields.some((field) =>
-        availableTypes.includes(field)
-      );
-
-      if (!hasRequiredData) {
-        const availableTypesWithCounts = availableTypes
-          .map((type) => `${type} (${detailedCounts[type]} records)`)
-          .join(', ');
-
-        let message = `Import file does not contain ${selectedType} data.`;
-
-        if (availableTypes.length > 0) {
-          message += ` Available data types: ${availableTypesWithCounts}`;
         } else {
-          message += ' No valid data found in import file.';
+          message = 'Import file does not contain any valid data';
         }
-
-        if (corruptedSections.length > 0) {
-          message += ` Corrupted sections: ${corruptedSections.join(', ')}`;
-        }
-
-        return {
-          isValid: false,
-          availableTypes,
-          message,
-          detailedCounts,
-          corruptedSections,
-          validationErrors,
-        };
+      } else if (corruptedSections.length > 0) {
+        message = `Some data sections are corrupted and will be skipped: ${corruptedSections.join(
+          ', '
+        )}`;
       }
 
-      // Validate that the file's dataType matches the selected type (if specified)
+      // Accept files with any valid dataType for backward compatibility
       if (
         importData.dataType &&
-        importData.dataType !== selectedType &&
-        importData.dataType !== 'all' &&
-        importData.dataType !== 'complete'
+        ![
+          'all',
+          'complete',
+          'products',
+          'sales',
+          'customers',
+          'expenses',
+          'stock_movements',
+          'bulk_pricing',
+        ].includes(importData.dataType)
       ) {
-        const availableTypesWithCounts = availableTypes
-          .map((type) => `${type} (${detailedCounts[type]} records)`)
-          .join(', ');
-
-        let message = `Import file dataType (${importData.dataType}) does not match selected import option (${selectedType}).`;
-
-        if (availableTypes.length > 0) {
-          message += ` Available data types: ${availableTypesWithCounts}`;
-        }
-
         return {
           isValid: false,
           availableTypes,
-          message,
+          message: `Import file has unsupported dataType: ${importData.dataType}`,
           detailedCounts,
           corruptedSections,
           validationErrors,
@@ -2850,8 +2795,8 @@ export class DataImportService {
     }
   }
 
-  // Import complete backup
-  async importCompleteBackup(
+  // Import all data
+  async importAllData(
     fileUri: string,
     options: ImportOptions
   ): Promise<ImportResult> {

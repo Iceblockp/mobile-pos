@@ -170,31 +170,14 @@ export default function DataExport() {
     try {
       let result;
 
-      switch (option.dataType) {
-        case 'sales':
-          result = await exportService.exportSales();
-          break;
-        case 'products':
-          result = await exportService.exportProducts();
-          break;
-        case 'expenses':
-          result = await exportService.exportExpenses();
-          break;
-        case 'customers':
-          result = await exportService.exportCustomers();
-          break;
-        case 'stockMovements':
-          result = await exportService.exportStockMovements();
-          break;
-        case 'bulkPricing':
-          result = await exportService.exportBulkPricing();
-          break;
-        case 'all':
-          result = await exportService.exportCompleteBackup();
-          break;
-        default:
-          throw new Error(`Unsupported export type: ${option.dataType}`);
+      // Only 'all' data export is supported now
+      if (option.dataType !== 'all') {
+        throw new Error(
+          `Unsupported export type: ${option.dataType}. Only 'all' data export is supported.`
+        );
       }
+
+      result = await exportService.exportAllData();
 
       if (result.success && result.fileUri) {
         // Generate enhanced user-friendly feedback message with specific data type information
