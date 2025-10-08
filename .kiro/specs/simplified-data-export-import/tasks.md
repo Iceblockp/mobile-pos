@@ -7,7 +7,7 @@
   - Clean up type definitions to remove individual data type options
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 2. Simplify export service for "all data" only
+- [x] 2. Simplify export service for "all data" only
 
   - Modify DataExportService to keep only exportCompleteBackup method
   - Rename exportCompleteBackup to exportAllData for clarity

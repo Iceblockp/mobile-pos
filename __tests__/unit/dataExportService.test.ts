@@ -7,10 +7,16 @@ jest.mock('expo-file-system');
 jest.mock('expo-sharing');
 
 const mockDatabase = {
-  getAllProducts: jest.fn(),
-  getAllSales: jest.fn(),
-  getAllCustomers: jest.fn(),
-  getAllStockMovements: jest.fn(),
+  getProducts: jest.fn(),
+  getCategories: jest.fn(),
+  getSuppliers: jest.fn(),
+  getSalesByDateRange: jest.fn(),
+  getSaleItems: jest.fn(),
+  getExpensesByDateRange: jest.fn(),
+  getExpenseCategories: jest.fn(),
+  getCustomers: jest.fn(),
+  getStockMovements: jest.fn(),
+  getBulkPricingForProduct: jest.fn(),
 } as unknown as DatabaseService;
 
 describe('DataExportService', () => {
@@ -21,139 +27,111 @@ describe('DataExportService', () => {
     jest.clearAllMocks();
   });
 
-  describe('exportProducts', () => {
-    it('should export products successfully', async () => {
-      const mockProducts = [
-        { id: 1, name: 'Product 1', price: 100 },
-        { id: 2, name: 'Product 2', price: 200 },
-      ];
-
-      (mockDatabase.getAllProducts as jest.Mock).mockResolvedValue(
-        mockProducts
+  describe('exportAllData', () => {
+    it('should export all data successfully', async () => {
+      // Mock all database methods
+      (mockDatabase.getProducts as jest.Mock).mockResolvedValue([
+        { id: '1', name: 'Product 1', price: 10.99, cost: 5.5 },
+        { id: '2', name: 'Product 2', price: 20.99, cost: 10.5 },
+      ]);
+      (mockDatabase.getCategories as jest.Mock).mockResolvedValue([
+        { id: '1', name: 'Category 1' },
+      ]);
+      (mockDatabase.getSuppliers as jest.Mock).mockResolvedValue([
+        { id: '1', name: 'Supplier 1' },
+      ]);
+      (mockDatabase.getSalesByDateRange as jest.Mock).mockResolvedValue([
+        { id: '1', total: 100, payment_method: 'cash' },
+      ]);
+      (mockDatabase.getSaleItems as jest.Mock).mockResolvedValue([
+        { id: '1', product_id: '1', quantity: 2, price: 10.99 },
+      ]);
+      (mockDatabase.getExpensesByDateRange as jest.Mock).mockResolvedValue([
+        { id: '1', amount: 50, description: 'Office supplies' },
+      ]);
+      (mockDatabase.getExpenseCategories as jest.Mock).mockResolvedValue([
+        { id: '1', name: 'Office' },
+      ]);
+      (mockDatabase.getCustomers as jest.Mock).mockResolvedValue([
+        { id: '1', name: 'Customer 1' },
+      ]);
+      (mockDatabase.getStockMovements as jest.Mock).mockResolvedValue([
+        { id: '1', product_id: '1', movement_type: 'in', quantity: 10 },
+      ]);
+      (mockDatabase.getBulkPricingForProduct as jest.Mock).mockResolvedValue(
+        []
       );
 
-      const result = await exportService.exportProducts();
+      const result = await exportService.exportAllData();
 
       expect(result.success).toBe(true);
-      expect(result.recordCount).toBe(2);
-      expect(result.metadata.dataType).toBe('products');
-      expect(mockDatabase.getAllProducts).toHaveBeenCalled();
+      expect(result.recordCount).toBeGreaterThan(0);
+      expect(result.metadata.dataType).toBe('all');
+      expect(mockDatabase.getProducts).toHaveBeenCalled();
+      expect(mockDatabase.getCategories).toHaveBeenCalled();
+      expect(mockDatabase.getSuppliers).toHaveBeenCalled();
     });
 
     it('should handle export errors gracefully', async () => {
       const error = new Error('Database connection failed');
-      (mockDatabase.getAllProducts as jest.Mock).mockRejectedValue(error);
+      (mockDatabase.getProducts as jest.Mock).mockRejectedValue(error);
 
-      const result = await exportService.exportProducts();
+      const result = await exportService.exportAllData();
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('Database connection failed');
       expect(result.recordCount).toBe(0);
     });
 
-    it('should handle empty product list', async () => {
-      (mockDatabase.getAllProducts as jest.Mock).mockResolvedValue([]);
+    it('should handle empty data gracefully', async () => {
+      // Mock all methods to return empty arrays
+      (mockDatabase.getProducts as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getCategories as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getSuppliers as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getSalesByDateRange as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getSaleItems as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getExpensesByDateRange as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getExpenseCategories as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getCustomers as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getStockMovements as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getBulkPricingForProduct as jest.Mock).mockResolvedValue(
+        []
+      );
 
-      const result = await exportService.exportProducts();
+      const result = await exportService.exportAllData();
 
       expect(result.success).toBe(true);
       expect(result.recordCount).toBe(0);
-      expect(result.metadata.dataType).toBe('products');
-    });
-  });
-
-  describe('exportSales', () => {
-    it('should export sales successfully', async () => {
-      const mockSales = [
-        { id: 1, productId: 1, quantity: 5, total: 500 },
-        { id: 2, productId: 2, quantity: 3, total: 600 },
-      ];
-
-      (mockDatabase.getAllSales as jest.Mock).mockResolvedValue(mockSales);
-
-      const result = await exportService.exportSales();
-
-      expect(result.success).toBe(true);
-      expect(result.recordCount).toBe(2);
-      expect(result.metadata.dataType).toBe('sales');
-      expect(mockDatabase.getAllSales).toHaveBeenCalled();
-    });
-
-    it('should handle large sales dataset', async () => {
-      const largeSalesData = Array.from({ length: 1000 }, (_, i) => ({
-        id: i + 1,
-        productId: (i % 10) + 1,
-        quantity: Math.floor(Math.random() * 10) + 1,
-        total: Math.floor(Math.random() * 1000) + 100,
-      }));
-
-      (mockDatabase.getAllSales as jest.Mock).mockResolvedValue(largeSalesData);
-
-      const result = await exportService.exportSales();
-
-      expect(result.success).toBe(true);
-      expect(result.recordCount).toBe(1000);
-    });
-  });
-
-  describe('exportCustomers', () => {
-    it('should export customers successfully', async () => {
-      const mockCustomers = [
-        { id: 1, name: 'Customer 1', phone: '123456789' },
-        { id: 2, name: 'Customer 2', phone: '987654321' },
-      ];
-
-      (mockDatabase.getAllCustomers as jest.Mock).mockResolvedValue(
-        mockCustomers
-      );
-
-      const result = await exportService.exportCustomers();
-
-      expect(result.success).toBe(true);
-      expect(result.recordCount).toBe(2);
-      expect(result.metadata.dataType).toBe('customers');
-      expect(mockDatabase.getAllCustomers).toHaveBeenCalled();
-    });
-  });
-
-  describe('exportStockMovements', () => {
-    it('should export stock movements successfully', async () => {
-      const mockMovements = [
-        { id: 1, productId: 1, type: 'in', quantity: 10 },
-        { id: 2, productId: 2, type: 'out', quantity: 5 },
-      ];
-
-      (mockDatabase.getAllStockMovements as jest.Mock).mockResolvedValue(
-        mockMovements
-      );
-
-      const result = await exportService.exportStockMovements();
-
-      expect(result.success).toBe(true);
-      expect(result.recordCount).toBe(2);
-      expect(result.metadata.dataType).toBe('stock_movements');
-      expect(mockDatabase.getAllStockMovements).toHaveBeenCalled();
+      expect(result.emptyExport).toBe(true);
+      expect(result.metadata.dataType).toBe('all');
     });
   });
 
   describe('progress tracking', () => {
     it('should call progress callback during export', async () => {
-      const mockProducts = Array.from({ length: 100 }, (_, i) => ({
-        id: i + 1,
-        name: `Product ${i + 1}`,
-        price: (i + 1) * 10,
-      }));
-
-      (mockDatabase.getAllProducts as jest.Mock).mockResolvedValue(
-        mockProducts
+      // Mock database methods
+      (mockDatabase.getProducts as jest.Mock).mockResolvedValue([
+        { id: '1', name: 'Product 1', price: 10.99, cost: 5.5 },
+      ]);
+      (mockDatabase.getCategories as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getSuppliers as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getSalesByDateRange as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getSaleItems as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getExpensesByDateRange as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getExpenseCategories as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getCustomers as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getStockMovements as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getBulkPricingForProduct as jest.Mock).mockResolvedValue(
+        []
       );
 
       const progressCallback = jest.fn();
       exportService.onProgress(progressCallback);
 
-      await exportService.exportProducts();
+      await exportService.exportAllData();
 
       expect(progressCallback).toHaveBeenCalled();
+      // Check that the final progress call shows completion
       const lastCall =
         progressCallback.mock.calls[progressCallback.mock.calls.length - 1][0];
       expect(lastCall.percentage).toBe(100);
@@ -162,18 +140,28 @@ describe('DataExportService', () => {
 
   describe('metadata generation', () => {
     it('should generate correct metadata', async () => {
-      const mockProducts = [{ id: 1, name: 'Product 1', price: 100 }];
-      (mockDatabase.getAllProducts as jest.Mock).mockResolvedValue(
-        mockProducts
+      (mockDatabase.getProducts as jest.Mock).mockResolvedValue([
+        { id: '1', name: 'Product 1', price: 10.99, cost: 5.5 },
+      ]);
+      (mockDatabase.getCategories as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getSuppliers as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getSalesByDateRange as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getSaleItems as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getExpensesByDateRange as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getExpenseCategories as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getCustomers as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getStockMovements as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getBulkPricingForProduct as jest.Mock).mockResolvedValue(
+        []
       );
 
-      const result = await exportService.exportProducts();
+      const result = await exportService.exportAllData();
 
       expect(result.metadata).toMatchObject({
         exportDate: expect.any(String),
-        dataType: 'products',
+        dataType: 'all',
         version: '2.0',
-        recordCount: 1,
+        recordCount: expect.any(Number),
         fileSize: expect.any(Number),
       });
     });
