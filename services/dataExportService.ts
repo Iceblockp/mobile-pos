@@ -33,6 +33,24 @@ export interface ExportMetadata {
   emptyExport?: boolean;
 }
 
+export interface ExportPreview {
+  totalRecords: number;
+  dataCounts: {
+    products: number;
+    categories: number;
+    suppliers: number;
+    sales: number;
+    saleItems: number;
+    customers: number;
+    expenses: number;
+    expenseCategories: number;
+    stockMovements: number;
+    bulkPricing: number;
+  };
+  estimatedFileSize: string;
+  exportDate: string;
+}
+
 export interface ExportData {
   version: string;
   exportDate: string;
@@ -436,6 +454,151 @@ export class DataExportService {
   // Progress tracking
   onProgress(callback: (progress: ExportProgress) => void): void {
     this.progressCallback = callback;
+  }
+
+  // Generate export preview with data counts and file size estimation
+  async generateExportPreview(): Promise<ExportPreview> {
+    try {
+      // Fetch data counts for all data types
+      const [
+        products,
+        categories,
+        suppliers,
+        sales,
+        customers,
+        expenses,
+        expenseCategories,
+        stockMovements,
+      ] = await Promise.all([
+        this.db.getProducts(),
+        this.db.getCategories(),
+        this.db.getSuppliers(),
+        this.db.getSalesByDateRange(new Date('2020-01-01'), new Date(), 10000),
+        this.db.getCustomers(),
+        this.db.getExpensesByDateRange(
+          new Date('2020-01-01'),
+          new Date(),
+          10000
+        ),
+        this.db.getExpenseCategories(),
+        this.db.getStockMovements({}, 1, 10000),
+      ]);
+
+      // Count sale items by fetching items for each sale
+      let saleItemsCount = 0;
+      for (const sale of sales) {
+        const items = await this.db.getSaleItems(sale.id);
+        saleItemsCount += items.length;
+      }
+
+      // Count bulk pricing data
+      let bulkPricingCount = 0;
+      for (const product of products) {
+        try {
+          const bulkTiers = await this.db.getBulkPricingForProduct(product.id);
+          if (bulkTiers.length > 0) {
+            bulkPricingCount++;
+          }
+        } catch (error) {
+          // Continue if bulk pricing fails for a product
+        }
+      }
+
+      const dataCounts = {
+        products: products.length,
+        categories: categories.length,
+        suppliers: suppliers.length,
+        sales: sales.length,
+        saleItems: saleItemsCount,
+        customers: customers.length,
+        expenses: expenses.length,
+        expenseCategories: expenseCategories.length,
+        stockMovements: stockMovements.length,
+        bulkPricing: bulkPricingCount,
+      };
+
+      const totalRecords = Object.values(dataCounts).reduce(
+        (sum, count) => sum + count,
+        0
+      );
+      const estimatedFileSize = this.estimateFileSize(dataCounts);
+
+      return {
+        totalRecords,
+        dataCounts,
+        estimatedFileSize,
+        exportDate: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('Error generating export preview:', error);
+      // Return empty preview on error
+      return {
+        totalRecords: 0,
+        dataCounts: {
+          products: 0,
+          categories: 0,
+          suppliers: 0,
+          sales: 0,
+          saleItems: 0,
+          customers: 0,
+          expenses: 0,
+          expenseCategories: 0,
+          stockMovements: 0,
+          bulkPricing: 0,
+        },
+        estimatedFileSize: '0 KB',
+        exportDate: new Date().toISOString(),
+      };
+    }
+  }
+
+  // Estimate file size based on data counts
+  private estimateFileSize(dataCounts: ExportPreview['dataCounts']): string {
+    // Estimated average bytes per record for each data type
+    const avgBytesPerRecord = {
+      products: 300, // Products have more fields (name, price, cost, etc.)
+      categories: 100, // Simple category records
+      suppliers: 200, // Supplier contact information
+      sales: 250, // Sale records with totals and metadata
+      saleItems: 150, // Sale item records
+      customers: 200, // Customer contact information
+      expenses: 180, // Expense records
+      expenseCategories: 80, // Simple expense category records
+      stockMovements: 200, // Stock movement records
+      bulkPricing: 120, // Bulk pricing tier records
+    };
+
+    // Calculate estimated size in bytes
+    let totalBytes = 0;
+    Object.entries(dataCounts).forEach(([dataType, count]) => {
+      const avgBytes =
+        avgBytesPerRecord[dataType as keyof typeof avgBytesPerRecord] || 150;
+      totalBytes += count * avgBytes;
+    });
+
+    // Add overhead for JSON structure (metadata, relationships, etc.) only if there's data
+    if (totalBytes > 0) {
+      const overhead = Math.max(2000, totalBytes * 0.15); // At least 2KB overhead, or 15% of data size
+      totalBytes += overhead;
+    }
+
+    // Format file size
+    return this.formatFileSize(totalBytes);
+  }
+
+  // Format file size in human-readable format
+  private formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 KB';
+
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const k = 1024;
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    if (i === 0) {
+      return bytes + ' ' + units[i];
+    }
+
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + units[i];
   }
 
   // Export all data

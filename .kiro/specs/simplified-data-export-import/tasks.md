@@ -15,7 +15,7 @@
   - Simplify progress tracking to focus on overall export progress
   - _Requirements: 1.1, 1.2, 5.4_
 
-- [ ] 3. Implement enhanced export preview functionality
+- [x] 3. Implement enhanced export preview functionality
 
   - Create generateExportPreview method in DataExportService
   - Implement data counting logic for all data types (products, sales, customers, etc.)
