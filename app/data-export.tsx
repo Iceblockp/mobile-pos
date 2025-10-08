@@ -19,12 +19,14 @@ import {
   HelpCircle,
 } from 'lucide-react-native';
 import DataManagementGuide from '@/components/DataManagementGuide';
+import { ExportPreviewModal } from '@/components/ExportPreviewModal';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useToast } from '@/context/ToastContext';
 import { useDatabase } from '@/context/DatabaseContext';
 import {
   DataExportService,
   ExportProgress,
+  ExportPreview,
 } from '@/services/dataExportService';
 
 interface ExportOption {
@@ -50,6 +52,13 @@ export default function DataExport() {
     null
   );
   const [showGuide, setShowGuide] = useState(false);
+  const [showExportPreview, setShowExportPreview] = useState(false);
+  const [exportPreview, setExportPreview] = useState<ExportPreview | null>(
+    null
+  );
+  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
+  const [pendingExportOption, setPendingExportOption] =
+    useState<ExportOption | null>(null);
 
   // Get user-friendly display name for data types
   const getDataTypeDisplayName = (dataType: string): string => {
@@ -89,7 +98,29 @@ export default function DataExport() {
       return;
     }
 
-    setIsExporting(option.id);
+    // Generate preview first
+    setIsGeneratingPreview(true);
+    setPendingExportOption(option);
+
+    try {
+      const preview = await exportService.generateExportPreview();
+      setExportPreview(preview);
+      setShowExportPreview(true);
+    } catch (error) {
+      console.error('Error generating export preview:', error);
+      showToast('Failed to generate export preview', 'error');
+    } finally {
+      setIsGeneratingPreview(false);
+    }
+  };
+
+  const handleConfirmExport = async () => {
+    if (!exportService || !pendingExportOption) {
+      return;
+    }
+
+    setShowExportPreview(false);
+    setIsExporting(pendingExportOption.id);
     setExportProgress(null);
 
     try {
@@ -97,7 +128,9 @@ export default function DataExport() {
 
       if (result.success && result.fileUri) {
         // Generate enhanced user-friendly feedback message
-        const dataTypeName = getDataTypeDisplayName(option.dataType);
+        const dataTypeName = getDataTypeDisplayName(
+          pendingExportOption.dataType
+        );
         let feedbackMessage: string;
 
         if (result.emptyExport) {
@@ -114,7 +147,7 @@ export default function DataExport() {
           try {
             await exportService.shareExportFile(
               result.fileUri,
-              `Empty Export - ${option.title}`
+              `Empty Export - ${pendingExportOption.title}`
             );
           } catch (shareError) {
             // If sharing fails, mention file location
@@ -125,7 +158,7 @@ export default function DataExport() {
           try {
             await exportService.shareExportFile(
               result.fileUri,
-              `Export ${option.title}`
+              `Export ${pendingExportOption.title}`
             );
             showToast(feedbackMessage, 'success');
           } catch (shareError) {
@@ -140,7 +173,7 @@ export default function DataExport() {
     } catch (error) {
       console.error('Export error:', error);
       showToast(
-        `${t('dataExport.exportFailed')} ${option.title}: ${
+        `${t('dataExport.exportFailed')} ${pendingExportOption.title}: ${
           error instanceof Error ? error.message : 'Unknown error'
         }`,
         'error'
@@ -148,7 +181,15 @@ export default function DataExport() {
     } finally {
       setIsExporting(null);
       setExportProgress(null);
+      setPendingExportOption(null);
+      setExportPreview(null);
     }
+  };
+
+  const handleCancelExport = () => {
+    setShowExportPreview(false);
+    setPendingExportOption(null);
+    setExportPreview(null);
   };
 
   const showExportInfo = () => {
@@ -213,7 +254,11 @@ export default function DataExport() {
                   isCurrentlyExporting && styles.exportOptionDisabled,
                 ]}
                 onPress={() => handleExport(option)}
-                disabled={isCurrentlyExporting || isExporting !== null}
+                disabled={
+                  isCurrentlyExporting ||
+                  isExporting !== null ||
+                  isGeneratingPreview
+                }
                 activeOpacity={0.7}
               >
                 <View
@@ -236,6 +281,10 @@ export default function DataExport() {
                       <Text style={styles.loadingText}>
                         {t('dataExport.exporting')}
                       </Text>
+                    </View>
+                  ) : isGeneratingPreview ? (
+                    <View style={styles.loadingContainer}>
+                      <Text style={styles.loadingText}>Preparing...</Text>
                     </View>
                   ) : (
                     <Share size={20} color="#9CA3AF" />
@@ -341,6 +390,15 @@ export default function DataExport() {
           </View>
         </Modal>
       )}
+
+      {/* Export Preview Modal */}
+      <ExportPreviewModal
+        visible={showExportPreview}
+        preview={exportPreview}
+        onConfirm={handleConfirmExport}
+        onCancel={handleCancelExport}
+        isLoading={isGeneratingPreview}
+      />
 
       {/* Data Management Guide */}
       <DataManagementGuide
