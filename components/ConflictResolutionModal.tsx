@@ -6,7 +6,6 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Alert,
 } from 'react-native';
 import {
   X,
@@ -14,9 +13,12 @@ import {
   Check,
   Plus,
   SkipForward,
+  Key,
+  User,
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import { DataConflict, ConflictResolution } from '@/services/dataImportService';
+import { isValidUUID } from '@/utils/uuid';
 
 interface ConflictResolutionModalProps {
   visible: boolean;
@@ -33,6 +35,7 @@ export const ConflictResolutionModal: React.FC<
     'update' | 'skip' | 'create_new'
   >('update');
   const [applyToAll, setApplyToAll] = useState(false);
+  const [showAllConflicts, setShowAllConflicts] = useState(false);
 
   const handleResolve = () => {
     const resolution: ConflictResolution = {
@@ -68,6 +71,80 @@ export const ConflictResolutionModal: React.FC<
     }
   };
 
+  const renderUUIDInfo = (record: any) => {
+    const hasValidUUID = record?.id && isValidUUID(record.id);
+
+    return (
+      <View style={styles.uuidContainer}>
+        <View style={styles.uuidHeader}>
+          <Key size={12} color={hasValidUUID ? '#10B981' : '#6B7280'} />
+          <Text
+            style={[
+              styles.uuidLabel,
+              { color: hasValidUUID ? '#10B981' : '#6B7280' },
+            ]}
+          >
+            UUID:
+          </Text>
+        </View>
+        <Text
+          style={[
+            styles.uuidValue,
+            { color: hasValidUUID ? '#374151' : '#9CA3AF' },
+          ]}
+        >
+          {hasValidUUID ? record.id : t('dataImport.noUUID')}
+        </Text>
+      </View>
+    );
+  };
+
+  const renderMatchingCriteria = (conflict: DataConflict) => {
+    const getMatchingIcon = () => {
+      switch (conflict.matchedBy) {
+        case 'uuid':
+          return <Key size={14} color="#10B981" />;
+        case 'name':
+          return <User size={14} color="#F59E0B" />;
+        default:
+          return <AlertTriangle size={14} color="#6B7280" />;
+      }
+    };
+
+    const getMatchingColor = () => {
+      switch (conflict.matchedBy) {
+        case 'uuid':
+          return '#10B981';
+        case 'name':
+          return '#F59E0B';
+        default:
+          return '#6B7280';
+      }
+    };
+
+    const getMatchingText = () => {
+      switch (conflict.matchedBy) {
+        case 'uuid':
+          return t('dataImport.matchedByUUID');
+        case 'name':
+          return t('dataImport.matchedByName');
+        default:
+          return t('dataImport.matchedByOther');
+      }
+    };
+
+    return (
+      <View
+        style={[styles.matchingCriteria, { borderColor: getMatchingColor() }]}
+      >
+        {getMatchingIcon()}
+        <Text style={[styles.matchingText, { color: getMatchingColor() }]}>
+          {getMatchingText()}
+        </Text>
+      </View>
+    );
+  };
+
   const renderConflictComparison = (conflict: DataConflict) => {
     if (conflict.type !== 'duplicate' || !conflict.existingRecord) {
       return null;
@@ -75,43 +152,70 @@ export const ConflictResolutionModal: React.FC<
 
     return (
       <View style={styles.comparisonContainer}>
-        <View style={styles.comparisonColumn}>
-          <Text style={styles.comparisonTitle}>
-            {t('dataImport.existingRecord')}
-          </Text>
-          <View style={styles.recordCard}>
-            <Text style={styles.recordName}>
-              {conflict.existingRecord.name}
-            </Text>
-            {conflict.existingRecord.price && (
-              <Text style={styles.recordDetail}>
-                {t('products.price')}: {conflict.existingRecord.price}
-              </Text>
-            )}
-            {conflict.existingRecord.phone && (
-              <Text style={styles.recordDetail}>
-                {t('customers.phone')}: {conflict.existingRecord.phone}
-              </Text>
-            )}
-          </View>
-        </View>
+        {/* Matching Criteria Indicator */}
+        {renderMatchingCriteria(conflict)}
 
-        <View style={styles.comparisonColumn}>
-          <Text style={styles.comparisonTitle}>
-            {t('dataImport.importedRecord')}
-          </Text>
-          <View style={styles.recordCard}>
-            <Text style={styles.recordName}>{conflict.record.name}</Text>
-            {conflict.record.price && (
-              <Text style={styles.recordDetail}>
-                {t('products.price')}: {conflict.record.price}
+        <View style={styles.recordsComparison}>
+          <View style={styles.comparisonColumn}>
+            <Text style={styles.comparisonTitle}>
+              {t('dataImport.existingRecord')}
+            </Text>
+            <View style={styles.recordCard}>
+              <Text style={styles.recordName}>
+                {conflict.existingRecord.name || t('dataImport.unnamedRecord')}
               </Text>
-            )}
-            {conflict.record.phone && (
-              <Text style={styles.recordDetail}>
-                {t('customers.phone')}: {conflict.record.phone}
+
+              {/* UUID Information for existing record */}
+              {renderUUIDInfo(conflict.existingRecord)}
+
+              {/* Other record details */}
+              {conflict.existingRecord.price && (
+                <Text style={styles.recordDetail}>
+                  {t('products.price')}: {conflict.existingRecord.price}
+                </Text>
+              )}
+              {conflict.existingRecord.phone && (
+                <Text style={styles.recordDetail}>
+                  {t('customers.phone')}: {conflict.existingRecord.phone}
+                </Text>
+              )}
+              {conflict.existingRecord.barcode && (
+                <Text style={styles.recordDetail}>
+                  {t('products.barcode')}: {conflict.existingRecord.barcode}
+                </Text>
+              )}
+            </View>
+          </View>
+
+          <View style={styles.comparisonColumn}>
+            <Text style={styles.comparisonTitle}>
+              {t('dataImport.importedRecord')}
+            </Text>
+            <View style={styles.recordCard}>
+              <Text style={styles.recordName}>
+                {conflict.record.name || t('dataImport.unnamedRecord')}
               </Text>
-            )}
+
+              {/* UUID Information for imported record */}
+              {renderUUIDInfo(conflict.record)}
+
+              {/* Other record details */}
+              {conflict.record.price && (
+                <Text style={styles.recordDetail}>
+                  {t('products.price')}: {conflict.record.price}
+                </Text>
+              )}
+              {conflict.record.phone && (
+                <Text style={styles.recordDetail}>
+                  {t('customers.phone')}: {conflict.record.phone}
+                </Text>
+              )}
+              {conflict.record.barcode && (
+                <Text style={styles.recordDetail}>
+                  {t('products.barcode')}: {conflict.record.barcode}
+                </Text>
+              )}
+            </View>
           </View>
         </View>
       </View>
@@ -152,33 +256,49 @@ export const ConflictResolutionModal: React.FC<
             style={styles.conflictsList}
             showsVerticalScrollIndicator={false}
           >
-            {conflicts.slice(0, 5).map((conflict, index) => {
-              const IconComponent = getConflictTypeIcon(conflict.type);
-              const color = getConflictTypeColor(conflict.type);
+            {(showAllConflicts ? conflicts : conflicts.slice(0, 5)).map(
+              (conflict, index) => {
+                const IconComponent = getConflictTypeIcon(conflict.type);
+                const color = getConflictTypeColor(conflict.type);
 
-              return (
-                <View key={index} style={styles.conflictItem}>
-                  <View style={styles.conflictHeader}>
-                    <IconComponent size={16} color={color} />
-                    <Text style={[styles.conflictType, { color }]}>
-                      {conflict.type.replace('_', ' ').toUpperCase()}
+                return (
+                  <View key={index} style={styles.conflictItem}>
+                    <View style={styles.conflictHeader}>
+                      <IconComponent size={16} color={color} />
+                      <Text style={[styles.conflictType, { color }]}>
+                        {conflict.type.replace('_', ' ').toUpperCase()}
+                      </Text>
+                    </View>
+
+                    <Text style={styles.conflictMessage}>
+                      {conflict.message}
                     </Text>
+
+                    {renderConflictComparison(conflict)}
                   </View>
-
-                  <Text style={styles.conflictMessage}>{conflict.message}</Text>
-
-                  {renderConflictComparison(conflict)}
-                </View>
-              );
-            })}
+                );
+              }
+            )}
 
             {conflicts.length > 5 && (
-              <View style={styles.moreConflictsContainer}>
-                <Text style={styles.moreConflictsText}>
-                  {t('dataImport.andMoreConflicts', {
-                    count: conflicts.length - 5,
-                  })}
-                </Text>
+              <View style={styles.seeMoreContainer}>
+                {!showAllConflicts && (
+                  <Text style={styles.moreConflictsText}>
+                    {t('dataImport.andMoreConflicts', {
+                      count: conflicts.length - 5,
+                    })}
+                  </Text>
+                )}
+                <TouchableOpacity
+                  style={styles.seeMoreButton}
+                  onPress={() => setShowAllConflicts(!showAllConflicts)}
+                >
+                  <Text style={styles.seeMoreButtonText}>
+                    {showAllConflicts
+                      ? t('dataImport.seeLess')
+                      : t('dataImport.seeMore')}
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
           </ScrollView>
@@ -416,6 +536,25 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   comparisonContainer: {
+    marginTop: 8,
+  },
+  matchingCriteria: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    backgroundColor: '#F9FAFB',
+    marginBottom: 8,
+  },
+  matchingText: {
+    fontSize: 11,
+    fontFamily: 'Inter-SemiBold',
+    marginLeft: 4,
+  },
+  recordsComparison: {
     flexDirection: 'row',
     gap: 12,
   },
@@ -439,14 +578,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter-SemiBold',
     color: '#111827',
-    marginBottom: 2,
+    marginBottom: 6,
   },
   recordDetail: {
     fontSize: 12,
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
+    marginTop: 2,
   },
-  moreConflictsContainer: {
+  uuidContainer: {
+    marginBottom: 4,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  uuidHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  uuidLabel: {
+    fontSize: 10,
+    fontFamily: 'Inter-SemiBold',
+    marginLeft: 4,
+  },
+  uuidValue: {
+    fontSize: 10,
+    fontFamily: 'Inter-Regular',
+    fontStyle: 'italic',
+  },
+  seeMoreContainer: {
     alignItems: 'center',
     paddingVertical: 8,
   },
@@ -455,6 +616,20 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
     fontStyle: 'italic',
+    marginBottom: 8,
+  },
+  seeMoreButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+  },
+  seeMoreButtonText: {
+    fontSize: 12,
+    fontFamily: 'Inter-SemiBold',
+    color: '#3B82F6',
   },
   resolutionContainer: {
     padding: 20,

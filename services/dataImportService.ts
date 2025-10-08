@@ -60,6 +60,8 @@ export interface DataConflict {
   field?: string;
   message: string;
   index: number;
+  recordType: string; // New field to identify the data type
+  matchedBy: 'uuid' | 'name' | 'other'; // New field to show matching criteria
 }
 
 export interface ConflictResolution {
@@ -651,6 +653,187 @@ export class DataImportService {
     }
   }
 
+  // Compare records by UUID - primary matching method
+  private compareByUUID(record: any, existing: any): boolean {
+    // Check if both records have valid UUIDs
+    if (!record.id || !existing.id) {
+      return false;
+    }
+
+    // Validate that both UUIDs are properly formatted
+    if (!isValidUUID(record.id) || !isValidUUID(existing.id)) {
+      return false;
+    }
+
+    // Perform exact string matching on UUIDs
+    return record.id === existing.id;
+  }
+
+  // Compare records by name - fallback matching method
+  private compareByName(
+    record: any,
+    existing: any,
+    recordType: string
+  ): boolean {
+    // Record type mapping for different matching criteria
+    const recordTypeMatchingMap: Record<
+      string,
+      (record: any, existing: any) => boolean
+    > = {
+      products: (record: any, existing: any) => {
+        // Match by name or barcode (backward compatible with existing logic)
+        return (
+          (record.name && existing.name && record.name === existing.name) ||
+          (record.barcode &&
+            existing.barcode &&
+            record.barcode === existing.barcode)
+        );
+      },
+      customers: (record: any, existing: any) => {
+        // Match by name or phone (backward compatible with existing logic)
+        return (
+          (record.name && existing.name && record.name === existing.name) ||
+          (record.phone && existing.phone && record.phone === existing.phone)
+        );
+      },
+      sales: (record: any, existing: any) => {
+        // For sales, we typically don't match by name since they're unique transactions
+        // But we can match by a combination of fields if needed
+        return false;
+      },
+      expenses: (record: any, existing: any) => {
+        // For expenses, we typically don't match by name since they're unique transactions
+        return false;
+      },
+      stockMovements: (record: any, existing: any) => {
+        // For stock movements, we typically don't match by name since they're unique transactions
+        return false;
+      },
+      bulkPricing: (record: any, existing: any) => {
+        // For bulk pricing, we typically don't match by name since they're unique configurations
+        return false;
+      },
+      categories: (record: any, existing: any) => {
+        // Match categories by name
+        return record.name && existing.name && record.name === existing.name;
+      },
+      suppliers: (record: any, existing: any) => {
+        // Match suppliers by name
+        return record.name && existing.name && record.name === existing.name;
+      },
+      expenseCategories: (record: any, existing: any) => {
+        // Match expense categories by name
+        return record.name && existing.name && record.name === existing.name;
+      },
+      saleItems: (record: any, existing: any) => {
+        // For sale items, we typically don't match by name since they're part of sales
+        return false;
+      },
+    };
+
+    // Get the matching function for the record type
+    const matchingFunction = recordTypeMatchingMap[recordType];
+
+    if (!matchingFunction) {
+      // For unknown record types, fall back to basic name matching
+      return record.name && existing.name && record.name === existing.name;
+    }
+
+    try {
+      return matchingFunction(record, existing);
+    } catch (error) {
+      console.warn(`Error in name matching for ${recordType}:`, error);
+      return false;
+    }
+  }
+
+  // Universal conflict detection method - tries UUID matching first, then name matching
+  private detectRecordConflict(
+    record: any,
+    existingRecords: any[],
+    recordType: string
+  ): DataConflict | null {
+    try {
+      // Validate input parameters
+      if (!record || !Array.isArray(existingRecords) || !recordType) {
+        return null;
+      }
+
+      // Try to find a matching existing record
+      let matchedRecord: any = null;
+      let matchedBy: 'uuid' | 'name' | 'other' = 'other';
+
+      // First, try UUID-based matching (primary method)
+      for (const existingRecord of existingRecords) {
+        if (this.compareByUUID(record, existingRecord)) {
+          matchedRecord = existingRecord;
+          matchedBy = 'uuid';
+          break;
+        }
+      }
+
+      // If no UUID match found, try name-based matching (fallback method)
+      if (!matchedRecord) {
+        for (const existingRecord of existingRecords) {
+          if (this.compareByName(record, existingRecord, recordType)) {
+            matchedRecord = existingRecord;
+            matchedBy = 'name';
+            break;
+          }
+        }
+      }
+
+      // If a match was found, create a conflict
+      if (matchedRecord) {
+        // Determine the appropriate message based on matching criteria
+        let message: string;
+        if (matchedBy === 'uuid') {
+          message = `${recordType} with UUID "${record.id}" already exists`;
+        } else if (matchedBy === 'name') {
+          // Create a more specific message based on record type
+          switch (recordType) {
+            case 'products':
+              if (record.barcode && matchedRecord.barcode === record.barcode) {
+                message = `Product with barcode "${record.barcode}" already exists`;
+              } else {
+                message = `Product "${record.name}" already exists`;
+              }
+              break;
+            case 'customers':
+              if (record.phone && matchedRecord.phone === record.phone) {
+                message = `Customer with phone "${record.phone}" already exists`;
+              } else {
+                message = `Customer "${record.name}" already exists`;
+              }
+              break;
+            default:
+              message = `${recordType} "${
+                record.name || record.id || 'Unknown'
+              }" already exists`;
+          }
+        } else {
+          message = `${recordType} already exists`;
+        }
+
+        return {
+          type: 'duplicate',
+          record,
+          existingRecord: matchedRecord,
+          message,
+          index: 0, // This will be set by the caller
+          recordType,
+          matchedBy,
+        };
+      }
+
+      // No conflict found
+      return null;
+    } catch (error) {
+      console.warn(`Error in detectRecordConflict for ${recordType}:`, error);
+      return null;
+    }
+  }
+
   // Detect conflicts with existing data
   private async detectConflicts(
     data: any,
@@ -659,303 +842,101 @@ export class DataImportService {
     const conflicts: DataConflict[] = [];
 
     try {
-      // Get existing data for comparison
+      // Get existing data for comparison - all data types
       const existingProducts = await this.db.getProducts();
       const existingCustomers = await this.db.getCustomers();
       const existingCategories = await this.db.getCategories();
 
-      // Check for product conflicts
-      if (data.products && Array.isArray(data.products)) {
-        data.products.forEach((product: any, index: number) => {
-          try {
-            // Validate product data before checking conflicts
-            if (!this.validateRecordRequiredFields(product, 'products')) {
-              conflicts.push({
-                type: 'validation_failed',
-                record: product,
-                message: `Product at index ${index} has missing required fields`,
-                index,
-              });
-              return;
-            }
+      // Get existing sales data (using paginated method with large limit to get all)
+      const existingSales = await this.db.getSalesPaginated(1, 10000);
 
-            if (!this.validateRecordDataTypes(product, 'products')) {
-              conflicts.push({
-                type: 'validation_failed',
-                record: product,
-                message: `Product at index ${index} has invalid data types`,
-                index,
-              });
-              return;
-            }
+      // Get existing expenses data
+      const existingExpenses = await this.db.getExpenses(10000);
 
-            const existingProduct = existingProducts.find(
-              (p) =>
-                p.name === product.name ||
-                (product.barcode && p.barcode === product.barcode)
-            );
+      // Get existing stock movements data
+      const existingStockMovements = await this.db.getStockMovements(
+        {},
+        1,
+        10000
+      );
 
-            if (existingProduct) {
-              conflicts.push({
-                type: 'duplicate',
-                record: product,
-                existingRecord: existingProduct,
-                message: `Product "${product.name}" already exists`,
-                index,
-              });
-            }
-
-            // Check category reference
-            if (
-              product.category &&
-              !existingCategories.find((c) => c.name === product.category)
-            ) {
-              conflicts.push({
-                type: 'reference_missing',
-                record: product,
-                field: 'category',
-                message: `Category "${product.category}" not found`,
-                index,
-              });
-            }
-          } catch (error) {
-            conflicts.push({
-              type: 'validation_failed',
-              record: product,
-              message: `Product at index ${index} is corrupted: ${
-                error instanceof Error ? error.message : 'Unknown error'
-              }`,
-              index,
-            });
-          }
-        });
+      // Get existing bulk pricing data for all products
+      const existingBulkPricing: any[] = [];
+      for (const product of existingProducts) {
+        const productBulkPricing = await this.db.getBulkPricingForProduct(
+          product.id
+        );
+        existingBulkPricing.push(...productBulkPricing);
       }
 
-      // Check for customer conflicts
-      if (data.customers && Array.isArray(data.customers)) {
-        data.customers.forEach((customer: any, index: number) => {
-          try {
-            // Validate customer data before checking conflicts
-            if (!this.validateRecordRequiredFields(customer, 'customers')) {
+      // Define data type mapping for processing
+      const dataTypeMapping = [
+        { key: 'products', existing: existingProducts },
+        { key: 'customers', existing: existingCustomers },
+        { key: 'sales', existing: existingSales },
+        { key: 'expenses', existing: existingExpenses },
+        { key: 'stockMovements', existing: existingStockMovements },
+        { key: 'bulkPricing', existing: existingBulkPricing },
+      ];
+
+      // Process each data type using universal conflict detection
+      for (const { key, existing } of dataTypeMapping) {
+        if (data[key] && Array.isArray(data[key])) {
+          data[key].forEach((record: any, index: number) => {
+            try {
+              // Validate record data before checking conflicts
+              if (!this.validateRecordRequiredFields(record, key)) {
+                conflicts.push({
+                  type: 'validation_failed',
+                  record: record,
+                  message: `${key} at index ${index} has missing required fields`,
+                  index,
+                  recordType: key,
+                  matchedBy: 'other',
+                });
+                return;
+              }
+
+              if (!this.validateRecordDataTypes(record, key)) {
+                conflicts.push({
+                  type: 'validation_failed',
+                  record: record,
+                  message: `${key} at index ${index} has invalid data types`,
+                  index,
+                  recordType: key,
+                  matchedBy: 'other',
+                });
+                return;
+              }
+
+              // Use universal conflict detection method
+              const conflict = this.detectRecordConflict(record, existing, key);
+              if (conflict) {
+                // Set the correct index for the conflict
+                conflict.index = index;
+                conflicts.push(conflict);
+              }
+
+              // Check for reference integrity (product references, category references, etc.)
+              this.checkReferenceIntegrity(record, key, index, conflicts, {
+                existingProducts,
+                existingCustomers,
+                existingCategories,
+              });
+            } catch (error) {
               conflicts.push({
                 type: 'validation_failed',
-                record: customer,
-                message: `Customer at index ${index} has missing required fields`,
+                record: record,
+                message: `${key} at index ${index} is corrupted: ${
+                  error instanceof Error ? error.message : 'Unknown error'
+                }`,
                 index,
-              });
-              return;
-            }
-
-            if (!this.validateRecordDataTypes(customer, 'customers')) {
-              conflicts.push({
-                type: 'validation_failed',
-                record: customer,
-                message: `Customer at index ${index} has invalid data types`,
-                index,
-              });
-              return;
-            }
-
-            const existingCustomer = existingCustomers.find(
-              (c) =>
-                c.name === customer.name ||
-                (customer.phone && c.phone === customer.phone)
-            );
-
-            if (existingCustomer) {
-              conflicts.push({
-                type: 'duplicate',
-                record: customer,
-                existingRecord: existingCustomer,
-                message: `Customer "${customer.name}" already exists`,
-                index,
+                recordType: key,
+                matchedBy: 'other',
               });
             }
-          } catch (error) {
-            conflicts.push({
-              type: 'validation_failed',
-              record: customer,
-              message: `Customer at index ${index} is corrupted: ${
-                error instanceof Error ? error.message : 'Unknown error'
-              }`,
-              index,
-            });
-          }
-        });
-      }
-
-      // Check for sales conflicts and validation
-      if (data.sales && Array.isArray(data.sales)) {
-        data.sales.forEach((sale: any, index: number) => {
-          try {
-            if (!this.validateRecordRequiredFields(sale, 'sales')) {
-              conflicts.push({
-                type: 'validation_failed',
-                record: sale,
-                message: `Sale at index ${index} has missing required fields`,
-                index,
-              });
-              return;
-            }
-
-            if (!this.validateRecordDataTypes(sale, 'sales')) {
-              conflicts.push({
-                type: 'validation_failed',
-                record: sale,
-                message: `Sale at index ${index} has invalid data types`,
-                index,
-              });
-              return;
-            }
-          } catch (error) {
-            conflicts.push({
-              type: 'validation_failed',
-              record: sale,
-              message: `Sale at index ${index} is corrupted: ${
-                error instanceof Error ? error.message : 'Unknown error'
-              }`,
-              index,
-            });
-          }
-        });
-      }
-
-      // Check for expense conflicts and validation
-      if (data.expenses && Array.isArray(data.expenses)) {
-        data.expenses.forEach((expense: any, index: number) => {
-          try {
-            if (!this.validateRecordRequiredFields(expense, 'expenses')) {
-              conflicts.push({
-                type: 'validation_failed',
-                record: expense,
-                message: `Expense at index ${index} has missing required fields`,
-                index,
-              });
-              return;
-            }
-
-            if (!this.validateRecordDataTypes(expense, 'expenses')) {
-              conflicts.push({
-                type: 'validation_failed',
-                record: expense,
-                message: `Expense at index ${index} has invalid data types`,
-                index,
-              });
-              return;
-            }
-          } catch (error) {
-            conflicts.push({
-              type: 'validation_failed',
-              record: expense,
-              message: `Expense at index ${index} is corrupted: ${
-                error instanceof Error ? error.message : 'Unknown error'
-              }`,
-              index,
-            });
-          }
-        });
-      }
-
-      // Check for stock movement conflicts and validation
-      if (data.stockMovements && Array.isArray(data.stockMovements)) {
-        data.stockMovements.forEach((movement: any, index: number) => {
-          try {
-            if (
-              !this.validateRecordRequiredFields(movement, 'stockMovements')
-            ) {
-              conflicts.push({
-                type: 'validation_failed',
-                record: movement,
-                message: `Stock movement at index ${index} has missing required fields`,
-                index,
-              });
-              return;
-            }
-
-            if (!this.validateRecordDataTypes(movement, 'stockMovements')) {
-              conflicts.push({
-                type: 'validation_failed',
-                record: movement,
-                message: `Stock movement at index ${index} has invalid data types`,
-                index,
-              });
-              return;
-            }
-
-            // Check if referenced product exists
-            if (
-              movement.product_id &&
-              !existingProducts.find((p) => p.id === movement.product_id)
-            ) {
-              conflicts.push({
-                type: 'reference_missing',
-                record: movement,
-                field: 'product_id',
-                message: `Product with ID "${movement.product_id}" not found`,
-                index,
-              });
-            }
-          } catch (error) {
-            conflicts.push({
-              type: 'validation_failed',
-              record: movement,
-              message: `Stock movement at index ${index} is corrupted: ${
-                error instanceof Error ? error.message : 'Unknown error'
-              }`,
-              index,
-            });
-          }
-        });
-      }
-
-      // Check for bulk pricing conflicts and validation
-      if (data.bulkPricing && Array.isArray(data.bulkPricing)) {
-        data.bulkPricing.forEach((bulkItem: any, index: number) => {
-          try {
-            if (!this.validateRecordRequiredFields(bulkItem, 'bulkPricing')) {
-              conflicts.push({
-                type: 'validation_failed',
-                record: bulkItem,
-                message: `Bulk pricing at index ${index} has missing required fields`,
-                index,
-              });
-              return;
-            }
-
-            if (!this.validateRecordDataTypes(bulkItem, 'bulkPricing')) {
-              conflicts.push({
-                type: 'validation_failed',
-                record: bulkItem,
-                message: `Bulk pricing at index ${index} has invalid data types`,
-                index,
-              });
-              return;
-            }
-
-            // Check if referenced product exists
-            if (
-              bulkItem.product_id &&
-              !existingProducts.find((p) => p.id === bulkItem.product_id)
-            ) {
-              conflicts.push({
-                type: 'reference_missing',
-                record: bulkItem,
-                field: 'product_id',
-                message: `Product with ID "${bulkItem.product_id}" not found`,
-                index,
-              });
-            }
-          } catch (error) {
-            conflicts.push({
-              type: 'validation_failed',
-              record: bulkItem,
-              message: `Bulk pricing at index ${index} is corrupted: ${
-                error instanceof Error ? error.message : 'Unknown error'
-              }`,
-              index,
-            });
-          }
-        });
+          });
+        }
       }
     } catch (error) {
       console.error('Error detecting conflicts:', error);
@@ -966,10 +947,113 @@ export class DataImportService {
           error instanceof Error ? error.message : 'Unknown error'
         }`,
         index: -1,
+        recordType: 'unknown',
+        matchedBy: 'other',
       });
     }
 
     return conflicts;
+  }
+
+  // Helper method to check reference integrity for different record types
+  private checkReferenceIntegrity(
+    record: any,
+    recordType: string,
+    index: number,
+    conflicts: DataConflict[],
+    existingData: {
+      existingProducts: any[];
+      existingCustomers: any[];
+      existingCategories: any[];
+    }
+  ): void {
+    const { existingProducts, existingCustomers, existingCategories } =
+      existingData;
+
+    try {
+      switch (recordType) {
+        case 'products':
+          // Check category reference
+          if (
+            record.category &&
+            !existingCategories.find((c) => c.name === record.category)
+          ) {
+            conflicts.push({
+              type: 'reference_missing',
+              record: record,
+              field: 'category',
+              message: `Category "${record.category}" not found`,
+              index,
+              recordType: recordType,
+              matchedBy: 'other',
+            });
+          }
+          break;
+
+        case 'sales':
+          // Check customer reference
+          if (
+            record.customer_id &&
+            !existingCustomers.find((c) => c.id === record.customer_id)
+          ) {
+            conflicts.push({
+              type: 'reference_missing',
+              record: record,
+              field: 'customer_id',
+              message: `Customer with ID "${record.customer_id}" not found`,
+              index,
+              recordType: recordType,
+              matchedBy: 'other',
+            });
+          }
+          break;
+
+        case 'stockMovements':
+          // Check product reference
+          if (
+            record.product_id &&
+            !existingProducts.find((p) => p.id === record.product_id)
+          ) {
+            conflicts.push({
+              type: 'reference_missing',
+              record: record,
+              field: 'product_id',
+              message: `Product with ID "${record.product_id}" not found`,
+              index,
+              recordType: recordType,
+              matchedBy: 'other',
+            });
+          }
+          break;
+
+        case 'bulkPricing':
+          // Check product reference
+          if (
+            record.product_id &&
+            !existingProducts.find((p) => p.id === record.product_id)
+          ) {
+            conflicts.push({
+              type: 'reference_missing',
+              record: record,
+              field: 'product_id',
+              message: `Product with ID "${record.product_id}" not found`,
+              index,
+              recordType: recordType,
+              matchedBy: 'other',
+            });
+          }
+          break;
+
+        // Other record types don't have reference integrity checks currently
+        default:
+          break;
+      }
+    } catch (error) {
+      console.warn(
+        `Error checking reference integrity for ${recordType}:`,
+        error
+      );
+    }
   }
 
   // Sanitize and recover corrupted data where possible
@@ -1432,6 +1516,8 @@ export class DataImportService {
                   existingRecord: existingProduct,
                   message: `Product "${product.name}" already exists`,
                   index: globalIndex,
+                  recordType: 'products',
+                  matchedBy: 'name',
                 });
                 skipped++;
               }
@@ -1751,6 +1837,8 @@ export class DataImportService {
                   existingRecord: existingCustomer,
                   message: `Customer "${customer.name}" already exists`,
                   index: globalIndex,
+                  recordType: 'customers',
+                  matchedBy: 'name',
                 });
                 skipped++;
               }
@@ -1848,7 +1936,7 @@ export class DataImportService {
     let updated = 0;
     let skipped = 0;
     const errors: ImportError[] = [];
-    const conflicts: DataConflict[] = [];
+    let conflicts: DataConflict[] = [];
 
     try {
       const fileContent = await FileSystem.readAsStringAsync(fileUri);
@@ -1887,6 +1975,28 @@ export class DataImportService {
 
       if (!importData.data || !importData.data.stockMovements) {
         throw new Error('No stock movements data found in import file');
+      }
+
+      // Use enhanced conflict detection for all data types in the import file
+      conflicts = await this.detectConflicts(importData.data, 'stockMovements');
+
+      // If conflicts exist and user wants to be asked, return conflicts for resolution
+      if (conflicts.length > 0 && options.conflictResolution === 'ask') {
+        return {
+          success: false,
+          imported: 0,
+          updated: 0,
+          skipped: 0,
+          errors: [],
+          conflicts,
+          duration: Date.now() - startTime,
+          dataType: 'stockMovements',
+          availableDataTypes: dataTypeValidation.availableTypes,
+          processedDataTypes: [],
+          detailedCounts: dataTypeValidation.detailedCounts,
+          validationMessage:
+            'Conflicts detected. Please resolve them to continue.',
+        };
       }
 
       const movements = importData.data.stockMovements;
@@ -1943,6 +2053,20 @@ export class DataImportService {
               }
               skipped++;
               continue;
+            }
+
+            // Handle conflicts using universal conflict resolution
+            const recordConflict = conflicts.find((c) => c.record === movement);
+
+            if (recordConflict) {
+              if (options.conflictResolution === 'skip') {
+                skipped++;
+                continue;
+              } else if (options.conflictResolution === 'update') {
+                // For stock movements, we typically don't update existing movements, so skip
+                skipped++;
+                continue;
+              }
             }
 
             // Add stock movement
@@ -2033,7 +2157,7 @@ export class DataImportService {
     let updated = 0;
     let skipped = 0;
     const errors: ImportError[] = [];
-    const conflicts: DataConflict[] = [];
+    let conflicts: DataConflict[] = [];
 
     try {
       const fileContent = await FileSystem.readAsStringAsync(fileUri);
@@ -2071,6 +2195,28 @@ export class DataImportService {
 
       if (!importData.data || !importData.data.bulkPricing) {
         throw new Error('No bulk pricing data found in import file');
+      }
+
+      // Use enhanced conflict detection for all data types in the import file
+      conflicts = await this.detectConflicts(importData.data, 'bulkPricing');
+
+      // If conflicts exist and user wants to be asked, return conflicts for resolution
+      if (conflicts.length > 0 && options.conflictResolution === 'ask') {
+        return {
+          success: false,
+          imported: 0,
+          updated: 0,
+          skipped: 0,
+          errors: [],
+          conflicts,
+          duration: Date.now() - startTime,
+          dataType: 'bulkPricing',
+          availableDataTypes: dataTypeValidation.availableTypes,
+          processedDataTypes: [],
+          detailedCounts: dataTypeValidation.detailedCounts,
+          validationMessage:
+            'Conflicts detected. Please resolve them to continue.',
+        };
       }
 
       const bulkPricingData = importData.data.bulkPricing;
@@ -2125,12 +2271,32 @@ export class DataImportService {
             continue;
           }
 
-          // Clear existing bulk pricing for this product
-          const existingTiers = await this.db.getBulkPricingForProduct(
-            product.id
-          );
-          for (const tier of existingTiers) {
-            await this.db.deleteBulkPricing(tier.id);
+          // Handle conflicts using universal conflict resolution
+          const recordConflict = conflicts.find((c) => c.record === item);
+
+          if (recordConflict) {
+            if (options.conflictResolution === 'skip') {
+              skipped++;
+              continue;
+            } else if (options.conflictResolution === 'update') {
+              // For bulk pricing, we can update by clearing existing and adding new
+              const existingTiers = await this.db.getBulkPricingForProduct(
+                product.id
+              );
+              for (const tier of existingTiers) {
+                await this.db.deleteBulkPricing(tier.id);
+              }
+            }
+          }
+
+          // Clear existing bulk pricing for this product (if not already done in conflict resolution)
+          if (!recordConflict || options.conflictResolution !== 'update') {
+            const existingTiers = await this.db.getBulkPricingForProduct(
+              product.id
+            );
+            for (const tier of existingTiers) {
+              await this.db.deleteBulkPricing(tier.id);
+            }
           }
 
           // Add new bulk pricing tiers
@@ -2149,7 +2315,11 @@ export class DataImportService {
           }
 
           if (tiersImported > 0) {
-            imported++;
+            if (recordConflict && options.conflictResolution === 'update') {
+              updated++;
+            } else {
+              imported++;
+            }
           } else {
             skipped++;
           }
@@ -2227,7 +2397,7 @@ export class DataImportService {
     let updated = 0;
     let skipped = 0;
     const errors: ImportError[] = [];
-    const conflicts: DataConflict[] = [];
+    let conflicts: DataConflict[] = [];
 
     try {
       const fileContent = await FileSystem.readAsStringAsync(fileUri);
@@ -2266,6 +2436,28 @@ export class DataImportService {
         throw new Error('No sales data found in import file');
       }
 
+      // Use enhanced conflict detection for all data types in the import file
+      conflicts = await this.detectConflicts(importData.data, 'sales');
+
+      // If conflicts exist and user wants to be asked, return conflicts for resolution
+      if (conflicts.length > 0 && options.conflictResolution === 'ask') {
+        return {
+          success: false,
+          imported: 0,
+          updated: 0,
+          skipped: 0,
+          errors: [],
+          conflicts,
+          duration: Date.now() - startTime,
+          dataType: 'sales',
+          availableDataTypes: dataTypeValidation.availableTypes,
+          processedDataTypes: [],
+          detailedCounts: dataTypeValidation.detailedCounts,
+          validationMessage:
+            'Conflicts detected. Please resolve them to continue.',
+        };
+      }
+
       const sales = importData.data.sales;
       // Only process sales data and their associated sale items
 
@@ -2293,6 +2485,20 @@ export class DataImportService {
               });
               skipped++;
               continue;
+            }
+
+            // Handle conflicts using universal conflict resolution
+            const recordConflict = conflicts.find((c) => c.record === sale);
+
+            if (recordConflict) {
+              if (options.conflictResolution === 'skip') {
+                skipped++;
+                continue;
+              } else if (options.conflictResolution === 'update') {
+                // For sales, we typically don't update existing sales, so skip
+                skipped++;
+                continue;
+              }
             }
 
             // Add sale with items (sales are typically not updated, just added)
@@ -2405,7 +2611,7 @@ export class DataImportService {
     let updated = 0;
     let skipped = 0;
     const errors: ImportError[] = [];
-    const conflicts: DataConflict[] = [];
+    let conflicts: DataConflict[] = [];
 
     try {
       const fileContent = await FileSystem.readAsStringAsync(fileUri);
@@ -2443,6 +2649,28 @@ export class DataImportService {
 
       if (!importData.data || !importData.data.expenses) {
         throw new Error('No expenses data found in import file');
+      }
+
+      // Use enhanced conflict detection for all data types in the import file
+      conflicts = await this.detectConflicts(importData.data, 'expenses');
+
+      // If conflicts exist and user wants to be asked, return conflicts for resolution
+      if (conflicts.length > 0 && options.conflictResolution === 'ask') {
+        return {
+          success: false,
+          imported: 0,
+          updated: 0,
+          skipped: 0,
+          errors: [],
+          conflicts,
+          duration: Date.now() - startTime,
+          dataType: 'expenses',
+          availableDataTypes: dataTypeValidation.availableTypes,
+          processedDataTypes: [],
+          detailedCounts: dataTypeValidation.detailedCounts,
+          validationMessage:
+            'Conflicts detected. Please resolve them to continue.',
+        };
       }
 
       const expenses = importData.data.expenses;
@@ -2506,6 +2734,20 @@ export class DataImportService {
               });
               skipped++;
               continue;
+            }
+
+            // Handle conflicts using universal conflict resolution
+            const recordConflict = conflicts.find((c) => c.record === expense);
+
+            if (recordConflict) {
+              if (options.conflictResolution === 'skip') {
+                skipped++;
+                continue;
+              } else if (options.conflictResolution === 'update') {
+                // For expenses, we typically don't update existing expenses, so skip
+                skipped++;
+                continue;
+              }
             }
 
             // Find or create expense category

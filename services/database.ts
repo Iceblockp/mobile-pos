@@ -978,6 +978,7 @@ export class DatabaseService {
 
     // Only seed categories and suppliers if no products exist
     if (!hasProducts) {
+      console.log('Seeding initial data with UUIDs...');
       const categories = [
         {
           name: 'ဆန်နှင့် ကောက်ပဲသီးနှံများ',
@@ -1023,16 +1024,17 @@ export class DatabaseService {
       ];
 
       for (const category of categories) {
+        const categoryId = generateUUID();
         try {
           await this.db.runAsync(
-            'INSERT OR IGNORE INTO categories (name, description) VALUES (?, ?)',
-            [category.name, category.description]
+            'INSERT OR IGNORE INTO categories (id, name, description) VALUES (?, ?, ?)',
+            [categoryId, category.name, category.description]
           );
         } catch (error) {
           // Fallback for databases without description column
           await this.db.runAsync(
-            'INSERT OR IGNORE INTO categories (name) VALUES (?)',
-            [category.name]
+            'INSERT OR IGNORE INTO categories (id, name) VALUES (?, ?)',
+            [categoryId, category.name]
           );
         }
       }
@@ -1062,9 +1064,11 @@ export class DatabaseService {
       ];
 
       for (const supplier of suppliers) {
+        const supplierId = generateUUID();
         await this.db.runAsync(
-          'INSERT OR IGNORE INTO suppliers (name, contact_name, phone, email, address) VALUES (?, ?, ?, ?, ?)',
+          'INSERT OR IGNORE INTO suppliers (id, name, contact_name, phone, email, address) VALUES (?, ?, ?, ?, ?, ?)',
           [
+            supplierId,
             supplier.name,
             supplier.contact_name,
             supplier.phone,
@@ -1106,6 +1110,9 @@ export class DatabaseService {
       console.log('Seeded expense categories');
     }
 
+    // Verify UUID format for all seeded data
+    await this.verifySeededDataUUIDs();
+
     // Only seed products if no products exist yet
     if (!hasProducts) {
       // Get category IDs for seeding products
@@ -1118,6 +1125,16 @@ export class DatabaseService {
         categoryMap.set(cat.name, cat.id);
       });
 
+      // Get supplier IDs for seeding products
+      const supplierMap = new Map<string, string>();
+      const suppliersForSeeding = (await this.db.getAllAsync(
+        'SELECT id, name FROM suppliers'
+      )) as { id: string; name: string }[];
+
+      suppliersForSeeding.forEach((supplier) => {
+        supplierMap.set(supplier.name, supplier.id);
+      });
+
       const products = [
         {
           name: 'ရှမ်းဆန် ၅ ကီလို',
@@ -1127,7 +1144,7 @@ export class DatabaseService {
           cost: 6000,
           quantity: 40,
           min_stock: 10,
-          supplier_id: 1,
+          supplier_name: 'Myanmar Fresh Foods',
         },
         {
           name: 'ကြက်သား ၁ ကီလို',
@@ -1137,7 +1154,7 @@ export class DatabaseService {
           cost: 3200,
           quantity: 25,
           min_stock: 5,
-          supplier_id: 1,
+          supplier_name: 'Myanmar Fresh Foods',
         },
         {
           name: 'ငွေ့ကောင်းသီး ၁ ကီလို',
@@ -1147,7 +1164,7 @@ export class DatabaseService {
           cost: 800,
           quantity: 100,
           min_stock: 20,
-          supplier_id: 1,
+          supplier_name: 'Myanmar Fresh Foods',
         },
         {
           name: 'မုန့်ဟင်းခါး',
@@ -1157,7 +1174,7 @@ export class DatabaseService {
           cost: 500,
           quantity: 50,
           min_stock: 15,
-          supplier_id: 1,
+          supplier_name: 'Myanmar Fresh Foods',
         },
         {
           name: 'ကော်ကာကိုလာ ၅၀၀ မီလီ',
@@ -1167,7 +1184,7 @@ export class DatabaseService {
           cost: 700,
           quantity: 80,
           min_stock: 15,
-          supplier_id: 3,
+          supplier_name: 'Ayeyarwady Beverages',
         },
         {
           name: 'ငါးပိ ၁ ပုံး',
@@ -1177,7 +1194,7 @@ export class DatabaseService {
           cost: 1800,
           quantity: 30,
           min_stock: 8,
-          supplier_id: 1,
+          supplier_name: 'Myanmar Fresh Foods',
         },
         {
           name: 'လက်ဖက်ရည်ခြောက် ၁ ပက်ကက်',
@@ -1187,7 +1204,7 @@ export class DatabaseService {
           cost: 2200,
           quantity: 40,
           min_stock: 10,
-          supplier_id: 2,
+          supplier_name: 'Golden Valley Dairy',
         },
         {
           name: 'ဆပ်ပြာ ၁ လုံး',
@@ -1197,16 +1214,20 @@ export class DatabaseService {
           cost: 1200,
           quantity: 60,
           min_stock: 12,
-          supplier_id: 2,
+          supplier_name: 'Golden Valley Dairy',
         },
       ];
 
       for (const product of products) {
         const categoryId = categoryMap.get(product.category_name);
-        if (categoryId) {
+        const supplierId = supplierMap.get(product.supplier_name);
+
+        if (categoryId && supplierId) {
+          const productId = generateUUID();
           await this.db.runAsync(
-            'INSERT INTO products (name, barcode, category_id, price, cost, quantity, min_stock, supplier_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO products (id, name, barcode, category_id, price, cost, quantity, min_stock, supplier_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
+              productId,
               product.name,
               product.barcode,
               categoryId,
@@ -1214,11 +1235,88 @@ export class DatabaseService {
               product.cost,
               product.quantity,
               product.min_stock,
-              product.supplier_id,
+              supplierId,
             ]
           );
         }
       }
+
+      // Verify seeding was successful
+      const seededCategories = await this.db.getFirstAsync(
+        'SELECT COUNT(*) as count FROM categories'
+      );
+      const seededSuppliers = await this.db.getFirstAsync(
+        'SELECT COUNT(*) as count FROM suppliers'
+      );
+      const seededProducts = await this.db.getFirstAsync(
+        'SELECT COUNT(*) as count FROM products'
+      );
+
+      console.log(`Successfully seeded initial data with UUIDs:
+        - Categories: ${(seededCategories as { count: number }).count}
+        - Suppliers: ${(seededSuppliers as { count: number }).count}
+        - Products: ${(seededProducts as { count: number }).count}`);
+    }
+  }
+
+  private async verifySeededDataUUIDs(): Promise<void> {
+    try {
+      // Check categories have valid UUIDs
+      const categories = (await this.db.getAllAsync(
+        'SELECT id, name FROM categories LIMIT 5'
+      )) as { id: string; name: string }[];
+
+      // Check suppliers have valid UUIDs
+      const suppliers = (await this.db.getAllAsync(
+        'SELECT id, name FROM suppliers LIMIT 5'
+      )) as { id: string; name: string }[];
+
+      // Check products have valid UUIDs
+      const products = (await this.db.getAllAsync(
+        'SELECT id, name FROM products LIMIT 5'
+      )) as { id: string; name: string }[];
+
+      // Verify UUID format (basic check for length and hyphens)
+      const isValidUUID = (uuid: string): boolean => {
+        const uuidRegex =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(uuid);
+      };
+
+      let invalidUUIDs = 0;
+
+      categories.forEach((cat) => {
+        if (!isValidUUID(cat.id)) {
+          console.warn(`Invalid UUID for category "${cat.name}": ${cat.id}`);
+          invalidUUIDs++;
+        }
+      });
+
+      suppliers.forEach((supplier) => {
+        if (!isValidUUID(supplier.id)) {
+          console.warn(
+            `Invalid UUID for supplier "${supplier.name}": ${supplier.id}`
+          );
+          invalidUUIDs++;
+        }
+      });
+
+      products.forEach((product) => {
+        if (!isValidUUID(product.id)) {
+          console.warn(
+            `Invalid UUID for product "${product.name}": ${product.id}`
+          );
+          invalidUUIDs++;
+        }
+      });
+
+      if (invalidUUIDs === 0) {
+        console.log('✓ All seeded data has valid UUIDs');
+      } else {
+        console.warn(`⚠ Found ${invalidUUIDs} invalid UUIDs in seeded data`);
+      }
+    } catch (error) {
+      console.error('Error verifying seeded data UUIDs:', error);
     }
   }
 

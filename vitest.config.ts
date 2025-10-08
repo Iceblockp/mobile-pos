@@ -5,10 +5,12 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    setupFiles: ['./test-setup.ts'],
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './'),
+      'react-native': 'react-native-web',
     },
   },
 });

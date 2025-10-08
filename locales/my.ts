@@ -1062,6 +1062,8 @@ export const my: TranslationKeys = {
     conflictsDetected: 'ပဋိပက္ခများတွေ့ရှိပါသည်',
     conflictsFound: 'ရှိပြီးသားအချက်အလက်များနှင့် ပဋိပက္ခများတွေ့ရှိ',
     andMoreConflicts: 'နှင့် နောက်ထပ်ပဋိပက္ခ {{count}} ခု...',
+    seeMore: 'နောက်ထပ်ကြည့်မည်',
+    seeLess: 'လျှော့ကြည့်မည်',
     updateExisting: 'ရှိပြီးသားကို အပ်ဒိတ်လုပ်မည်',
     skipConflicts: 'ပဋိပက္ခများကို ကျော်မည်',
     willUpdateExisting:
@@ -1081,6 +1083,11 @@ export const my: TranslationKeys = {
     createNewDesc: 'ပြင်ဆင်ထားသော အမှတ်အသားများဖြင့် မှတ်တမ်းအသစ်များဖန်တီးမည်',
     applyToAllConflicts: 'ဤဖြေရှင်းချက်ကို ပဋိပက္ခအားလုံးတွင် အသုံးပြုမည်',
     resolveConflicts: 'ပဋိပက္ခများဖြေရှင်းမည်',
+    noUUID: 'UUID မရှိပါ',
+    matchedByUUID: 'UUID ဖြင့်ကိုက်ညီ',
+    matchedByName: 'အမည်ဖြင့်ကိုက်ညီ',
+    matchedByOther: 'အခြားဖြင့်ကိုက်ညီ',
+    unnamedRecord: 'အမည်မရှိသောမှတ်တမ်း',
   },
   about: {
     title: 'အကြောင်း',
@@ -1380,7 +1387,6 @@ export const my: TranslationKeys = {
     previous: 'ယခင်',
     topPerformingTiers: 'အကောင်းဆုံးစွမ်းဆောင်သောအဆင့်များ',
     timesUsed: 'အသုံးပြုကြိမ်',
-    totalRevenue: 'စုစုပေါင်းဝင်ငွေ',
     discount: 'လျှော့စျေး',
     opportunities: 'အခွင့်အလမ်းများ',
     underperforming: 'စွမ်းဆောင်ရည်နည်း',
