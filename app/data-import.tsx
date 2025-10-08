@@ -12,14 +12,8 @@ import { useRouter } from 'expo-router';
 import {
   ArrowLeft,
   Upload,
-  FileText,
-  Package,
-  DollarSign,
   Database,
   CheckCircle,
-  Users,
-  TrendingUp,
-  Tag,
   HelpCircle,
 } from 'lucide-react-native';
 import DataManagementGuide from '@/components/DataManagementGuide';
@@ -45,7 +39,6 @@ interface ImportOption {
   icon: any;
   color: string;
   backgroundColor: string;
-  dataType: 'all'; // Simplified data import only supports importing all data
 }
 
 export default function DataImport() {
@@ -72,9 +65,9 @@ export default function DataImport() {
   } | null>(null);
 
   // Get user-friendly display name for data types
-  const getDataTypeDisplayName = (dataType: string): string => {
+  const getDataTypeDisplayName = (): string => {
     // Simplified data import only supports 'all' data type
-    return 'Complete Backup';
+    return 'Import All Data';
   };
 
   // Initialize import service when database is ready
@@ -91,13 +84,12 @@ export default function DataImport() {
   // Simplified data import - only support importing all data at once
   const importOptions: ImportOption[] = [
     {
-      id: 'complete',
-      title: t('dataImport.completeRestore'),
-      description: t('dataImport.completeRestoreDesc'),
+      id: 'all-data',
+      title: t('dataImport.importAllData'),
+      description: t('dataImport.importAllDataDesc'),
       icon: Database,
       color: '#8B5CF6',
       backgroundColor: '#F5F3FF',
-      dataType: 'all',
     },
   ];
 
@@ -200,9 +192,7 @@ export default function DataImport() {
           error.message.includes('No') &&
           error.message.includes('data found')
         ) {
-          errorMessage = `Import failed: The selected file does not contain ${getDataTypeDisplayName(
-            option.dataType
-          ).toLowerCase()} data.`;
+          errorMessage = `Import failed: The selected file does not contain ${getDataTypeDisplayName().toLowerCase()} data.`;
         } else if (
           error.message.includes('Invalid') ||
           error.message.includes('format')
@@ -240,7 +230,7 @@ export default function DataImport() {
 
       if (result.success) {
         // Generate enhanced success message with data type information
-        const dataTypeName = getDataTypeDisplayName(option.dataType);
+        const dataTypeName = getDataTypeDisplayName();
         let successMessage = `${dataTypeName} import completed successfully!`;
 
         // Add detailed counts if available
@@ -292,7 +282,7 @@ export default function DataImport() {
           error.message.includes('MISSING_DATA_TYPE') ||
           error.message.includes('not available')
         ) {
-          const dataTypeName = getDataTypeDisplayName(option.dataType);
+          const dataTypeName = getDataTypeDisplayName();
           errorMessage = `Import failed: The selected file does not contain ${dataTypeName.toLowerCase()} data. Please select a file that contains the data type you want to import.`;
         } else if (
           error.message.includes('Invalid') ||
@@ -369,7 +359,7 @@ export default function DataImport() {
 
       if (result.success) {
         // Generate enhanced success message with data type information
-        const dataTypeName = getDataTypeDisplayName(option.dataType);
+        const dataTypeName = getDataTypeDisplayName();
         let successMessage = `${dataTypeName} import completed successfully!`;
 
         // Add detailed counts if available
@@ -421,7 +411,7 @@ export default function DataImport() {
           error.message.includes('MISSING_DATA_TYPE') ||
           error.message.includes('not available')
         ) {
-          const dataTypeName = getDataTypeDisplayName(option.dataType);
+          const dataTypeName = getDataTypeDisplayName();
           errorMessage = `Import failed: The selected file does not contain ${dataTypeName.toLowerCase()} data. Please select a file that contains the data type you want to import.`;
         } else if (
           error.message.includes('Invalid') ||

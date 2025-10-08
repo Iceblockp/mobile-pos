@@ -55,7 +55,7 @@
   - Add confirm/cancel actions for export process
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 6.3_
 
-- [ ] 8. Update import UI to show only "Import All Data" option
+- [x] 8. Update import UI to show only "Import All Data" option
 
   - Remove individual import options from app/data-import.tsx
   - Keep only the "Complete Restore" option and rename it to "Import All Data"

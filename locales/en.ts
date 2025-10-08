@@ -966,6 +966,8 @@ export const en = {
     bulkPricingDesc: 'Import bulk pricing tiers and discount configurations',
     completeRestore: 'Complete Restore',
     completeRestoreDesc: 'Import all data from a complete backup file',
+    importAllData: 'Import All Data',
+    importAllDataDesc: 'Import all data from a complete backup file',
     importing: 'Importing...',
     importInfo: 'Import Information',
     importInfoTitle: 'Import Information',
