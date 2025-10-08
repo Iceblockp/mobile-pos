@@ -1021,6 +1021,15 @@ export const en = {
     matchedByName: 'Matched by Name',
     matchedByOther: 'Matched by Other',
     unnamedRecord: 'Unnamed Record',
+    // Enhanced conflict resolution keys
+    conflictStatistics: 'Conflict Statistics',
+    conflicts: 'conflicts',
+    duplicates: 'duplicates',
+    missingReferences: 'missing refs',
+    validationErrors: 'validation errors',
+    groupedView: 'Grouped',
+    listView: 'List',
+    andMoreInType: 'and {{count}} more...',
   },
   about: {
     title: 'About',
@@ -1306,7 +1315,6 @@ export const en = {
     previous: 'Previous',
     topPerformingTiers: 'Top Performing Tiers',
     timesUsed: 'Times Used',
-    totalRevenue: 'Total Revenue',
     discount: 'Discount',
     opportunities: 'Opportunities',
     underperforming: 'Underperforming',

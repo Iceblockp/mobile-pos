@@ -32,6 +32,7 @@ import {
   ImportOptions,
   DataConflict,
   ConflictResolution,
+  ConflictSummary,
 } from '@/services/dataImportService';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
@@ -44,15 +45,7 @@ interface ImportOption {
   icon: any;
   color: string;
   backgroundColor: string;
-  dataType:
-    | 'sales'
-    | 'products'
-    | 'expenses'
-    | 'shopSettings'
-    | 'customers'
-    | 'stockMovements'
-    | 'bulkPricing'
-    | 'all';
+  dataType: 'all'; // Simplified data import only supports importing all data
 }
 
 export default function DataImport() {
@@ -68,6 +61,9 @@ export default function DataImport() {
     null
   );
   const [conflicts, setConflicts] = useState<DataConflict[]>([]);
+  const [conflictSummary, setConflictSummary] = useState<
+    ConflictSummary | undefined
+  >(undefined);
   const [showConflictModal, setShowConflictModal] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [pendingImport, setPendingImport] = useState<{
@@ -77,17 +73,8 @@ export default function DataImport() {
 
   // Get user-friendly display name for data types
   const getDataTypeDisplayName = (dataType: string): string => {
-    const displayNames: Record<string, string> = {
-      products: 'Products & Inventory',
-      sales: 'Sales Data',
-      customers: 'Customer Data',
-      expenses: 'Expenses',
-      stockMovements: 'Stock Movements',
-      bulkPricing: 'Bulk Pricing',
-      all: 'Complete Backup',
-    };
-
-    return displayNames[dataType] || dataType;
+    // Simplified data import only supports 'all' data type
+    return 'Complete Backup';
   };
 
   // Initialize import service when database is ready
@@ -101,61 +88,8 @@ export default function DataImport() {
     }
   }, [db]);
 
+  // Simplified data import - only support importing all data at once
   const importOptions: ImportOption[] = [
-    {
-      id: 'sales',
-      title: t('dataImport.salesData'),
-      description: t('dataImport.salesDataDesc'),
-      icon: DollarSign,
-      color: '#10B981',
-      backgroundColor: '#ECFDF5',
-      dataType: 'sales',
-    },
-    {
-      id: 'products',
-      title: t('dataImport.productsInventory'),
-      description: t('dataImport.productsInventoryDesc'),
-      icon: Package,
-      color: '#3B82F6',
-      backgroundColor: '#EFF6FF',
-      dataType: 'products',
-    },
-    {
-      id: 'customers',
-      title: t('dataImport.customersData'),
-      description: t('dataImport.customersDataDesc'),
-      icon: Users,
-      color: '#F59E0B',
-      backgroundColor: '#FFFBEB',
-      dataType: 'customers',
-    },
-    {
-      id: 'expenses',
-      title: t('dataImport.expensesData'),
-      description: t('dataImport.expensesDataDesc'),
-      icon: FileText,
-      color: '#EF4444',
-      backgroundColor: '#FEF2F2',
-      dataType: 'expenses',
-    },
-    {
-      id: 'stockMovements',
-      title: t('dataImport.stockMovements'),
-      description: t('dataImport.stockMovementsDesc'),
-      icon: TrendingUp,
-      color: '#06B6D4',
-      backgroundColor: '#ECFEFF',
-      dataType: 'stockMovements',
-    },
-    {
-      id: 'bulkPricing',
-      title: t('dataImport.bulkPricing'),
-      description: t('dataImport.bulkPricingDesc'),
-      icon: Tag,
-      color: '#8B5CF6',
-      backgroundColor: '#F5F3FF',
-      dataType: 'bulkPricing',
-    },
     {
       id: 'complete',
       title: t('dataImport.completeRestore'),
@@ -199,10 +133,7 @@ export default function DataImport() {
       );
       const importData = JSON.parse(fileContent);
       const dataTypeValidation =
-        await importService.validateDataTypeAvailability(
-          importData,
-          option.dataType
-        );
+        importService.validateDataTypeAvailability(importData);
 
       if (!dataTypeValidation.isValid) {
         const availableTypesText =
@@ -233,6 +164,7 @@ export default function DataImport() {
       // Check for conflicts
       if (preview.conflicts.length > 0) {
         setConflicts(preview.conflicts);
+        setConflictSummary(preview.conflictSummary);
         setPendingImport({ fileUri: result.assets[0].uri, option });
         setShowConflictModal(true);
         return;
@@ -299,42 +231,12 @@ export default function DataImport() {
       const importOptions: ImportOptions = {
         batchSize: 25,
         conflictResolution: 'update', // Default to update existing records
-        validateReferences: true,
-        createMissingReferences: true,
+        // validateReferences: true,
+        // createMissingReferences: true,
       };
 
-      let result;
-
-      switch (option.dataType) {
-        case 'sales':
-          result = await importService.importSales(fileUri, importOptions);
-          break;
-        case 'products':
-          result = await importService.importProducts(fileUri, importOptions);
-          break;
-        case 'customers':
-          result = await importService.importCustomers(fileUri, importOptions);
-          break;
-        case 'expenses':
-          result = await importService.importExpenses(fileUri, importOptions);
-        case 'stockMovements':
-          result = await importService.importStockMovements(
-            fileUri,
-            importOptions
-          );
-          break;
-        case 'bulkPricing':
-          result = await importService.importBulkPricing(
-            fileUri,
-            importOptions
-          );
-          break;
-        case 'all':
-          result = await importService.importAllData(fileUri, importOptions);
-          break;
-        default:
-          throw new Error(`Unsupported import type: ${option.dataType}`);
-      }
+      // For simplified data import, we always import all data
+      const result = await importService.importAllData(fileUri, importOptions);
 
       if (result.success) {
         // Generate enhanced success message with data type information
@@ -418,6 +320,7 @@ export default function DataImport() {
 
     // Clear conflicts after resolution
     setConflicts([]);
+    setConflictSummary(undefined);
 
     // Continue with the import using the resolved conflicts
     if (pendingImport) {
@@ -457,34 +360,12 @@ export default function DataImport() {
       const importOptions: ImportOptions = {
         batchSize: 25,
         conflictResolution: resolution.action === 'update' ? 'update' : 'skip',
-        validateReferences: true,
-        createMissingReferences: true,
+        // validateReferences: true,
+        // createMissingReferences: true,
       };
 
-      let result;
-
-      switch (option.dataType) {
-        case 'sales':
-          result = await importService.importSales(fileUri, importOptions);
-          break;
-        case 'products':
-          result = await importService.importProducts(fileUri, importOptions);
-          break;
-        case 'customers':
-          result = await importService.importCustomers(fileUri, importOptions);
-          break;
-        case 'expenses':
-          result = await importService.importExpenses(fileUri, importOptions);
-          break;
-        case 'stockMovements':
-          result = await importService.importStockMovements(
-            fileUri,
-            importOptions
-          );
-          break;
-        default:
-          throw new Error(`Unsupported import type: ${option.dataType}`);
-      }
+      // For simplified data import, we always import all data
+      const result = await importService.importAllData(fileUri, importOptions);
 
       if (result.success) {
         // Generate enhanced success message with data type information
@@ -744,6 +625,7 @@ export default function DataImport() {
       <ConflictResolutionModal
         visible={showConflictModal}
         conflicts={conflicts}
+        conflictSummary={conflictSummary}
         onResolve={(resolution: ConflictResolution) => {
           setShowConflictModal(false);
           handleConflictResolution(resolution);
@@ -751,6 +633,7 @@ export default function DataImport() {
         onCancel={() => {
           setShowConflictModal(false);
           setConflicts([]);
+          setConflictSummary(undefined);
           setPendingImport(null);
         }}
       />

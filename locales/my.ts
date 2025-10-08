@@ -1088,6 +1088,15 @@ export const my: TranslationKeys = {
     matchedByName: 'အမည်ဖြင့်ကိုက်ညီ',
     matchedByOther: 'အခြားဖြင့်ကိုက်ညီ',
     unnamedRecord: 'အမည်မရှိသောမှတ်တမ်း',
+    // Enhanced conflict resolution keys
+    conflictStatistics: 'ပဋိပက္ခစာရင်းအင်း',
+    conflicts: 'ပဋိပက္ခများ',
+    duplicates: 'ပွားများ',
+    missingReferences: 'ရည်ညွှန်းမှုများပျောက်',
+    validationErrors: 'စစ်ဆေးမှုအမှားများ',
+    groupedView: 'အုပ်စုခွဲ',
+    listView: 'စာရင်း',
+    andMoreInType: 'နှင့် နောက်ထပ် {{count}} ခု...',
   },
   about: {
     title: 'အကြောင်း',

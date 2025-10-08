@@ -17,25 +17,32 @@ import {
   User,
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
-import { DataConflict, ConflictResolution } from '@/services/dataImportService';
+import {
+  DataConflict,
+  ConflictResolution,
+  ConflictSummary,
+} from '@/services/dataImportService';
 import { isValidUUID } from '@/utils/uuid';
 
 interface ConflictResolutionModalProps {
   visible: boolean;
   conflicts: DataConflict[];
+  conflictSummary?: ConflictSummary;
   onResolve: (resolution: ConflictResolution) => void;
   onCancel: () => void;
 }
 
 export const ConflictResolutionModal: React.FC<
   ConflictResolutionModalProps
-> = ({ visible, conflicts, onResolve, onCancel }) => {
+> = ({ visible, conflicts, conflictSummary, onResolve, onCancel }) => {
   const { t } = useTranslation();
   const [selectedResolution, setSelectedResolution] = useState<
     'update' | 'skip' | 'create_new'
   >('update');
   const [applyToAll, setApplyToAll] = useState(false);
   const [showAllConflicts, setShowAllConflicts] = useState(false);
+  const [selectedDataType, setSelectedDataType] = useState<string | null>(null);
+  const [showGroupedView, setShowGroupedView] = useState(true);
 
   const handleResolve = () => {
     const resolution: ConflictResolution = {
@@ -43,6 +50,142 @@ export const ConflictResolutionModal: React.FC<
       applyToAll,
     };
     onResolve(resolution);
+  };
+
+  const renderConflictStatistics = () => {
+    if (!conflictSummary) return null;
+
+    return (
+      <View style={styles.statisticsContainer}>
+        <Text style={styles.statisticsTitle}>
+          {t('dataImport.conflictStatistics')}
+        </Text>
+        <View style={styles.statisticsGrid}>
+          {Object.entries(conflictSummary.conflictStatistics).map(
+            ([dataType, stats]) => {
+              if (stats.total === 0) return null;
+
+              return (
+                <TouchableOpacity
+                  key={dataType}
+                  style={[
+                    styles.statisticsCard,
+                    selectedDataType === dataType &&
+                      styles.statisticsCardSelected,
+                  ]}
+                  onPress={() =>
+                    setSelectedDataType(
+                      selectedDataType === dataType ? null : dataType
+                    )
+                  }
+                >
+                  <Text style={styles.statisticsDataType}>
+                    {dataType.charAt(0).toUpperCase() + dataType.slice(1)}
+                  </Text>
+                  <Text style={styles.statisticsTotal}>
+                    {stats.total} {t('dataImport.conflicts')}
+                  </Text>
+                  <View style={styles.statisticsBreakdown}>
+                    {stats.duplicate > 0 && (
+                      <Text
+                        style={[styles.statisticsDetail, { color: '#F59E0B' }]}
+                      >
+                        {stats.duplicate} {t('dataImport.duplicates')}
+                      </Text>
+                    )}
+                    {stats.reference_missing > 0 && (
+                      <Text
+                        style={[styles.statisticsDetail, { color: '#EF4444' }]}
+                      >
+                        {stats.reference_missing}{' '}
+                        {t('dataImport.missingReferences')}
+                      </Text>
+                    )}
+                    {stats.validation_failed > 0 && (
+                      <Text
+                        style={[styles.statisticsDetail, { color: '#8B5CF6' }]}
+                      >
+                        {stats.validation_failed}{' '}
+                        {t('dataImport.validationErrors')}
+                      </Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            }
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  const renderGroupedConflicts = () => {
+    if (!conflictSummary || !showGroupedView) return null;
+
+    const dataTypesToShow = selectedDataType
+      ? [selectedDataType]
+      : Object.keys(conflictSummary.conflictsByType).filter(
+          (dataType) => conflictSummary.conflictsByType[dataType].length > 0
+        );
+
+    return (
+      <View style={styles.groupedConflictsContainer}>
+        {dataTypesToShow.map((dataType) => {
+          const typeConflicts = conflictSummary.conflictsByType[dataType];
+          if (typeConflicts.length === 0) return null;
+
+          return (
+            <View key={dataType} style={styles.dataTypeGroup}>
+              <View style={styles.dataTypeHeader}>
+                <Text style={styles.dataTypeTitle}>
+                  {dataType.charAt(0).toUpperCase() + dataType.slice(1)}(
+                  {typeConflicts.length})
+                </Text>
+              </View>
+              {typeConflicts
+                .slice(0, showAllConflicts ? undefined : 3)
+                .map((conflict, index) => (
+                  <View
+                    key={`${dataType}-${index}`}
+                    style={styles.conflictItem}
+                  >
+                    <View style={styles.conflictHeader}>
+                      <View style={styles.conflictTypeIndicator}>
+                        {React.createElement(
+                          getConflictTypeIcon(conflict.type),
+                          {
+                            size: 16,
+                            color: getConflictTypeColor(conflict.type),
+                          }
+                        )}
+                      </View>
+                      <Text
+                        style={[
+                          styles.conflictType,
+                          { color: getConflictTypeColor(conflict.type) },
+                        ]}
+                      >
+                        {conflict.type.replace('_', ' ').toUpperCase()}
+                      </Text>
+                    </View>
+                    <Text style={styles.conflictMessage}>
+                      {conflict.message}
+                    </Text>
+                    {renderConflictComparison(conflict)}
+                  </View>
+                ))}
+              {typeConflicts.length > 3 && !showAllConflicts && (
+                <Text style={styles.moreConflictsInType}>
+                  {t('dataImport.andMoreInType', {
+                    count: typeConflicts.length - 3,
+                  })}
+                </Text>
+              )}
+            </View>
+          );
+        })}
+      </View>
+    );
   };
 
   const getConflictTypeColor = (type: string) => {
@@ -249,57 +392,107 @@ export const ConflictResolutionModal: React.FC<
             <Text style={styles.summaryText}>
               {conflicts.length} {t('dataImport.conflictsFound')}
             </Text>
+            {conflictSummary && (
+              <View style={styles.viewToggleContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.viewToggle,
+                    showGroupedView && styles.viewToggleActive,
+                  ]}
+                  onPress={() => setShowGroupedView(true)}
+                >
+                  <Text
+                    style={[
+                      styles.viewToggleText,
+                      showGroupedView && styles.viewToggleTextActive,
+                    ]}
+                  >
+                    {t('dataImport.groupedView')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.viewToggle,
+                    !showGroupedView && styles.viewToggleActive,
+                  ]}
+                  onPress={() => setShowGroupedView(false)}
+                >
+                  <Text
+                    style={[
+                      styles.viewToggleText,
+                      !showGroupedView && styles.viewToggleTextActive,
+                    ]}
+                  >
+                    {t('dataImport.listView')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
+
+          {/* Conflict Statistics */}
+          {conflictSummary && showGroupedView && renderConflictStatistics()}
 
           {/* Conflicts List */}
           <ScrollView
             style={styles.conflictsList}
             showsVerticalScrollIndicator={false}
           >
-            {(showAllConflicts ? conflicts : conflicts.slice(0, 5)).map(
-              (conflict, index) => {
-                const IconComponent = getConflictTypeIcon(conflict.type);
-                const color = getConflictTypeColor(conflict.type);
+            {showGroupedView ? (
+              renderGroupedConflicts()
+            ) : (
+              <>
+                {(showAllConflicts ? conflicts : conflicts.slice(0, 5)).map(
+                  (conflict, index) => {
+                    const IconComponent = getConflictTypeIcon(conflict.type);
+                    const color = getConflictTypeColor(conflict.type);
 
-                return (
-                  <View key={index} style={styles.conflictItem}>
-                    <View style={styles.conflictHeader}>
-                      <IconComponent size={16} color={color} />
-                      <Text style={[styles.conflictType, { color }]}>
-                        {conflict.type.replace('_', ' ').toUpperCase()}
-                      </Text>
-                    </View>
+                    return (
+                      <View key={index} style={styles.conflictItem}>
+                        <View style={styles.conflictHeader}>
+                          <View style={styles.conflictTypeIndicator}>
+                            <IconComponent size={16} color={color} />
+                          </View>
+                          <Text style={[styles.conflictType, { color }]}>
+                            {conflict.type.replace('_', ' ').toUpperCase()}
+                          </Text>
+                          <Text style={styles.conflictDataType}>
+                            ({conflict.recordType})
+                          </Text>
+                        </View>
 
-                    <Text style={styles.conflictMessage}>
-                      {conflict.message}
-                    </Text>
+                        <Text style={styles.conflictMessage}>
+                          {conflict.message}
+                        </Text>
 
-                    {renderConflictComparison(conflict)}
-                  </View>
-                );
-              }
-            )}
-
-            {conflicts.length > 5 && (
-              <View style={styles.seeMoreContainer}>
-                {!showAllConflicts && (
-                  <Text style={styles.moreConflictsText}>
-                    {t('dataImport.andMoreConflicts', {
-                      count: conflicts.length - 5,
-                    })}
-                  </Text>
+                        {renderConflictComparison(conflict)}
+                      </View>
+                    );
+                  }
                 )}
-                <TouchableOpacity
-                  style={styles.seeMoreButton}
-                  onPress={() => setShowAllConflicts(!showAllConflicts)}
-                >
-                  <Text style={styles.seeMoreButtonText}>
-                    {showAllConflicts
-                      ? t('dataImport.seeLess')
-                      : t('dataImport.seeMore')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+
+                {conflicts.length > 5 && (
+                  <View style={styles.seeMoreContainer}>
+                    {!showAllConflicts && (
+                      <Text style={styles.moreConflictsText}>
+                        {t('dataImport.andMoreConflicts', {
+                          count: conflicts.length - 5,
+                        })}
+                      </Text>
+                    )}
+                    <TouchableOpacity
+                      style={styles.seeMoreButton}
+                      onPress={() => setShowAllConflicts(!showAllConflicts)}
+                    >
+                      <Text style={styles.seeMoreButtonText}>
+                        {showAllConflicts
+                          ? t('dataImport.seeLess')
+                          : t('dataImport.seeMore')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </>
             )}
           </ScrollView>
 
@@ -738,5 +931,125 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
+  },
+  // Enhanced conflict display styles
+  viewToggleContainer: {
+    flexDirection: 'row',
+    marginTop: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 6,
+    padding: 2,
+  },
+  viewToggle: {
+    flex: 1,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 4,
+    alignItems: 'center',
+  },
+  viewToggleActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  viewToggleText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  viewToggleTextActive: {
+    color: '#374151',
+  },
+  statisticsContainer: {
+    padding: 16,
+    backgroundColor: '#F9FAFB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  statisticsTitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#374151',
+    marginBottom: 12,
+  },
+  statisticsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  statisticsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    minWidth: 120,
+    flex: 1,
+  },
+  statisticsCardSelected: {
+    borderColor: '#3B82F6',
+    backgroundColor: '#EFF6FF',
+  },
+  statisticsDataType: {
+    fontSize: 12,
+    fontFamily: 'Inter-SemiBold',
+    color: '#374151',
+    marginBottom: 4,
+  },
+  statisticsTotal: {
+    fontSize: 14,
+    fontFamily: 'Inter-Bold',
+    color: '#111827',
+    marginBottom: 6,
+  },
+  statisticsBreakdown: {
+    gap: 2,
+  },
+  statisticsDetail: {
+    fontSize: 10,
+    fontFamily: 'Inter-Regular',
+  },
+  groupedConflictsContainer: {
+    gap: 16,
+  },
+  dataTypeGroup: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    overflow: 'hidden',
+  },
+  dataTypeHeader: {
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  dataTypeTitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#374151',
+  },
+  conflictTypeIndicator: {
+    marginRight: 6,
+  },
+  conflictDataType: {
+    fontSize: 10,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    marginLeft: 'auto',
+  },
+  moreConflictsInType: {
+    fontSize: 11,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: 8,
+    backgroundColor: '#F9FAFB',
   },
 });

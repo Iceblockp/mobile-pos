@@ -49,6 +49,7 @@ export interface ImportPreview {
   sampleData: Record<string, any[]>;
   validationSummary: ValidationResult;
   conflicts: DataConflict[];
+  conflictSummary: ConflictSummary;
 }
 
 export interface DataConflict {
@@ -60,6 +61,22 @@ export interface DataConflict {
   index: number;
   recordType: string; // New field to identify the data type
   matchedBy: 'uuid' | 'name' | 'other'; // New field to show matching criteria
+}
+
+export interface ConflictSummary {
+  totalConflicts: number;
+  conflictsByType: {
+    [dataType: string]: DataConflict[];
+  };
+  conflictStatistics: {
+    [dataType: string]: {
+      total: number;
+      duplicate: number;
+      reference_missing: number;
+      validation_failed: number;
+    };
+  };
+  hasConflicts: boolean;
 }
 
 export interface ConflictResolution {
@@ -528,8 +545,9 @@ export class DataImportService {
         );
       }
 
-      // Detect conflicts
-      const conflicts = await this.detectConflicts(data, dataType);
+      // Detect conflicts using enhanced method
+      const conflictSummary = await this.detectAllConflicts(data);
+      const conflicts = Object.values(conflictSummary.conflictsByType).flat();
 
       return {
         dataType,
@@ -537,6 +555,7 @@ export class DataImportService {
         sampleData,
         validationSummary,
         conflicts,
+        conflictSummary,
       };
     } catch (error) {
       throw new Error(
@@ -728,12 +747,18 @@ export class DataImportService {
     }
   }
 
-  // Detect conflicts with existing data
-  private async detectConflicts(
-    data: any,
-    dataType: string
-  ): Promise<DataConflict[]> {
+  // Enhanced conflict detection that returns conflicts grouped by data type
+  async detectAllConflicts(data: any): Promise<ConflictSummary> {
     const conflicts: DataConflict[] = [];
+    const conflictsByType: { [dataType: string]: DataConflict[] } = {};
+    const conflictStatistics: {
+      [dataType: string]: {
+        total: number;
+        duplicate: number;
+        reference_missing: number;
+        validation_failed: number;
+      };
+    } = {};
 
     try {
       // Get existing data for comparison - all data types
@@ -771,7 +796,19 @@ export class DataImportService {
         { key: 'expenses', existing: existingExpenses },
         { key: 'stockMovements', existing: existingStockMovements },
         { key: 'bulkPricing', existing: existingBulkPricing },
+        { key: 'categories', existing: existingCategories },
       ];
+
+      // Initialize conflict tracking for each data type
+      dataTypeMapping.forEach(({ key }) => {
+        conflictsByType[key] = [];
+        conflictStatistics[key] = {
+          total: 0,
+          duplicate: 0,
+          reference_missing: 0,
+          validation_failed: 0,
+        };
+      });
 
       // Process each data type using universal conflict detection
       for (const { key, existing } of dataTypeMapping) {
@@ -780,26 +817,34 @@ export class DataImportService {
             try {
               // Validate record data before checking conflicts
               if (!this.validateRecordRequiredFields(record, key)) {
-                conflicts.push({
+                const conflict: DataConflict = {
                   type: 'validation_failed',
                   record: record,
                   message: `${key} at index ${index} has missing required fields`,
                   index,
                   recordType: key,
                   matchedBy: 'other',
-                });
+                };
+                conflicts.push(conflict);
+                conflictsByType[key].push(conflict);
+                conflictStatistics[key].total++;
+                conflictStatistics[key].validation_failed++;
                 return;
               }
 
               if (!this.validateRecordDataTypes(record, key)) {
-                conflicts.push({
+                const conflict: DataConflict = {
                   type: 'validation_failed',
                   record: record,
                   message: `${key} at index ${index} has invalid data types`,
                   index,
                   recordType: key,
                   matchedBy: 'other',
-                });
+                };
+                conflicts.push(conflict);
+                conflictsByType[key].push(conflict);
+                conflictStatistics[key].total++;
+                conflictStatistics[key].validation_failed++;
                 return;
               }
 
@@ -809,16 +854,27 @@ export class DataImportService {
                 // Set the correct index for the conflict
                 conflict.index = index;
                 conflicts.push(conflict);
+                conflictsByType[key].push(conflict);
+                conflictStatistics[key].total++;
+                conflictStatistics[key].duplicate++;
               }
 
               // Check for reference integrity (product references, category references, etc.)
-              this.checkReferenceIntegrity(record, key, index, conflicts, {
-                existingProducts,
-                existingCustomers,
-                existingCategories,
-              });
+              this.checkReferenceIntegrityEnhanced(
+                record,
+                key,
+                index,
+                conflicts,
+                conflictsByType,
+                conflictStatistics,
+                {
+                  existingProducts,
+                  existingCustomers,
+                  existingCategories,
+                }
+              );
             } catch (error) {
-              conflicts.push({
+              const conflict: DataConflict = {
                 type: 'validation_failed',
                 record: record,
                 message: `${key} at index ${index} is corrupted: ${
@@ -827,14 +883,18 @@ export class DataImportService {
                 index,
                 recordType: key,
                 matchedBy: 'other',
-              });
+              };
+              conflicts.push(conflict);
+              conflictsByType[key].push(conflict);
+              conflictStatistics[key].total++;
+              conflictStatistics[key].validation_failed++;
             }
           });
         }
       }
     } catch (error) {
       console.error('Error detecting conflicts:', error);
-      conflicts.push({
+      const conflict: DataConflict = {
         type: 'validation_failed',
         record: null,
         message: `Error during conflict detection: ${
@@ -843,13 +903,166 @@ export class DataImportService {
         index: -1,
         recordType: 'unknown',
         matchedBy: 'other',
-      });
+      };
+      conflicts.push(conflict);
+      if (!conflictsByType['unknown']) {
+        conflictsByType['unknown'] = [];
+        conflictStatistics['unknown'] = {
+          total: 0,
+          duplicate: 0,
+          reference_missing: 0,
+          validation_failed: 0,
+        };
+      }
+      conflictsByType['unknown'].push(conflict);
+      conflictStatistics['unknown'].total++;
+      conflictStatistics['unknown'].validation_failed++;
     }
 
-    return conflicts;
+    return {
+      totalConflicts: conflicts.length,
+      conflictsByType,
+      conflictStatistics,
+      hasConflicts: conflicts.length > 0,
+    };
   }
 
-  // Helper method to check reference integrity for different record types
+  // Legacy method for backward compatibility - now uses the enhanced method
+  private async detectConflicts(
+    data: any,
+    dataType: string
+  ): Promise<DataConflict[]> {
+    const conflictSummary = await this.detectAllConflicts(data);
+    return Object.values(conflictSummary.conflictsByType).flat();
+  }
+
+  // Enhanced helper method to check reference integrity for different record types
+  private checkReferenceIntegrityEnhanced(
+    record: any,
+    recordType: string,
+    index: number,
+    conflicts: DataConflict[],
+    conflictsByType: { [dataType: string]: DataConflict[] },
+    conflictStatistics: {
+      [dataType: string]: {
+        total: number;
+        duplicate: number;
+        reference_missing: number;
+        validation_failed: number;
+      };
+    },
+    existingData: {
+      existingProducts: any[];
+      existingCustomers: any[];
+      existingCategories: any[];
+    }
+  ): void {
+    const { existingProducts, existingCustomers, existingCategories } =
+      existingData;
+
+    try {
+      switch (recordType) {
+        case 'products':
+          // Check category reference
+          if (
+            record.category &&
+            !existingCategories.find((c) => c.name === record.category)
+          ) {
+            const conflict: DataConflict = {
+              type: 'reference_missing',
+              record: record,
+              field: 'category',
+              message: `Category "${record.category}" not found`,
+              index,
+              recordType: recordType,
+              matchedBy: 'other',
+            };
+            conflicts.push(conflict);
+            conflictsByType[recordType].push(conflict);
+            conflictStatistics[recordType].total++;
+            conflictStatistics[recordType].reference_missing++;
+          }
+          break;
+
+        case 'sales':
+          // Check customer reference
+          if (
+            record.customer_id &&
+            !existingCustomers.find((c) => c.id === record.customer_id)
+          ) {
+            const conflict: DataConflict = {
+              type: 'reference_missing',
+              record: record,
+              field: 'customer_id',
+              message: `Customer with ID "${record.customer_id}" not found`,
+              index,
+              recordType: recordType,
+              matchedBy: 'other',
+            };
+            conflicts.push(conflict);
+            conflictsByType[recordType].push(conflict);
+            conflictStatistics[recordType].total++;
+            conflictStatistics[recordType].reference_missing++;
+          }
+          break;
+
+        case 'stockMovements':
+          // Check product reference
+          if (
+            record.product_id &&
+            !existingProducts.find((p) => p.id === record.product_id)
+          ) {
+            const conflict: DataConflict = {
+              type: 'reference_missing',
+              record: record,
+              field: 'product_id',
+              message: `Product with ID "${record.product_id}" not found`,
+              index,
+              recordType: recordType,
+              matchedBy: 'other',
+            };
+            conflicts.push(conflict);
+            conflictsByType[recordType].push(conflict);
+            conflictStatistics[recordType].total++;
+            conflictStatistics[recordType].reference_missing++;
+          }
+          break;
+
+        case 'bulkPricing':
+          // Check product reference
+          if (
+            record.product_id &&
+            !existingProducts.find((p) => p.id === record.product_id)
+          ) {
+            const conflict: DataConflict = {
+              type: 'reference_missing',
+              record: record,
+              field: 'product_id',
+              message: `Product with ID "${record.product_id}" not found`,
+              index,
+              recordType: recordType,
+              matchedBy: 'other',
+            };
+            conflicts.push(conflict);
+            conflictsByType[recordType].push(conflict);
+            conflictStatistics[recordType].total++;
+            conflictStatistics[recordType].reference_missing++;
+          }
+          break;
+
+        // Other record types don't have reference integrity checks currently
+        default:
+          break;
+      }
+    } catch (error) {
+      console.warn(
+        `Error checking reference integrity for ${recordType}:`,
+        error
+      );
+    }
+  }
+
+  // Legacy helper method for backward compatibility
   private checkReferenceIntegrity(
     record: any,
     recordType: string,
