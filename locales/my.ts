@@ -1071,7 +1071,6 @@ export const my: TranslationKeys = {
     seeMore: 'နောက်ထပ်ကြည့်မည်',
     seeLess: 'လျှော့ကြည့်မည်',
     updateExisting: 'ရှိပြီးသားကို အပ်ဒိတ်လုပ်မည်',
-    skipConflicts: 'ပဋိပက္ခများကို ကျော်မည်',
     willUpdateExisting:
       'ရှိပြီးသားမှတ်တမ်းများကို ထည့်သွင်းထားသောအချက်အလက်ဖြင့် အပ်ဒိတ်လုပ်မည်',
     willSkipConflicts: 'ပဋိပက္ခရှိသောမှတ်တမ်းများကို ကျော်သွားမည်',
@@ -1098,11 +1097,20 @@ export const my: TranslationKeys = {
     conflictStatistics: 'ပဋိပက္ခစာရင်းအင်း',
     conflicts: 'ပဋိပက္ခများ',
     duplicates: 'ပွားများ',
-    missingReferences: 'ရည်ညွှန်းမှုများပျောက်',
+    missingReferences: 'ပျောက်နေသောကိုးကား',
     validationErrors: 'စစ်ဆေးမှုအမှားများ',
-    groupedView: 'အုပ်စုခွဲ',
-    listView: 'စာရင်း',
+    groupedView: 'အုပ်စုလိုက်',
+    listView: 'စာရင်းပုံစံ',
     andMoreInType: 'နှင့် နောက်ထပ် {{count}} ခု...',
+    useImportData: 'ထည့်သွင်းအချက်အလက်အသုံးပြုမည်',
+    keepExisting: 'ရှိပြီးသားကိုထိန်းသိမ်းမည်',
+    skipConflicts: 'ကျော်သွားမည်',
+    useImportDataDesc:
+      'ရှိပြီးသားမှတ်တမ်းများကို ထည့်သွင်းအချက်အလက်ဖြင့် အစားထိုးမည်',
+    keepExistingDesc:
+      'ရှိပြီးသားမှတ်တမ်းများကို ထိန်းသိမ်းပြီး ပဋိပက္ခရှိသောထည့်သွင်းမှုများကို ကျော်မည်',
+    skipConflictsDesc:
+      'ဤပဋိပက္ခများကို ကျော်ပြီး ထည့်သွင်းမှုကို ဆက်လက်လုပ်ဆောင်မည်',
   },
   about: {
     title: 'အကြောင်း',

@@ -55,65 +55,112 @@ export const ConflictResolutionModal: React.FC<
   const renderConflictStatistics = () => {
     if (!conflictSummary) return null;
 
+    const totalConflicts = conflictSummary.totalConflicts;
+    const dataTypesWithConflicts = Object.entries(
+      conflictSummary.conflictStatistics
+    ).filter(([_, stats]) => stats.total > 0);
+
     return (
       <View style={styles.statisticsContainer}>
-        <Text style={styles.statisticsTitle}>
-          {t('dataImport.conflictStatistics')}
-        </Text>
-        <View style={styles.statisticsGrid}>
-          {Object.entries(conflictSummary.conflictStatistics).map(
-            ([dataType, stats]) => {
-              if (stats.total === 0) return null;
+        <View style={styles.statisticsHeader}>
+          <Text style={styles.statisticsTitle}>Conflict Summary</Text>
+          <View style={styles.totalConflictsBadge}>
+            <Text style={styles.totalConflictsText}>
+              {totalConflicts} total conflicts
+            </Text>
+          </View>
+        </View>
 
-              return (
-                <TouchableOpacity
-                  key={dataType}
-                  style={[
-                    styles.statisticsCard,
-                    selectedDataType === dataType &&
-                      styles.statisticsCardSelected,
-                  ]}
-                  onPress={() =>
-                    setSelectedDataType(
-                      selectedDataType === dataType ? null : dataType
-                    )
-                  }
-                >
+        <Text style={styles.statisticsSubtitle}>
+          Tap a data type to filter conflicts below
+        </Text>
+
+        <View style={styles.statisticsGrid}>
+          {dataTypesWithConflicts.map(([dataType, stats]) => {
+            const isSelected = selectedDataType === dataType;
+
+            return (
+              <TouchableOpacity
+                key={dataType}
+                style={[
+                  styles.statisticsCard,
+                  isSelected && styles.statisticsCardSelected,
+                ]}
+                onPress={() =>
+                  setSelectedDataType(isSelected ? null : dataType)
+                }
+              >
+                <View style={styles.statisticsCardHeader}>
                   <Text style={styles.statisticsDataType}>
                     {dataType.charAt(0).toUpperCase() + dataType.slice(1)}
                   </Text>
-                  <Text style={styles.statisticsTotal}>
-                    {stats.total} {t('dataImport.conflicts')}
-                  </Text>
-                  <View style={styles.statisticsBreakdown}>
-                    {stats.duplicate > 0 && (
+                  <View
+                    style={[
+                      styles.conflictCountBadge,
+                      isSelected && styles.conflictCountBadgeSelected,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.conflictCountText,
+                        isSelected && styles.conflictCountTextSelected,
+                      ]}
+                    >
+                      {stats.total}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.statisticsBreakdown}>
+                  {stats.duplicate > 0 && (
+                    <View style={styles.statisticsDetailRow}>
+                      <View
+                        style={[
+                          styles.conflictTypeDot,
+                          { backgroundColor: '#F59E0B' },
+                        ]}
+                      />
                       <Text
                         style={[styles.statisticsDetail, { color: '#F59E0B' }]}
                       >
-                        {stats.duplicate} {t('dataImport.duplicates')}
+                        {stats.duplicate} duplicates
                       </Text>
-                    )}
-                    {stats.reference_missing > 0 && (
+                    </View>
+                  )}
+                  {stats.reference_missing > 0 && (
+                    <View style={styles.statisticsDetailRow}>
+                      <View
+                        style={[
+                          styles.conflictTypeDot,
+                          { backgroundColor: '#EF4444' },
+                        ]}
+                      />
                       <Text
                         style={[styles.statisticsDetail, { color: '#EF4444' }]}
                       >
-                        {stats.reference_missing}{' '}
-                        {t('dataImport.missingReferences')}
+                        {stats.reference_missing} missing refs
                       </Text>
-                    )}
-                    {stats.validation_failed > 0 && (
+                    </View>
+                  )}
+                  {stats.validation_failed > 0 && (
+                    <View style={styles.statisticsDetailRow}>
+                      <View
+                        style={[
+                          styles.conflictTypeDot,
+                          { backgroundColor: '#8B5CF6' },
+                        ]}
+                      />
                       <Text
                         style={[styles.statisticsDetail, { color: '#8B5CF6' }]}
                       >
-                        {stats.validation_failed}{' '}
-                        {t('dataImport.validationErrors')}
+                        {stats.validation_failed} validation errors
                       </Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              );
-            }
-          )}
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
     );
@@ -293,6 +340,91 @@ export const ConflictResolutionModal: React.FC<
       return null;
     }
 
+    const renderRecordDetails = (record: any, isExisting: boolean) => {
+      const details = [];
+
+      // Common fields for all record types
+      if (record.name) {
+        details.push({ label: 'Name', value: record.name, key: 'name' });
+      }
+
+      // Product-specific fields
+      if (record.price !== undefined) {
+        details.push({
+          label: 'Price',
+          value: `${record.price} MMK`,
+          key: 'price',
+        });
+      }
+      if (record.cost !== undefined) {
+        details.push({
+          label: 'Cost',
+          value: `${record.cost} MMK`,
+          key: 'cost',
+        });
+      }
+      if (record.barcode) {
+        details.push({
+          label: 'Barcode',
+          value: record.barcode,
+          key: 'barcode',
+        });
+      }
+      if (record.stock !== undefined) {
+        details.push({
+          label: 'Stock',
+          value: record.stock.toString(),
+          key: 'stock',
+        });
+      }
+
+      // Customer-specific fields
+      if (record.phone) {
+        details.push({ label: 'Phone', value: record.phone, key: 'phone' });
+      }
+      if (record.email) {
+        details.push({ label: 'Email', value: record.email, key: 'email' });
+      }
+      if (record.address) {
+        details.push({
+          label: 'Address',
+          value: record.address,
+          key: 'address',
+        });
+      }
+
+      // Expense-specific fields
+      if (record.amount !== undefined) {
+        details.push({
+          label: 'Amount',
+          value: `${record.amount} MMK`,
+          key: 'amount',
+        });
+      }
+      if (record.description) {
+        details.push({
+          label: 'Description',
+          value: record.description,
+          key: 'description',
+        });
+      }
+
+      // Date fields
+      if (record.createdAt) {
+        const date = new Date(record.createdAt).toLocaleDateString();
+        details.push({ label: 'Created', value: date, key: 'createdAt' });
+      }
+      if (record.updatedAt) {
+        const date = new Date(record.updatedAt).toLocaleDateString();
+        details.push({ label: 'Updated', value: date, key: 'updatedAt' });
+      }
+
+      return details;
+    };
+
+    const existingDetails = renderRecordDetails(conflict.existingRecord, true);
+    const importedDetails = renderRecordDetails(conflict.record, false);
+
     return (
       <View style={styles.comparisonContainer}>
         {/* Matching Criteria Indicator */}
@@ -300,64 +432,94 @@ export const ConflictResolutionModal: React.FC<
 
         <View style={styles.recordsComparison}>
           <View style={styles.comparisonColumn}>
-            <Text style={styles.comparisonTitle}>
-              {t('dataImport.existingRecord')}
-            </Text>
-            <View style={styles.recordCard}>
+            <View style={styles.comparisonHeader}>
+              <Text style={styles.comparisonTitle}>Existing Record</Text>
+              <View
+                style={[
+                  styles.statusBadge,
+                  { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
+                ]}
+              >
+                <Text style={[styles.statusText, { color: '#DC2626' }]}>
+                  Current
+                </Text>
+              </View>
+            </View>
+            <View style={[styles.recordCard, { borderColor: '#FECACA' }]}>
               <Text style={styles.recordName}>
-                {conflict.existingRecord.name || t('dataImport.unnamedRecord')}
+                {conflict.existingRecord.name || 'Unnamed Record'}
               </Text>
 
               {/* UUID Information for existing record */}
               {renderUUIDInfo(conflict.existingRecord)}
 
-              {/* Other record details */}
-              {conflict.existingRecord.price && (
-                <Text style={styles.recordDetail}>
-                  {t('products.price')}: {conflict.existingRecord.price}
-                </Text>
-              )}
-              {conflict.existingRecord.phone && (
-                <Text style={styles.recordDetail}>
-                  {t('customers.phone')}: {conflict.existingRecord.phone}
-                </Text>
-              )}
-              {conflict.existingRecord.barcode && (
-                <Text style={styles.recordDetail}>
-                  {t('products.barcode')}: {conflict.existingRecord.barcode}
-                </Text>
-              )}
+              {/* Detailed record information */}
+              <View style={styles.recordDetailsContainer}>
+                {existingDetails.map((detail, index) => (
+                  <View key={detail.key} style={styles.recordDetailRow}>
+                    <Text style={styles.recordDetailLabel}>
+                      {detail.label}:
+                    </Text>
+                    <Text style={styles.recordDetailValue}>{detail.value}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
           </View>
 
           <View style={styles.comparisonColumn}>
-            <Text style={styles.comparisonTitle}>
-              {t('dataImport.importedRecord')}
-            </Text>
-            <View style={styles.recordCard}>
+            <View style={styles.comparisonHeader}>
+              <Text style={styles.comparisonTitle}>Import Data</Text>
+              <View
+                style={[
+                  styles.statusBadge,
+                  { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' },
+                ]}
+              >
+                <Text style={[styles.statusText, { color: '#2563EB' }]}>
+                  New
+                </Text>
+              </View>
+            </View>
+            <View style={[styles.recordCard, { borderColor: '#BFDBFE' }]}>
               <Text style={styles.recordName}>
-                {conflict.record.name || t('dataImport.unnamedRecord')}
+                {conflict.record.name || 'Unnamed Record'}
               </Text>
 
               {/* UUID Information for imported record */}
               {renderUUIDInfo(conflict.record)}
 
-              {/* Other record details */}
-              {conflict.record.price && (
-                <Text style={styles.recordDetail}>
-                  {t('products.price')}: {conflict.record.price}
-                </Text>
-              )}
-              {conflict.record.phone && (
-                <Text style={styles.recordDetail}>
-                  {t('customers.phone')}: {conflict.record.phone}
-                </Text>
-              )}
-              {conflict.record.barcode && (
-                <Text style={styles.recordDetail}>
-                  {t('products.barcode')}: {conflict.record.barcode}
-                </Text>
-              )}
+              {/* Detailed record information */}
+              <View style={styles.recordDetailsContainer}>
+                {importedDetails.map((detail, index) => {
+                  const existingDetail = existingDetails.find(
+                    (d) => d.key === detail.key
+                  );
+                  const isDifferent =
+                    existingDetail && existingDetail.value !== detail.value;
+
+                  return (
+                    <View key={detail.key} style={styles.recordDetailRow}>
+                      <Text style={styles.recordDetailLabel}>
+                        {detail.label}:
+                      </Text>
+                      <Text
+                        style={[
+                          styles.recordDetailValue,
+                          isDifferent && styles.recordDetailValueChanged,
+                        ]}
+                      >
+                        {detail.value}
+                      </Text>
+                      {isDifferent && (
+                        <View style={styles.changeIndicator}>
+                          <Text style={styles.changeIndicatorText}>•</Text>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
             </View>
           </View>
         </View>
@@ -508,6 +670,7 @@ export const ConflictResolutionModal: React.FC<
                   styles.resolutionOption,
                   selectedResolution === 'update' &&
                     styles.resolutionOptionSelected,
+                  { borderColor: '#3B82F6' },
                 ]}
                 onPress={() => setSelectedResolution('update')}
               >
@@ -525,7 +688,7 @@ export const ConflictResolutionModal: React.FC<
                         styles.resolutionOptionTitleSelected,
                     ]}
                   >
-                    {t('dataImport.updateExisting')}
+                    Use Import Data
                   </Text>
                   <Text
                     style={[
@@ -534,7 +697,7 @@ export const ConflictResolutionModal: React.FC<
                         styles.resolutionOptionDescSelected,
                     ]}
                   >
-                    {t('dataImport.updateExistingDesc')}
+                    Replace existing records with imported data
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -544,6 +707,7 @@ export const ConflictResolutionModal: React.FC<
                   styles.resolutionOption,
                   selectedResolution === 'skip' &&
                     styles.resolutionOptionSelected,
+                  { borderColor: '#F59E0B' },
                 ]}
                 onPress={() => setSelectedResolution('skip')}
               >
@@ -559,7 +723,7 @@ export const ConflictResolutionModal: React.FC<
                         styles.resolutionOptionTitleSelected,
                     ]}
                   >
-                    {t('dataImport.skipConflicts')}
+                    Keep Existing
                   </Text>
                   <Text
                     style={[
@@ -568,7 +732,7 @@ export const ConflictResolutionModal: React.FC<
                         styles.resolutionOptionDescSelected,
                     ]}
                   >
-                    {t('dataImport.skipConflictsDesc')}
+                    Keep existing records, skip conflicting imports
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -578,6 +742,7 @@ export const ConflictResolutionModal: React.FC<
                   styles.resolutionOption,
                   selectedResolution === 'create_new' &&
                     styles.resolutionOptionSelected,
+                  { borderColor: '#10B981' },
                 ]}
                 onPress={() => setSelectedResolution('create_new')}
               >
@@ -595,7 +760,7 @@ export const ConflictResolutionModal: React.FC<
                         styles.resolutionOptionTitleSelected,
                     ]}
                   >
-                    {t('dataImport.createNew')}
+                    Skip
                   </Text>
                   <Text
                     style={[
@@ -604,7 +769,7 @@ export const ConflictResolutionModal: React.FC<
                         styles.resolutionOptionDescSelected,
                     ]}
                   >
-                    {t('dataImport.createNewDesc')}
+                    Skip these conflicts and continue with import
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -629,15 +794,36 @@ export const ConflictResolutionModal: React.FC<
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
             <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-              <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
+              <X size={16} color="#6B7280" />
+              <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.resolveButton}
+              style={[
+                styles.resolveButton,
+                selectedResolution === 'update' && {
+                  backgroundColor: '#3B82F6',
+                },
+                selectedResolution === 'skip' && { backgroundColor: '#F59E0B' },
+                selectedResolution === 'create_new' && {
+                  backgroundColor: '#10B981',
+                },
+              ]}
               onPress={handleResolve}
             >
+              {selectedResolution === 'update' && (
+                <Check size={16} color="#FFFFFF" />
+              )}
+              {selectedResolution === 'skip' && (
+                <SkipForward size={16} color="#FFFFFF" />
+              )}
+              {selectedResolution === 'create_new' && (
+                <Plus size={16} color="#FFFFFF" />
+              )}
               <Text style={styles.resolveButtonText}>
-                {t('dataImport.resolveConflicts')}
+                {selectedResolution === 'update' && 'Use Import Data'}
+                {selectedResolution === 'skip' && 'Keep Existing'}
+                {selectedResolution === 'create_new' && 'Skip Conflicts'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -908,27 +1094,40 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
     backgroundColor: '#F3F4F6',
-    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    gap: 6,
   },
   cancelButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'Inter-SemiBold',
     color: '#6B7280',
   },
   resolveButton: {
     flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
     backgroundColor: '#3B82F6',
-    alignItems: 'center',
+    gap: 6,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   resolveButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
@@ -969,10 +1168,34 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
+  statisticsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
   statisticsTitle: {
     fontSize: 14,
     fontFamily: 'Inter-SemiBold',
     color: '#374151',
+  },
+  totalConflictsBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  totalConflictsText: {
+    fontSize: 11,
+    fontFamily: 'Inter-SemiBold',
+    color: '#DC2626',
+  },
+  statisticsSubtitle: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
     marginBottom: 12,
   },
   statisticsGrid: {
@@ -992,25 +1215,60 @@ const styles = StyleSheet.create({
   statisticsCardSelected: {
     borderColor: '#3B82F6',
     backgroundColor: '#EFF6FF',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statisticsCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
   statisticsDataType: {
     fontSize: 12,
     fontFamily: 'Inter-SemiBold',
     color: '#374151',
-    marginBottom: 4,
+    flex: 1,
   },
-  statisticsTotal: {
-    fontSize: 14,
+  conflictCountBadge: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  conflictCountBadgeSelected: {
+    backgroundColor: '#3B82F6',
+  },
+  conflictCountText: {
+    fontSize: 11,
     fontFamily: 'Inter-Bold',
-    color: '#111827',
-    marginBottom: 6,
+    color: '#374151',
+  },
+  conflictCountTextSelected: {
+    color: '#FFFFFF',
   },
   statisticsBreakdown: {
-    gap: 2,
+    gap: 4,
+  },
+  statisticsDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  conflictTypeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   statisticsDetail: {
     fontSize: 10,
     fontFamily: 'Inter-Regular',
+    flex: 1,
   },
   groupedConflictsContainer: {
     gap: 16,
@@ -1050,6 +1308,60 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     paddingVertical: 8,
-    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 12,
+  },
+  // Enhanced comparison styles
+  comparisonHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  statusText: {
+    fontSize: 10,
+    fontFamily: 'Inter-SemiBold',
+  },
+  recordDetailsContainer: {
+    marginTop: 8,
+    gap: 4,
+  },
+  recordDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 2,
+  },
+  recordDetailLabel: {
+    fontSize: 11,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+    flex: 1,
+  },
+  recordDetailValue: {
+    fontSize: 11,
+    fontFamily: 'Inter-Regular',
+    color: '#374151',
+    flex: 2,
+    textAlign: 'right',
+  },
+  recordDetailValueChanged: {
+    color: '#2563EB',
+    fontFamily: 'Inter-SemiBold',
+  },
+  changeIndicator: {
+    marginLeft: 4,
+    width: 8,
+    alignItems: 'center',
+  },
+  changeIndicatorText: {
+    fontSize: 12,
+    color: '#2563EB',
+    fontFamily: 'Inter-Bold',
   },
 });
