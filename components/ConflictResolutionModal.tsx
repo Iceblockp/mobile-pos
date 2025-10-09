@@ -675,7 +675,7 @@ export const ConflictResolutionModal: React.FC<
                 onPress={() => setSelectedResolution('update')}
               >
                 <Check
-                  size={20}
+                  size={16}
                   color={
                     selectedResolution === 'update' ? '#FFFFFF' : '#3B82F6'
                   }
@@ -697,7 +697,7 @@ export const ConflictResolutionModal: React.FC<
                         styles.resolutionOptionDescSelected,
                     ]}
                   >
-                    Replace existing records with imported data
+                    Replace existing records
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -712,7 +712,7 @@ export const ConflictResolutionModal: React.FC<
                 onPress={() => setSelectedResolution('skip')}
               >
                 <SkipForward
-                  size={20}
+                  size={16}
                   color={selectedResolution === 'skip' ? '#FFFFFF' : '#F59E0B'}
                 />
                 <View style={styles.resolutionContent}>
@@ -732,7 +732,7 @@ export const ConflictResolutionModal: React.FC<
                         styles.resolutionOptionDescSelected,
                     ]}
                   >
-                    Keep existing records, skip conflicting imports
+                    Keep existing records
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -747,7 +747,7 @@ export const ConflictResolutionModal: React.FC<
                 onPress={() => setSelectedResolution('create_new')}
               >
                 <Plus
-                  size={20}
+                  size={16}
                   color={
                     selectedResolution === 'create_new' ? '#FFFFFF' : '#10B981'
                   }
@@ -769,7 +769,7 @@ export const ConflictResolutionModal: React.FC<
                         styles.resolutionOptionDescSelected,
                     ]}
                   >
-                    Skip these conflicts and continue with import
+                    Skip these conflicts
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -847,6 +847,7 @@ const styles = StyleSheet.create({
     maxWidth: '95%',
     maxHeight: '90%',
     width: 400,
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
@@ -885,7 +886,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   conflictsList: {
-    maxHeight: 200,
+    flex: 1,
     padding: 20,
     paddingTop: 16,
     paddingBottom: 16,
@@ -1011,27 +1012,29 @@ const styles = StyleSheet.create({
     color: '#3B82F6',
   },
   resolutionContainer: {
-    padding: 20,
-    paddingTop: 16,
+    padding: 16,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
   },
   resolutionTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'Inter-SemiBold',
     color: '#111827',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   resolutionOptions: {
-    gap: 8,
-    marginBottom: 16,
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 12,
   },
   resolutionOption: {
-    flexDirection: 'row',
+    flex: 1,
+    flexDirection: 'column',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 2,
+    padding: 8,
+    borderRadius: 6,
+    borderWidth: 1.5,
     borderColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
   },
@@ -1040,22 +1043,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#3B82F6',
   },
   resolutionContent: {
-    marginLeft: 12,
-    flex: 1,
+    marginTop: 4,
+    alignItems: 'center',
   },
   resolutionOptionTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'Inter-SemiBold',
     color: '#111827',
+    textAlign: 'center',
     marginBottom: 2,
   },
   resolutionOptionTitleSelected: {
     color: '#FFFFFF',
   },
   resolutionOptionDesc: {
-    fontSize: 12,
+    fontSize: 10,
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 12,
   },
   resolutionOptionDescSelected: {
     color: '#E5E7EB',
@@ -1063,7 +1069,7 @@ const styles = StyleSheet.create({
   applyToAllContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   checkbox: {
     width: 20,
@@ -1086,8 +1092,8 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     flexDirection: 'row',
-    padding: 20,
-    paddingTop: 16,
+    padding: 16,
+    paddingTop: 12,
     gap: 12,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
@@ -1097,13 +1103,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 6,
     backgroundColor: '#F3F4F6',
     borderWidth: 1,
     borderColor: '#D1D5DB',
-    gap: 6,
+    gap: 4,
   },
   cancelButtonText: {
     fontSize: 14,
@@ -1115,11 +1121,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 6,
     backgroundColor: '#3B82F6',
-    gap: 6,
+    gap: 4,
     shadowColor: '#3B82F6',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
