@@ -11,10 +11,11 @@ import {
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft,
-  Upload,
+  FolderOpen,
   Database,
   CheckCircle,
   HelpCircle,
+  FileSearch,
 } from 'lucide-react-native';
 import DataManagementGuide from '@/components/DataManagementGuide';
 import { useTranslation } from '@/context/LocalizationContext';
@@ -87,7 +88,7 @@ export default function DataImport() {
       id: 'all-data',
       title: t('dataImport.importAllData'),
       description: t('dataImport.importAllDataDesc'),
-      icon: Database,
+      icon: FolderOpen,
       color: '#8B5CF6',
       backgroundColor: '#F5F3FF',
     },
@@ -501,7 +502,7 @@ export default function DataImport() {
         {/* Import Options */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Upload size={20} color="#6B7280" />
+            <FolderOpen size={20} color="#6B7280" />
             <Text style={styles.sectionTitle}>
               {t('dataImport.importOptions')}
             </Text>
@@ -549,7 +550,7 @@ export default function DataImport() {
                       </Text>
                     </View>
                   ) : (
-                    <Upload size={20} color="#9CA3AF" />
+                    <FileSearch size={20} color="#9CA3AF" />
                   )}
                 </View>
               </TouchableOpacity>

@@ -165,10 +165,13 @@ export class ShopSettingsService {
   ): ValidationResult {
     const errors: { [key: string]: string } = {};
 
-    // Shop name validation (required for new settings)
-    if (!isPartialUpdate || settings.shopName !== undefined) {
+    // Shop name validation (required for complete shop setup, but not for initialization)
+    if (settings.shopName !== undefined) {
       if (!settings.shopName || settings.shopName.trim().length === 0) {
-        errors.shopName = 'Shop name is required';
+        // Only require shop name if this is not a partial update for initialization
+        if (!isPartialUpdate) {
+          errors.shopName = 'Shop name is required';
+        }
       } else if (settings.shopName.trim().length > 100) {
         errors.shopName = 'Shop name must be less than 100 characters';
       }

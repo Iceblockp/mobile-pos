@@ -122,7 +122,7 @@ export class CurrencySettingsService {
       await shopSettingsStorage.updateShopSettings({ currency });
     } catch (error) {
       console.error('Failed to save currency to shop settings:', error);
-      throw error; // Now throw error since shop settings is our single source of truth
+      throw new Error('Failed to update currency settings');
     }
   }
 

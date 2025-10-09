@@ -3,26 +3,26 @@ import { CurrencySettings } from './currencyManager';
 
 // Enhanced ShopSettings interface with currency management
 export interface ShopSettings {
-  shopName: string;
+  shopName?: string; // Optional during initialization, required for full shop setup
   address?: string;
   phone?: string;
   logoPath?: string;
   receiptFooter?: string;
   thankYouMessage?: string;
-  receiptTemplate: string;
+  receiptTemplate?: string;
   currency?: CurrencySettings;
   customCurrencies?: CurrencySettings[]; // User-created custom currencies
-  lastUpdated: string;
+  lastUpdated?: string;
 }
 
 export interface ShopSettingsInput {
-  shopName: string;
+  shopName?: string; // Optional during initialization
   address?: string;
   phone?: string;
   logoPath?: string;
   receiptFooter?: string;
   thankYouMessage?: string;
-  receiptTemplate: string;
+  receiptTemplate?: string;
   currency?: CurrencySettings;
   customCurrencies?: CurrencySettings[];
 }
@@ -38,16 +38,20 @@ export class ShopSettingsStorage {
         return null;
       }
 
-      const settings = JSON.parse(settingsJson) as ShopSettings;
+      const settings = JSON.parse(settingsJson) as Partial<ShopSettings>;
 
-      // Validate required fields
-      if (!settings.shopName || settings.shopName.trim().length === 0) {
+      // If shopName exists, validate it. If not, this might be partial settings from initialization
+      if (
+        settings.shopName !== undefined &&
+        (!settings.shopName || settings.shopName.trim().length === 0)
+      ) {
         console.warn('Invalid shop settings found, removing corrupted data');
         await this.clearShopSettings();
         return null;
       }
 
-      return settings;
+      // Return settings even if shopName is missing (for partial settings during initialization)
+      return settings as ShopSettings;
     } catch (error) {
       console.error('Failed to get shop settings from AsyncStorage:', error);
       return null;
@@ -57,13 +61,16 @@ export class ShopSettingsStorage {
   // Save shop settings to AsyncStorage
   async saveShopSettings(settings: ShopSettingsInput): Promise<void> {
     try {
-      // Validate required fields
-      if (!settings.shopName || settings.shopName.trim().length === 0) {
+      // Validate required fields only if shopName is provided
+      if (
+        settings.shopName !== undefined &&
+        (!settings.shopName || settings.shopName.trim().length === 0)
+      ) {
         throw new Error('Shop name is required');
       }
 
       const shopSettings: ShopSettings = {
-        shopName: settings.shopName.trim(),
+        shopName: settings.shopName?.trim(),
         address: settings.address?.trim() || undefined,
         phone: settings.phone?.trim() || undefined,
         logoPath: settings.logoPath || undefined,
@@ -90,6 +97,13 @@ export class ShopSettingsStorage {
   async updateShopSettings(updates: Partial<ShopSettingsInput>): Promise<void> {
     try {
       const currentSettings = await this.getShopSettings();
+
+      // If no current settings exist and we're only updating non-essential fields
+      // (like currency), create minimal settings without shop name validation
+      if (!currentSettings && this.isNonEssentialUpdate(updates)) {
+        await this.savePartialSettings(updates);
+        return;
+      }
 
       const updatedSettings: ShopSettingsInput = {
         shopName: updates.shopName?.trim() || currentSettings?.shopName || '',
@@ -131,6 +145,59 @@ export class ShopSettingsStorage {
     } catch (error) {
       console.error('Failed to update shop settings:', error);
       throw new Error('Failed to update shop settings');
+    }
+  }
+
+  // Check if the update only contains non-essential fields that don't require shop name
+  private isNonEssentialUpdate(updates: Partial<ShopSettingsInput>): boolean {
+    const nonEssentialFields = [
+      'currency',
+      'customCurrencies',
+      'receiptTemplate',
+    ];
+    const updateKeys = Object.keys(updates);
+
+    // Return true if all update keys are non-essential fields
+    return (
+      updateKeys.length > 0 &&
+      updateKeys.every((key) => nonEssentialFields.includes(key))
+    );
+  }
+
+  // Save partial settings without shop name validation (for initialization)
+  private async savePartialSettings(
+    updates: Partial<ShopSettingsInput>
+  ): Promise<void> {
+    try {
+      const partialSettings: Partial<ShopSettings> = {
+        currency: updates.currency,
+        customCurrencies: updates.customCurrencies || [],
+        receiptTemplate: updates.receiptTemplate || 'classic',
+        lastUpdated: new Date().toISOString(),
+      };
+
+      // Only save the fields that are provided
+      const settingsToSave: any = {};
+      Object.keys(partialSettings).forEach((key) => {
+        if (
+          partialSettings[key as keyof typeof partialSettings] !== undefined
+        ) {
+          settingsToSave[key] =
+            partialSettings[key as keyof typeof partialSettings];
+        }
+      });
+
+      await AsyncStorage.setItem(
+        SHOP_SETTINGS_KEY,
+        JSON.stringify(settingsToSave)
+      );
+      console.log('Partial shop settings saved successfully to AsyncStorage');
+    } catch (error) {
+      console.error(
+        'Failed to save partial shop settings to AsyncStorage:',
+        error
+      );
+      throw new Error('Failed to save partial shop settings');
     }
   }
 

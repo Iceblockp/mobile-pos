@@ -12,11 +12,12 @@ import {
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft,
-  Download,
+  FileText,
   Database,
   Share,
   CheckCircle,
   HelpCircle,
+  Save,
 } from 'lucide-react-native';
 import DataManagementGuide from '@/components/DataManagementGuide';
 import { ExportPreviewModal } from '@/components/ExportPreviewModal';
@@ -85,7 +86,7 @@ export default function DataExport() {
       id: 'exportAll',
       title: t('dataExport.exportAllData'),
       description: t('dataExport.exportAllDataDesc'),
-      icon: Database,
+      icon: FileText,
       color: '#8B5CF6',
       backgroundColor: '#F5F3FF',
       dataType: 'all',
@@ -254,7 +255,7 @@ export default function DataExport() {
         {/* Export Options */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Download size={20} color="#6B7280" />
+            <FileText size={20} color="#6B7280" />
             <Text style={styles.sectionTitle}>
               {t('dataExport.exportOptions')}
             </Text>

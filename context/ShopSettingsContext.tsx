@@ -199,6 +199,9 @@ export const useShopSettingsData = (): ShopSettings | null => {
 export const useIsShopConfigured = (): boolean => {
   const { shopSettings, loading } = useShopSettings();
   return (
-    !loading && shopSettings !== null && shopSettings.shopName.trim().length > 0
+    !loading &&
+    shopSettings !== null &&
+    shopSettings.shopName !== undefined &&
+    shopSettings.shopName.trim().length > 0
   );
 };
