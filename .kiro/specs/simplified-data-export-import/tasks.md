@@ -71,7 +71,7 @@
   - Add clear action buttons for "Keep Existing", "Use Import Data", "Skip"
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 6.3, 6.4_
 
-- [ ] 10. Remove unused test files and update existing tests
+- [x] 10. Remove unused test files and update existing tests
 
   - Delete test files for individual export functionality (**tests**/unit/selectiveExportFunctionality.test.ts)
   - Delete test files for individual import functionality (**tests**/unit/selectiveImportFunctionality.test.ts)

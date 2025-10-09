@@ -121,10 +121,18 @@ export default function DataExport() {
 
     setShowExportPreview(false);
     setIsExporting(pendingExportOption.id);
-    setExportProgress(null);
+    // Initialize progress to show the modal
+    setExportProgress({
+      stage: 'Starting export...',
+      current: 0,
+      total: 4,
+      percentage: 0,
+    });
 
     try {
+      console.log('Starting export process...');
       const result = await exportService.exportAllData();
+      console.log('Export completed:', result);
 
       if (result.success && result.fileUri) {
         // Generate enhanced user-friendly feedback message
@@ -150,20 +158,35 @@ export default function DataExport() {
               `Empty Export - ${pendingExportOption.title}`
             );
           } catch (shareError) {
+            console.error('Sharing empty export failed:', shareError);
             // If sharing fails, mention file location
-            showToast(`Empty export file saved: ${result.filename}`, 'info');
+            const errorMessage =
+              shareError instanceof Error
+                ? shareError.message
+                : 'Unknown sharing error';
+            showToast(
+              `Empty export file saved: ${result.filename}. Sharing failed: ${errorMessage}`,
+              'info'
+            );
           }
         } else {
           // Share the file for non-empty exports
+          console.log('Attempting to share file:', result.fileUri);
           try {
             await exportService.shareExportFile(
               result.fileUri,
               `Export ${pendingExportOption.title}`
             );
+            console.log('File sharing completed successfully');
             showToast(feedbackMessage, 'success');
           } catch (shareError) {
+            console.error('Sharing failed:', shareError);
             // If sharing fails, still show success but mention file location
-            const fileLocationMessage = `${feedbackMessage} File saved: ${result.filename}`;
+            const errorMessage =
+              shareError instanceof Error
+                ? shareError.message
+                : 'Unknown sharing error';
+            const fileLocationMessage = `${feedbackMessage} File saved: ${result.filename}. Sharing failed: ${errorMessage}`;
             showToast(fileLocationMessage, 'success');
           }
         }

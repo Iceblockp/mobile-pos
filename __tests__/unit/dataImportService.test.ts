@@ -104,7 +104,7 @@ const mockFileSystem = {
 // Mock expo-file-system
 jest.mock('expo-file-system', () => mockFileSystem);
 
-describe('DataImportService', () => {
+describe('DataImportService - Simplified All Data Import', () => {
   let importService: DataImportService;
 
   beforeEach(() => {
@@ -112,28 +112,41 @@ describe('DataImportService', () => {
     jest.clearAllMocks();
   });
 
-  describe('importProducts', () => {
-    const mockProductData = {
+  describe('importAllData', () => {
+    const mockAllData = {
       metadata: {
-        dataType: 'products',
+        dataType: 'all',
         version: '2.0',
-        recordCount: 2,
+        recordCount: 5,
       },
-      data: [
-        { name: 'Product 1', price: 100, stock: 10 },
-        { name: 'Product 2', price: 200, stock: 20 },
-      ],
+      data: {
+        products: [
+          { name: 'Product 1', price: 100, stock: 10 },
+          { name: 'Product 2', price: 200, stock: 20 },
+        ],
+        sales: [{ total: 500, payment_method: 'cash', date: '2024-01-01' }],
+        customers: [{ name: 'Customer 1', phone: '123456789' }],
+        expenses: [
+          { amount: 50, description: 'Office supplies', date: '2024-01-01' },
+        ],
+        stockMovements: [],
+        bulkPricing: [],
+        shopSettings: { shopName: 'Test Shop', currency: 'USD' },
+      },
     };
 
     beforeEach(() => {
       mockFileSystem.readAsStringAsync.mockResolvedValue(
-        JSON.stringify(mockProductData)
+        JSON.stringify(mockAllData)
       );
     });
 
-    it('should import products successfully', async () => {
+    it('should import all data successfully', async () => {
       (mockDatabase.getProductByName as jest.Mock).mockResolvedValue(null);
+      (mockDatabase.getCustomerByPhone as jest.Mock).mockResolvedValue(null);
       (mockDatabase.addProduct as jest.Mock).mockResolvedValue({ id: 1 });
+      (mockDatabase.addSale as jest.Mock).mockResolvedValue({ id: 1 });
+      (mockDatabase.addCustomer as jest.Mock).mockResolvedValue({ id: 1 });
 
       const options = {
         batchSize: 10,
@@ -142,19 +155,27 @@ describe('DataImportService', () => {
         createMissingReferences: false,
       };
 
-      const result = await importService.importProducts(
+      const result = await importService.importAllData(
         'mock-file-uri',
         options
       );
 
       expect(result.success).toBe(true);
-      expect(result.imported).toBe(2);
-      expect(result.skipped).toBe(0);
+      expect(result.totalImported).toBeGreaterThan(0);
+      expect(result.detailedCounts).toBeDefined();
+      expect(result.detailedCounts.products.imported).toBe(2);
+      expect(result.detailedCounts.sales.imported).toBe(1);
+      expect(result.detailedCounts.customers.imported).toBe(1);
       expect(mockDatabase.addProduct).toHaveBeenCalledTimes(2);
+      expect(mockDatabase.addSale).toHaveBeenCalledTimes(1);
+      expect(mockDatabase.addCustomer).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle duplicate products with skip resolution', async () => {
+    it('should handle conflicts with skip resolution', async () => {
       (mockDatabase.getProductByName as jest.Mock).mockResolvedValue({ id: 1 });
+      (mockDatabase.getCustomerByPhone as jest.Mock).mockResolvedValue({
+        id: 1,
+      });
 
       const options = {
         batchSize: 10,
@@ -163,20 +184,26 @@ describe('DataImportService', () => {
         createMissingReferences: false,
       };
 
-      const result = await importService.importProducts(
+      const result = await importService.importAllData(
         'mock-file-uri',
         options
       );
 
       expect(result.success).toBe(true);
-      expect(result.imported).toBe(0);
-      expect(result.skipped).toBe(2);
+      expect(result.totalSkipped).toBeGreaterThan(0);
+      expect(result.detailedCounts.products.skipped).toBe(2);
+      expect(result.detailedCounts.customers.skipped).toBe(1);
       expect(mockDatabase.addProduct).not.toHaveBeenCalled();
+      expect(mockDatabase.addCustomer).not.toHaveBeenCalled();
     });
 
-    it('should handle duplicate products with update resolution', async () => {
+    it('should handle conflicts with update resolution', async () => {
       (mockDatabase.getProductByName as jest.Mock).mockResolvedValue({ id: 1 });
+      (mockDatabase.getCustomerByPhone as jest.Mock).mockResolvedValue({
+        id: 1,
+      });
       (mockDatabase.updateProduct as jest.Mock).mockResolvedValue(true);
+      (mockDatabase.updateCustomer as jest.Mock).mockResolvedValue(true);
 
       const options = {
         batchSize: 10,
@@ -185,14 +212,17 @@ describe('DataImportService', () => {
         createMissingReferences: false,
       };
 
-      const result = await importService.importProducts(
+      const result = await importService.importAllData(
         'mock-file-uri',
         options
       );
 
       expect(result.success).toBe(true);
-      expect(result.updated).toBe(2);
+      expect(result.totalUpdated).toBeGreaterThan(0);
+      expect(result.detailedCounts.products.updated).toBe(2);
+      expect(result.detailedCounts.customers.updated).toBe(1);
       expect(mockDatabase.updateProduct).toHaveBeenCalledTimes(2);
+      expect(mockDatabase.updateCustomer).toHaveBeenCalledTimes(1);
     });
 
     it('should handle invalid file format', async () => {
@@ -205,7 +235,7 @@ describe('DataImportService', () => {
         createMissingReferences: false,
       };
 
-      const result = await importService.importProducts(
+      const result = await importService.importAllData(
         'mock-file-uri',
         options
       );
@@ -215,10 +245,14 @@ describe('DataImportService', () => {
       expect(result.errors[0].code).toBe('IMPORT_FAILED');
     });
 
-    it('should validate required fields', async () => {
+    it('should validate required fields across all data types', async () => {
       const invalidData = {
-        metadata: { dataType: 'products', version: '2.0', recordCount: 1 },
-        data: [{ price: 100 }], // Missing name
+        metadata: { dataType: 'all', version: '2.0', recordCount: 2 },
+        data: {
+          products: [{ price: 100 }], // Missing name
+          customers: [{ phone: '123456789' }], // Missing name
+          sales: [{ total: 500, payment_method: 'cash', date: '2024-01-01' }], // Valid
+        },
       };
 
       mockFileSystem.readAsStringAsync.mockResolvedValue(
@@ -232,31 +266,47 @@ describe('DataImportService', () => {
         createMissingReferences: false,
       };
 
-      const result = await importService.importProducts(
+      const result = await importService.importAllData(
         'mock-file-uri',
         options
       );
 
       expect(result.success).toBe(true);
-      expect(result.skipped).toBe(1);
-      expect(result.errors).toHaveLength(1);
+      expect(result.totalSkipped).toBeGreaterThan(0);
+      expect(result.detailedCounts.products.skipped).toBe(1);
+      expect(result.detailedCounts.customers.skipped).toBe(1);
+      expect(result.detailedCounts.sales.imported).toBe(1);
+      expect(result.errors.length).toBeGreaterThan(0);
     });
 
-    it('should handle batch processing', async () => {
+    it('should handle batch processing for large datasets', async () => {
       const largeData = {
-        metadata: { dataType: 'products', version: '2.0', recordCount: 100 },
-        data: Array.from({ length: 100 }, (_, i) => ({
-          name: `Product ${i + 1}`,
-          price: (i + 1) * 10,
-          stock: i + 1,
-        })),
+        metadata: { dataType: 'all', version: '2.0', recordCount: 150 },
+        data: {
+          products: Array.from({ length: 100 }, (_, i) => ({
+            name: `Product ${i + 1}`,
+            price: (i + 1) * 10,
+            stock: i + 1,
+          })),
+          customers: Array.from({ length: 50 }, (_, i) => ({
+            name: `Customer ${i + 1}`,
+            phone: `${1000000000 + i}`,
+          })),
+          sales: [],
+          expenses: [],
+          stockMovements: [],
+          bulkPricing: [],
+          shopSettings: {},
+        },
       };
 
       mockFileSystem.readAsStringAsync.mockResolvedValue(
         JSON.stringify(largeData)
       );
       (mockDatabase.getProductByName as jest.Mock).mockResolvedValue(null);
+      (mockDatabase.getCustomerByPhone as jest.Mock).mockResolvedValue(null);
       (mockDatabase.addProduct as jest.Mock).mockResolvedValue({ id: 1 });
+      (mockDatabase.addCustomer as jest.Mock).mockResolvedValue({ id: 1 });
 
       const options = {
         batchSize: 10,
@@ -268,75 +318,110 @@ describe('DataImportService', () => {
       const progressCallback = jest.fn();
       importService.onProgress(progressCallback);
 
-      const result = await importService.importProducts(
+      const result = await importService.importAllData(
         'mock-file-uri',
         options
       );
 
       expect(result.success).toBe(true);
-      expect(result.imported).toBe(100);
+      expect(result.totalImported).toBe(150);
+      expect(result.detailedCounts.products.imported).toBe(100);
+      expect(result.detailedCounts.customers.imported).toBe(50);
       expect(progressCallback).toHaveBeenCalled();
     });
   });
 
-  describe('importSales', () => {
-    const mockSalesData = {
-      metadata: {
-        dataType: 'sales',
-        version: '2.0',
-        recordCount: 2,
-      },
-      data: [
-        { productId: 1, customerId: 1, quantity: 5, total: 500 },
-        { productId: 2, customerId: 2, quantity: 3, total: 600 },
-      ],
-    };
+  describe('detectAllConflicts', () => {
+    it('should detect conflicts across all data types', async () => {
+      const mockData = {
+        metadata: { dataType: 'all', version: '2.0', recordCount: 4 },
+        data: {
+          products: [
+            { name: 'Existing Product', price: 100 },
+            { name: 'New Product', price: 200 },
+          ],
+          customers: [
+            { name: 'Existing Customer', phone: '123456789' },
+            { name: 'New Customer', phone: '987654321' },
+          ],
+          sales: [{ total: 500, payment_method: 'cash', date: '2024-01-01' }],
+          expenses: [],
+          stockMovements: [],
+          bulkPricing: [],
+          shopSettings: {},
+        },
+      };
 
-    beforeEach(() => {
-      mockFileSystem.readAsStringAsync.mockResolvedValue(
-        JSON.stringify(mockSalesData)
+      // Mock existing data
+      (mockDatabase.getProductByName as jest.Mock).mockImplementation((name) =>
+        name === 'Existing Product' ? { id: 1, name } : null
+      );
+      (mockDatabase.getCustomerByPhone as jest.Mock).mockImplementation(
+        (phone) => (phone === '123456789' ? { id: 1, phone } : null)
+      );
+
+      const conflicts = await importService.detectAllConflicts(mockData);
+
+      expect(conflicts.hasConflicts).toBe(true);
+      expect(conflicts.totalConflicts).toBe(2);
+      expect(conflicts.conflictsByType.products).toHaveLength(1);
+      expect(conflicts.conflictsByType.customers).toHaveLength(1);
+      expect(conflicts.conflictsByType.products[0].importData.name).toBe(
+        'Existing Product'
+      );
+      expect(conflicts.conflictsByType.customers[0].importData.phone).toBe(
+        '123456789'
       );
     });
 
-    it('should import sales successfully', async () => {
-      (mockDatabase.addSale as jest.Mock).mockResolvedValue({ id: 1 });
-
-      const options = {
-        batchSize: 10,
-        conflictResolution: 'skip' as const,
-        validateReferences: true,
-        createMissingReferences: false,
+    it('should return no conflicts when data is unique', async () => {
+      const mockData = {
+        metadata: { dataType: 'all', version: '2.0', recordCount: 2 },
+        data: {
+          products: [{ name: 'New Product', price: 100 }],
+          customers: [{ name: 'New Customer', phone: '123456789' }],
+          sales: [],
+          expenses: [],
+          stockMovements: [],
+          bulkPricing: [],
+          shopSettings: {},
+        },
       };
 
-      const result = await importService.importSales('mock-file-uri', options);
+      (mockDatabase.getProductByName as jest.Mock).mockResolvedValue(null);
+      (mockDatabase.getCustomerByPhone as jest.Mock).mockResolvedValue(null);
 
-      expect(result.success).toBe(true);
-      expect(result.imported).toBe(2);
-      expect(mockDatabase.addSale).toHaveBeenCalledTimes(2);
+      const conflicts = await importService.detectAllConflicts(mockData);
+
+      expect(conflicts.hasConflicts).toBe(false);
+      expect(conflicts.totalConflicts).toBe(0);
+      expect(Object.keys(conflicts.conflictsByType)).toHaveLength(0);
     });
   });
 
-  describe('importCustomers', () => {
-    const mockCustomerData = {
-      metadata: {
-        dataType: 'customers',
-        version: '2.0',
-        recordCount: 2,
-      },
-      data: [
-        { name: 'Customer 1', phone: '123456789' },
-        { name: 'Customer 2', phone: '987654321' },
-      ],
-    };
+  describe('error handling', () => {
+    it('should handle database errors gracefully across all data types', async () => {
+      const mockData = {
+        metadata: { dataType: 'all', version: '2.0', recordCount: 2 },
+        data: {
+          products: [{ name: 'Product 1', price: 100 }],
+          customers: [{ name: 'Customer 1', phone: '123456789' }],
+          sales: [],
+          expenses: [],
+          stockMovements: [],
+          bulkPricing: [],
+          shopSettings: {},
+        },
+      };
 
-    beforeEach(() => {
       mockFileSystem.readAsStringAsync.mockResolvedValue(
-        JSON.stringify(mockCustomerData)
+        JSON.stringify(mockData)
       );
-    });
-
-    it('should import customers successfully', async () => {
+      (mockDatabase.getProductByName as jest.Mock).mockResolvedValue(null);
       (mockDatabase.getCustomerByPhone as jest.Mock).mockResolvedValue(null);
+      (mockDatabase.addProduct as jest.Mock).mockRejectedValue(
+        new Error('Database error')
+      );
       (mockDatabase.addCustomer as jest.Mock).mockResolvedValue({ id: 1 });
 
       const options = {
@@ -346,30 +431,33 @@ describe('DataImportService', () => {
         createMissingReferences: false,
       };
 
-      const result = await importService.importCustomers(
+      const result = await importService.importAllData(
         'mock-file-uri',
         options
       );
 
       expect(result.success).toBe(true);
-      expect(result.imported).toBe(2);
-      expect(mockDatabase.addCustomer).toHaveBeenCalledTimes(2);
+      expect(result.detailedCounts.products.skipped).toBe(1);
+      expect(result.detailedCounts.customers.imported).toBe(1);
+      expect(result.errors).toHaveLength(1);
     });
-  });
 
-  describe('error handling', () => {
-    it('should handle database errors gracefully', async () => {
+    it('should handle empty data gracefully', async () => {
       const mockData = {
-        metadata: { dataType: 'products', version: '2.0', recordCount: 1 },
-        data: [{ name: 'Product 1', price: 100 }],
+        metadata: { dataType: 'all', version: '2.0', recordCount: 0 },
+        data: {
+          products: [],
+          customers: [],
+          sales: [],
+          expenses: [],
+          stockMovements: [],
+          bulkPricing: [],
+          shopSettings: {},
+        },
       };
 
       mockFileSystem.readAsStringAsync.mockResolvedValue(
         JSON.stringify(mockData)
-      );
-      (mockDatabase.getProductByName as jest.Mock).mockResolvedValue(null);
-      (mockDatabase.addProduct as jest.Mock).mockRejectedValue(
-        new Error('Database error')
       );
 
       const options = {
@@ -379,14 +467,15 @@ describe('DataImportService', () => {
         createMissingReferences: false,
       };
 
-      const result = await importService.importProducts(
+      const result = await importService.importAllData(
         'mock-file-uri',
         options
       );
 
       expect(result.success).toBe(true);
-      expect(result.skipped).toBe(1);
-      expect(result.errors).toHaveLength(1);
+      expect(result.totalImported).toBe(0);
+      expect(result.totalUpdated).toBe(0);
+      expect(result.totalSkipped).toBe(0);
     });
   });
 
@@ -544,20 +633,33 @@ describe('DataImportService', () => {
   });
 
   describe('progress tracking', () => {
-    it('should track progress correctly', async () => {
+    it('should track progress correctly for all data import', async () => {
       const mockData = {
-        metadata: { dataType: 'products', version: '2.0', recordCount: 50 },
-        data: Array.from({ length: 50 }, (_, i) => ({
-          name: `Product ${i + 1}`,
-          price: (i + 1) * 10,
-        })),
+        metadata: { dataType: 'all', version: '2.0', recordCount: 75 },
+        data: {
+          products: Array.from({ length: 50 }, (_, i) => ({
+            name: `Product ${i + 1}`,
+            price: (i + 1) * 10,
+          })),
+          customers: Array.from({ length: 25 }, (_, i) => ({
+            name: `Customer ${i + 1}`,
+            phone: `${1000000000 + i}`,
+          })),
+          sales: [],
+          expenses: [],
+          stockMovements: [],
+          bulkPricing: [],
+          shopSettings: {},
+        },
       };
 
       mockFileSystem.readAsStringAsync.mockResolvedValue(
         JSON.stringify(mockData)
       );
       (mockDatabase.getProductByName as jest.Mock).mockResolvedValue(null);
+      (mockDatabase.getCustomerByPhone as jest.Mock).mockResolvedValue(null);
       (mockDatabase.addProduct as jest.Mock).mockResolvedValue({ id: 1 });
+      (mockDatabase.addCustomer as jest.Mock).mockResolvedValue({ id: 1 });
 
       const options = {
         batchSize: 10,
@@ -569,7 +671,7 @@ describe('DataImportService', () => {
       const progressCallback = jest.fn();
       importService.onProgress(progressCallback);
 
-      await importService.importProducts('mock-file-uri', options);
+      await importService.importAllData('mock-file-uri', options);
 
       expect(progressCallback).toHaveBeenCalled();
       const progressCalls = progressCallback.mock.calls;

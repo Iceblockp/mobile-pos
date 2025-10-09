@@ -1,5 +1,6 @@
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import * as DocumentPicker from 'expo-document-picker';
 import { DatabaseService } from './database';
 
 import { isValidUUID } from '../utils/uuid';
@@ -604,12 +605,24 @@ export class DataExportService {
   // Export all data
   async exportAllData(): Promise<ExportResult> {
     try {
+      console.log('DataExportService: Starting exportAllData');
       this.updateProgress('Preparing export...', 0, 4);
 
       // Fetch all data types
+      console.log(
+        'DataExportService: Fetching products, categories, suppliers'
+      );
       const products = await this.db.getProducts();
       const categories = await this.db.getCategories();
       const suppliers = await this.db.getSuppliers();
+      console.log(
+        'DataExportService: Fetched basic data - products:',
+        products.length,
+        'categories:',
+        categories.length,
+        'suppliers:',
+        suppliers.length
+      );
 
       const startDate = new Date('2020-01-01');
       const endDate = new Date();
@@ -725,13 +738,16 @@ export class DataExportService {
       };
 
       this.updateProgress('Generating file...', 3, 4);
+      console.log('DataExportService: Generating export file');
 
       const filename = `all_data_export_${
         new Date().toISOString().split('T')[0]
       }.json`;
       const fileResult = await this.generateExportFile(exportData, filename);
+      console.log('DataExportService: File generated:', fileResult);
 
       this.updateProgress('Export complete', 4, 4);
+      console.log('DataExportService: Export process completed');
 
       // Create final result
       const finalResult = this.createExportResult(
@@ -763,6 +779,8 @@ export class DataExportService {
     data: ExportData,
     filename: string
   ): Promise<{ fileUri: string; filename: string }> {
+    console.log('DataExportService: Starting generateExportFile');
+
     // Validate UUID format in exported data
     const uuidErrors = this.validateExportedUUIDs(data);
     if (uuidErrors.length > 0) {
@@ -774,8 +792,10 @@ export class DataExportService {
     // Ensure consistent export file structure regardless of data type
     this.ensureConsistentFileStructure(data);
 
+    console.log('DataExportService: Converting to JSON');
     const jsonString = JSON.stringify(data, null, 2);
     const fileUri = FileSystem.documentDirectory + filename;
+    console.log('DataExportService: File URI:', fileUri);
 
     // Calculate file size and checksum
     const fileSize = new Blob([jsonString]).size;
@@ -786,8 +806,10 @@ export class DataExportService {
     data.integrity.checksum = checksum;
 
     // Write the updated data to file
+    console.log('DataExportService: Writing file to disk');
     const finalJsonString = JSON.stringify(data, null, 2);
     await FileSystem.writeAsStringAsync(fileUri, finalJsonString);
+    console.log('DataExportService: File written successfully');
 
     return { fileUri, filename };
   }
@@ -850,13 +872,44 @@ export class DataExportService {
 
   // Share export file
   async shareExportFile(fileUri: string, title: string): Promise<void> {
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(fileUri, {
+    try {
+      console.log('DataExportService: Starting shareExportFile');
+
+      // Check if file exists first
+      const fileInfo = await FileSystem.getInfoAsync(fileUri);
+      console.log('DataExportService: File info:', fileInfo);
+      if (!fileInfo.exists) {
+        throw new Error('Export file not found');
+      }
+
+      // Check if sharing is available
+      console.log('DataExportService: Checking if sharing is available');
+      const isAvailable = await Sharing.isAvailableAsync();
+      console.log('DataExportService: Sharing available:', isAvailable);
+      if (!isAvailable) {
+        throw new Error('Sharing not available on this device');
+      }
+
+      // Attempt to share the file with timeout
+      console.log('DataExportService: Attempting to share file');
+      const sharePromise = Sharing.shareAsync(fileUri, {
         mimeType: 'application/json',
         dialogTitle: title,
       });
-    } else {
-      throw new Error('Sharing not available on this device');
+
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(
+          () => reject(new Error('Sharing timeout after 30 seconds')),
+          30000
+        );
+      });
+
+      await Promise.race([sharePromise, timeoutPromise]);
+      console.log('DataExportService: File sharing completed');
+    } catch (error) {
+      console.error('Error sharing export file:', error);
+      throw error; // Re-throw to be handled by caller
     }
   }
 

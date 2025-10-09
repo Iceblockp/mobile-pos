@@ -17,9 +17,10 @@ const mockDatabase = {
   getCustomers: jest.fn(),
   getStockMovements: jest.fn(),
   getBulkPricingForProduct: jest.fn(),
+  getShopSettings: jest.fn(),
 } as unknown as DatabaseService;
 
-describe('DataExportService', () => {
+describe('DataExportService - Simplified All Data Export', () => {
   let exportService: DataExportService;
 
   beforeEach(() => {
@@ -70,6 +71,10 @@ describe('DataExportService', () => {
       expect(mockDatabase.getProducts).toHaveBeenCalled();
       expect(mockDatabase.getCategories).toHaveBeenCalled();
       expect(mockDatabase.getSuppliers).toHaveBeenCalled();
+      expect(mockDatabase.getSalesByDateRange).toHaveBeenCalled();
+      expect(mockDatabase.getCustomers).toHaveBeenCalled();
+      expect(mockDatabase.getExpensesByDateRange).toHaveBeenCalled();
+      expect(mockDatabase.getStockMovements).toHaveBeenCalled();
     });
 
     it('should handle export errors gracefully', async () => {
@@ -97,6 +102,7 @@ describe('DataExportService', () => {
       (mockDatabase.getBulkPricingForProduct as jest.Mock).mockResolvedValue(
         []
       );
+      (mockDatabase.getShopSettings as jest.Mock).mockResolvedValue({});
 
       const result = await exportService.exportAllData();
 
@@ -104,6 +110,67 @@ describe('DataExportService', () => {
       expect(result.recordCount).toBe(0);
       expect(result.emptyExport).toBe(true);
       expect(result.metadata.dataType).toBe('all');
+    });
+  });
+
+  describe('generateExportPreview', () => {
+    it('should generate accurate export preview with data counts', async () => {
+      // Mock database methods with specific counts
+      (mockDatabase.getProducts as jest.Mock).mockResolvedValue([
+        { id: '1', name: 'Product 1' },
+        { id: '2', name: 'Product 2' },
+      ]);
+      (mockDatabase.getSalesByDateRange as jest.Mock).mockResolvedValue([
+        { id: '1', total: 100 },
+      ]);
+      (mockDatabase.getCustomers as jest.Mock).mockResolvedValue([
+        { id: '1', name: 'Customer 1' },
+        { id: '2', name: 'Customer 2' },
+        { id: '3', name: 'Customer 3' },
+      ]);
+      (mockDatabase.getExpensesByDateRange as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getStockMovements as jest.Mock).mockResolvedValue([
+        { id: '1', product_id: '1', movement_type: 'in', quantity: 10 },
+      ]);
+      (mockDatabase.getBulkPricingForProduct as jest.Mock).mockResolvedValue(
+        []
+      );
+      (mockDatabase.getShopSettings as jest.Mock).mockResolvedValue({
+        shopName: 'Test Shop',
+      });
+
+      const preview = await exportService.generateExportPreview();
+
+      expect(preview.dataCounts.products).toBe(2);
+      expect(preview.dataCounts.sales).toBe(1);
+      expect(preview.dataCounts.customers).toBe(3);
+      expect(preview.dataCounts.expenses).toBe(0);
+      expect(preview.dataCounts.stockMovements).toBe(1);
+      expect(preview.dataCounts.bulkPricing).toBe(0);
+      expect(preview.dataCounts.shopSettings).toBe(1);
+      expect(preview.totalRecords).toBe(8);
+      expect(preview.estimatedFileSize).toBeDefined();
+      expect(preview.exportDate).toBeDefined();
+    });
+
+    it('should handle empty data in preview', async () => {
+      // Mock all methods to return empty data
+      (mockDatabase.getProducts as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getSalesByDateRange as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getCustomers as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getExpensesByDateRange as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getStockMovements as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getBulkPricingForProduct as jest.Mock).mockResolvedValue(
+        []
+      );
+      (mockDatabase.getShopSettings as jest.Mock).mockResolvedValue({});
+
+      const preview = await exportService.generateExportPreview();
+
+      expect(preview.totalRecords).toBe(0);
+      expect(preview.dataCounts.products).toBe(0);
+      expect(preview.dataCounts.sales).toBe(0);
+      expect(preview.dataCounts.customers).toBe(0);
     });
   });
 
@@ -124,6 +191,7 @@ describe('DataExportService', () => {
       (mockDatabase.getBulkPricingForProduct as jest.Mock).mockResolvedValue(
         []
       );
+      (mockDatabase.getShopSettings as jest.Mock).mockResolvedValue({});
 
       const progressCallback = jest.fn();
       exportService.onProgress(progressCallback);
@@ -139,7 +207,7 @@ describe('DataExportService', () => {
   });
 
   describe('metadata generation', () => {
-    it('should generate correct metadata', async () => {
+    it('should generate correct metadata for all data export', async () => {
       (mockDatabase.getProducts as jest.Mock).mockResolvedValue([
         { id: '1', name: 'Product 1', price: 10.99, cost: 5.5 },
       ]);
@@ -154,6 +222,7 @@ describe('DataExportService', () => {
       (mockDatabase.getBulkPricingForProduct as jest.Mock).mockResolvedValue(
         []
       );
+      (mockDatabase.getShopSettings as jest.Mock).mockResolvedValue({});
 
       const result = await exportService.exportAllData();
 
@@ -164,6 +233,36 @@ describe('DataExportService', () => {
         recordCount: expect.any(Number),
         fileSize: expect.any(Number),
       });
+      expect(result.metadata).toBeDefined();
+      expect(result.metadata.recordCount).toBe(result.recordCount);
+      expect(result.metadata.dataType).toBe('all');
+    });
+
+    it('should include detailed data counts in export result', async () => {
+      (mockDatabase.getProducts as jest.Mock).mockResolvedValue([
+        { id: '1', name: 'Product 1' },
+        { id: '2', name: 'Product 2' },
+      ]);
+      (mockDatabase.getSalesByDateRange as jest.Mock).mockResolvedValue([
+        { id: '1', total: 100 },
+      ]);
+      (mockDatabase.getCustomers as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getCategories as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getSuppliers as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getSaleItems as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getExpensesByDateRange as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getExpenseCategories as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getStockMovements as jest.Mock).mockResolvedValue([]);
+      (mockDatabase.getBulkPricingForProduct as jest.Mock).mockResolvedValue(
+        []
+      );
+      (mockDatabase.getShopSettings as jest.Mock).mockResolvedValue({});
+
+      const result = await exportService.exportAllData();
+
+      expect(result.recordCount).toBe(3); // 2 products + 1 sale
+      expect(result.metadata.recordCount).toBe(3);
+      expect(result.success).toBe(true);
     });
   });
 });
