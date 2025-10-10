@@ -1,19 +1,18 @@
+import { GoogleGenAI } from '@google/genai';
 import { APIKeyManager } from './apiKeyManager';
 import { DatabaseService } from './database';
 import {
   AIRequest,
   ShopDataExport,
-  GeminiResponse,
-  AIAnalyticsError,
+  AIGenerationConfig,
 } from '../types/aiAnalytics';
 import {
   createAIAnalyticsError,
   categorizeError,
   isNetworkError,
-  isTimeoutError,
 } from '../utils/aiAnalyticsErrors';
 import {
-  DEFAULT_AI_CONFIG,
+  AI_CONFIG,
   REQUEST_TIMEOUT,
   MAX_RETRIES,
   RETRY_DELAY,
@@ -23,6 +22,7 @@ export class AIAnalyticsService {
   private static instance: AIAnalyticsService;
   private apiKeyManager: APIKeyManager;
   private databaseService: DatabaseService | null = null;
+  private genAI: GoogleGenAI | null = null;
 
   constructor() {
     this.apiKeyManager = APIKeyManager.getInstance();
@@ -40,6 +40,13 @@ export class AIAnalyticsService {
    */
   public setDatabaseService(db: DatabaseService): void {
     this.databaseService = db;
+  }
+
+  /**
+   * Initializes the Google GenAI client
+   */
+  private initializeAI(apiKey: string): void {
+    this.genAI = new GoogleGenAI({ apiKey });
   }
 
   /**
@@ -210,17 +217,22 @@ export class AIAnalyticsService {
     throw createAIAnalyticsError(
       errorType,
       `Request failed after ${MAX_RETRIES} attempts`,
-      lastError
+      lastError || undefined
     );
   }
 
   /**
-   * Sends request to Gemini API
+   * Sends request to Gemini API using the modern @google/genai library
    */
   private async sendGeminiRequest(
     aiRequest: AIRequest,
     apiKey: string
   ): Promise<string> {
+    // Initialize AI client if not already done
+    if (!this.genAI) {
+      this.initializeAI(apiKey);
+    }
+
     const formattedData = this.formatDataForAI(aiRequest.shopData);
 
     const prompt = `
@@ -241,73 +253,48 @@ Please analyze this data and provide practical recommendations. Focus on:
 Respond in a friendly, helpful tone as if speaking directly to the shop owner.
     `.trim();
 
-    const requestBody = {
-      contents: [
-        {
-          parts: [
-            {
-              text: prompt,
-            },
-          ],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 1000,
-        topP: 0.8,
-        topK: 40,
-      },
-    };
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
     try {
-      const response = await fetch(
-        `${DEFAULT_AI_CONFIG.endpoint}?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-          signal: controller.signal,
-        }
-      );
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          throw createAIAnalyticsError('INVALID_API_KEY', 'Invalid API key');
-        }
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (!this.genAI) {
+        throw createAIAnalyticsError(
+          'UNKNOWN_ERROR',
+          'AI client not initialized'
+        );
       }
 
-      const data: GeminiResponse = await response.json();
+      // Use the modern library's generateContent method
+      const response = await this.genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+      });
 
-      if (!data.candidates || data.candidates.length === 0) {
-        throw new Error('No response from AI service');
-      }
+      const aiResponse = response.text;
 
-      const aiResponse = data.candidates[0].content.parts[0].text;
-      if (!aiResponse) {
+      if (!aiResponse || aiResponse.trim().length === 0) {
         throw new Error('Empty response from AI service');
       }
 
       return aiResponse.trim();
-    } catch (error) {
-      clearTimeout(timeoutId);
-
-      if (error.name === 'AbortError') {
-        throw createAIAnalyticsError('TIMEOUT_ERROR', 'Request timed out');
-      }
-
-      if (isNetworkError(error)) {
-        throw createAIAnalyticsError(
-          'NETWORK_ERROR',
-          'Network connection failed'
-        );
+    } catch (error: unknown) {
+      // Handle library-specific errors
+      if (error instanceof Error) {
+        if (
+          error.message.includes('API_KEY_INVALID') ||
+          error.message.includes('401')
+        ) {
+          throw createAIAnalyticsError('INVALID_API_KEY', 'Invalid API key');
+        }
+        if (
+          error.message.includes('timeout') ||
+          error.message.includes('TIMEOUT')
+        ) {
+          throw createAIAnalyticsError('TIMEOUT_ERROR', 'Request timed out');
+        }
+        if (isNetworkError(error)) {
+          throw createAIAnalyticsError(
+            'NETWORK_ERROR',
+            'Network connection failed'
+          );
+        }
       }
 
       throw error;

@@ -31,22 +31,19 @@ export interface ShopDataExport {
 export interface AIConfig {
   apiKey: string;
   provider: 'gemini' | 'openai';
-  endpoint: string;
   model: string;
 }
 
-export interface GeminiResponse {
-  candidates: [
-    {
-      content: {
-        parts: [
-          {
-            text: string;
-          }
-        ];
-      };
-    }
-  ];
+export interface AIGenerationConfig {
+  temperature?: number;
+  maxOutputTokens?: number;
+  topP?: number;
+  topK?: number;
+}
+
+export interface AIModelConfig {
+  model: string;
+  generationConfig?: AIGenerationConfig;
 }
 
 export type AIAnalyticsError =

@@ -1,10 +1,13 @@
-import { AIConfig } from '../types/aiAnalytics';
+import { AIGenerationConfig } from '../types/aiAnalytics';
 
-export const DEFAULT_AI_CONFIG: Omit<AIConfig, 'apiKey'> = {
-  provider: 'gemini',
-  endpoint:
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
-  model: 'gemini-pro',
+export const AI_CONFIG = {
+  model: 'gemini-1.5-flash',
+  generationConfig: {
+    temperature: 0.7,
+    maxOutputTokens: 1000,
+    topP: 0.8,
+    topK: 40,
+  } as AIGenerationConfig,
 };
 
 export const validateApiKeyFormat = (
@@ -27,10 +30,11 @@ export const validateApiKeyFormat = (
   }
 };
 
-export const createAIConfig = (apiKey: string): AIConfig => {
+export const createAIConfig = (apiKey: string) => {
   return {
-    ...DEFAULT_AI_CONFIG,
     apiKey,
+    provider: 'gemini' as const,
+    model: AI_CONFIG.model,
   };
 };
 

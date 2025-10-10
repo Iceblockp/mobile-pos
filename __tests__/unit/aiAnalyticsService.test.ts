@@ -7,14 +7,20 @@ import { ShopDataExport } from '../../types/aiAnalytics';
 jest.mock('../../services/apiKeyManager');
 jest.mock('../../services/dataExportService');
 
-// Mock fetch
-global.fetch = jest.fn();
+// Mock @google/genai library
+jest.mock('@google/genai', () => ({
+  GoogleGenAI: jest.fn().mockImplementation(() => ({
+    models: {
+      generateContent: jest.fn(),
+    },
+  })),
+}));
 
 describe('AIAnalyticsService', () => {
   let aiAnalyticsService: AIAnalyticsService;
   let mockApiKeyManager: jest.Mocked<APIKeyManager>;
   let mockDataExportService: jest.Mocked<typeof dataExportService>;
-  let mockFetch: jest.MockedFunction<typeof fetch>;
+  let mockGenAI: any;
 
   const mockShopData: ShopDataExport = {
     products: [
@@ -46,7 +52,8 @@ describe('AIAnalyticsService', () => {
     mockDataExportService = dataExportService as jest.Mocked<
       typeof dataExportService
     >;
-    mockFetch = fetch as jest.MockedFunction<typeof fetch>;
+    const { GoogleGenAI } = require('@google/genai');
+    mockGenAI = GoogleGenAI();
 
     jest.clearAllMocks();
   });
@@ -61,36 +68,20 @@ describe('AIAnalyticsService', () => {
 
     it('should send question and return AI response', async () => {
       const mockResponse = {
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  text: 'Your sales are doing well this week!',
-                },
-              ],
-            },
-          },
-        ],
+        text: 'Your sales are doing well this week!',
       };
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      } as Response);
+      mockGenAI.models.generateContent.mockResolvedValue(mockResponse);
 
       const result = await aiAnalyticsService.sendQuestion(
         'How are my sales this week?'
       );
 
       expect(result).toBe('Your sales are doing well this week!');
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('generativelanguage.googleapis.com'),
-        expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        })
-      );
+      expect(mockGenAI.models.generateContent).toHaveBeenCalledWith({
+        model: 'gemini-1.5-flash',
+        contents: expect.stringContaining('How are my sales this week?'),
+      });
     });
 
     it('should throw error when no API key is configured', async () => {
