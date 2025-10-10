@@ -1,25 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  View,
-  StyleSheet,
-  Alert,
-  Modal,
-  Text,
-  TouchableOpacity,
-} from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, StyleSheet, Modal, Text, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { ChatMessage, AIAnalyticsState } from '../types/aiAnalytics';
 import { AIAnalyticsService } from '../services/aiAnalyticsService';
 import { APIKeyManager } from '../services/apiKeyManager';
 import { AIAnalyticsSessionService } from '../services/aiAnalyticsSessionService';
-import {
-  createAIAnalyticsError,
-  getErrorMessage,
-  categorizeError,
-} from '../utils/aiAnalyticsErrors';
+import { getErrorMessage, categorizeError } from '../utils/aiAnalyticsErrors';
 import ChatInterface from './ChatInterface';
 import DefaultQuestions from './DefaultQuestions';
-// import APIKeySetup from './APIKeySetup';
 import AIAnalyticsErrorBoundary from './AIAnalyticsErrorBoundary';
 import { generateUUID } from '../utils/uuid';
 import { useTranslation } from '../context/LocalizationContext';
@@ -225,10 +213,12 @@ const AIAnalyticsTab: React.FC = () => {
   };
 
   const showApiKeySettings = () => {
+    console.log('API Key Settings button pressed');
     setShowApiKeySetup(true);
   };
 
-  if (!state.apiKeyConfigured && showApiKeySetup) {
+  // Show API Key Setup modal when requested
+  if (showApiKeySetup) {
     return (
       <Modal
         visible={showApiKeySetup}
@@ -257,6 +247,8 @@ const AIAnalyticsTab: React.FC = () => {
               <TouchableOpacity
                 style={styles.apiKeyButton}
                 onPress={showApiKeySettings}
+                activeOpacity={0.7}
+                testID="api-key-settings-button"
               >
                 <Text style={styles.apiKeyButtonText}>
                   {t('aiAnalytics.apiKeySettings')}
@@ -265,13 +257,25 @@ const AIAnalyticsTab: React.FC = () => {
             </View>
           </View>
         ) : (
-          <ChatInterface
-            messages={state.messages}
-            isLoading={state.isLoading}
-            onSendMessage={handleSendMessage}
-            inputText={state.inputText}
-            onInputChange={handleInputChange}
-          />
+          <View style={styles.chatContainer}>
+            <View style={styles.chatHeader}>
+              <TouchableOpacity
+                style={styles.settingsButton}
+                onPress={showApiKeySettings}
+                activeOpacity={0.7}
+                testID="chat-settings-button"
+              >
+                <Text style={styles.settingsButtonText}>⚙️</Text>
+              </TouchableOpacity>
+            </View>
+            <ChatInterface
+              messages={state.messages}
+              isLoading={state.isLoading}
+              onSendMessage={handleSendMessage}
+              inputText={state.inputText}
+              onInputChange={handleInputChange}
+            />
+          </View>
         )}
 
         {state.error && (
@@ -296,6 +300,26 @@ const styles = StyleSheet.create({
   },
   defaultQuestionsContainer: {
     flex: 1,
+  },
+  chatContainer: {
+    flex: 1,
+  },
+  chatHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  settingsButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#F0F0F0',
+  },
+  settingsButtonText: {
+    fontSize: 16,
   },
   apiKeyInfo: {
     padding: 16,
