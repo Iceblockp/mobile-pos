@@ -581,6 +581,57 @@ export const my: TranslationKeys = {
     subtitle: 'လုပ်ငန်းသုံးသပ်မှုများနှင့် ခွဲခြမ်းစိတ်ဖြာမှု',
     analytics: 'ခွဲခြမ်းစိတ်ဖြာမှု',
     expenses: 'ကုန်ကျစရိတ်များ',
+    aiAnalytics: 'AI ခွဲခြမ်းစိတ်ဖြာမှု',
+  },
+  aiAnalytics: {
+    title: 'AI ခွဲခြမ်းစိတ်ဖြာမှု',
+    subtitle: 'သင့်လုပ်ငန်းအချက်အလက်များအကြောင်း မေးခွန်းများမေးပါ',
+    askQuestion: 'သင့်လုပ်ငန်းအကြောင်း မေးပါ...',
+    quickQuestions: 'မြန်ဆန်သောမေးခွန်းများ',
+    quickQuestionsSubtitle:
+      'သင့်လုပ်ငန်းအကြောင်း ချက်ချင်းသိရှိရန် မေးခွန်းတစ်ခုခုကို နှိပ်ပါ',
+    analyzing: 'ခွဲခြမ်းစိတ်ဖြာနေသည်...',
+    emptyStateTitle: 'သင့်လုပ်ငန်းအကြောင်း မည်သည့်အရာမဆို မေးပါ!',
+    emptyStateSubtitle:
+      'ရောင်းချမှု၊ ကုန်စာရင်း၊ ဖောက်သည်များနှင့် အခြားအရာများကို ခွဲခြမ်းစိတ်ဖြာရာတွင် ကူညီနိုင်ပါသည်။',
+    // Default questions
+    salesThisWeek: 'ဒီအပတ် ကျွန်တော့်ရောင်းချမှု ဘယ်လိုလဲ?',
+    topProducts: 'ဘယ်ကုန်ပစ္စည်းတွေ ကောင်းကောင်းရောင်းနေလဲ?',
+    restockNeeded: 'ဘယ်ပစ္စည်းတွေ ပြန်ဖြည့်ဖို့လိုလဲ?',
+    bestCustomers: 'ကျွန်တော့်အကောင်းဆုံးဖောက်သည်တွေကို ပြပါ',
+    salesChanges: 'ရောင်းချမှု ဘာကြောင့် ပြောင်းလဲသွားလဲ?',
+    focusToday: 'ယနေ့ ဘာကို အာရုံစိုက်သင့်လဲ?',
+    // API Key management
+    apiKeyRequired: 'API Key လိုအပ်သည်',
+    apiKeyRequiredMessage:
+      'ခွဲခြမ်းစိတ်ဖြာမှုအင်္ဂါရပ်များအသုံးပြုရန် သင့် AI API key ကို ပြင်ဆင်ပါ။',
+    configureApiKey: 'API Key ပြင်ဆင်မည်',
+    apiKeySettings: 'API Key ဆက်တင်များ',
+    enterApiKey: 'သင့် Gemini API key ကို ရိုက်ထည့်ပါ',
+    apiKeyPlaceholder: 'AIzaSy...',
+    saveApiKey: 'API Key သိမ်းဆည်းမည်',
+    apiKeyValid: 'API key မှန်ကန်သည်',
+    apiKeyInvalid: 'API key ပုံစံမမှန်ကန်ပါ',
+    validatingApiKey: 'API key စစ်ဆေးနေသည်...',
+    apiKeyMasked: 'API Key: {{maskedKey}}',
+    changeApiKey: 'API Key ပြောင်းမည်',
+    // Error messages
+    noApiKey:
+      'ခွဲခြမ်းစိတ်ဖြာမှုအင်္ဂါရပ်များအသုံးပြုရန် သင့် AI API key ကို ပြင်ဆင်ပါ။',
+    invalidApiKey: 'ပေးထားသော API key မမှန်ကန်ပါ။ စစ်ဆေး၍ ပြန်လည်ပြင်ဆင်ပါ။',
+    networkError:
+      'AI ဝန်ဆောင်မှုသို့ ချိတ်ဆက်၍မရပါ။ သင့်အင်တာနက်ချိတ်ဆက်မှုကို စစ်ဆေးပါ။',
+    noData:
+      'ခွဲခြမ်းစိတ်ဖြာရန် အချက်အလက်မရှိပါ။ ရောင်းချမှုအချို့ကို ဦးစွာထည့်ပါ။',
+    timeoutError: 'တောင်းဆိုမှု အချိန်ကုန်သွားပါပြီ။ ပြန်လည်ကြိုးစားပါ။',
+    unknownError: 'မမျှော်လင့်သောအမှားတစ်ခု ဖြစ်ပွားခဲ့သည်။ ပြန်လည်ကြိုးစားပါ။',
+    retry: 'ပြန်ကြိုးစားမည်',
+    // Success messages
+    apiKeyConfigured: 'API key အောင်မြင်စွာ ပြင���ဆင်ပြီးပါပြီ',
+    // Instructions
+    getApiKeyInstructions:
+      'Gemini API key ရယူရန်:\n1. Google AI Studio သို့သွားပါ\n2. API key အသစ်တစ်ခု ဖန်တီးပါ\n3. ကူးယူ၍ ဤနေရာတွင် ထည့်ပါ',
+    learnMore: 'နောက်ထပ်လေ့လာမည်',
   },
 
   license: {

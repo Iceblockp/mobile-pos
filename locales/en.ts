@@ -567,6 +567,57 @@ export const en = {
     subtitle: 'Business insights and analytics',
     analytics: 'Analytics',
     expenses: 'Expenses',
+    aiAnalytics: 'AI Analytics',
+  },
+  aiAnalytics: {
+    title: 'AI Analytics',
+    subtitle: 'Ask questions about your business data',
+    askQuestion: 'Ask about your business...',
+    quickQuestions: 'Quick Questions',
+    quickQuestionsSubtitle:
+      'Tap any question to get instant insights about your business',
+    analyzing: 'Analyzing...',
+    emptyStateTitle: 'Ask me anything about your business!',
+    emptyStateSubtitle:
+      'I can help you analyze sales, inventory, customers, and more.',
+    // Default questions
+    salesThisWeek: 'How are my sales this week?',
+    topProducts: 'What products are selling well?',
+    restockNeeded: 'Which items need restocking?',
+    bestCustomers: 'Show me my best customers',
+    salesChanges: 'Why did sales change recently?',
+    focusToday: 'What should I focus on today?',
+    // API Key management
+    apiKeyRequired: 'API Key Required',
+    apiKeyRequiredMessage:
+      'Please configure your AI API key to use analytics features.',
+    configureApiKey: 'Configure API Key',
+    apiKeySettings: 'API Key Settings',
+    enterApiKey: 'Enter your Gemini API key',
+    apiKeyPlaceholder: 'AIzaSy...',
+    saveApiKey: 'Save API Key',
+    apiKeyValid: 'API key is valid',
+    apiKeyInvalid: 'Invalid API key format',
+    validatingApiKey: 'Validating API key...',
+    apiKeyMasked: 'API Key: {{maskedKey}}',
+    changeApiKey: 'Change API Key',
+    // Error messages
+    noApiKey: 'Please configure your AI API key to use analytics features.',
+    invalidApiKey:
+      'The provided API key is invalid. Please check and update your key.',
+    networkError:
+      'Unable to connect to AI service. Please check your internet connection.',
+    noData:
+      'No data available for analysis. Please add some transactions first.',
+    timeoutError: 'Request timed out. Please try again.',
+    unknownError: 'An unexpected error occurred. Please try again.',
+    retry: 'Retry',
+    // Success messages
+    apiKeyConfigured: 'API key configured successfully',
+    // Instructions
+    getApiKeyInstructions:
+      'To get a Gemini API key:\n1. Visit Google AI Studio\n2. Create a new API key\n3. Copy and paste it here',
+    learnMore: 'Learn More',
   },
 
   license: {

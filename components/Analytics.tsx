@@ -11,6 +11,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { CustomerAnalytics } from './CustomerAnalytics';
+import AIAnalyticsTab from './AIAnalyticsTab';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { DateFilterComponent } from '@/components/DateFilter';
@@ -34,7 +35,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from '@/context/LocalizationContext';
 
 type FilterMode = 'day' | 'month' | 'range';
-type AnalyticsTab = 'overview' | 'customers';
+type AnalyticsTab = 'overview' | 'customers' | 'ai-analytics';
 
 interface DateFilter {
   mode: FilterMode;
@@ -67,6 +68,11 @@ export default function Analytics() {
       key: 'customers',
       label: t('analytics.customers'),
       icon: Users,
+    },
+    {
+      key: 'ai-analytics',
+      label: t('reports.aiAnalytics'),
+      icon: Target, // Using Target icon for AI Analytics
     },
   ];
 
@@ -661,6 +667,9 @@ export default function Analytics() {
       {activeTab === 'customers' && (
         <CustomerAnalytics customerId={undefined} />
       )}
+
+      {/* AI Analytics Tab */}
+      {activeTab === 'ai-analytics' && <AIAnalyticsTab />}
     </SafeAreaView>
   );
 }
