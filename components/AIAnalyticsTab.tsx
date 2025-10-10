@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, Modal, Text, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { ChatMessage, AIAnalyticsState } from '../types/aiAnalytics';
@@ -11,10 +11,12 @@ import DefaultQuestions from './DefaultQuestions';
 import AIAnalyticsErrorBoundary from './AIAnalyticsErrorBoundary';
 import { generateUUID } from '../utils/uuid';
 import { useTranslation } from '../context/LocalizationContext';
+import { useDatabase } from '../context/DatabaseContext';
 import APIKeySetup from './APIKeySetup';
 
 const AIAnalyticsTab: React.FC = () => {
   const { t } = useTranslation();
+  const { db, isReady } = useDatabase();
   const [state, setState] = useState<AIAnalyticsState>({
     messages: [],
     isLoading: false,
@@ -28,6 +30,13 @@ const AIAnalyticsTab: React.FC = () => {
   const aiAnalyticsService = AIAnalyticsService.getInstance();
   const apiKeyManager = APIKeyManager.getInstance();
   const sessionService = AIAnalyticsSessionService.getInstance();
+
+  // Initialize AI service with database when ready
+  useEffect(() => {
+    if (db && isReady) {
+      aiAnalyticsService.setDatabaseService(db);
+    }
+  }, [db, isReady, aiAnalyticsService]);
 
   // Check API key configuration and load session on component mount and focus
   useFocusEffect(
@@ -77,6 +86,12 @@ const AIAnalyticsTab: React.FC = () => {
 
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || state.isLoading) {
+      return;
+    }
+
+    // Check if database is ready
+    if (!db || !isReady) {
+      console.error('Database not ready for AI Analytics');
       return;
     }
 
@@ -233,6 +248,19 @@ const AIAnalyticsTab: React.FC = () => {
     );
   }
 
+  // Show loading if database isn't ready
+  if (!isReady) {
+    return (
+      <AIAnalyticsErrorBoundary>
+        <View style={styles.container}>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>{t('common.loading')}...</Text>
+          </View>
+        </View>
+      </AIAnalyticsErrorBoundary>
+    );
+  }
+
   return (
     <AIAnalyticsErrorBoundary>
       <View style={styles.container}>
@@ -363,6 +391,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
   },
 });
 

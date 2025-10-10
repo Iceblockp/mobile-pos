@@ -1,5 +1,4 @@
 import { APIKeyManager } from './apiKeyManager';
-import { dataExportService } from './dataExportService';
 import { DatabaseService } from './database';
 import {
   AIRequest,
@@ -23,6 +22,7 @@ import {
 export class AIAnalyticsService {
   private static instance: AIAnalyticsService;
   private apiKeyManager: APIKeyManager;
+  private databaseService: DatabaseService | null = null;
 
   constructor() {
     this.apiKeyManager = APIKeyManager.getInstance();
@@ -36,11 +36,26 @@ export class AIAnalyticsService {
   }
 
   /**
+   * Sets the database service instance
+   */
+  public setDatabaseService(db: DatabaseService): void {
+    this.databaseService = db;
+  }
+
+  /**
    * Sends a question to the AI service and returns the response
    */
   async sendQuestion(question: string): Promise<string> {
     if (!question || question.trim().length === 0) {
       throw createAIAnalyticsError('UNKNOWN_ERROR', 'Question cannot be empty');
+    }
+
+    // Check if database service is available
+    if (!this.databaseService) {
+      throw createAIAnalyticsError(
+        'UNKNOWN_ERROR',
+        'Database service not initialized. Please wait for the app to load completely.'
+      );
     }
 
     // Check if API key is configured
@@ -97,8 +112,15 @@ export class AIAnalyticsService {
    * Gets shop data using the database directly for AI analysis
    */
   private async getShopData(): Promise<ShopDataExport> {
+    if (!this.databaseService) {
+      throw createAIAnalyticsError(
+        'UNKNOWN_ERROR',
+        'Database service not initialized'
+      );
+    }
+
     try {
-      const db = DatabaseService.getInstance();
+      const db = this.databaseService;
 
       // Get basic data
       const products = await db.getProducts();
