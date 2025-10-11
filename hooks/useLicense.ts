@@ -26,14 +26,14 @@ export const useLicense = () => {
     initializeLicense();
   }, []);
 
-  // Generate a 1-day trial challenge for first-time users
+  // Generate a 7-day trial challenge for first-time users
   const generateTrialChallenge = (): Challenge => {
     const deviceId = `TRIAL_${Date.now()}_${Math.random()
       .toString(36)
       .substring(2, 8)}`;
     const expiryDate = new Date();
     // expiryDate.setMinutes(expiryDate.getMinutes() + 5); // 5 minutes validity for testing
-    expiryDate.setDate(expiryDate.getDate() + 1); // 1 day validity
+    expiryDate.setDate(expiryDate.getDate() + 7); // 7 day validity
 
     // For testing with minutes, we need to include time information
     const expiryString = expiryDate
@@ -77,12 +77,12 @@ export const useLicense = () => {
 
       // First time app start - no existing status
       if (!existingStatus) {
-        // Generate challenge with 1 day validity for testing
+        // Generate challenge with 7 day validity for testing
         const trialChallenge = generateTrialChallenge();
         await saveChallenge(trialChallenge);
 
         const trialStatus: LicenseStatus = {
-          isLicensed: true, // Set as licensed for 1-day trial
+          isLicensed: true, // Set as licensed for 7-day trial
           challenge: trialChallenge,
           expiryDate: trialChallenge.expiryDate,
           lastVerified: new Date().toISOString(),

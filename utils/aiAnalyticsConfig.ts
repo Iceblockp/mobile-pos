@@ -1,7 +1,7 @@
 import { AIGenerationConfig } from '../types/aiAnalytics';
 
 export const AI_CONFIG = {
-  model: 'gemini-1.5-flash',
+  model: 'gemini-2.5-flash',
   generationConfig: {
     temperature: 0.7,
     maxOutputTokens: 1000,

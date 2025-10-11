@@ -2470,11 +2470,22 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 </View>
               </ScrollView>
             )}
+            {/* Enhanced Print Manager for Sale Detail */}
+            {receiptData && (
+              <EnhancedPrintManager
+                visible={showPrintManager}
+                onClose={() => {
+                  setShowPrintManager(false);
+                  setReceiptData(null);
+                }}
+                receiptData={receiptData}
+              />
+            )}
           </SafeAreaView>
         </Modal>
 
         {/* Enhanced Print Manager for Sale Detail */}
-        {receiptData && (
+        {/* {receiptData && (
           <EnhancedPrintManager
             visible={showPrintManager}
             onClose={() => {
@@ -2483,7 +2494,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             }}
             receiptData={receiptData}
           />
-        )}
+        )} */}
       </SafeAreaView>
     </Modal>
   );
