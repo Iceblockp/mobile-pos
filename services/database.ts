@@ -1691,7 +1691,7 @@ export class DatabaseService {
   }
 
   async addSale(
-    sale: Omit<Sale, 'id' | 'created_at'>,
+    sale: Omit<Sale, 'id' | 'created_at'> & { created_at?: string },
     items: Omit<SaleItem, 'id' | 'sale_id'>[]
   ): Promise<string> {
     // Start transaction for atomic operation
@@ -1699,14 +1699,17 @@ export class DatabaseService {
 
     try {
       const saleId = generateUUID();
+      const createdAt = sale.created_at || new Date().toISOString();
+
       await this.db.runAsync(
-        'INSERT INTO sales (id, total, payment_method, note, customer_id) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO sales (id, total, payment_method, note, customer_id, created_at) VALUES (?, ?, ?, ?, ?, ?)',
         [
           saleId,
           sale.total,
           sale.payment_method,
           sale.note || null,
           sale.customer_id || null,
+          createdAt,
         ]
       );
 

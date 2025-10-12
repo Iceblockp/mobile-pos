@@ -66,6 +66,7 @@ import {
   calculateBulkPrice,
   calculateCartTotalWithBulkPricing,
 } from '@/utils/bulkPricingUtils';
+import { SaleDateTimeSelector } from '@/components/SaleDateTimeSelector';
 
 interface CartItem {
   product: Product;
@@ -95,6 +96,7 @@ export default function Sales() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null
   );
+  const [saleDateTime, setSaleDateTime] = useState<Date>(new Date());
 
   // Use React Query for optimized data fetching
   const {
@@ -365,6 +367,7 @@ export default function Sales() {
   const clearCart = () => {
     setCart([]);
     setSelectedCustomer(null);
+    setSaleDateTime(new Date()); // Reset timestamp when cart is cleared
   };
 
   const processSale = async (
@@ -384,6 +387,7 @@ export default function Sales() {
         payment_method: paymentMethod,
         note: note || undefined,
         customer_id: selectedCustomer?.id || undefined,
+        created_at: saleDateTime.toISOString(), // Use selected timestamp
       };
 
       const saleItems = cart.map((item) => {
@@ -504,7 +508,14 @@ export default function Sales() {
                 <Text style={styles.cartBadgeText}>{cart.length}</Text>
               </View>
             </View>
-            <Text style={styles.cartTotal}>{formatPrice(total)}</Text>
+            <View style={styles.cartHeaderRight}>
+              <SaleDateTimeSelector
+                selectedDateTime={saleDateTime}
+                onDateTimeChange={setSaleDateTime}
+                style={styles.saleDateTimeSelector}
+              />
+              <Text style={styles.cartTotal}>{formatPrice(total)}</Text>
+            </View>
           </View>
 
           {/* Customer Selection */}
@@ -2657,6 +2668,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+  },
+  cartHeaderRight: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+  saleDateTimeSelector: {
+    marginBottom: 2,
   },
   customerSection: {
     marginBottom: 20,
