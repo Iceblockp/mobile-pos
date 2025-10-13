@@ -61,6 +61,7 @@ import { BulkPricingTiers } from '@/components/BulkPricingTiers';
 import { ProductMovementHistory } from '@/components/ProductMovementHistory';
 import { QuickStockActions } from '@/components/QuickStockActions';
 import { StockMovementForm } from '@/components/StockMovementForm';
+import { ProductDetailModal } from '@/components/ProductDetailModal';
 
 interface ProductsManagerProps {
   compact?: boolean;
@@ -102,6 +103,10 @@ export default function Products({}: ProductsManagerProps) {
   const [movementType, setMovementType] = useState<'stock_in' | 'stock_out'>(
     'stock_in'
   );
+
+  // Add state for product detail modal
+  const [showProductDetail, setShowProductDetail] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   // Use React Query for optimized data fetching
   const {
@@ -635,125 +640,128 @@ export default function Products({}: ProductsManagerProps) {
   //   handleDelete(product);
   // }, []);
 
+  // Simplified Product Card - only basic info
   const ProductCard = React.memo(
     ({ product }: { product: Product }) => {
       return (
-        <Card style={styles.productCard}>
-          <View style={styles.productHeader}>
-            {product.imageUrl && (
-              <Image
-                source={{ uri: product.imageUrl }}
-                style={styles.productImage}
-                resizeMode="cover"
-              />
-            )}
+        <TouchableOpacity
+          onPress={() => {
+            setSelectedProduct(product);
+            setShowProductDetail(true);
+          }}
+          activeOpacity={0.7}
+        >
+          <Card style={styles.productCard}>
+            <View style={styles.productHeader}>
+              {product.imageUrl ? (
+                <Image
+                  source={{ uri: product.imageUrl }}
+                  style={styles.productImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.productImagePlaceholder}>
+                  <Package size={24} color="#9CA3AF" />
+                </View>
+              )}
 
-            <View style={styles.productInfo}>
-              <Text style={styles.productName}>{product.name}</Text>
-              <Text style={styles.productCategory}>{product.category}</Text>
-              <Text style={styles.productDetailValue}>
-                {getSupplierName(product.supplier_id)}
-              </Text>
+              <View style={styles.productInfo}>
+                <Text style={styles.productName} numberOfLines={2}>
+                  {product.name}
+                </Text>
+                <Text style={styles.productCategory}>{product.category}</Text>
+                {product.barcode && (
+                  <Text style={styles.productBarcode} numberOfLines={1}>
+                    {product.barcode}
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.productQuickActions}>
+                <TouchableOpacity
+                  style={styles.quickActionButton}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    handleEdit(product);
+                  }}
+                >
+                  <Edit size={16} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <View style={styles.productActions}>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => handleEdit(product)}
-              >
-                <Edit size={18} color="#6B7280" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => handleDelete(product)}
-              >
-                <Trash2 size={18} color="#EF4444" />
-              </TouchableOpacity>
+            <View style={styles.productDetails}>
+              <View style={styles.productDetailItem}>
+                <Text style={styles.productDetailLabel}>
+                  {t('products.price')}
+                </Text>
+                <Text style={styles.productDetailValue}>
+                  {formatPrice(product.price)}
+                </Text>
+              </View>
+              <View style={styles.productDetailItem}>
+                <Text style={styles.productDetailLabel}>
+                  {t('products.stock')}
+                </Text>
+                <Text
+                  style={[
+                    styles.productDetailValue,
+                    product.quantity <= product.min_stock &&
+                      styles.lowStockText,
+                  ]}
+                >
+                  {product.quantity}
+                </Text>
+              </View>
+              <View style={styles.productDetailItem}>
+                <Text style={styles.productDetailLabel}>
+                  {t('products.profit')}
+                </Text>
+                <Text style={[styles.productDetailValue, styles.profitText]}>
+                  {formatPrice(product.price - product.cost)}
+                </Text>
+              </View>
             </View>
-          </View>
 
-          <View style={styles.productDetails}>
-            <View style={styles.productDetailItem}>
-              <Text style={styles.productDetailLabel}>
-                {t('products.price')}
-              </Text>
-              <Text style={styles.productDetailValue}>
-                {formatPrice(product.price)}
-              </Text>
+            {/* Indicators for additional features */}
+            <View style={styles.productIndicators}>
+              {product.bulk_pricing && product.bulk_pricing.length > 0 && (
+                <View style={styles.indicator}>
+                  <TrendingDown size={12} color="#059669" />
+                  <Text style={styles.indicatorText}>Bulk</Text>
+                </View>
+              )}
+              {product.quantity <= product.min_stock && (
+                <View style={[styles.indicator, styles.lowStockIndicator]}>
+                  <Text style={styles.lowStockIndicatorText}>Low Stock</Text>
+                </View>
+              )}
             </View>
-            <View style={styles.productDetailItem}>
-              <Text style={styles.productDetailLabel}>
-                {t('products.stock')}
-              </Text>
-              <Text
-                style={[
-                  styles.productDetailValue,
-                  product.quantity <= product.min_stock && styles.lowStockText,
-                ]}
-              >
-                {product.quantity}
-              </Text>
-            </View>
-            <View style={styles.productDetailItem}>
-              <Text style={styles.productDetailLabel}>
-                {t('products.profit')}
-              </Text>
-              <Text style={[styles.productDetailValue, styles.profitText]}>
-                {formatPrice(product.price - product.cost)}
-              </Text>
-            </View>
-          </View>
-
-          {product.barcode && (
-            <View style={styles.barcodeDisplay}>
-              <Text style={styles.barcodeLabel}>
-                {t('products.barcodeLabel')} {product.barcode}
-              </Text>
-            </View>
-          )}
-
-          {product.bulk_pricing && product.bulk_pricing.length > 0 && (
-            <View style={styles.bulkPricingDisplay}>
-              <BulkPricingTiers
-                productPrice={product.price}
-                initialTiers={product.bulk_pricing}
-                onTiersChange={() => {}} // Read-only in card view
-                compact={true}
-              />
-            </View>
-          )}
-
-          {/* Stock Movement Integration */}
-          <View style={styles.stockMovementSection}>
-            <ProductMovementHistory product={product} compact={true} />
-          </View>
-        </Card>
+          </Card>
+        </TouchableOpacity>
       );
     },
     (prevProps, nextProps) => {
-      // Custom comparison function for better memoization
+      // Optimized comparison for basic fields only
       return (
         prevProps.product.id === nextProps.product.id &&
         prevProps.product.name === nextProps.product.name &&
         prevProps.product.price === nextProps.product.price &&
         prevProps.product.quantity === nextProps.product.quantity &&
-        prevProps.product.updated_at === nextProps.product.updated_at
+        prevProps.product.category === nextProps.product.category
       );
     }
   );
 
-  // Table Header Component
+  // Simplified Table Header Component
   const TableHeader = () => {
     return (
       <View style={styles.tableHeader}>
-        <View style={[styles.tableHeaderCell, { width: 100 }]}>
+        <View style={[styles.tableHeaderCell, { width: 80 }]}>
           <Text style={styles.tableHeaderText}>{t('products.image')}</Text>
         </View>
-        <View style={[styles.tableHeaderCell, { width: 100 }]}>
+        <View style={[styles.tableHeaderCell, { width: 150 }]}>
           <Text style={styles.tableHeaderText}>{t('products.name')}</Text>
-        </View>
-        <View style={[styles.tableHeaderCell, { width: 100 }]}>
-          <Text style={styles.tableHeaderText}>{t('products.barcode')}</Text>
         </View>
         <View style={[styles.tableHeaderCell, { width: 100 }]}>
           <Text style={styles.tableHeaderText}>{t('products.category')}</Text>
@@ -761,181 +769,121 @@ export default function Products({}: ProductsManagerProps) {
         <View style={[styles.tableHeaderCell, { width: 100 }]}>
           <Text style={styles.tableHeaderText}>{t('products.price')}</Text>
         </View>
-        <View style={[styles.tableHeaderCell, { width: 100 }]}>
-          <Text style={styles.tableHeaderText}>{t('products.cost')}</Text>
-        </View>
-        <View style={[styles.tableHeaderCell, { width: 100 }]}>
+        <View style={[styles.tableHeaderCell, { width: 80 }]}>
           <Text style={styles.tableHeaderText}>{t('products.stock')}</Text>
-        </View>
-        <View style={[styles.tableHeaderCell, { width: 100 }]}>
-          <Text style={styles.tableHeaderText}>{t('products.minStock')}</Text>
-        </View>
-        <View style={[styles.tableHeaderCell, { width: 150 }]}>
-          <Text style={styles.tableHeaderText}>{t('products.supplier')}</Text>
         </View>
         <View style={[styles.tableHeaderCell, { width: 100 }]}>
           <Text style={styles.tableHeaderText}>{t('products.profit')}</Text>
         </View>
         <View style={[styles.tableHeaderCell, { width: 100 }]}>
-          <Text style={styles.tableHeaderText}>
-            {t('products.bulkPricing')}
-          </Text>
+          <Text style={styles.tableHeaderText}>{t('products.status')}</Text>
         </View>
-        <View style={[styles.tableHeaderCell, { width: 200 }]}>
-          <Text style={styles.tableHeaderText}>
-            {t('products.stockActions')}
-          </Text>
-        </View>
-        <View style={[styles.tableHeaderCell, { width: 100 }]}>
+        <View style={[styles.tableHeaderCell, { width: 80 }]}>
           <Text style={styles.tableHeaderText}>{t('products.actions')}</Text>
         </View>
       </View>
     );
   };
 
-  // Table Row Component
+  // Simplified Table Row Component - only basic info
   const ProductTableRow = React.memo(({ product }: { product: Product }) => {
     return (
-      <View style={styles.tableRow}>
-        {/* Image */}
-        <View style={[styles.tableCell, { width: 100 }]}>
-          {product.imageUrl ? (
-            <Image
-              source={{ uri: product.imageUrl }}
-              style={styles.tableProductImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.tableProductImagePlaceholder}>
-              <Package size={16} color="#9CA3AF" />
-            </View>
-          )}
-        </View>
+      <TouchableOpacity
+        onPress={() => {
+          setSelectedProduct(product);
+          setShowProductDetail(true);
+        }}
+        activeOpacity={0.7}
+      >
+        <View style={styles.tableRow}>
+          {/* Image */}
+          <View style={[styles.tableCell, { width: 80 }]}>
+            {product.imageUrl ? (
+              <Image
+                source={{ uri: product.imageUrl }}
+                style={styles.tableProductImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.tableProductImagePlaceholder}>
+                <Package size={16} color="#9CA3AF" />
+              </View>
+            )}
+          </View>
 
-        {/* Name */}
-        <View style={[styles.tableCell, { width: 100 }]}>
-          <Text style={styles.tableCellText} numberOfLines={2}>
-            {product.name}
-          </Text>
-        </View>
+          {/* Name */}
+          <View style={[styles.tableCell, { width: 150 }]}>
+            <Text style={styles.tableCellText} numberOfLines={2}>
+              {product.name}
+            </Text>
+          </View>
 
-        {/* Barcode */}
-        <View style={[styles.tableCell, { width: 100 }]}>
-          <Text style={styles.tableCellText} numberOfLines={1}>
-            {product.barcode || '-'}
-          </Text>
-        </View>
+          {/* Category */}
+          <View style={[styles.tableCell, { width: 100 }]}>
+            <Text style={styles.tableCellText} numberOfLines={1}>
+              {product.category || '-'}
+            </Text>
+          </View>
 
-        {/* Category */}
-        <View style={[styles.tableCell, { width: 100 }]}>
-          <Text style={styles.tableCellText} numberOfLines={1}>
-            {product.category || '-'}
-          </Text>
-        </View>
+          {/* Price */}
+          <View style={[styles.tableCell, { width: 100 }]}>
+            <Text style={styles.tableCellText}>
+              {formatPrice(product.price)}
+            </Text>
+          </View>
 
-        {/* Price */}
-        <View style={[styles.tableCell, { width: 100 }]}>
-          <Text style={styles.tableCellText}>{formatPrice(product.price)}</Text>
-        </View>
+          {/* Stock */}
+          <View style={[styles.tableCell, { width: 80 }]}>
+            <Text
+              style={[
+                styles.tableCellText,
+                product.quantity <= product.min_stock && styles.lowStockText,
+              ]}
+            >
+              {product.quantity}
+            </Text>
+          </View>
 
-        {/* Cost */}
-        <View style={[styles.tableCell, { width: 100 }]}>
-          <Text style={styles.tableCellText}>{formatPrice(product.cost)}</Text>
-        </View>
+          {/* Profit */}
+          <View style={[styles.tableCell, { width: 100 }]}>
+            <Text style={[styles.tableCellText, styles.profitText]}>
+              {formatPrice(product.price - product.cost)}
+            </Text>
+          </View>
 
-        {/* Stock */}
-        <View style={[styles.tableCell, { width: 100 }]}>
-          <Text
-            style={[
-              styles.tableCellText,
-              product.quantity <= product.min_stock && styles.lowStockText,
-            ]}
-          >
-            {product.quantity}
-          </Text>
-        </View>
-
-        {/* Min Stock */}
-        <View style={[styles.tableCell, { width: 100 }]}>
-          <Text style={styles.tableCellText}>{product.min_stock}</Text>
-        </View>
-
-        {/* Supplier */}
-        <View style={[styles.tableCell, { width: 150 }]}>
-          <Text style={styles.tableCellText} numberOfLines={1}>
-            {product.supplier_id ? getSupplierName(product.supplier_id) : '-'}
-          </Text>
-        </View>
-
-        {/* Profit */}
-        <View style={[styles.tableCell, { width: 100 }]}>
-          <Text style={[styles.tableCellText, styles.profitText]}>
-            {formatPrice(product.price - product.cost)}
-          </Text>
-        </View>
-
-        {/* Bulk Pricing */}
-        <View style={[styles.tableCell, { width: 100 }]}>
-          {product.bulk_pricing && product.bulk_pricing.length > 0 ? (
-            <View style={styles.tableBulkPricingContainer}>
-              {product.bulk_pricing
-                .sort((a, b) => a.min_quantity - b.min_quantity)
-                .slice(0, 2) // Show only first 2 tiers to save space
-                .map((tier, index) => {
-                  const discount =
-                    ((product.price - tier.bulk_price) / product.price) * 100;
-                  return (
-                    <View key={index} style={styles.tableBulkPricingTier}>
-                      <Text style={styles.tableBulkPricingQuantity}>
-                        {tier.min_quantity}+
-                      </Text>
-                      <Text style={styles.tableBulkPricingPrice}>
-                        {formatPrice(tier.bulk_price)}
-                      </Text>
-                      <Text style={styles.tableBulkPricingDiscount}>
-                        ({discount.toFixed(0)}% off)
-                      </Text>
-                    </View>
-                  );
-                })}
-              {product.bulk_pricing.length > 2 && (
-                <Text style={styles.tableBulkPricingMore}>
-                  +{product.bulk_pricing.length - 2} more
-                </Text>
+          {/* Indicators */}
+          <View style={[styles.tableCell, { width: 100 }]}>
+            <View style={styles.tableIndicators}>
+              {product.bulk_pricing && product.bulk_pricing.length > 0 && (
+                <View style={styles.tableIndicator}>
+                  <TrendingDown size={10} color="#059669" />
+                  <Text style={styles.tableIndicatorText}>Bulk</Text>
+                </View>
+              )}
+              {product.quantity <= product.min_stock && (
+                <View
+                  style={[styles.tableIndicator, styles.tableLowStockIndicator]}
+                >
+                  <Text style={styles.tableLowStockIndicatorText}>Low</Text>
+                </View>
               )}
             </View>
-          ) : (
-            <Text style={[styles.tableCellText, { color: '#9CA3AF' }]}>
-              No bulk pricing
-            </Text>
-          )}
-        </View>
-
-        {/* Stock Movement Actions */}
-        <View style={[styles.tableCell, { width: 200 }]}>
-          <View style={styles.stockActionButtons}>
-            <ProductMovementHistory product={product} compact={true} />
           </View>
-        </View>
 
-        {/* Actions */}
-        <View style={[styles.tableCell, { width: 100 }]}>
-          <View style={styles.tableActions}>
+          {/* Quick Actions */}
+          <View style={[styles.tableCell, { width: 80 }]}>
             <TouchableOpacity
-              style={styles.tableActionButton}
-              onPress={() => handleEdit(product)}
+              style={styles.tableQuickAction}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleEdit(product);
+              }}
             >
               <Edit size={16} color="#6B7280" />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.tableActionButton}
-              onPress={() => handleDelete(product)}
-            >
-              <Trash2 size={16} color="#EF4444" />
-            </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   });
 
@@ -958,9 +906,9 @@ export default function Products({}: ProductsManagerProps) {
               }
               showsVerticalScrollIndicator={true}
               removeClippedSubviews={true}
-              maxToRenderPerBatch={10}
-              windowSize={10}
-              initialNumToRender={10}
+              maxToRenderPerBatch={25}
+              windowSize={15}
+              initialNumToRender={25}
               getItemLayout={getItemLayout}
             />
           </View>
@@ -1413,9 +1361,9 @@ export default function Products({}: ProductsManagerProps) {
             />
           }
           // Performance optimizations for large lists
-          initialNumToRender={15}
-          maxToRenderPerBatch={15}
-          windowSize={10}
+          initialNumToRender={20}
+          maxToRenderPerBatch={20}
+          windowSize={15}
           removeClippedSubviews={true}
           updateCellsBatchingPeriod={50}
           disableVirtualization={false}
@@ -1810,6 +1758,19 @@ export default function Products({}: ProductsManagerProps) {
           </View>
         </SafeAreaView>
       </Modal>
+
+      {/* Product Detail Modal */}
+      <ProductDetailModal
+        visible={showProductDetail}
+        product={selectedProduct}
+        onClose={() => {
+          setShowProductDetail(false);
+          setSelectedProduct(null);
+        }}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        getSupplierName={getSupplierName}
+      />
 
       {/* Stock Movement Form Modal */}
       <StockMovementForm
@@ -2651,7 +2612,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   tableContent: {
-    minWidth: 1400, // Ensure enough width for all columns including new stock actions
+    minWidth: 710, // Reduced width for simplified table
   },
   tableHeader: {
     flexDirection: 'row',
@@ -2726,5 +2687,94 @@ const styles = StyleSheet.create({
   },
   tableActionButton: {
     padding: 4,
+  },
+  // New styles for simplified components
+  productImagePlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  productBarcode: {
+    fontSize: 11,
+    fontFamily: 'Inter-Regular',
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  productQuickActions: {
+    alignItems: 'center',
+  },
+  quickActionButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  productIndicators: {
+    flexDirection: 'row',
+    marginTop: 8,
+    gap: 6,
+  },
+  indicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    gap: 2,
+  },
+  indicatorText: {
+    fontSize: 10,
+    fontFamily: 'Inter-Medium',
+    color: '#059669',
+  },
+  lowStockIndicator: {
+    backgroundColor: '#FEF2F2',
+  },
+  lowStockIndicatorText: {
+    fontSize: 10,
+    fontFamily: 'Inter-Medium',
+    color: '#DC2626',
+  },
+  // Table indicator styles
+  tableIndicators: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  tableIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 3,
+    gap: 1,
+  },
+  tableIndicatorText: {
+    fontSize: 8,
+    fontFamily: 'Inter-Medium',
+    color: '#059669',
+  },
+  tableLowStockIndicator: {
+    backgroundColor: '#FEF2F2',
+  },
+  tableLowStockIndicatorText: {
+    fontSize: 8,
+    fontFamily: 'Inter-Medium',
+    color: '#DC2626',
+  },
+  tableQuickAction: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
