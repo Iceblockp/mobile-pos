@@ -676,11 +676,11 @@ export class DataExportService {
 
       // Prepare all data
       const allData = {
-        products: products.map((product) => ({
-          ...product,
-          created_at: undefined,
-          updated_at: undefined,
-        })),
+        products: products.map((product) => {
+          const { created_at, updated_at, imageUrl, ...productWithoutImage } =
+            product;
+          return productWithoutImage; // Exclude imageUrl, created_at, and updated_at from export
+        }),
         categories,
         suppliers,
         sales: salesWithItems,

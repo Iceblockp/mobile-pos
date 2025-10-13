@@ -1252,6 +1252,9 @@ export class DataImportService {
         product.barcode = product.barcode.toString().trim();
       }
 
+      // Don't modify imageUrl during sanitization - handle it in add/update logic
+      // This allows us to preserve existing images during conflict resolution
+
       return product;
     } catch (error) {
       console.error('Error sanitizing product record:', error);
@@ -1780,7 +1783,7 @@ export class DataImportService {
           quantity: record.quantity || 0,
           min_stock: record.min_stock || 10,
           supplier_id: supplierId || undefined,
-          imageUrl: record.imageUrl || null,
+          imageUrl: null, // Always set imageUrl to null during import
         };
         if (record.id && isValidUUID(record.id)) {
           productData.id = record.id;
@@ -1889,7 +1892,7 @@ export class DataImportService {
           quantity: newRecord.quantity || 0,
           min_stock: newRecord.min_stock || 10,
           supplier_id: supplierId || undefined,
-          imageUrl: newRecord.imageUrl || null,
+          imageUrl: existingRecord.imageUrl, // Preserve existing imageUrl during conflict resolution
         });
         break;
 
