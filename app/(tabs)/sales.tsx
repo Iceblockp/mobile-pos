@@ -98,6 +98,7 @@ export default function Sales() {
     null
   );
   const [saleDateTime, setSaleDateTime] = useState<Date>(new Date());
+  const [showDateTimeSelector, setShowDateTimeSelector] = useState(false);
 
   // Use React Query for optimized data fetching
   const {
@@ -375,7 +376,7 @@ export default function Sales() {
   const clearCart = () => {
     setCart([]);
     setSelectedCustomer(null);
-    setSaleDateTime(new Date()); // Reset timestamp when cart is cleared
+    // Don't reset timestamp here - let it be handled by the component logic
   };
 
   const processSale = async (
@@ -395,7 +396,11 @@ export default function Sales() {
         payment_method: paymentMethod,
         note: note || undefined,
         customer_id: selectedCustomer?.id || undefined,
-        created_at: convertISOToDBFormat(saleDateTime.toISOString()), // Use selected timestamp
+        created_at: convertISOToDBFormat(
+          showDateTimeSelector
+            ? saleDateTime.toISOString()
+            : new Date().toISOString()
+        ), // Use current time unless datetime selector is open
       };
 
       const saleItems = cart.map((item) => {
@@ -451,6 +456,9 @@ export default function Sales() {
 
       clearCart();
       setShowPaymentModal(false);
+      // Reset datetime state for next sale
+      setSaleDateTime(new Date());
+      setShowDateTimeSelector(false);
     } catch (error) {
       Alert.alert(t('common.error'), t('common.error'));
       console.error('Error processing sale:', error);
@@ -698,11 +706,26 @@ export default function Sales() {
             />
           </View>
         </Card>
-        <SaleDateTimeSelector
-          selectedDateTime={saleDateTime}
-          onDateTimeChange={setSaleDateTime}
-          style={styles.saleDateTimeSelector}
-        />
+        <View style={styles.dateTimeSelectorContainer}>
+          <TouchableOpacity
+            style={styles.calendarIconButton}
+            onPress={() => setShowDateTimeSelector(!showDateTimeSelector)}
+            activeOpacity={0.7}
+          >
+            <Calendar
+              size={20}
+              color={showDateTimeSelector ? '#059669' : '#6B7280'}
+            />
+          </TouchableOpacity>
+
+          {showDateTimeSelector && (
+            <SaleDateTimeSelector
+              selectedDateTime={saleDateTime}
+              onDateTimeChange={setSaleDateTime}
+              style={styles.saleDateTimeSelector}
+            />
+          )}
+        </View>
       </View>
 
       {/* Enhanced Product Selection Dialog */}
@@ -2682,8 +2705,21 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: 4,
   },
-  saleDateTimeSelector: {
+  dateTimeSelectorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginBottom: 2,
+  },
+  calendarIconButton: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  saleDateTimeSelector: {
+    flex: 1,
   },
   customerSection: {
     marginBottom: 20,

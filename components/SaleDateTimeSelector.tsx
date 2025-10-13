@@ -8,7 +8,6 @@ import {
   ViewStyle,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Calendar, Clock } from 'lucide-react-native';
 import { useTranslation, useLocalization } from '@/context/LocalizationContext';
 import { formatSaleDateTime } from '@/utils/dateFormatters';
 
@@ -39,11 +38,9 @@ export const SaleDateTimeSelector: React.FC<SaleDateTimeSelectorProps> = ({
   };
 
   const handleDateTimePress = () => {
-    // Only for Android - show date picker first
+    // For Android - show date picker first
     setShowDatePicker(true);
   };
-
-  console.log('datetime', selectedDateTime);
 
   const handleDateChange = (_event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
@@ -90,7 +87,7 @@ export const SaleDateTimeSelector: React.FC<SaleDateTimeSelectorProps> = ({
 
   return (
     <View style={[styles.container, style]}>
-      {/* Android: Button to trigger date/time picker */}
+      {/* Android: Button to show formatted date/time */}
       {Platform.OS === 'android' && (
         <TouchableOpacity
           style={styles.dateTimeButton}
@@ -103,7 +100,7 @@ export const SaleDateTimeSelector: React.FC<SaleDateTimeSelectorProps> = ({
         </TouchableOpacity>
       )}
 
-      {/* iOS: Always show datetime picker directly */}
+      {/* iOS: Show datetime picker directly */}
       {Platform.OS === 'ios' && (
         <DateTimePicker
           value={tempDate}
@@ -150,12 +147,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
     borderWidth: 1,
     borderColor: '#E5E7EB',
-  },
-  iconContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 6,
-    gap: 2,
   },
   dateTimeText: {
     fontSize: 12,
