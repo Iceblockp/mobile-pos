@@ -517,11 +517,6 @@ export default function Sales() {
               </View>
             </View>
             <View style={styles.cartHeaderRight}>
-              <SaleDateTimeSelector
-                selectedDateTime={saleDateTime}
-                onDateTimeChange={setSaleDateTime}
-                style={styles.saleDateTimeSelector}
-              />
               <Text style={styles.cartTotal}>{formatPrice(total)}</Text>
             </View>
           </View>
@@ -703,6 +698,11 @@ export default function Sales() {
             />
           </View>
         </Card>
+        <SaleDateTimeSelector
+          selectedDateTime={saleDateTime}
+          onDateTimeChange={setSaleDateTime}
+          style={styles.saleDateTimeSelector}
+        />
       </View>
 
       {/* Enhanced Product Selection Dialog */}

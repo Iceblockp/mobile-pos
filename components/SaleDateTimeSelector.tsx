@@ -23,7 +23,7 @@ export const SaleDateTimeSelector: React.FC<SaleDateTimeSelectorProps> = ({
   onDateTimeChange,
   style,
 }) => {
-  const { t } = useTranslation();
+  useTranslation();
   const { language } = useLocalization();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -39,13 +39,8 @@ export const SaleDateTimeSelector: React.FC<SaleDateTimeSelectorProps> = ({
   };
 
   const handleDateTimePress = () => {
-    if (Platform.OS === 'ios') {
-      // On iOS, show date picker first
-      setShowDatePicker(true);
-    } else {
-      // On Android, show date picker first
-      setShowDatePicker(true);
-    }
+    // Only for Android - show date picker first
+    setShowDatePicker(true);
   };
 
   console.log('datetime', selectedDateTime);
@@ -95,51 +90,47 @@ export const SaleDateTimeSelector: React.FC<SaleDateTimeSelectorProps> = ({
 
   return (
     <View style={[styles.container, style]}>
-      <TouchableOpacity
-        style={styles.dateTimeButton}
-        onPress={handleDateTimePress}
-        activeOpacity={0.7}
-      >
-        <View style={styles.iconContainer}>
-          <Calendar size={14} color="#6B7280" />
-          <Clock size={14} color="#6B7280" />
-        </View>
-        <Text style={styles.dateTimeText}>
-          {formatDateTime(selectedDateTime)}
-        </Text>
-      </TouchableOpacity>
-
-      {/* Date Picker */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={tempDate}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'compact' : 'default'}
-          onChange={
-            Platform.OS === 'ios' ? handleIOSDateTimeChange : handleDateChange
-          }
-          maximumDate={new Date()} // Prevent future dates
-        />
+      {/* Android: Button to trigger date/time picker */}
+      {Platform.OS === 'android' && (
+        <TouchableOpacity
+          style={styles.dateTimeButton}
+          onPress={handleDateTimePress}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.dateTimeText}>
+            {formatDateTime(selectedDateTime)}
+          </Text>
+        </TouchableOpacity>
       )}
 
-      {/* Time Picker (Android only - iOS uses datetime mode) */}
-      {showTimePicker && Platform.OS === 'android' && (
-        <DateTimePicker
-          value={tempDate}
-          mode="time"
-          display="default"
-          onChange={handleTimeChange}
-        />
-      )}
-
-      {/* iOS uses a single datetime picker */}
-      {Platform.OS === 'ios' && showDatePicker && (
+      {/* iOS: Always show datetime picker directly */}
+      {Platform.OS === 'ios' && (
         <DateTimePicker
           value={tempDate}
           mode="datetime"
           display="compact"
           onChange={handleIOSDateTimeChange}
           maximumDate={new Date()}
+        />
+      )}
+
+      {/* Android: Separate date and time pickers */}
+      {Platform.OS === 'android' && showDatePicker && (
+        <DateTimePicker
+          value={tempDate}
+          mode="date"
+          display="default"
+          onChange={handleDateChange}
+          maximumDate={new Date()} // Prevent future dates
+        />
+      )}
+
+      {Platform.OS === 'android' && showTimePicker && (
+        <DateTimePicker
+          value={tempDate}
+          mode="time"
+          display="default"
+          onChange={handleTimeChange}
         />
       )}
     </View>
