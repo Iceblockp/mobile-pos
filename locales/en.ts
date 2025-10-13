@@ -457,6 +457,11 @@ export const en = {
     lowStockWarning: 'Low stock warning - consider restocking',
     lastUpdated: 'Last Updated',
     status: 'Status',
+    viewFullHistoryNote:
+      'Stock movement history contains detailed tracking information.',
+    closeToViewHistory: 'Close to View Full History',
+    quickActionsNote:
+      'Quick stock actions are available from the main inventory view.',
     stock: 'Stock',
     profit: 'Profit',
     barcodeLabel: 'Barcode:',

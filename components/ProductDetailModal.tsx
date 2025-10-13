@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   Modal,
   SafeAreaView,
   TouchableOpacity,
@@ -11,24 +11,11 @@ import {
   Alert,
 } from 'react-native';
 import { Card } from '@/components/Card';
-import { Button } from '@/components/Button';
 import { Product } from '@/services/database';
-import {
-  X,
-  Edit,
-  Trash2,
-  Package,
-  Calendar,
-  Barcode,
-  TrendingUp,
-  User,
-  DollarSign,
-} from 'lucide-react-native';
+import { X, Package, Calendar, Barcode, User } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import { BulkPricingTiers } from '@/components/BulkPricingTiers';
-import { ProductMovementHistory } from '@/components/ProductMovementHistory';
-import { QuickStockActions } from '@/components/QuickStockActions';
 
 interface ProductDetailModalProps {
   visible: boolean;
@@ -73,38 +60,34 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const profit = product.price - product.cost;
   const profitMargin = ((profit / product.price) * 100).toFixed(1);
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <SafeAreaView style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.title}>{product.name}</Text>
-            <Text style={styles.category}>{product.category}</Text>
+  // Create sections for FlatList
+  const sections = [
+    { id: 'image', type: 'image' },
+    { id: 'basic', type: 'basic' },
+    { id: 'pricing', type: 'pricing' },
+    { id: 'stock', type: 'stock' },
+    ...(product.bulk_pricing && product.bulk_pricing.length > 0
+      ? [{ id: 'bulk', type: 'bulk' }]
+      : []),
+    { id: 'movements', type: 'movements' },
+    { id: 'actions', type: 'quickActions' },
+  ];
+
+  const renderSection = ({ item }: { item: any }) => {
+    switch (item.type) {
+      case 'image':
+        return product.imageUrl ? (
+          <View style={styles.imageContainer}>
+            <Image
+              source={{ uri: product.imageUrl }}
+              style={styles.productImage}
+              resizeMode="cover"
+            />
           </View>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X size={24} color="#6B7280" />
-          </TouchableOpacity>
-        </View>
+        ) : null;
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Product Image */}
-          {product.imageUrl && (
-            <View style={styles.imageContainer}>
-              <Image
-                source={{ uri: product.imageUrl }}
-                style={styles.productImage}
-                resizeMode="cover"
-              />
-            </View>
-          )}
-
-          {/* Basic Information */}
+      case 'basic':
+        return (
           <Card style={styles.section}>
             <Text style={styles.sectionTitle}>{t('products.basicInfo')}</Text>
 
@@ -150,8 +133,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               </View>
             </View>
           </Card>
+        );
 
-          {/* Pricing Information */}
+      case 'pricing':
+        return (
           <Card style={styles.section}>
             <Text style={styles.sectionTitle}>{t('products.pricingInfo')}</Text>
 
@@ -185,8 +170,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               </View>
             </View>
           </Card>
+        );
 
-          {/* Stock Information */}
+      case 'stock':
+        return (
           <Card style={styles.section}>
             <Text style={styles.sectionTitle}>{t('products.stockInfo')}</Text>
 
@@ -220,58 +207,110 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               </View>
             )}
           </Card>
+        );
 
-          {/* Bulk Pricing */}
-          {product.bulk_pricing && product.bulk_pricing.length > 0 && (
-            <Card style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                {t('products.bulkPricing')}
-              </Text>
-              <BulkPricingTiers
-                productPrice={product.price}
-                initialTiers={product.bulk_pricing}
-                onTiersChange={() => {}} // Read-only in detail view
-                compact={false}
-              />
-            </Card>
-          )}
+      case 'bulk':
+        return (
+          <Card style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('products.bulkPricing')}</Text>
+            <BulkPricingTiers
+              productPrice={product.price}
+              initialTiers={product.bulk_pricing}
+              onTiersChange={() => {}} // Read-only in detail view
+              compact={false}
+            />
+          </Card>
+        );
 
-          {/* Stock Movement History */}
+      case 'movements':
+        return (
           <Card style={styles.section}>
             <Text style={styles.sectionTitle}>
               {t('products.stockMovements')}
             </Text>
-            <ProductMovementHistory product={product} compact={false} />
+            <View style={styles.movementSummary}>
+              <Text style={styles.movementSummaryText}>
+                {t('products.viewFullHistoryNote')}
+              </Text>
+              <TouchableOpacity
+                style={styles.viewHistoryButton}
+                onPress={() => {
+                  // Close this modal and let user access full history from main view
+                  onClose();
+                }}
+              >
+                <Text style={styles.viewHistoryButtonText}>
+                  {t('products.closeToViewHistory')}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </Card>
+        );
 
-          {/* Quick Stock Actions */}
+      case 'quickActions':
+        return (
           <Card style={styles.section}>
             <Text style={styles.sectionTitle}>
               {t('products.quickActions')}
             </Text>
-            <QuickStockActions product={product} />
+            <View style={styles.quickActionsSummary}>
+              <Text style={styles.quickActionsSummaryText}>
+                {t('products.quickActionsNote')}
+              </Text>
+            </View>
           </Card>
-        </ScrollView>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.title}>{product.name}</Text>
+            <Text style={styles.category}>{product.category}</Text>
+          </View>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <X size={24} color="#6B7280" />
+          </TouchableOpacity>
+        </View>
+
+        <FlatList
+          data={sections}
+          renderItem={renderSection}
+          keyExtractor={(item) => item.id}
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+        />
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <Button
-            title={t('common.edit')}
+          <TouchableOpacity
+            style={[styles.actionButtonStyle, styles.editButton]}
             onPress={() => {
               onEdit(product);
               onClose();
             }}
-            variant="secondary"
-            style={styles.actionButton}
-            icon={<Edit size={20} color="#6B7280" />}
-          />
-          <Button
-            title={t('common.delete')}
+          >
+            <Text style={styles.editButtonText}>{t('common.edit')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButtonStyle, styles.deleteButton]}
             onPress={handleDelete}
-            variant="danger"
-            style={styles.actionButton}
-            icon={<Trash2 size={20} color="#FFFFFF" />}
-          />
+          >
+            <Text style={styles.deleteButtonText}>{t('common.delete')}</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     </Modal>
@@ -313,7 +352,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
     paddingHorizontal: 16,
+    paddingBottom: 20,
   },
   imageContainer: {
     alignItems: 'center',
@@ -428,7 +470,60 @@ const styles = StyleSheet.create({
     borderTopColor: '#E5E7EB',
     gap: 12,
   },
-  actionButton: {
+  actionButtonStyle: {
     flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  editButton: {
+    backgroundColor: '#F3F4F6',
+    marginRight: 6,
+  },
+  deleteButton: {
+    backgroundColor: '#EF4444',
+    marginLeft: 6,
+  },
+  editButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#374151',
+  },
+  deleteButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#FFFFFF',
+  },
+  movementSummary: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  movementSummaryText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  viewHistoryButton: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  viewHistoryButtonText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#FFFFFF',
+  },
+  quickActionsSummary: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  quickActionsSummaryText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    textAlign: 'center',
   },
 });

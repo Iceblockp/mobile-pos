@@ -661,7 +661,7 @@ export default function Products({}: ProductsManagerProps) {
                 />
               ) : (
                 <View style={styles.productImagePlaceholder}>
-                  <Package size={24} color="#9CA3AF" />
+                  <Package size={24} color="#414449ff" />
                 </View>
               )}
 
