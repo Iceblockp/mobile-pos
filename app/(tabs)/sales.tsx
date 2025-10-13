@@ -67,6 +67,7 @@ import {
   calculateCartTotalWithBulkPricing,
 } from '@/utils/bulkPricingUtils';
 import { SaleDateTimeSelector } from '@/components/SaleDateTimeSelector';
+import { convertISOToDBFormat } from '@/utils/dateUtils';
 
 interface CartItem {
   product: Product;
@@ -360,6 +361,13 @@ export default function Sales() {
     );
   };
 
+  console.log(
+    'saleda',
+    saleDateTime,
+    saleDateTime.toISOString(),
+    convertISOToDBFormat(saleDateTime.toISOString())
+  );
+
   const removeFromCart = (productId: string) => {
     setCart(cart.filter((item) => item.product.id !== productId));
   };
@@ -387,7 +395,7 @@ export default function Sales() {
         payment_method: paymentMethod,
         note: note || undefined,
         customer_id: selectedCustomer?.id || undefined,
-        created_at: saleDateTime.toISOString(), // Use selected timestamp
+        created_at: convertISOToDBFormat(saleDateTime.toISOString()), // Use selected timestamp
       };
 
       const saleItems = cart.map((item) => {
@@ -1076,6 +1084,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   } = dateFilter === 'all'
     ? useInfiniteSales()
     : useInfiniteSalesByDateRange(startDate, endDate);
+  console.log('sale', salesPages);
 
   // Flatten the paginated data
   const sales = salesPages?.pages.flatMap((page) => page.data) || [];

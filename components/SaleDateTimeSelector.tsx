@@ -48,6 +48,8 @@ export const SaleDateTimeSelector: React.FC<SaleDateTimeSelectorProps> = ({
     }
   };
 
+  console.log('datetime', selectedDateTime);
+
   const handleDateChange = (_event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
       setShowDatePicker(false);

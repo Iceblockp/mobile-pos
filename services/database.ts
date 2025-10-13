@@ -6,6 +6,7 @@ import {
 import { generateUUID } from '../utils/uuid';
 import { UUIDMigrationService, MigrationReport } from './uuidMigrationService';
 import { MigrationStatusService } from './migrationStatusService';
+import { formatTimestampForDatabase } from '@/utils/dateUtils';
 
 export interface Product {
   id: string;
@@ -1699,7 +1700,10 @@ export class DatabaseService {
 
     try {
       const saleId = generateUUID();
-      const createdAt = sale.created_at || new Date().toISOString();
+      const createdAt = formatTimestampForDatabase(sale.created_at);
+
+      console.log('sale d', sale.created_at);
+      console.log('first', createdAt);
 
       await this.db.runAsync(
         'INSERT INTO sales (id, total, payment_method, note, customer_id, created_at) VALUES (?, ?, ?, ?, ?, ?)',

@@ -28,7 +28,7 @@ describe('DatabaseService - Custom Timestamp Support', () => {
 
   describe('addSale with custom created_at', () => {
     it('should use provided created_at timestamp when specified', async () => {
-      const customTimestamp = '2025-01-15T10:30:00.000Z';
+      const customTimestamp = '2025-01-15 10:30:00';
       const mockSale = {
         total: 100.5,
         payment_method: 'cash',
@@ -105,11 +105,7 @@ describe('DatabaseService - Custom Timestamp Support', () => {
         },
       ];
 
-      // Mock current time
-      const mockCurrentTime = '2025-10-12T14:30:00.000Z';
-      jest
-        .spyOn(Date.prototype, 'toISOString')
-        .mockReturnValue(mockCurrentTime);
+      // Mock current time - no need to mock since formatTimestampForDatabase handles it
 
       // Mock successful transaction
       db.execAsync.mockResolvedValue(undefined);
@@ -126,7 +122,7 @@ describe('DatabaseService - Custom Timestamp Support', () => {
           'card',
           'Another test sale',
           null,
-          mockCurrentTime, // Should use current time
+          expect.stringMatching(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/), // Should use current time in correct format
         ]
       );
 
@@ -182,9 +178,9 @@ describe('DatabaseService - Custom Timestamp Support', () => {
     it('should properly format timestamp for SQLite storage', async () => {
       // Test with various timestamp formats
       const testCases = [
-        '2025-01-15T10:30:00.000Z', // ISO string
-        '2025-12-25T23:59:59.999Z', // End of year
-        '2025-06-15T12:00:00.000Z', // Midday
+        '2025-01-15 10:30:00', // Database format
+        '2025-12-25 23:59:59', // End of year
+        '2025-06-15 12:00:00', // Midday
       ];
 
       for (const timestamp of testCases) {
@@ -232,7 +228,7 @@ describe('DatabaseService - Custom Timestamp Support', () => {
       const mockSale = {
         total: 100.0,
         payment_method: 'cash',
-        created_at: '2025-01-15T10:30:00.000Z',
+        created_at: '2025-01-15 10:30:00',
       };
 
       const mockItems: Omit<SaleItem, 'id' | 'sale_id'>[] = [
