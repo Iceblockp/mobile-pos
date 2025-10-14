@@ -371,12 +371,13 @@ export default function Analytics() {
 
           {/* Key Metrics */}
           <View style={styles.metricsGrid}>
+            {/* Total Revenue */}
             <Card style={styles.metricCard}>
               <View style={styles.metricContent}>
                 <View
-                  style={[styles.metricIcon, { backgroundColor: '#10B981' }]}
+                  style={[styles.metricIcon, { backgroundColor: '#059669' }]}
                 >
-                  <DollarSign size={24} color="#FFFFFF" />
+                  <DollarSign size={18} color="#FFFFFF" />
                 </View>
                 <View style={styles.metricText}>
                   <Text style={styles.metricValue}>
@@ -389,12 +390,56 @@ export default function Analytics() {
               </View>
             </Card>
 
+            {/* Total Expenses */}
             <Card style={styles.metricCard}>
               <View style={styles.metricContent}>
                 <View
-                  style={[styles.metricIcon, { backgroundColor: '#F59E0B' }]}
+                  style={[styles.metricIcon, { backgroundColor: '#EF4444' }]}
                 >
-                  <Target size={24} color="#FFFFFF" />
+                  <TrendingDown size={18} color="#FFFFFF" />
+                </View>
+                <View style={styles.metricText}>
+                  <Text style={styles.metricValue}>
+                    {formatPrice(analytics?.totalExpenses || 0)}
+                  </Text>
+                  <Text style={styles.metricLabel}>
+                    {t('analytics.totalExpenses')}
+                  </Text>
+                </View>
+              </View>
+            </Card>
+
+            {/* Net Profit */}
+            <Card style={styles.metricCard}>
+              <View style={styles.metricContent}>
+                <View
+                  style={[styles.metricIcon, { backgroundColor: '#8B5CF6' }]}
+                >
+                  <Target size={18} color="#FFFFFF" />
+                </View>
+                <View style={styles.metricText}>
+                  <Text
+                    style={[
+                      styles.metricValue,
+                      (analytics?.netProfit || 0) < 0 && styles.negativeValue,
+                    ]}
+                  >
+                    {formatPrice(analytics?.netProfit || 0)}
+                  </Text>
+                  <Text style={styles.metricLabel}>
+                    {t('analytics.netProfit')}
+                  </Text>
+                </View>
+              </View>
+            </Card>
+
+            {/* Total Sale Profit */}
+            <Card style={styles.metricCard}>
+              <View style={styles.metricContent}>
+                <View
+                  style={[styles.metricIcon, { backgroundColor: '#10B981' }]}
+                >
+                  <TrendingUp size={18} color="#FFFFFF" />
                 </View>
                 <View style={styles.metricText}>
                   <Text style={styles.metricValue}>
@@ -402,56 +447,6 @@ export default function Analytics() {
                   </Text>
                   <Text style={styles.metricLabel}>
                     {t('analytics.totalProfit')}
-                  </Text>
-                  <Text style={styles.metricSubtext}>
-                    {t('analytics.profitMargin')}:{' '}
-                    {analytics?.profitMargin?.toFixed(1) || 0}%
-                  </Text>
-                </View>
-              </View>
-            </Card>
-
-            <Card style={styles.metricCard}>
-              <View style={styles.metricContent}>
-                <View
-                  style={[styles.metricIcon, { backgroundColor: '#3B82F6' }]}
-                >
-                  <BarChart3 size={24} color="#FFFFFF" />
-                </View>
-                <View style={styles.metricText}>
-                  <Text style={styles.metricValue}>
-                    {analytics?.totalSales || 0}
-                  </Text>
-                  <Text style={styles.metricLabel}>
-                    {t('analytics.totalSales')}
-                  </Text>
-                  <Text style={styles.metricSubtext}>
-                    {t('analytics.avg')}:{' '}
-                    {((analytics?.totalSales || 0) / getDaysInPeriod()).toFixed(
-                      1
-                    )}
-                    /{t('analytics.day')}
-                  </Text>
-                </View>
-              </View>
-            </Card>
-
-            <Card style={styles.metricCard}>
-              <View style={styles.metricContent}>
-                <View
-                  style={[styles.metricIcon, { backgroundColor: '#8B5CF6' }]}
-                >
-                  <Users size={24} color="#FFFFFF" />
-                </View>
-                <View style={styles.metricText}>
-                  <Text style={styles.metricValue}>
-                    {formatPrice(analytics?.avgSaleValue || 0)}
-                  </Text>
-                  <Text style={styles.metricLabel}>
-                    {t('analytics.avgSaleValue')}
-                  </Text>
-                  <Text style={styles.metricSubtext}>
-                    {t('analytics.perTransaction')}
                   </Text>
                 </View>
               </View>
@@ -804,36 +799,55 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   metricsGrid: {
-    marginBottom: 24,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 20,
   },
   metricCard: {
-    marginBottom: 16,
+    width: '32%',
+    marginBottom: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    minHeight: 85,
   },
   metricContent: {
-    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   metricIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginBottom: 6,
   },
   metricText: {
-    flex: 1,
+    alignItems: 'center',
   },
   metricValue: {
-    fontSize: 20,
+    fontSize: 14,
     fontFamily: 'Inter-Bold',
     color: '#111827',
+    textAlign: 'center',
   },
   metricLabel: {
-    fontSize: 14,
+    fontSize: 10,
     fontFamily: 'Inter-Medium',
-    color: '#374151',
+    color: '#6B7280',
     marginTop: 2,
+    textAlign: 'center',
+    lineHeight: 12,
+  },
+  negativeValue: {
+    color: '#EF4444',
   },
   metricSubtext: {
     fontSize: 12,
