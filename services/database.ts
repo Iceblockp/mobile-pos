@@ -4335,6 +4335,99 @@ export class DatabaseService {
     }
   }
 
+  // Daily Analytics Methods
+  async getDailySalesForCurrentMonth(): Promise<{
+    labels: string[];
+    data: number[];
+  }> {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    // Generate all days in the current month
+    const allDays: string[] = [];
+    const currentDate = new Date(startOfMonth);
+    while (currentDate <= endOfMonth) {
+      allDays.push(currentDate.getDate().toString());
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Get sales data grouped by day
+    const salesData = (await this.db.getAllAsync(
+      `SELECT 
+        strftime('%d', s.created_at, 'localtime') as day,
+        COALESCE(SUM(s.total), 0) as total_sales
+      FROM sales s
+      WHERE date(s.created_at, 'localtime') >= date(?) 
+        AND date(s.created_at, 'localtime') <= date(?)
+      GROUP BY strftime('%d', s.created_at, 'localtime')
+      ORDER BY day`,
+      [
+        startOfMonth.toISOString().split('T')[0],
+        endOfMonth.toISOString().split('T')[0],
+      ]
+    )) as { day: string; total_sales: number }[];
+
+    // Create a map for quick lookup
+    const salesMap = new Map(
+      salesData.map((item) => [item.day, item.total_sales])
+    );
+
+    // Fill in missing days with 0
+    const data = allDays.map((day) => salesMap.get(day) || 0);
+
+    return {
+      labels: allDays,
+      data: data,
+    };
+  }
+
+  async getDailyExpensesForCurrentMonth(): Promise<{
+    labels: string[];
+    data: number[];
+  }> {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    // Generate all days in the current month
+    const allDays: string[] = [];
+    const currentDate = new Date(startOfMonth);
+    while (currentDate <= endOfMonth) {
+      allDays.push(currentDate.getDate().toString());
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Get expense data grouped by day
+    const expenseData = (await this.db.getAllAsync(
+      `SELECT 
+        strftime('%d', e.created_at, 'localtime') as day,
+        COALESCE(SUM(e.amount), 0) as total_expenses
+      FROM expenses e
+      WHERE date(e.created_at, 'localtime') >= date(?) 
+        AND date(e.created_at, 'localtime') <= date(?)
+      GROUP BY strftime('%d', e.created_at, 'localtime')
+      ORDER BY day`,
+      [
+        startOfMonth.toISOString().split('T')[0],
+        endOfMonth.toISOString().split('T')[0],
+      ]
+    )) as { day: string; total_expenses: number }[];
+
+    // Create a map for quick lookup
+    const expenseMap = new Map(
+      expenseData.map((item) => [item.day, item.total_expenses])
+    );
+
+    // Fill in missing days with 0
+    const data = allDays.map((day) => expenseMap.get(day) || 0);
+
+    return {
+      labels: allDays,
+      data: data,
+    };
+  }
+
   // Shop Settings Methods removed - now using AsyncStorage (see shopSettingsStorage.ts)
 }
 

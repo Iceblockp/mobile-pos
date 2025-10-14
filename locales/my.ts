@@ -77,6 +77,9 @@ export const my: TranslationKeys = {
     thisMonth: 'ဒီလ',
     days30: '၃၀ ရက်',
     days30Long: '၃၀ ရက်',
+    dailySales: 'နေ့စဉ်ရောင်းချမှု',
+    dailyExpenses: 'နေ့စဉ်ကုန်ကျစရိတ်',
+    totalExpenses: 'စုစုပေါင်းကုန်ကျစရိတ်',
   },
   sales: {
     title: 'ရောင်းချမှု',

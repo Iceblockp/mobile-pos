@@ -75,6 +75,9 @@ export const en = {
     thisMonth: 'This month',
     days30: '30d',
     days30Long: '30 days',
+    dailySales: 'Daily Sales',
+    dailyExpenses: 'Daily Expenses',
+    totalExpenses: 'Total Expenses',
   },
   sales: {
     title: 'Sales',

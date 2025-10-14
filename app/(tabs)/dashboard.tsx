@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { useDashboardAnalytics } from '@/hooks/useQueries';
+import { useDashboardAnalytics } from '@/hooks/useDashboard';
+import { CustomBarChart } from '@/components/Charts';
 import {
   DollarSign,
   Package,
@@ -23,7 +24,6 @@ import {
 import { router } from 'expo-router';
 import { useTranslation } from '@/context/LocalizationContext';
 import { LanguageIconButton } from '@/components/LanguageIconButton';
-import { SplashScreen } from '@/components/SplashScreen';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
 
 export default function Dashboard() {
@@ -46,6 +46,8 @@ export default function Dashboard() {
   const analytics = dashboardData?.analytics;
   const lowStockCount = dashboardData?.lowStockCount || 0;
   const totalProducts = dashboardData?.totalProducts || 0;
+  const dailySalesChart = dashboardData?.dailySalesChart;
+  const dailyExpensesChart = dashboardData?.dailyExpensesChart;
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -169,6 +171,52 @@ export default function Dashboard() {
             </View>
           </Card>
         </View>
+
+        {/* Daily Sales Chart */}
+        {dailySalesChart && (
+          <CustomBarChart
+            data={{
+              labels: dailySalesChart.labels,
+              datasets: [{ data: dailySalesChart.data }],
+            }}
+            title={`${t(
+              'dashboard.dailySales'
+            )} - ${new Date().toLocaleDateString('en-US', {
+              month: 'long',
+              year: 'numeric',
+            })}`}
+            formatYLabel={(value) => formatPrice(parseFloat(value))}
+            footer={{
+              label: t('dashboard.totalSales'),
+              value: formatPrice(
+                dailySalesChart.data.reduce((sum, val) => sum + val, 0)
+              ),
+            }}
+          />
+        )}
+
+        {/* Daily Expenses Chart */}
+        {dailyExpensesChart && (
+          <CustomBarChart
+            data={{
+              labels: dailyExpensesChart.labels,
+              datasets: [{ data: dailyExpensesChart.data }],
+            }}
+            title={`${t(
+              'dashboard.dailyExpenses'
+            )} - ${new Date().toLocaleDateString('en-US', {
+              month: 'long',
+              year: 'numeric',
+            })}`}
+            formatYLabel={(value) => formatPrice(parseFloat(value))}
+            footer={{
+              label: t('dashboard.totalExpenses'),
+              value: formatPrice(
+                dailyExpensesChart.data.reduce((sum, val) => sum + val, 0)
+              ),
+            }}
+          />
+        )}
 
         <Card style={styles.sectionCard}>
           <View style={styles.sectionHeader}>

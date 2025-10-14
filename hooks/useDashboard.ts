@@ -10,16 +10,26 @@ export const useDashboardAnalytics = () => {
     queryFn: async () => {
       if (!db) return null;
 
-      const [analyticsData, lowStockProducts, allProducts] = await Promise.all([
+      const [
+        analyticsData,
+        lowStockProducts,
+        allProducts,
+        dailySales,
+        dailyExpenses,
+      ] = await Promise.all([
         db.getCurrentMonthSalesAnalytics(),
         db.getLowStockProducts(),
         db.getProducts(),
+        db.getDailySalesForCurrentMonth(),
+        db.getDailyExpensesForCurrentMonth(),
       ]);
 
       return {
         analytics: analyticsData,
         lowStockCount: lowStockProducts.length,
         totalProducts: allProducts.length,
+        dailySalesChart: dailySales,
+        dailyExpensesChart: dailyExpenses,
       };
     },
     enabled: isReady && !!db,
