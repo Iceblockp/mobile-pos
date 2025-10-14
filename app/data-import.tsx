@@ -187,21 +187,31 @@ export default function DataImport() {
       console.error('Import error:', error);
       let errorMessage = t('dataImport.importFailed');
 
-      // Provide more specific error messages
+      // Provide more specific and actionable error messages
       if (error instanceof Error) {
         if (
           error.message.includes('No') &&
           error.message.includes('data found')
         ) {
-          errorMessage = `Import failed: The selected file does not contain ${getDataTypeDisplayName().toLowerCase()} data.`;
+          errorMessage = `Import failed: The selected file does not contain ${getDataTypeDisplayName().toLowerCase()} data. Please select a valid export file.`;
         } else if (
           error.message.includes('Invalid') ||
           error.message.includes('format')
         ) {
           errorMessage =
-            'Import failed: Invalid file format. Please select a valid backup file.';
+            'Import failed: Invalid file format. Please select a valid JSON backup file exported from this application.';
+        } else if (
+          error.message.includes('relationship') ||
+          error.message.includes('category') ||
+          error.message.includes('supplier')
+        ) {
+          errorMessage = `Import failed: Data relationship error. ${error.message}. Please check your data integrity.`;
+        } else if (error.message.includes('validation')) {
+          errorMessage = `Import failed: Data validation error. ${error.message}. Please verify your data format.`;
+        } else if (error.message.includes('conflict')) {
+          errorMessage = `Import failed: Data conflict detected. ${error.message}. Please resolve conflicts and try again.`;
         } else {
-          errorMessage = `Import failed: ${error.message}`;
+          errorMessage = `Import failed: ${error.message}. Please check your file and try again.`;
         }
       }
 
