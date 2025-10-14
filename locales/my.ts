@@ -80,6 +80,9 @@ export const my: TranslationKeys = {
     dailySales: 'နေ့စဉ်ရောင်းချမှု',
     dailyExpenses: 'နေ့စဉ်ကုန်ကျစရိတ်',
     totalExpenses: 'စုစုပေါင်းကုန်ကျစရိတ်',
+    totalBalance: 'စုစုပေါင်းလက်ကျန်',
+    totalProfit: 'စုစုပေါင်းရောင်းချမှုအမြတ်',
+    netProfit: 'သန့်အမြတ်',
   },
   sales: {
     title: 'ရောင်းချမှု',

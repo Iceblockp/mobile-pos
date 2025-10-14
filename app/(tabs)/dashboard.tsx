@@ -20,6 +20,9 @@ import {
   TrendingUp,
   ArrowUpRight,
   Eye,
+  Wallet,
+  PiggyBank,
+  CreditCard,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useTranslation } from '@/context/LocalizationContext';
@@ -79,78 +82,118 @@ export default function Dashboard() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.metricsGrid}>
+          {/* Total Sale Value */}
           <Card style={styles.metricCard}>
             <View style={styles.metricContent}>
               <View
                 style={[styles.iconContainer, { backgroundColor: '#059669' }]}
               >
-                <DollarSign size={24} color="#FFFFFF" />
+                <DollarSign size={18} color="#FFFFFF" />
               </View>
               <View style={styles.metricText}>
                 <Text style={styles.metricValue}>
                   {formatPrice(analytics?.totalRevenue || 0)}
                 </Text>
                 <Text style={styles.metricLabel}>
-                  {t('dashboard.totalRevenue')} ({t('dashboard.thisMonth')})
+                  {t('dashboard.totalRevenue')}
                 </Text>
-                <View style={styles.metricTrend}>
-                  <ArrowUpRight size={12} color="#059669" />
-                  <Text style={styles.trendText}>+12.5%</Text>
-                </View>
               </View>
             </View>
           </Card>
 
-          <Card style={styles.metricCard}>
-            <View style={styles.metricContent}>
-              <View
-                style={[styles.iconContainer, { backgroundColor: '#3B82F6' }]}
-              >
-                <Package size={24} color="#FFFFFF" />
-              </View>
-              <View style={styles.metricText}>
-                <Text style={styles.metricValue}>
-                  {analytics?.totalSales || 0}
-                </Text>
-                <Text style={styles.metricLabel}>
-                  {t('dashboard.totalSales')} ({t('dashboard.thisMonth')})
-                </Text>
-                <View style={styles.metricTrend}>
-                  <ArrowUpRight size={12} color="#059669" />
-                  <Text style={styles.trendText}>+8.2%</Text>
-                </View>
-              </View>
-            </View>
-          </Card>
-
-          <Card style={styles.metricCard}>
-            <View style={styles.metricContent}>
-              <View
-                style={[styles.iconContainer, { backgroundColor: '#F59E0B' }]}
-              >
-                <TrendingUp size={24} color="#FFFFFF" />
-              </View>
-              <View style={styles.metricText}>
-                <Text style={styles.metricValue}>
-                  {formatPrice(analytics?.avgSaleValue || 0)}
-                </Text>
-                <Text style={styles.metricLabel}>
-                  {t('dashboard.avgSaleValue')}
-                </Text>
-                <View style={styles.metricTrend}>
-                  <ArrowUpRight size={12} color="#059669" />
-                  <Text style={styles.trendText}>+5.1%</Text>
-                </View>
-              </View>
-            </View>
-          </Card>
-
+          {/* Total Expenses */}
           <Card style={styles.metricCard}>
             <View style={styles.metricContent}>
               <View
                 style={[styles.iconContainer, { backgroundColor: '#EF4444' }]}
               >
-                <AlertTriangle size={24} color="#FFFFFF" />
+                <CreditCard size={18} color="#FFFFFF" />
+              </View>
+              <View style={styles.metricText}>
+                <Text style={styles.metricValue}>
+                  {formatPrice(analytics?.totalExpenses || 0)}
+                </Text>
+                <Text style={styles.metricLabel}>
+                  {t('dashboard.totalExpenses')}
+                </Text>
+              </View>
+            </View>
+          </Card>
+
+          {/* Total Balance */}
+          <Card style={styles.metricCard}>
+            <View style={styles.metricContent}>
+              <View
+                style={[styles.iconContainer, { backgroundColor: '#3B82F6' }]}
+              >
+                <Wallet size={18} color="#FFFFFF" />
+              </View>
+              <View style={styles.metricText}>
+                <Text
+                  style={[
+                    styles.metricValue,
+                    (analytics?.totalBalance || 0) < 0 && styles.negativeValue,
+                  ]}
+                >
+                  {formatPrice(analytics?.totalBalance || 0)}
+                </Text>
+                <Text style={styles.metricLabel}>
+                  {t('dashboard.totalBalance')}
+                </Text>
+              </View>
+            </View>
+          </Card>
+
+          {/* Total Sale Profit */}
+          <Card style={styles.metricCard}>
+            <View style={styles.metricContent}>
+              <View
+                style={[styles.iconContainer, { backgroundColor: '#10B981' }]}
+              >
+                <TrendingUp size={18} color="#FFFFFF" />
+              </View>
+              <View style={styles.metricText}>
+                <Text style={styles.metricValue}>
+                  {formatPrice(analytics?.totalProfit || 0)}
+                </Text>
+                <Text style={styles.metricLabel}>
+                  {t('dashboard.totalProfit')}
+                </Text>
+              </View>
+            </View>
+          </Card>
+
+          {/* Net Profit */}
+          <Card style={styles.metricCard}>
+            <View style={styles.metricContent}>
+              <View
+                style={[styles.iconContainer, { backgroundColor: '#8B5CF6' }]}
+              >
+                <PiggyBank size={18} color="#FFFFFF" />
+              </View>
+              <View style={styles.metricText}>
+                <Text
+                  style={[
+                    styles.metricValue,
+                    (analytics?.netProfit || 0) < 0 && styles.negativeValue,
+                  ]}
+                >
+                  {formatPrice(analytics?.netProfit || 0)}
+                </Text>
+                <Text style={styles.metricLabel}>
+                  {t('dashboard.netProfit')}
+                </Text>
+              </View>
+            </View>
+          </Card>
+
+          {/* Low Stock Items */}
+          <Card style={styles.metricCard}>
+            <View style={styles.metricContent}>
+              <View
+                style={[styles.iconContainer, { backgroundColor: '#F59E0B' }]}
+              >
+                <AlertTriangle size={18} color="#FFFFFF" />
               </View>
               <View style={styles.metricText}>
                 <Text style={styles.metricValue}>{lowStockCount}</Text>
@@ -356,44 +399,52 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   metricsGrid: {
-    marginBottom: 28,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 20,
   },
   metricCard: {
-    marginBottom: 12,
+    width: '32%',
+    marginBottom: 10,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 12,
+    padding: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    minHeight: 85,
   },
   metricContent: {
-    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   iconContainer: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginBottom: 6,
   },
   metricText: {
-    flex: 1,
+    alignItems: 'center',
   },
   metricValue: {
-    fontSize: 20,
+    fontSize: 14,
     fontFamily: 'Inter-Bold',
     color: '#111827',
+    textAlign: 'center',
   },
   metricLabel: {
-    fontSize: 13,
+    fontSize: 10,
     fontFamily: 'Inter-Medium',
     color: '#6B7280',
-    marginTop: 4,
+    marginTop: 2,
+    textAlign: 'center',
+    lineHeight: 12,
   },
   metricTrend: {
     flexDirection: 'row',
@@ -407,12 +458,13 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   actionLink: {
-    marginTop: 6,
+    marginTop: 4,
   },
   actionLinkText: {
-    fontSize: 12,
+    fontSize: 9,
     fontFamily: 'Inter-SemiBold',
     color: '#EF4444',
+    textAlign: 'center',
   },
   sectionCard: {
     marginBottom: 20,
@@ -535,6 +587,9 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   warningText: {
+    color: '#EF4444',
+  },
+  negativeValue: {
     color: '#EF4444',
   },
   bottomPadding: {

@@ -1857,6 +1857,9 @@ export class DatabaseService {
     totalRevenue: number;
     totalCost: number;
     totalProfit: number;
+    totalExpenses: number;
+    totalBalance: number;
+    netProfit: number;
     profitMargin: number;
     avgSaleValue: number;
     totalItemsSold: number;
@@ -1964,11 +1967,26 @@ export class DatabaseService {
       };
     }
 
+    // Get total expenses for the current month
+    const expenseResult = (await this.db.getFirstAsync(
+      `SELECT SUM(amount) as total_expenses 
+       FROM expenses 
+       WHERE date(created_at) >= ? AND date(created_at) <= ?`,
+      [startDateStr, endDateStr]
+    )) as { total_expenses: number };
+
+    const totalExpenses = expenseResult.total_expenses || 0;
+    const totalBalance = totalRevenue - totalExpenses;
+    const netProfit = totalProfit - totalExpenses;
+
     return {
       totalSales: salesResult.total_sales || 0,
       totalRevenue,
       totalCost,
       totalProfit,
+      totalExpenses,
+      totalBalance,
+      netProfit,
       profitMargin,
       avgSaleValue: salesResult.avg_sale || 0,
       totalItemsSold: costResult.total_items || 0,

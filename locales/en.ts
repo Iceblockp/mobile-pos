@@ -78,6 +78,9 @@ export const en = {
     dailySales: 'Daily Sales',
     dailyExpenses: 'Daily Expenses',
     totalExpenses: 'Total Expenses',
+    totalBalance: 'Total Balance',
+    totalProfit: 'Total Sale Profit',
+    netProfit: 'Net Profit',
   },
   sales: {
     title: 'Sales',
