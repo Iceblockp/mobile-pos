@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import {
   X,
@@ -14,10 +15,11 @@ import {
   Banknote,
   Smartphone,
   Printer,
+  Check,
+  ChevronDown,
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
-import { Picker } from '@react-native-picker/picker';
 
 interface PaymentModalProps {
   visible: boolean;
@@ -48,6 +50,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     useState<PaymentMethod>('cash');
   const [saleNote, setSaleNote] = useState('');
   const [shouldPrintReceipt, setShouldPrintReceipt] = useState(false);
+  const [showPaymentPicker, setShowPaymentPicker] = useState(false);
 
   const paymentMethods = [
     {
@@ -81,8 +84,20 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       setSaleNote('');
       setShouldPrintReceipt(false);
       setSelectedPaymentMethod('cash');
+      setShowPaymentPicker(false);
       onClose();
     }
+  };
+
+  const getSelectedPaymentMethod = () => {
+    return paymentMethods.find(
+      (method) => method.value === selectedPaymentMethod
+    );
+  };
+
+  const handlePaymentMethodSelect = (method: PaymentMethod) => {
+    setSelectedPaymentMethod(method);
+    setShowPaymentPicker(false);
   };
 
   return (
@@ -119,25 +134,117 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             <Text style={styles.sectionTitle}>
               {t('paymentModal.paymentMethod')}
             </Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={selectedPaymentMethod}
-                onValueChange={(itemValue) =>
-                  setSelectedPaymentMethod(itemValue)
-                }
-                style={styles.picker}
-                enabled={!loading}
-              >
-                {paymentMethods.map((method) => (
-                  <Picker.Item
-                    key={method.value}
-                    label={method.label}
-                    value={method.value}
-                  />
-                ))}
-              </Picker>
-            </View>
+            <TouchableOpacity
+              style={styles.paymentMethodDropdown}
+              onPress={() => setShowPaymentPicker(true)}
+              disabled={loading}
+              activeOpacity={0.7}
+            >
+              <View style={styles.paymentMethodDropdownContent}>
+                {(() => {
+                  const selectedMethod = getSelectedPaymentMethod();
+                  const IconComponent = selectedMethod?.icon || Banknote;
+                  return (
+                    <>
+                      <View
+                        style={[
+                          styles.paymentMethodIconContainer,
+                          {
+                            backgroundColor: `${
+                              selectedMethod?.color || '#10B981'
+                            }15`,
+                          },
+                        ]}
+                      >
+                        <IconComponent
+                          size={20}
+                          color={selectedMethod?.color || '#10B981'}
+                        />
+                      </View>
+                      <Text style={styles.paymentMethodDropdownText}>
+                        {selectedMethod?.label || t('paymentModal.cash')}
+                      </Text>
+                    </>
+                  );
+                })()}
+              </View>
+              <ChevronDown size={20} color="#6B7280" />
+            </TouchableOpacity>
           </View>
+
+          {/* Payment Method Picker Modal */}
+          <Modal
+            visible={showPaymentPicker}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setShowPaymentPicker(false)}
+          >
+            <TouchableOpacity
+              style={styles.pickerOverlay}
+              activeOpacity={1}
+              onPress={() => setShowPaymentPicker(false)}
+            >
+              <View style={styles.pickerContainer}>
+                <View style={styles.pickerHeader}>
+                  <Text style={styles.pickerTitle}>
+                    {t('paymentModal.selectPaymentMethod')}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setShowPaymentPicker(false)}
+                    style={styles.pickerCloseButton}
+                  >
+                    <X size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.pickerOptions}>
+                  {paymentMethods.map((method) => {
+                    const IconComponent = method.icon;
+                    const isSelected = selectedPaymentMethod === method.value;
+
+                    return (
+                      <TouchableOpacity
+                        key={method.value}
+                        style={[
+                          styles.pickerOption,
+                          isSelected && styles.pickerOptionSelected,
+                        ]}
+                        onPress={() =>
+                          handlePaymentMethodSelect(
+                            method.value as PaymentMethod
+                          )
+                        }
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.pickerOptionContent}>
+                          <View
+                            style={[
+                              styles.paymentMethodIconContainer,
+                              { backgroundColor: `${method.color}15` },
+                            ]}
+                          >
+                            <IconComponent size={20} color={method.color} />
+                          </View>
+                          <Text
+                            style={[
+                              styles.pickerOptionText,
+                              isSelected && styles.pickerOptionTextSelected,
+                            ]}
+                          >
+                            {method.label}
+                          </Text>
+                        </View>
+                        {isSelected && (
+                          <View style={styles.selectedIndicator}>
+                            <Check size={16} color="#059669" />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            </TouchableOpacity>
+          </Modal>
 
           {/* Sale Note */}
           <View style={styles.section}>
@@ -282,14 +389,132 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: 8,
   },
-  pickerContainer: {
+  paymentMethodDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
     borderWidth: 1,
     borderColor: '#D1D5DB',
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
   },
-  picker: {
-    height: 50,
+  paymentMethodDropdownContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  paymentMethodDropdownText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#374151',
+  },
+  // Picker Modal Styles
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  pickerContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 400,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.25,
+        shadowRadius: 20,
+      },
+      android: {
+        elevation: 10,
+      },
+    }),
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  pickerTitle: {
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+  },
+  pickerCloseButton: {
+    padding: 4,
+  },
+  pickerOptions: {
+    padding: 8,
+  },
+  pickerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderRadius: 12,
+    marginVertical: 4,
+  },
+  pickerOptionSelected: {
+    backgroundColor: '#F0FDF4',
+  },
+  pickerOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  pickerOptionText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#374151',
+  },
+  pickerOptionTextSelected: {
+    color: '#059669',
+    fontFamily: 'Inter-SemiBold',
+  },
+  paymentMethodIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  paymentMethodLabel: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#374151',
+  },
+  paymentMethodLabelSelected: {
+    color: '#059669',
+    fontFamily: 'Inter-SemiBold',
+  },
+  selectedIndicator: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#059669',
   },
   noteInput: {
     borderWidth: 1,

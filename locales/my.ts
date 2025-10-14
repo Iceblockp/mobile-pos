@@ -237,6 +237,7 @@ export const my: TranslationKeys = {
     title: 'ရောင်းချမှုပြီးမြောက်စေမည်',
     totalAmount: 'စုစုပေါင်းပမာဏ',
     paymentMethod: 'ငွေပေးချေမှုနည်းလမ်း',
+    selectPaymentMethod: 'ငွေပေးချေမှုနည်းလမ်းရွေးချယ်ပါ',
     saleNote: 'ရောင်းချမှုမှတ်စု (ရွေးချယ်ခွင့်)',
     saleNotePlaceholder: 'ဒီရောင်းချမှုအတွက် မှတ်စုထည့်ပါ...',
     printReceipt: 'ဘောက်ချာပုံနှိပ်မည်',

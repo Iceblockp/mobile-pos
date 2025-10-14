@@ -230,6 +230,7 @@ export const en = {
     title: 'Complete Sale',
     totalAmount: 'Total Amount',
     paymentMethod: 'Payment Method',
+    selectPaymentMethod: 'Select Payment Method',
     saleNote: 'Sale Note (Optional)',
     saleNotePlaceholder: 'Add a note for this sale...',
     printReceipt: 'Print Receipt',
