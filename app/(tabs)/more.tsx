@@ -15,11 +15,12 @@ import {
   Download,
   Upload,
   Info,
-  Settings,
   Store,
   Truck,
   Users,
-  ChevronRight,
+  ShareIcon,
+  FileUp,
+  FileDown,
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 
@@ -29,18 +30,8 @@ export default function More() {
 
   const menuItems = [
     {
-      id: 'shopSettings',
-      title: t('more.shopSettings'),
-      subtitle: t('more.shopSettingsSubtitle'),
-      icon: Store,
-      color: '#059669',
-      backgroundColor: '#ECFDF5',
-      route: '/shop-settings',
-    },
-    {
       id: 'customers',
       title: t('more.customers'),
-      subtitle: t('more.customersSubtitle'),
       icon: Users,
       color: '#059669',
       backgroundColor: '#ECFDF5',
@@ -49,7 +40,6 @@ export default function More() {
     {
       id: 'suppliers',
       title: 'Suppliers',
-      subtitle: 'Manage your suppliers and vendor relationships',
       icon: Truck,
       color: '#7C3AED',
       backgroundColor: '#F5F3FF',
@@ -58,7 +48,6 @@ export default function More() {
     {
       id: 'expenses',
       title: t('more.expenses'),
-      subtitle: t('more.expensesSubtitle'),
       icon: DollarSign,
       color: '#EF4444',
       backgroundColor: '#FEF2F2',
@@ -67,16 +56,22 @@ export default function More() {
     {
       id: 'help',
       title: t('more.help'),
-      subtitle: t('more.helpSubtitle'),
       icon: HelpCircle,
       color: '#3B82F6',
       backgroundColor: '#EFF6FF',
       route: '/help',
     },
     {
+      id: 'shopSettings',
+      title: t('more.shopSettings'),
+      icon: Store,
+      color: '#059669',
+      backgroundColor: '#ECFDF5',
+      route: '/shop-settings',
+    },
+    {
       id: 'language',
       title: t('more.language'),
-      subtitle: t('more.languageSubtitle'),
       icon: Globe,
       color: '#10B981',
       backgroundColor: '#ECFDF5',
@@ -85,8 +80,7 @@ export default function More() {
     {
       id: 'export',
       title: t('more.dataExport'),
-      subtitle: t('more.dataExportSubtitle'),
-      icon: Download,
+      icon: FileUp,
       color: '#F59E0B',
       backgroundColor: '#FFFBEB',
       route: '/data-export',
@@ -94,8 +88,7 @@ export default function More() {
     {
       id: 'import',
       title: t('more.dataImport'),
-      subtitle: t('more.dataImportSubtitle'),
-      icon: Upload,
+      icon: FileDown,
       color: '#06B6D4',
       backgroundColor: '#ECFEFF',
       route: '/data-import',
@@ -103,21 +96,11 @@ export default function More() {
     {
       id: 'about',
       title: t('more.about'),
-      subtitle: t('more.aboutSubtitle'),
       icon: Info,
       color: '#8B5CF6',
       backgroundColor: '#F5F3FF',
       route: '/about',
     },
-    // {
-    //   id: 'settings',
-    //   title: t('more.settings'),
-    //   subtitle: t('more.settingsSubtitle'),
-    //   icon: Settings,
-    //   color: '#6B7280',
-    //   backgroundColor: '#F9FAFB',
-    //   route: '/settings',
-    // },
   ];
 
   const handleItemPress = (route: string) => {
@@ -148,13 +131,9 @@ export default function More() {
                     { backgroundColor: item.backgroundColor },
                   ]}
                 >
-                  <IconComponent size={24} color={item.color} />
+                  <IconComponent size={20} color={item.color} />
                 </View>
-                <View style={styles.menuItemContent}>
-                  <Text style={styles.menuItemTitle}>{item.title}</Text>
-                  <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
-                </View>
-                <ChevronRight size={20} color="#9CA3AF" />
+                <Text style={styles.menuItemTitle}>{item.title}</Text>
               </TouchableOpacity>
             );
           })}
@@ -203,42 +182,40 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuGrid: {
-    padding: 20,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    padding: 16,
+    justifyContent: 'space-between',
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: '48%',
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 2,
+    minHeight: 100,
+    justifyContent: 'center',
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
-  },
-  menuItemContent: {
-    flex: 1,
+    marginBottom: 8,
   },
   menuItemTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'Inter-SemiBold',
     color: '#111827',
-    marginBottom: 2,
-  },
-  menuItemSubtitle: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 18,
   },
   appInfoSection: {
     padding: 20,

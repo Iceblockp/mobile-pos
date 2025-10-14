@@ -17,7 +17,6 @@ import {
   Plus,
   Users,
   Filter,
-  Download,
   MoreVertical,
 } from 'lucide-react-native';
 import { CustomerCard } from '@/components/CustomerCard';
@@ -125,14 +124,6 @@ export default function CustomerManagement() {
           },
         },
       ]
-    );
-  };
-
-  const handleExportCustomers = () => {
-    // TODO: Implement customer export functionality - now part of all data export
-    showToast(
-      'Customer export is now part of the all data export feature',
-      'info'
     );
   };
 
@@ -277,12 +268,6 @@ export default function CustomerManagement() {
               {filteredAndSortedCustomers.length} {t('customers.customers')}
             </Text>
           </View>
-          <TouchableOpacity
-            style={styles.headerAction}
-            onPress={handleExportCustomers}
-          >
-            <Download size={20} color="#059669" />
-          </TouchableOpacity>
         </View>
 
         {/* Search and Filter Bar */}
