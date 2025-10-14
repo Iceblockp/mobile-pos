@@ -314,7 +314,7 @@ export default function Products({}: ProductsManagerProps) {
         showToast(t('products.imageSelected'), 'success');
       } catch (error) {
         console.error('Error saving image:', error);
-        showToast(t('products.failedToSaveImage'), 'error');
+        Alert.alert(t('common.error'), t('products.failedToSaveImage'));
       }
     }
   };
@@ -356,29 +356,29 @@ export default function Products({}: ProductsManagerProps) {
         showToast(t('products.photoTaken'), 'success');
       } catch (error) {
         console.error('Error saving image:', error);
-        showToast(t('products.failedToSaveImage'), 'error');
+        Alert.alert(t('common.error'), t('products.failedToSaveImage'));
       }
     }
   };
 
   const handleSubmit = async () => {
     if (!formData.name.trim()) {
-      showToast(t('products.nameRequired'), 'error');
+      Alert.alert(t('common.error'), t('products.nameRequired'));
       return;
     }
 
     if (!formData.category_id) {
-      showToast(t('products.categoryRequired'), 'error');
+      Alert.alert(t('common.error'), t('products.categoryRequired'));
       return;
     }
 
     if (!formData.price || parseInt(formData.price) <= 0) {
-      showToast(t('products.priceRequired'), 'error');
+      Alert.alert(t('common.error'), t('products.priceRequired'));
       return;
     }
 
     if (!formData.cost || parseInt(formData.cost) <= 0) {
-      showToast(t('products.costRequired'), 'error');
+      Alert.alert(t('common.error'), t('products.costRequired'));
       return;
     }
 
@@ -437,7 +437,7 @@ export default function Products({}: ProductsManagerProps) {
       );
     } catch (error) {
       console.error('Error saving product:', error);
-      showToast(t('common.error'), 'error');
+      Alert.alert(t('common.error'), t('products.failedToSave'));
     }
   };
 
@@ -534,7 +534,7 @@ export default function Products({}: ProductsManagerProps) {
               await deleteProduct.mutateAsync(product.id);
               showToast(t('products.productDeleted'), 'success');
             } catch (error) {
-              Alert.alert(t('common.error'), t('products.failedToSave'));
+              showToast(t('products.failedToSave'), 'error');
               console.error('Error deleting product:', error);
             }
           },
