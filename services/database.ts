@@ -982,45 +982,8 @@ export class DatabaseService {
       console.log('Seeding initial data with UUIDs...');
       const categories = [
         {
-          name: 'ဆန်နှင့် ကောက်ပဲသီးနှံများ',
-          description: 'ဆန်၊ ကောက်ညှင်း၊ ပဲများနှင့် ကောက်ပဲသီးနှံများ',
-        },
-        {
-          name: 'အသားနှင့် ငါးများ',
-          description: 'အသားတပ်၊ ကြက်သား၊ ဝက်သားနှင့် ငါးများ',
-        },
-        {
-          name: 'ဟင်းသီးဟင်းရွက်များ',
-          description: 'လတ်ဆတ်သော ဟင်းသီးဟင်းရွက်နှင့် သစ်သီးများ',
-        },
-        {
-          name: 'မုန့်နှင့် အချိုများ',
-          description: 'မုန့်များ၊ အချိုများနှင့် မုန့်ဖုတ်ပစ္စည်းများ',
-        },
-        {
-          name: 'ယမကာများ',
-          description: 'အချိုရည်များ၊ ရေများနှင့် ယမကာများ',
-        },
-        {
-          name: 'ငါးပိနှင့် ဟင်းခတ်အမွှေးများ',
-          description: 'ငါးပိ၊ ဆား၊ ဆီနှင့် ဟင်းခတ်အမွှေးများ',
-        },
-        {
-          name: 'လက်ဖက်ရည်နှင့် ကော်ဖီ',
-          description: 'လက်ဖက်ရည်၊ ကော်ဖီနှင့် ပူဖျော်ယမကာများ',
-        },
-        {
-          name: 'အိမ်သုံးပစ္စည်းများ',
-          description: 'သန့်ရှင်းရေးပစ္စည်းများနှင့် အိမ်သုံးလိုအပ်ချက်များ',
-        },
-        {
-          name: 'ကိုယ်ရေးကိုယ်တာ စောင့်ရှောက်မှု',
-          description:
-            'ရေချိုးဆပ်ပြာ၊ သွားတိုက်ဆေးနှင့် ကိုယ်ရေးကိုယ်တာ ပစ္စည်းများ',
-        },
-        {
-          name: 'အခြားပစ္စည်းများ',
-          description: 'အခြားအမျိုးမျိုးသော ကုန်ပစ္စည်းများ',
+          name: 'အချိုရည်',
+          description: 'အအေးမျိုးစုံ',
         },
       ];
 
@@ -1047,20 +1010,6 @@ export class DatabaseService {
           phone: '09-123-456-789',
           email: 'thant@myanmarfresh.com',
           address: 'Yangon, Myanmar',
-        },
-        {
-          name: 'Golden Valley Dairy',
-          contact_name: 'Khin Maung',
-          phone: '09-987-654-321',
-          email: 'khin@goldenvalley.com',
-          address: 'Mandalay, Myanmar',
-        },
-        {
-          name: 'Ayeyarwady Beverages',
-          contact_name: 'Moe Aung',
-          phone: '09-456-789-123',
-          email: 'moe@ayeyarwady.com',
-          address: 'Bago, Myanmar',
         },
       ];
 
@@ -1090,18 +1039,6 @@ export class DatabaseService {
     if (!hasExpenseCategories) {
       const expenseCategories = [
         { name: 'Rent', description: 'Rent for store or office space' },
-        {
-          name: 'Utilities',
-          description: 'Electricity, water, internet, etc.',
-        },
-        { name: 'Salaries', description: 'Employee salaries and wages' },
-        { name: 'Inventory', description: 'Inventory purchases' },
-        {
-          name: 'Marketing',
-          description: 'Advertising and marketing expenses',
-        },
-        { name: 'Maintenance', description: 'Equipment and store maintenance' },
-        { name: 'Miscellaneous', description: 'Other expenses' },
       ];
 
       for (const category of expenseCategories) {
@@ -1138,84 +1075,14 @@ export class DatabaseService {
 
       const products = [
         {
-          name: 'ရှမ်းဆန် ၅ ကီလို',
-          barcode: '1234567890123',
-          category_name: 'ဆန်နှင့် ကောက်ပဲသီးနှံများ',
-          price: 8500,
-          cost: 6000,
-          quantity: 40,
-          min_stock: 10,
-          supplier_name: 'Myanmar Fresh Foods',
-        },
-        {
-          name: 'ကြက်သား ၁ ကီလို',
-          barcode: '2345678901234',
-          category_name: 'အသားနှင့် ငါးများ',
-          price: 4500,
-          cost: 3200,
-          quantity: 25,
-          min_stock: 5,
-          supplier_name: 'Myanmar Fresh Foods',
-        },
-        {
-          name: 'ငွေ့ကောင်းသီး ၁ ကီလို',
-          barcode: '3456789012345',
-          category_name: 'ဟင်းသီးဟင်းရွက်များ',
-          price: 1500,
-          cost: 800,
-          quantity: 100,
-          min_stock: 20,
-          supplier_name: 'Myanmar Fresh Foods',
-        },
-        {
-          name: 'မုန့်ဟင်းခါး',
-          barcode: '4567890123456',
-          category_name: 'မုန့်နှင့် အချိုများ',
-          price: 800,
-          cost: 500,
-          quantity: 50,
-          min_stock: 15,
-          supplier_name: 'Myanmar Fresh Foods',
-        },
-        {
-          name: 'ကော်ကာကိုလာ ၅၀၀ မီလီ',
-          barcode: '5678901234567',
-          category_name: 'ယမကာများ',
-          price: 1200,
-          cost: 700,
-          quantity: 80,
-          min_stock: 15,
-          supplier_name: 'Ayeyarwady Beverages',
-        },
-        {
-          name: 'ငါးပိ ၁ ပုံး',
-          barcode: '6789012345678',
-          category_name: 'ငါးပိနှင့် ဟင်းခတ်အမွှေးများ',
-          price: 2500,
-          cost: 1800,
-          quantity: 30,
-          min_stock: 8,
-          supplier_name: 'Myanmar Fresh Foods',
-        },
-        {
-          name: 'လက်ဖက်ရည်ခြောက် ၁ ပက်ကက်',
-          barcode: '7890123456789',
-          category_name: 'လက်ဖက်ရည်နှင့် ကော်ဖီ',
-          price: 3500,
-          cost: 2200,
-          quantity: 40,
-          min_stock: 10,
-          supplier_name: 'Golden Valley Dairy',
-        },
-        {
-          name: 'ဆပ်ပြာ ၁ လုံး',
+          name: 'Speed ဗူးကြီး',
           barcode: '8901234567890',
-          category_name: 'ကိုယ်ရေးကိုယ်တာ စောင့်ရှောက်မှု',
+          category_name: 'အချိုရည်',
           price: 1800,
           cost: 1200,
           quantity: 60,
           min_stock: 12,
-          supplier_name: 'Golden Valley Dairy',
+          supplier_name: 'Myanmar Fresh Foods',
         },
       ];
 
@@ -1323,7 +1190,7 @@ export class DatabaseService {
 
   async getProducts(): Promise<Product[]> {
     const result = await this.db.getAllAsync(
-      'SELECT p.*, c.name as category FROM products p LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.name'
+      'SELECT p.*, c.name as category, s.name as supplier_name FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN suppliers s ON p.supplier_id = s.id ORDER BY p.name'
     );
     return result as Product[];
   }
@@ -1354,7 +1221,7 @@ export class DatabaseService {
 
   async getProductsByCategory(categoryId: string): Promise<Product[]> {
     const result = await this.db.getAllAsync(
-      'SELECT p.*, c.name as category FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.category_id = ? ORDER BY p.name',
+      'SELECT p.*, c.name as category, s.name as supplier_name FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.category_id = ? ORDER BY p.name',
       [categoryId]
     );
     return result as Product[];
@@ -1362,16 +1229,18 @@ export class DatabaseService {
 
   async getProductByBarcode(barcode: string): Promise<Product | null> {
     const result = await this.db.getFirstAsync(
-      'SELECT p.*, c.name as category FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.barcode = ?',
+      'SELECT p.*, c.name as category, s.name as supplier_name FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.barcode = ?',
       [barcode]
     );
     return result as Product | null;
   }
 
   async addProduct(
-    product: Omit<Product, 'id' | 'created_at' | 'updated_at'>
+    product:
+      | Omit<Product, 'created_at' | 'updated_at'>
+      | Omit<Product, 'id' | 'created_at' | 'updated_at'>
   ): Promise<string> {
-    const id = generateUUID();
+    const id = (product as any).id || generateUUID();
     await this.db.runAsync(
       'INSERT INTO products (id, name, barcode, category_id, price, cost, quantity, min_stock, supplier_id, imageUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
@@ -1439,7 +1308,7 @@ export class DatabaseService {
 
   async getProductById(id: string): Promise<Product | null> {
     const result = await this.db.getFirstAsync(
-      'SELECT * FROM products WHERE id = ?',
+      'SELECT p.*, c.name as category, s.name as supplier_name FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.id = ?',
       [id]
     );
     return result as Product | null;
@@ -1447,7 +1316,7 @@ export class DatabaseService {
 
   async getLowStockProducts(): Promise<Product[]> {
     const result = await this.db.getAllAsync(
-      'SELECT p.*, c.name as category FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.quantity <= p.min_stock ORDER BY p.quantity ASC'
+      'SELECT p.*, c.name as category, s.name as supplier_name FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.quantity <= p.min_stock ORDER BY p.quantity ASC'
     );
     return result as Product[];
   }
@@ -1460,9 +1329,9 @@ export class DatabaseService {
   }
 
   async addCategory(
-    category: Omit<Category, 'id' | 'created_at'>
+    category: Omit<Category, 'created_at'> | Omit<Category, 'id' | 'created_at'>
   ): Promise<string> {
-    const id = generateUUID();
+    const id = (category as any).id || generateUUID();
     try {
       await this.db.runAsync(
         'INSERT INTO categories (id, name, description) VALUES (?, ?, ?)',
@@ -1569,9 +1438,9 @@ export class DatabaseService {
   }
 
   async addSupplier(
-    supplier: Omit<Supplier, 'id' | 'created_at'>
+    supplier: Omit<Supplier, 'created_at'> | Omit<Supplier, 'id' | 'created_at'>
   ): Promise<string> {
-    const id = generateUUID();
+    const id = (supplier as any).id || generateUUID();
     await this.db.runAsync(
       'INSERT INTO suppliers (id, name, contact_name, phone, email, address) VALUES (?, ?, ?, ?, ?, ?)',
       [
@@ -3101,12 +2970,17 @@ export class DatabaseService {
   }
 
   async addCustomer(
-    customer: Omit<
-      Customer,
-      'id' | 'total_spent' | 'visit_count' | 'created_at' | 'updated_at'
-    >
+    customer:
+      | Omit<
+          Customer,
+          'total_spent' | 'visit_count' | 'created_at' | 'updated_at'
+        >
+      | Omit<
+          Customer,
+          'id' | 'total_spent' | 'visit_count' | 'created_at' | 'updated_at'
+        >
   ): Promise<string> {
-    const id = generateUUID();
+    const id = (customer as any).id || generateUUID();
     await this.db.runAsync(
       'INSERT INTO customers (id, name, phone, email, address) VALUES (?, ?, ?, ?, ?)',
       [

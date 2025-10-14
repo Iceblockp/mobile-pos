@@ -317,7 +317,7 @@ export default function DataImport() {
 
   const handleConflictResolution = async (resolution: ConflictResolution) => {
     // Handle the conflict resolution based on user choice
-    console.log('Conflict resolution:', resolution);
+    // console.log('Conflict resolution:', resolution);
 
     // Clear conflicts after resolution
     setConflicts([]);

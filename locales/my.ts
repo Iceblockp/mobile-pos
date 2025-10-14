@@ -311,6 +311,7 @@ export const my: TranslationKeys = {
     subtitle: 'ကုန်လက်ကျန်စီမံခန့်ခွဲမှုနှင့် ကုန်ပစ္စည်းစာရင်း',
     lowStockAlert: 'ကုန်လက်ကျန်နည်းသောသတိပေးချက်',
     allProducts: 'ကုန်ပစ္စည်းအားလုံး',
+    selectView: 'စာမျက်နှာခွဲများ',
     adjustStock: 'လက်ကျန်ပြင်ဆင်မည်',
     currentStock: 'လက်ရှိကုန်လက်ကျန်',
     enterQuantity: 'အရေအတွက်ထည့်ပါ',
@@ -420,6 +421,8 @@ export const my: TranslationKeys = {
     editProduct: 'ကုန်ပစ္စည်းပြင်ဆင်မည်',
     productName: 'ကုန်ပစ္စည်းအမည်',
     barcode: 'ဘားကုဒ်',
+    noSupplier: 'ဖြန့်ဝေသူရွေးချယ်ပါ',
+    selectSupplier: 'ဖြန့်ဝေသူရွေးချယ်ပါ',
     optional: 'ရွေးချယ်ခွင့်ရှိသော',
     cost: 'ကုန်ကျစရိတ်',
     minStockLevel: 'အနည်းဆုံးလက်ကျန်အဆင့်',
@@ -1177,8 +1180,6 @@ export const my: TranslationKeys = {
       'ရှိပြီးသားမှတ်တမ်းများကို ထည့်သွင်းအချက်အလက်ဖြင့် အစားထိုးမည်',
     keepExistingDesc:
       'ရှိပြီးသားမှတ်တမ်းများကို ထိန်းသိမ်းပြီး ပဋိပက္ခရှိသောထည့်သွင်းမှုများကို ကျော်မည်',
-    skipConflictsDesc:
-      'ဤပဋိပက္ခများကို ကျော်ပြီး ထည့်သွင်းမှုကို ဆက်လက်လုပ်ဆောင်မည်',
   },
   about: {
     title: 'အကြောင်း',

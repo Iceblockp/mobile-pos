@@ -123,14 +123,14 @@ export default function Inventory() {
   const isRefreshing = productsRefetching || lowStockRefetching;
 
   useEffect(() => {
-    console.log('Inventory loading states:', {
-      productsLoading,
-      lowStockLoading,
-      productsRefetching,
-      lowStockRefetching,
-      isLoading,
-      isRefreshing,
-    });
+    // console.log('Inventory loading states:', {
+    //   productsLoading,
+    //   lowStockLoading,
+    //   productsRefetching,
+    //   lowStockRefetching,
+    //   isLoading,
+    //   isRefreshing,
+    // });
   }, [
     productsLoading,
     lowStockLoading,

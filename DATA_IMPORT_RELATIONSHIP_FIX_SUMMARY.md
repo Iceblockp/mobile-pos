@@ -205,3 +205,61 @@ The data import system is now robust, reliable, and maintainable. Users can conf
 - The system behaves consistently across all data types
 
 The implementation follows best practices with comprehensive test coverage, ensuring long-term reliability and ease of maintenance.
+
+## Additional Fix: Database Query Supplier Joins
+
+### Issue Discovered
+
+After implementing the import fixes, products were still showing "No Supplier" in the UI even when `supplier_id` was correctly stored in the database.
+
+### Root Cause
+
+The database query methods for retrieving products only included joins with the `categories` table but not with the `suppliers` table. This meant:
+
+- `supplier_id` was stored correctly during import
+- But `supplier_name` field was not populated when products were retrieved
+- UI components like `getSupplierName()` couldn't find supplier information
+
+### Solution Implemented
+
+Updated all product query methods to include supplier joins:
+
+```sql
+-- Before (only category join)
+SELECT p.*, c.name as category
+FROM products p
+LEFT JOIN categories c ON p.category_id = c.id
+
+-- After (both category and supplier joins)
+SELECT p.*, c.name as category, s.name as supplier_name
+FROM products p
+LEFT JOIN categories c ON p.category_id = c.id
+LEFT JOIN suppliers s ON p.supplier_id = s.id
+```
+
+### Methods Updated
+
+- `getProducts()`
+- `getProductsByCategory()`
+- `getProductByBarcode()`
+- `getProductById()`
+- `getLowStockProducts()`
+
+### Result
+
+- Products now include both `category` and `supplier_name` fields when loaded
+- UI components can properly display supplier information
+- `getSupplierName()` function works correctly
+- ProductDetailModal shows correct supplier names
+- Import and display of supplier relationships now works end-to-end
+
+### Verification
+
+To verify the fix is working:
+
+1. Import data with products that have supplier relationships
+2. Check ProductDetailModal - should show supplier name instead of "No Supplier"
+3. Verify that `product.supplier_name` field is populated in database queries
+4. Confirm that multiple imports don't create duplicate suppliers
+
+This completes the full relationship fix for both import and display functionality.

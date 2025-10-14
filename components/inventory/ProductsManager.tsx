@@ -626,7 +626,7 @@ export default function Products({}: ProductsManagerProps) {
     return supplier ? supplier.name : t('products.unknown');
   };
 
-  console.log('products ', products);
+  // console.log('products ', products);
   if (isLoading && !isRefreshing) {
     return <LoadingSpinner />;
   }
