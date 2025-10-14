@@ -492,14 +492,12 @@ export class DataExportService {
         saleItemsCount += items.length;
       }
 
-      // Count bulk pricing data
+      // Count bulk pricing data - count individual tiers, not products with tiers
       let bulkPricingCount = 0;
       for (const product of products) {
         try {
           const bulkTiers = await this.db.getBulkPricingForProduct(product.id);
-          if (bulkTiers.length > 0) {
-            bulkPricingCount++;
-          }
+          bulkPricingCount += bulkTiers.length;
         } catch (error) {
           // Continue if bulk pricing fails for a product
         }
@@ -650,27 +648,20 @@ export class DataExportService {
       const customers = await this.db.getCustomers();
       const stockMovements = await this.db.getStockMovements({}, 1, 10000);
 
-      // Get bulk pricing
-      const bulkPricingData = await Promise.all(
-        products.map(async (product) => {
-          try {
-            const bulkTiers = await this.db.getBulkPricingForProduct(
-              product.id
-            );
-            return {
-              productId: product.id,
-              productName: product.name,
-              bulkTiers,
-            };
-          } catch (error) {
-            return {
-              productId: product.id,
-              productName: product.name,
-              bulkTiers: [],
-            };
-          }
-        })
-      );
+      // Get bulk pricing - flatten the structure for proper export/import compatibility
+      const bulkPricingData = [];
+      for (const product of products) {
+        try {
+          const bulkTiers = await this.db.getBulkPricingForProduct(product.id);
+          // Add each bulk pricing tier as a separate record
+          bulkPricingData.push(...bulkTiers);
+        } catch (error) {
+          console.warn(
+            `Error getting bulk pricing for product ${product.name}:`,
+            error
+          );
+        }
+      }
 
       this.updateProgress('Processing data...', 2, 4);
 
@@ -689,9 +680,7 @@ export class DataExportService {
         expenses,
         expenseCategories,
         stockMovements,
-        bulkPricing: bulkPricingData.filter(
-          (item) => item.bulkTiers.length > 0
-        ),
+        bulkPricing: bulkPricingData,
       };
 
       const validatedData = this.validateAllData(allData);

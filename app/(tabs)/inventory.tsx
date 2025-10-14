@@ -394,7 +394,7 @@ export default function Inventory() {
             <Text style={styles.title}>
               {currentTab?.label || t('inventory.title')}
             </Text>
-            <Text style={styles.subtitle}>{t('inventory.subtitle')}</Text>
+            {/* <Text style={styles.subtitle}>{t('inventory.subtitle')}</Text> */}
           </View>
 
           <TouchableOpacity
@@ -505,8 +505,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',

@@ -1978,7 +1978,7 @@ const styles = StyleSheet.create({
   compactSearchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     paddingVertical: 8,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
@@ -2192,10 +2192,10 @@ const styles = StyleSheet.create({
   },
   productsList: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
   },
   productsListContent: {
-    paddingBottom: 20,
+    paddingBottom: 10,
   },
   productCard: {
     marginBottom: 16,

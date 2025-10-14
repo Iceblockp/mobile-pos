@@ -50,6 +50,7 @@ import {
   Share as ShareIcon,
   Image as ImageIcon,
   Printer,
+  List,
 } from 'lucide-react-native';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -502,7 +503,7 @@ export default function Sales() {
             style={styles.historyButton}
             onPress={() => setShowHistory(true)}
           >
-            <History size={20} color="#6B7280" />
+            <List size={20} color="#6B7280" />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.scanButton}
@@ -2639,8 +2640,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
@@ -2682,7 +2683,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 10,
   },
   cartCard: {
     flex: 1,

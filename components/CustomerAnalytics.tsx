@@ -97,7 +97,7 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({
 
   return (
     <View style={styles.container}>
-      <View style={{ padding: 16 }}>
+      <View style={{ padding: 10 }}>
         {/* Date Filter Component */}
         <DateFilterComponent
           dateFilter={dateFilter}
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
 
   content: {
     flex: 1,
-    padding: 16,
+    padding: 10,
   },
   summaryCard: {
     backgroundColor: '#FFFFFF',
