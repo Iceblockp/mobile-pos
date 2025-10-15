@@ -371,7 +371,7 @@ export default function Analytics() {
 
           {/* Key Metrics */}
           <View style={styles.metricsGrid}>
-            {/* Total Revenue */}
+            {/* Total Sale Value */}
             <Card style={styles.metricCard}>
               <View style={styles.metricContent}>
                 <View
@@ -383,9 +383,7 @@ export default function Analytics() {
                   <Text style={styles.metricValue}>
                     {formatPrice(analytics?.totalRevenue || 0)}
                   </Text>
-                  <Text style={styles.metricLabel}>
-                    {t('analytics.totalRevenue')}
-                  </Text>
+                  <Text style={styles.metricLabel}>Total Sale Value</Text>
                 </View>
               </View>
             </Card>
@@ -405,6 +403,45 @@ export default function Analytics() {
                   <Text style={styles.metricLabel}>
                     {t('analytics.totalExpenses')}
                   </Text>
+                </View>
+              </View>
+            </Card>
+
+            {/* Total Balance */}
+            <Card style={styles.metricCard}>
+              <View style={styles.metricContent}>
+                <View
+                  style={[styles.metricIcon, { backgroundColor: '#3B82F6' }]}
+                >
+                  <Target size={18} color="#FFFFFF" />
+                </View>
+                <View style={styles.metricText}>
+                  <Text
+                    style={[
+                      styles.metricValue,
+                      (analytics?.netProfit || 0) < 0 && styles.negativeValue,
+                    ]}
+                  >
+                    {formatPrice(analytics?.netProfit || 0)}
+                  </Text>
+                  <Text style={styles.metricLabel}>Total Balance</Text>
+                </View>
+              </View>
+            </Card>
+
+            {/* Total Sale Profit */}
+            <Card style={styles.metricCard}>
+              <View style={styles.metricContent}>
+                <View
+                  style={[styles.metricIcon, { backgroundColor: '#10B981' }]}
+                >
+                  <TrendingUp size={18} color="#FFFFFF" />
+                </View>
+                <View style={styles.metricText}>
+                  <Text style={styles.metricValue}>
+                    {formatPrice(analytics?.totalProfit || 0)}
+                  </Text>
+                  <Text style={styles.metricLabel}>Total Sale Profit</Text>
                 </View>
               </View>
             </Card>
@@ -433,21 +470,19 @@ export default function Analytics() {
               </View>
             </Card>
 
-            {/* Total Sale Profit */}
+            {/* Total Sale Count */}
             <Card style={styles.metricCard}>
               <View style={styles.metricContent}>
                 <View
-                  style={[styles.metricIcon, { backgroundColor: '#10B981' }]}
+                  style={[styles.metricIcon, { backgroundColor: '#F59E0B' }]}
                 >
-                  <TrendingUp size={18} color="#FFFFFF" />
+                  <BarChart3 size={18} color="#FFFFFF" />
                 </View>
                 <View style={styles.metricText}>
                   <Text style={styles.metricValue}>
-                    {formatPrice(analytics?.totalProfit || 0)}
+                    {analytics?.totalSales || 0}
                   </Text>
-                  <Text style={styles.metricLabel}>
-                    {t('analytics.totalProfit')}
-                  </Text>
+                  <Text style={styles.metricLabel}>Total Sale Count</Text>
                 </View>
               </View>
             </Card>
