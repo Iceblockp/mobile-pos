@@ -36,7 +36,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from '@/context/LocalizationContext';
 
-type FilterMode = 'day' | 'month' | 'range';
+type FilterMode = 'day' | 'month' | 'year';
 type AnalyticsTab = 'overview' | 'customers' | 'ai-analytics';
 
 interface DateFilter {
@@ -116,7 +116,14 @@ export default function Analytics() {
         999
       );
       return { startDate: startOfMonth, endDate: endOfMonth, limit: 100 };
+    } else if (dateFilter.mode === 'year') {
+      const startOfYear = new Date(dateFilter.selectedYear, 0, 1);
+      startOfYear.setHours(0, 0, 0, 0);
+      const endOfYear = new Date(dateFilter.selectedYear, 11, 31);
+      endOfYear.setHours(23, 59, 59, 999);
+      return { startDate: startOfYear, endDate: endOfYear, limit: 500 };
     } else {
+      // Fallback for any other mode
       return {
         startDate: dateFilter.startDate,
         endDate: dateFilter.endDate,
@@ -198,17 +205,13 @@ export default function Analytics() {
         return `${monthNames[dateFilter.selectedMonth]} ${
           dateFilter.selectedYear
         }`;
-      case 'range':
-        const start = dateFilter.startDate.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-        });
-        const end = dateFilter.endDate.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        });
-        return `${start} - ${end}`;
+      case 'year':
+        const isCurrentYear =
+          dateFilter.selectedYear === new Date().getFullYear();
+        if (isCurrentYear) {
+          return 'This Year';
+        }
+        return dateFilter.selectedYear.toString();
       default:
         return t('analytics.selectPeriod');
     }
@@ -229,6 +232,9 @@ export default function Analytics() {
         dateFilter.selectedMonth + 1,
         0
       );
+    } else if (dateFilter.mode === 'year') {
+      startDate = new Date(dateFilter.selectedYear, 0, 1);
+      endDate = new Date(dateFilter.selectedYear, 11, 31);
     } else {
       startDate = dateFilter.startDate;
       endDate = dateFilter.endDate;
@@ -363,11 +369,13 @@ export default function Analytics() {
           {/* Period Statistics */}
           <View style={styles.periodStats}>
             <Text style={styles.periodStatsText}>
-              {getDaysInPeriod()}{' '}
-              {getDaysInPeriod() === 1
-                ? t('analytics.day')
-                : t('analytics.days')}{' '}
-              • {analytics?.totalSales || 0} sales
+              {dateFilter.mode === 'year'
+                ? `12 months • ${analytics?.totalSales || 0} sales`
+                : `${getDaysInPeriod()} ${
+                    getDaysInPeriod() === 1
+                      ? t('analytics.day')
+                      : t('analytics.days')
+                  } • ${analytics?.totalSales || 0} sales`}
             </Text>
           </View>
 

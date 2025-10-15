@@ -48,6 +48,13 @@ export default function DailySalesChart({
         // Fallback for simple hour format
         return dateStr;
       }
+    } else if (days > 300) {
+      // Monthly format for year view - dateStr is like "2024-01"
+      const [year, month] = dateStr.split('-').map(Number);
+      const date = new Date(year, month - 1, 1);
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+      });
     } else if (days <= 31) {
       // Daily format - dateStr is like "2024-01-15"
       const [year, month, day] = dateStr.split('-').map(Number);
@@ -121,6 +128,15 @@ export default function DailySalesChart({
       ])
     );
 
+    // Debug: Log data for year view
+    if (days > 300) {
+      console.log('DailySalesChart - Year view data:', revenueData);
+      console.log(
+        'DailySalesChart - DataMap keys:',
+        Array.from(dataMap.keys())
+      );
+    }
+
     if (days <= 1) {
       // Hourly intervals for single day - use local timezone
       for (let hour = 0; hour < 24; hour++) {
@@ -141,8 +157,24 @@ export default function DailySalesChart({
         completeLabels.push(formatDate(hourKey));
         completeData.push(dataMap.get(hourKey)?.revenue || 0);
       }
+    } else if (days > 300) {
+      // Monthly intervals for year view
+      for (let month = 0; month < 12; month++) {
+        const monthDate = new Date(startDate.getFullYear(), month, 1);
+        const monthKey = `${monthDate.getFullYear()}-${String(
+          month + 1
+        ).padStart(2, '0')}`;
+
+        console.log(
+          `DailySalesChart - Looking for key: ${monthKey}, found value:`,
+          dataMap.get(monthKey)?.revenue || 0
+        );
+
+        completeLabels.push(formatDate(monthKey));
+        completeData.push(dataMap.get(monthKey)?.revenue || 0);
+      }
     } else {
-      // Daily intervals for week/month view
+      // Daily intervals for month view
       const currentDate = new Date(
         startDate.getFullYear(),
         startDate.getMonth(),

@@ -12,7 +12,7 @@ import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from '@/context/LocalizationContext';
 
-type FilterMode = 'day' | 'month' | 'range';
+type FilterMode = 'day' | 'month' | 'year';
 
 export interface DateFilter {
   mode: FilterMode;
@@ -36,25 +36,18 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
 }) => {
   const { t } = useTranslation();
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<FilterMode>('day');
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [tempStartDate, setTempStartDate] = useState(new Date());
-  const [tempEndDate, setTempEndDate] = useState(new Date());
-  const [datePickerMode, setDatePickerMode] = useState<'start' | 'end'>(
-    'start'
-  );
+  const [tempDate, setTempDate] = useState(new Date());
 
   const getFilterDisplayText = () => {
-    const {
-      mode,
-      selectedDate,
-      selectedMonth,
-      selectedYear,
-      startDate,
-      endDate,
-    } = dateFilter;
+    const { mode, selectedDate, selectedMonth, selectedYear } = dateFilter;
 
     switch (mode) {
       case 'day':
+        const isToday =
+          selectedDate.toDateString() === new Date().toDateString();
+        if (isToday) return 'Today';
         return selectedDate.toLocaleDateString('en-US', {
           weekday: 'short',
           month: 'short',
@@ -75,120 +68,57 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
           'November',
           'December',
         ];
+        const isCurrentMonth =
+          selectedMonth === new Date().getMonth() &&
+          selectedYear === new Date().getFullYear();
+        if (isCurrentMonth) return 'This Month';
         return `${monthNames[selectedMonth]} ${selectedYear}`;
-      case 'range':
-        const start = startDate.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-        });
-        const end = endDate.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-        });
-        return `${start} - ${end}`;
+      case 'year':
+        const isCurrentYear = selectedYear === new Date().getFullYear();
+        if (isCurrentYear) return 'This Year';
+        return selectedYear.toString();
       default:
         return '';
     }
   };
 
-  const isCurrentWeek = () => {
-    if (dateFilter.mode !== 'range') return false;
+  const navigateDate = (direction: 'prev' | 'next') => {
+    const { mode } = dateFilter;
 
-    const today = new Date();
-    const weekStart = new Date(today);
-    const dayOfWeek = today.getDay();
-    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    weekStart.setDate(today.getDate() - daysToMonday);
-    weekStart.setHours(0, 0, 0, 0);
+    if (mode === 'day') {
+      const newDate = new Date(dateFilter.selectedDate);
+      newDate.setDate(newDate.getDate() + (direction === 'next' ? 1 : -1));
+      onDateFilterChange({ ...dateFilter, selectedDate: newDate });
+    } else if (mode === 'month') {
+      let newMonth = dateFilter.selectedMonth;
+      let newYear = dateFilter.selectedYear;
 
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-    weekEnd.setHours(23, 59, 59, 999);
-
-    const filterStart = new Date(dateFilter.startDate);
-    filterStart.setHours(0, 0, 0, 0);
-    const filterEnd = new Date(dateFilter.endDate);
-    filterEnd.setHours(0, 0, 0, 0);
-
-    return (
-      filterStart.getTime() === weekStart.getTime() &&
-      filterEnd.getTime() === weekEnd.getTime()
-    );
-  };
-
-  const navigateDay = (direction: 'prev' | 'next') => {
-    const newDate = new Date(dateFilter.selectedDate);
-    newDate.setDate(newDate.getDate() + (direction === 'next' ? 1 : -1));
-
-    onDateFilterChange({
-      ...dateFilter,
-      selectedDate: newDate,
-    });
-  };
-
-  const navigateMonth = (direction: 'prev' | 'next') => {
-    let newMonth = dateFilter.selectedMonth;
-    let newYear = dateFilter.selectedYear;
-
-    if (direction === 'next') {
-      newMonth += 1;
-      if (newMonth > 11) {
-        newMonth = 0;
-        newYear += 1;
+      if (direction === 'next') {
+        newMonth += 1;
+        if (newMonth > 11) {
+          newMonth = 0;
+          newYear += 1;
+        }
+      } else {
+        newMonth -= 1;
+        if (newMonth < 0) {
+          newMonth = 11;
+          newYear -= 1;
+        }
       }
-    } else {
-      newMonth -= 1;
-      if (newMonth < 0) {
-        newMonth = 11;
-        newYear -= 1;
-      }
+
+      onDateFilterChange({
+        ...dateFilter,
+        selectedMonth: newMonth,
+        selectedYear: newYear,
+      });
+    } else if (mode === 'year') {
+      const newYear = dateFilter.selectedYear + (direction === 'next' ? 1 : -1);
+      onDateFilterChange({ ...dateFilter, selectedYear: newYear });
     }
-
-    onDateFilterChange({
-      ...dateFilter,
-      selectedMonth: newMonth,
-      selectedYear: newYear,
-    });
   };
 
-  const navigateWeek = (direction: 'prev' | 'next') => {
-    const currentStart = new Date(dateFilter.startDate);
-    const currentEnd = new Date(dateFilter.endDate);
-
-    const startDateOnly = new Date(
-      currentStart.getFullYear(),
-      currentStart.getMonth(),
-      currentStart.getDate()
-    );
-    const endDateOnly = new Date(
-      currentEnd.getFullYear(),
-      currentEnd.getMonth(),
-      currentEnd.getDate()
-    );
-    const rangeDays =
-      Math.ceil(
-        (endDateOnly.getTime() - startDateOnly.getTime()) /
-          (1000 * 60 * 60 * 24)
-      ) + 1;
-
-    const daysToMove = direction === 'next' ? rangeDays : -rangeDays;
-
-    const newStart = new Date(currentStart);
-    newStart.setDate(currentStart.getDate() + daysToMove);
-    newStart.setHours(0, 0, 0, 0);
-
-    const newEnd = new Date(currentEnd);
-    newEnd.setDate(currentEnd.getDate() + daysToMove);
-    newEnd.setHours(23, 59, 59, 999);
-
-    onDateFilterChange({
-      ...dateFilter,
-      startDate: newStart,
-      endDate: newEnd,
-    });
-  };
-
-  const handleQuickFilter = (mode: FilterMode, value?: any) => {
+  const handleQuickFilter = (mode: FilterMode, value?: string) => {
     const today = new Date();
 
     switch (mode) {
@@ -230,51 +160,18 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
           });
         }
         break;
-      case 'range':
-        if (value === 'week') {
-          const weekStart = new Date(today);
-          const dayOfWeek = today.getDay();
-          const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-          weekStart.setDate(today.getDate() - daysToMonday);
-          weekStart.setHours(0, 0, 0, 0);
-
-          const weekEnd = new Date(weekStart);
-          weekEnd.setDate(weekStart.getDate() + 6);
-          weekEnd.setHours(23, 59, 59, 999);
-
+      case 'year':
+        if (value === 'current') {
           onDateFilterChange({
             ...dateFilter,
-            mode: 'range',
-            startDate: weekStart,
-            endDate: weekEnd,
+            mode: 'year',
+            selectedYear: today.getFullYear(),
           });
-        } else if (value === 'last7days') {
-          const weekStart = new Date(today);
-          weekStart.setDate(today.getDate() - 6);
-          weekStart.setHours(0, 0, 0, 0);
-
-          const weekEnd = new Date(today);
-          weekEnd.setHours(23, 59, 59, 999);
-
+        } else if (value === 'previous') {
           onDateFilterChange({
             ...dateFilter,
-            mode: 'range',
-            startDate: weekStart,
-            endDate: weekEnd,
-          });
-        } else if (value === 'month') {
-          const monthStart = new Date(today);
-          monthStart.setDate(today.getDate() - 29);
-          monthStart.setHours(0, 0, 0, 0);
-
-          const monthEnd = new Date(today);
-          monthEnd.setHours(23, 59, 59, 999);
-
-          onDateFilterChange({
-            ...dateFilter,
-            mode: 'range',
-            startDate: monthStart,
-            endDate: monthEnd,
+            mode: 'year',
+            selectedYear: today.getFullYear() - 1,
           });
         }
         break;
@@ -282,86 +179,33 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
     setShowFilterModal(false);
   };
 
-  const getDaysInRange = () => {
-    if (dateFilter.mode !== 'range') return 0;
-
-    const startDateOnly = new Date(
-      dateFilter.startDate.getFullYear(),
-      dateFilter.startDate.getMonth(),
-      dateFilter.startDate.getDate()
-    );
-    const endDateOnly = new Date(
-      dateFilter.endDate.getFullYear(),
-      dateFilter.endDate.getMonth(),
-      dateFilter.endDate.getDate()
-    );
-
-    const diffTime = Math.abs(endDateOnly.getTime() - startDateOnly.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    return diffDays + 1;
-  };
-
-  const handleNavigation = () => {
-    switch (dateFilter.mode) {
-      case 'day':
-        return {
-          prev: () => navigateDay('prev'),
-          next: () => navigateDay('next'),
-        };
-      case 'month':
-        return {
-          prev: () => navigateMonth('prev'),
-          next: () => navigateMonth('next'),
-        };
-      case 'range':
-        return {
-          prev: () => navigateWeek('prev'),
-          next: () => navigateWeek('next'),
-        };
-      default:
-        return { prev: () => {}, next: () => {} };
-    }
-  };
-
-  const navigation = handleNavigation();
-
   return (
-    <View style={[styles.compactPeriodSelector, containerStyle]}>
-      {/* Period Row */}
-      <View style={styles.periodRow}>
+    <View style={[styles.container, containerStyle]}>
+      {/* Header Row */}
+      <View style={styles.headerRow}>
         <View style={styles.periodInfo}>
           <Text style={styles.periodLabel}>Period</Text>
-          <View style={styles.periodValue}>
-            <Text style={styles.periodValueText}>{getFilterDisplayText()}</Text>
-            {dateFilter.mode === 'range' && (
-              <View style={styles.periodStats}>
-                <Text style={styles.periodStatsText}>
-                  {getDaysInRange()} days
-                </Text>
-              </View>
-            )}
-          </View>
+          <Text style={styles.periodValue}>{getFilterDisplayText()}</Text>
         </View>
 
-        <View style={styles.periodActions}>
+        <View style={styles.actions}>
           <TouchableOpacity
-            style={styles.compactNavButton}
-            onPress={navigation.prev}
+            style={styles.navButton}
+            onPress={() => navigateDate('prev')}
           >
             <ChevronLeft size={16} color="#6B7280" />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.compactFilterButton}
+            style={styles.filterButton}
             onPress={() => setShowFilterModal(true)}
           >
             <Calendar size={16} color="#059669" />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.compactNavButton}
-            onPress={navigation.next}
+            style={styles.navButton}
+            onPress={() => navigateDate('next')}
           >
             <ChevronRight size={16} color="#6B7280" />
           </TouchableOpacity>
@@ -369,24 +213,24 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
       </View>
 
       {/* Quick Filters */}
-      <View style={styles.compactQuickFilters}>
+      <View style={styles.quickFilters}>
         <TouchableOpacity
           style={[
-            styles.compactFilterChip,
+            styles.quickFilterChip,
             dateFilter.mode === 'day' &&
               dateFilter.selectedDate.toDateString() ===
                 new Date().toDateString() &&
-              styles.compactFilterChipActive,
+              styles.quickFilterChipActive,
           ]}
           onPress={() => handleQuickFilter('day', 'today')}
         >
           <Text
             style={[
-              styles.compactFilterText,
+              styles.quickFilterText,
               dateFilter.mode === 'day' &&
                 dateFilter.selectedDate.toDateString() ===
                   new Date().toDateString() &&
-                styles.compactFilterTextActive,
+                styles.quickFilterTextActive,
             ]}
           >
             Today
@@ -395,21 +239,21 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
 
         <TouchableOpacity
           style={[
-            styles.compactFilterChip,
+            styles.quickFilterChip,
             dateFilter.mode === 'month' &&
               dateFilter.selectedMonth === new Date().getMonth() &&
               dateFilter.selectedYear === new Date().getFullYear() &&
-              styles.compactFilterChipActive,
+              styles.quickFilterChipActive,
           ]}
           onPress={() => handleQuickFilter('month', 'current')}
         >
           <Text
             style={[
-              styles.compactFilterText,
+              styles.quickFilterText,
               dateFilter.mode === 'month' &&
                 dateFilter.selectedMonth === new Date().getMonth() &&
                 dateFilter.selectedYear === new Date().getFullYear() &&
-                styles.compactFilterTextActive,
+                styles.quickFilterTextActive,
             ]}
           >
             This Month
@@ -418,18 +262,22 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
 
         <TouchableOpacity
           style={[
-            styles.compactFilterChip,
-            isCurrentWeek() && styles.compactFilterChipActive,
+            styles.quickFilterChip,
+            dateFilter.mode === 'year' &&
+              dateFilter.selectedYear === new Date().getFullYear() &&
+              styles.quickFilterChipActive,
           ]}
-          onPress={() => handleQuickFilter('range', 'week')}
+          onPress={() => handleQuickFilter('year', 'current')}
         >
           <Text
             style={[
-              styles.compactFilterText,
-              isCurrentWeek() && styles.compactFilterTextActive,
+              styles.quickFilterText,
+              dateFilter.mode === 'year' &&
+                dateFilter.selectedYear === new Date().getFullYear() &&
+                styles.quickFilterTextActive,
             ]}
           >
-            This Week
+            This Year
           </Text>
         </TouchableOpacity>
       </View>
@@ -442,102 +290,144 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Date Filter</Text>
+            <Text style={styles.modalTitle}>Select Period</Text>
             <TouchableOpacity onPress={() => setShowFilterModal(false)}>
               <Text style={styles.modalClose}>Done</Text>
             </TouchableOpacity>
           </View>
 
+          {/* Tabs */}
+          <View style={styles.tabContainer}>
+            {(['day', 'month', 'year'] as FilterMode[]).map((tab) => (
+              <TouchableOpacity
+                key={tab}
+                style={[styles.tab, activeTab === tab && styles.activeTab]}
+                onPress={() => setActiveTab(tab)}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === tab && styles.activeTabText,
+                  ]}
+                >
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           <ScrollView style={styles.modalContent}>
-            {/* Day Section */}
-            <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Day</Text>
-              <Text style={styles.filterSectionDesc}>
-                View analytics for a specific day
-              </Text>
-              <View style={styles.filterOptions}>
-                <TouchableOpacity
-                  style={styles.filterOption}
-                  onPress={() => handleQuickFilter('day', 'today')}
-                >
-                  <Text style={styles.filterOptionText}>Today</Text>
-                  <Text style={styles.filterOptionDate}>
-                    {new Date().toLocaleDateString()}
-                  </Text>
-                </TouchableOpacity>
+            {/* Day Tab */}
+            {activeTab === 'day' && (
+              <View style={styles.tabContent}>
+                <View style={styles.quickOptions}>
+                  <TouchableOpacity
+                    style={styles.quickOption}
+                    onPress={() => handleQuickFilter('day', 'today')}
+                  >
+                    <Text style={styles.quickOptionText}>Today</Text>
+                    <Text style={styles.quickOptionDate}>
+                      {new Date().toLocaleDateString()}
+                    </Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={styles.filterOption}
-                  onPress={() => handleQuickFilter('day', 'yesterday')}
-                >
-                  <Text style={styles.filterOptionText}>Yesterday</Text>
-                  <Text style={styles.filterOptionDate}>
-                    {new Date(Date.now() - 86400000).toLocaleDateString()}
-                  </Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.quickOption}
+                    onPress={() => handleQuickFilter('day', 'yesterday')}
+                  >
+                    <Text style={styles.quickOptionText}>Yesterday</Text>
+                    <Text style={styles.quickOptionDate}>
+                      {new Date(Date.now() - 86400000).toLocaleDateString()}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
 
+                <Text style={styles.sectionTitle}>Custom Date</Text>
                 <TouchableOpacity
-                  style={styles.filterOption}
+                  style={styles.customDateButton}
                   onPress={() => {
-                    setDatePickerMode('start');
-                    setTempStartDate(dateFilter.selectedDate);
+                    setTempDate(dateFilter.selectedDate);
                     setShowDatePicker(true);
                   }}
                 >
-                  <Text style={styles.filterOptionText}>Custom Date</Text>
-                  <Text style={styles.filterOptionDate}>Pick a date</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Month Section */}
-            <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Month</Text>
-              <Text style={styles.filterSectionDesc}>
-                View analytics for an entire month
-              </Text>
-              <View style={styles.filterOptions}>
-                <TouchableOpacity
-                  style={styles.filterOption}
-                  onPress={() => handleQuickFilter('month', 'current')}
-                >
-                  <Text style={styles.filterOptionText}>This Month</Text>
-                  <Text style={styles.filterOptionDate}>
-                    {new Date().toLocaleDateString('en-US', {
-                      month: 'long',
-                      year: 'numeric',
-                    })}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.filterOption}
-                  onPress={() => handleQuickFilter('month', 'previous')}
-                >
-                  <Text style={styles.filterOptionText}>Last Month</Text>
-                  <Text style={styles.filterOptionDate}>
-                    {new Date(
-                      new Date().getFullYear(),
-                      new Date().getMonth() - 1
-                    ).toLocaleDateString('en-US', {
-                      month: 'long',
-                      year: 'numeric',
-                    })}
+                  <Calendar size={20} color="#059669" />
+                  <Text style={styles.customDateText}>
+                    Pick a specific date
                   </Text>
                 </TouchableOpacity>
               </View>
+            )}
 
-              {/* Month/Year Selector */}
-              <View style={styles.monthYearSelector}>
-                <Text style={styles.monthYearLabel}>Custom Month & Year</Text>
-                <View style={styles.monthYearControls}>
-                  <View style={styles.monthSelector}>
-                    <Text style={styles.selectorLabel}>Month</Text>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      style={styles.monthScroll}
-                    >
+            {/* Month Tab */}
+            {activeTab === 'month' && (
+              <View style={styles.tabContent}>
+                <View style={styles.quickOptions}>
+                  <TouchableOpacity
+                    style={styles.quickOption}
+                    onPress={() => handleQuickFilter('month', 'current')}
+                  >
+                    <Text style={styles.quickOptionText}>This Month</Text>
+                    <Text style={styles.quickOptionDate}>
+                      {new Date().toLocaleDateString('en-US', {
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.quickOption}
+                    onPress={() => handleQuickFilter('month', 'previous')}
+                  >
+                    <Text style={styles.quickOptionText}>Last Month</Text>
+                    <Text style={styles.quickOptionDate}>
+                      {new Date(
+                        new Date().getFullYear(),
+                        new Date().getMonth() - 1
+                      ).toLocaleDateString('en-US', {
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.sectionTitle}>Custom Month & Year</Text>
+                <View style={styles.monthYearPicker}>
+                  <View style={styles.yearPicker}>
+                    <Text style={styles.pickerLabel}>Year</Text>
+                    <View style={styles.yearControls}>
+                      <TouchableOpacity
+                        style={styles.yearButton}
+                        onPress={() =>
+                          onDateFilterChange({
+                            ...dateFilter,
+                            selectedYear: dateFilter.selectedYear - 1,
+                          })
+                        }
+                      >
+                        <ChevronLeft size={16} color="#6B7280" />
+                      </TouchableOpacity>
+                      <Text style={styles.yearText}>
+                        {dateFilter.selectedYear}
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.yearButton}
+                        onPress={() =>
+                          onDateFilterChange({
+                            ...dateFilter,
+                            selectedYear: dateFilter.selectedYear + 1,
+                          })
+                        }
+                      >
+                        <ChevronRight size={16} color="#6B7280" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={styles.monthGrid}>
+                    <Text style={styles.pickerLabel}>Month</Text>
+                    <View style={styles.monthButtons}>
                       {[
                         'Jan',
                         'Feb',
@@ -555,9 +445,9 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                         <TouchableOpacity
                           key={month}
                           style={[
-                            styles.monthChip,
+                            styles.monthButton,
                             dateFilter.selectedMonth === index &&
-                              styles.monthChipActive,
+                              styles.monthButtonActive,
                           ]}
                           onPress={() => {
                             onDateFilterChange({
@@ -569,161 +459,186 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                         >
                           <Text
                             style={[
-                              styles.monthChipText,
+                              styles.monthButtonText,
                               dateFilter.selectedMonth === index &&
-                                styles.monthChipTextActive,
+                                styles.monthButtonTextActive,
                             ]}
                           >
                             {month}
                           </Text>
                         </TouchableOpacity>
                       ))}
-                    </ScrollView>
-                  </View>
-
-                  <View style={styles.yearSelector}>
-                    <Text style={styles.selectorLabel}>Year</Text>
-                    <View style={styles.yearControls}>
-                      <TouchableOpacity
-                        style={styles.yearButton}
-                        onPress={() => {
-                          onDateFilterChange({
-                            ...dateFilter,
-                            selectedYear: dateFilter.selectedYear - 1,
-                          });
-                        }}
-                      >
-                        <ChevronLeft size={16} color="#6B7280" />
-                      </TouchableOpacity>
-
-                      <Text style={styles.yearText}>
-                        {dateFilter.selectedYear}
-                      </Text>
-
-                      <TouchableOpacity
-                        style={styles.yearButton}
-                        onPress={() => {
-                          onDateFilterChange({
-                            ...dateFilter,
-                            selectedYear: dateFilter.selectedYear + 1,
-                          });
-                        }}
-                      >
-                        <ChevronRight size={16} color="#6B7280" />
-                      </TouchableOpacity>
                     </View>
                   </View>
                 </View>
               </View>
-            </View>
+            )}
 
-            {/* Range Section */}
-            <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Range</Text>
-              <Text style={styles.filterSectionDesc}>
-                View analytics for a custom date range
-              </Text>
-              <View style={styles.filterOptions}>
-                <TouchableOpacity
-                  style={styles.filterOption}
-                  onPress={() => handleQuickFilter('range', 'week')}
-                >
-                  <Text style={styles.filterOptionText}>This Week</Text>
-                  <Text style={styles.filterOptionDate}>Monday - Sunday</Text>
-                </TouchableOpacity>
+            {/* Year Tab */}
+            {activeTab === 'year' && (
+              <View style={styles.tabContent}>
+                <View style={styles.quickOptions}>
+                  <TouchableOpacity
+                    style={styles.quickOption}
+                    onPress={() => handleQuickFilter('year', 'current')}
+                  >
+                    <Text style={styles.quickOptionText}>This Year</Text>
+                    <Text style={styles.quickOptionDate}>
+                      {new Date().getFullYear()}
+                    </Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={styles.filterOption}
-                  onPress={() => handleQuickFilter('range', 'last7days')}
-                >
-                  <Text style={styles.filterOptionText}>Last 7 Days</Text>
-                  <Text style={styles.filterOptionDate}>Including today</Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.quickOption}
+                    onPress={() => handleQuickFilter('year', 'previous')}
+                  >
+                    <Text style={styles.quickOptionText}>Last Year</Text>
+                    <Text style={styles.quickOptionDate}>
+                      {new Date().getFullYear() - 1}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
 
-                <TouchableOpacity
-                  style={styles.filterOption}
-                  onPress={() => handleQuickFilter('range', 'month')}
-                >
-                  <Text style={styles.filterOptionText}>Last 30 Days</Text>
-                  <Text style={styles.filterOptionDate}>Including today</Text>
-                </TouchableOpacity>
+                <Text style={styles.sectionTitle}>Custom Year</Text>
+                <View style={styles.yearSelector}>
+                  <TouchableOpacity
+                    style={styles.yearNavButton}
+                    onPress={() =>
+                      onDateFilterChange({
+                        ...dateFilter,
+                        selectedYear: dateFilter.selectedYear - 1,
+                      })
+                    }
+                  >
+                    <ChevronLeft size={20} color="#6B7280" />
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={styles.filterOption}
-                  onPress={() => {
-                    setDatePickerMode('start');
-                    setTempStartDate(dateFilter.startDate);
-                    setTempEndDate(dateFilter.endDate);
-                    setShowDatePicker(true);
-                  }}
-                >
-                  <Text style={styles.filterOptionText}>Custom Range</Text>
-                  <Text style={styles.filterOptionDate}>
-                    Pick start & end dates
-                  </Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.yearDisplay}
+                    onPress={() => {
+                      onDateFilterChange({ ...dateFilter, mode: 'year' });
+                      setShowFilterModal(false);
+                    }}
+                  >
+                    <Text style={styles.yearDisplayText}>
+                      {dateFilter.selectedYear}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.yearNavButton}
+                    onPress={() =>
+                      onDateFilterChange({
+                        ...dateFilter,
+                        selectedYear: dateFilter.selectedYear + 1,
+                      })
+                    }
+                  >
+                    <ChevronRight size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.yearGrid}>
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const year = dateFilter.selectedYear - 5 + i;
+                    return (
+                      <TouchableOpacity
+                        key={year}
+                        style={[
+                          styles.yearGridButton,
+                          dateFilter.selectedYear === year &&
+                            styles.yearGridButtonActive,
+                        ]}
+                        onPress={() => {
+                          onDateFilterChange({
+                            ...dateFilter,
+                            mode: 'year',
+                            selectedYear: year,
+                          });
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.yearGridButtonText,
+                            dateFilter.selectedYear === year &&
+                              styles.yearGridButtonTextActive,
+                          ]}
+                        >
+                          {year}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
-            </View>
+            )}
           </ScrollView>
         </View>
-      </Modal>
-
-      {/* Date Picker */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={datePickerMode === 'start' ? tempStartDate : tempEndDate}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={(event, selectedDate) => {
-            if (Platform.OS === 'android') {
+        {/* Date Picker for iOS */}
+        {showDatePicker && Platform.OS === 'ios' && (
+          <Modal
+            visible={showDatePicker}
+            animationType="slide"
+            presentationStyle="pageSheet"
+          >
+            <View style={styles.datePickerModal}>
+              <View style={styles.datePickerHeader}>
+                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                  <Text style={styles.datePickerCancel}>Cancel</Text>
+                </TouchableOpacity>
+                <Text style={styles.datePickerTitle}>Select Date</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    onDateFilterChange({
+                      ...dateFilter,
+                      mode: 'day',
+                      selectedDate: tempDate,
+                    });
+                    setShowDatePicker(false);
+                    setShowFilterModal(false);
+                  }}
+                >
+                  <Text style={styles.datePickerDone}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.datePickerContent}>
+                <DateTimePicker
+                  value={tempDate}
+                  mode="date"
+                  display="spinner"
+                  onChange={(event, selectedDate) => {
+                    if (selectedDate) setTempDate(selectedDate);
+                  }}
+                />
+              </View>
+            </View>
+          </Modal>
+        )}
+        {/* Date Picker for Android */}
+        {showDatePicker && Platform.OS === 'android' && (
+          <DateTimePicker
+            value={tempDate}
+            mode="date"
+            display="default"
+            onChange={(event, selectedDate) => {
               setShowDatePicker(false);
-            }
-
-            if (selectedDate) {
-              if (dateFilter.mode === 'day') {
+              if (selectedDate) {
                 onDateFilterChange({
                   ...dateFilter,
+                  mode: 'day',
                   selectedDate,
                 });
-              } else if (dateFilter.mode === 'range') {
-                if (datePickerMode === 'start') {
-                  setTempStartDate(selectedDate);
-                  setDatePickerMode('end');
-                  if (Platform.OS === 'android') {
-                    setShowDatePicker(true);
-                  }
-                } else {
-                  const startDate = new Date(tempStartDate);
-                  startDate.setHours(0, 0, 0, 0);
-                  const endDate = new Date(selectedDate);
-                  endDate.setHours(23, 59, 59, 999);
-
-                  onDateFilterChange({
-                    ...dateFilter,
-                    mode: 'range',
-                    startDate,
-                    endDate,
-                  });
-
-                  if (Platform.OS === 'ios') {
-                    setShowDatePicker(false);
-                  }
-                }
+                setShowFilterModal(false);
               }
-            }
-
-            if (Platform.OS === 'ios' && dateFilter.mode === 'day') {
-              setShowDatePicker(false);
-            }
-          }}
-        />
-      )}
+            }}
+          />
+        )}
+      </Modal>
     </View>
   );
 };
-
 const styles = StyleSheet.create({
-  compactPeriodSelector: {
+  container: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
@@ -734,7 +649,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  periodRow: {
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -750,21 +665,16 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   periodValue: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  periodValueText: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
     color: '#111827',
-    marginRight: 6,
   },
-  periodActions: {
+  actions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  compactNavButton: {
+  navButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -774,7 +684,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
-  compactFilterButton: {
+  filterButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -784,13 +694,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#BBF7D0',
   },
-  compactQuickFilters: {
+  quickFilters: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     flexWrap: 'wrap',
   },
-  compactFilterChip: {
+  quickFilterChip: {
     backgroundColor: '#F3F4F6',
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -798,25 +708,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
-  compactFilterChipActive: {
+  quickFilterChipActive: {
     backgroundColor: '#059669',
     borderColor: '#059669',
   },
-  compactFilterText: {
+  quickFilterText: {
     fontSize: 12,
     fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
-  compactFilterTextActive: {
+  quickFilterTextActive: {
     color: '#FFFFFF',
-  },
-  periodStats: {
-    marginLeft: 'auto',
-  },
-  periodStatsText: {
-    fontSize: 11,
-    color: '#9CA3AF',
-    fontWeight: '500',
   },
   modalContainer: {
     flex: 1,
@@ -842,29 +744,47 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     color: '#059669',
   },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 12,
+    padding: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  activeTab: {
+    backgroundColor: '#059669',
+  },
+  tabText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  activeTabText: {
+    color: '#FFFFFF',
+  },
   modalContent: {
     flex: 1,
     padding: 20,
   },
-  filterSection: {
-    marginBottom: 32,
+  tabContent: {
+    gap: 24,
   },
-  filterSectionTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  filterSectionDesc: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    marginBottom: 16,
-  },
-  filterOptions: {
+  quickOptions: {
     gap: 12,
   },
-  filterOption: {
+  quickOption: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -874,64 +794,52 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
-  filterOptionText: {
+  quickOptionText: {
     fontSize: 16,
     fontFamily: 'Inter-Medium',
     color: '#111827',
   },
-  filterOptionDate: {
+  quickOptionDate: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
   },
-  monthYearSelector: {
-    marginTop: 20,
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  monthYearLabel: {
+  sectionTitle: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
     color: '#111827',
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  monthYearControls: {
+  customDateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 12,
+  },
+  customDateText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#111827',
+  },
+  monthYearPicker: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     gap: 20,
   },
-  monthSelector: {
+  yearPicker: {
     gap: 8,
   },
-  selectorLabel: {
+  pickerLabel: {
     fontSize: 14,
     fontFamily: 'Inter-Medium',
     color: '#374151',
-  },
-  monthScroll: {
-    flexDirection: 'row',
-  },
-  monthChip: {
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    marginRight: 8,
-  },
-  monthChipActive: {
-    backgroundColor: '#059669',
-  },
-  monthChipText: {
-    fontSize: 13,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-  },
-  monthChipTextActive: {
-    color: '#FFFFFF',
-  },
-  yearSelector: {
-    gap: 8,
   },
   yearControls: {
     flexDirection: 'row',
@@ -953,5 +861,128 @@ const styles = StyleSheet.create({
     color: '#111827',
     minWidth: 60,
     textAlign: 'center',
+  },
+  monthGrid: {
+    gap: 8,
+  },
+  monthButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  monthButton: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    minWidth: 50,
+    alignItems: 'center',
+  },
+  monthButtonActive: {
+    backgroundColor: '#059669',
+  },
+  monthButtonText: {
+    fontSize: 13,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  monthButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  yearSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 20,
+  },
+  yearNavButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  yearDisplay: {
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  yearDisplayText: {
+    fontSize: 24,
+    fontFamily: 'Inter-Bold',
+    color: '#059669',
+  },
+  yearGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 16,
+  },
+  yearGridButton: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  yearGridButtonActive: {
+    backgroundColor: '#059669',
+    borderColor: '#059669',
+  },
+  yearGridButtonText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  yearGridButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  datePickerModal: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  datePickerTitle: {
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+  },
+  datePickerCancel: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  datePickerDone: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#059669',
+  },
+  datePickerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    margin: 20,
+    borderRadius: 16,
   },
 });

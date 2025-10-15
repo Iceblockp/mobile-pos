@@ -2267,6 +2267,10 @@ export class DatabaseService {
       // Daily for up to a month
       dateFormat = '%Y-%m-%d';
       groupBy = "date(s.created_at, 'localtime')";
+    } else if (days > 300) {
+      // Monthly for year view
+      dateFormat = '%Y-%m';
+      groupBy = "strftime('%Y-%m', s.created_at, 'localtime')";
     } else {
       // Weekly for longer periods
       dateFormat = '%Y-W%W';
