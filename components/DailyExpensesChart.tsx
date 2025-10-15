@@ -6,17 +6,17 @@ import { CustomBarChart } from '@/components/Charts';
 import { useRevenueExpensesTrend } from '@/hooks/useQueries';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import { useTranslation } from '@/context/LocalizationContext';
-import { BarChart3 } from 'lucide-react-native';
+import { TrendingDown } from 'lucide-react-native';
 
-interface DailySalesChartProps {
+interface DailyExpensesChartProps {
   startDate: Date;
   endDate: Date;
 }
 
-export default function DailySalesChart({
+export default function DailyExpensesChart({
   startDate,
   endDate,
-}: DailySalesChartProps) {
+}: DailyExpensesChartProps) {
   const { t } = useTranslation();
   const { formatPrice } = useCurrencyFormatter();
 
@@ -92,13 +92,11 @@ export default function DailySalesChart({
     return (
       <Card>
         <View style={styles.header}>
-          <BarChart3 size={20} color="#059669" />
-          <Text style={styles.title}>{t('analytics.dailySales')}</Text>
+          <TrendingDown size={20} color="#EF4444" />
+          <Text style={styles.title}>{t('analytics.dailyExpenses')}</Text>
         </View>
         <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>
-            {t('analytics.noSalesForPeriod')}
-          </Text>
+          <Text style={styles.noDataText}>{t('analytics.noExpenseData')}</Text>
         </View>
       </Card>
     );
@@ -114,12 +112,13 @@ export default function DailySalesChart({
     const completeData: number[] = [];
 
     // Create a map of existing data for quick lookup
-    const dataMap = new Map<string, { revenue: number; salesCount: number }>(
-      revenueData.map((item) => [
-        item.date,
-        { revenue: item.revenue, salesCount: item.salesCount },
-      ])
+    const dataMap = new Map<string, { expenses: number }>(
+      revenueData.map((item) => [item.date, { expenses: item.expenses }])
     );
+
+    // For single day view, expenses might not have hourly granularity
+    // so we need to handle daily expense data differently
+    const isSingleDay = days <= 1;
 
     if (days <= 1) {
       // Hourly intervals for single day - use local timezone
@@ -139,7 +138,7 @@ export default function DailySalesChart({
         )} ${String(hour).padStart(2, '0')}:00:00`;
 
         completeLabels.push(formatDate(hourKey));
-        completeData.push(dataMap.get(hourKey)?.revenue || 0);
+        completeData.push(dataMap.get(hourKey)?.expenses || 0);
       }
     } else {
       // Daily intervals for week/month view
@@ -160,7 +159,7 @@ export default function DailySalesChart({
         ).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
 
         completeLabels.push(formatDate(dateKey));
-        completeData.push(dataMap.get(dateKey)?.revenue || 0);
+        completeData.push(dataMap.get(dateKey)?.expenses || 0);
 
         currentDate.setDate(currentDate.getDate() + 1);
       }
@@ -178,19 +177,19 @@ export default function DailySalesChart({
   };
 
   // Footer data for summary (use original data for totals)
-  const totalRevenue = revenueData.reduce((sum, item) => sum + item.revenue, 0);
-  const totalSales = revenueData.reduce(
-    (sum, item) => sum + item.salesCount,
+  const totalExpenses = revenueData.reduce(
+    (sum, item) => sum + item.expenses,
     0
   );
+  const expenseCount = revenueData.filter((item) => item.expenses > 0).length;
   const averageDaily =
-    revenueData.length > 0 ? totalRevenue / revenueData.length : 0;
+    revenueData.length > 0 ? totalExpenses / revenueData.length : 0;
 
   return (
     <Card>
       <View style={styles.header}>
-        <BarChart3 size={20} color="#059669" />
-        <Text style={styles.title}>{t('analytics.dailySales')}</Text>
+        <TrendingDown size={20} color="#EF4444" />
+        <Text style={styles.title}>{t('analytics.dailyExpenses')}</Text>
       </View>
 
       <CustomBarChart
@@ -198,10 +197,10 @@ export default function DailySalesChart({
         title=""
         formatYLabel={formatMMK}
         footer={{
-          label: `${totalSales} ${t('analytics.totalSales')} • ${t(
+          label: `${expenseCount} ${t('analytics.expenseDays')} • ${t(
             'analytics.averageDaily'
           )}`,
-          value: `${formatPrice(totalRevenue)} • ${formatPrice(averageDaily)}`,
+          value: `${formatPrice(totalExpenses)} • ${formatPrice(averageDaily)}`,
         }}
       />
     </Card>

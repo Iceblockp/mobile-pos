@@ -2286,18 +2286,14 @@ export class DatabaseService {
       [startDateStr, endDateStr]
     )) as { date: string; revenue: number; sales_count: number }[];
 
-    // Get expense data
+    // Get expense data - use created_at with localtime for proper timezone handling
     const expenseData = (await this.db.getAllAsync(
       `SELECT 
-        ${groupBy
-          .replace('s.created_at', 'e.date')
-          .replace(", 'localtime'", '')} as date,
+        ${groupBy.replace('s.created_at', 'e.created_at')} as date,
         SUM(e.amount) as expenses
        FROM expenses e
-       WHERE date(e.date) >= ? AND date(e.date) <= ?
-       GROUP BY ${groupBy
-         .replace('s.created_at', 'e.date')
-         .replace(", 'localtime'", '')}
+       WHERE date(e.created_at, 'localtime') >= ? AND date(e.created_at, 'localtime') <= ?
+       GROUP BY ${groupBy.replace('s.created_at', 'e.created_at')}
        ORDER BY date`,
       [startDateStr, endDateStr]
     )) as { date: string; expenses: number }[];

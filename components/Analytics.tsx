@@ -19,6 +19,7 @@ import { useCustomAnalytics, useSalesByDateRange } from '@/hooks/useQueries';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import AnalyticsCharts from '@/components/AnalyticsCharts';
 import DailySalesChart from '@/components/DailySalesChart';
+import DailyExpensesChart from '@/components/DailyExpensesChart';
 import { Sale } from '@/services/database';
 import {
   ChartBar as BarChart3,
@@ -492,68 +493,8 @@ export default function Analytics() {
           {/* Daily Sales Chart */}
           <DailySalesChart startDate={startDate} endDate={endDate} />
 
-          {/* Expense Summary */}
-          <Card>
-            <Text style={styles.sectionTitle}>
-              {t('analytics.expenseSummary')}
-            </Text>
-
-            <View style={styles.insightItem}>
-              <Text style={styles.insightLabel}>
-                {t('analytics.totalExpenses')}
-              </Text>
-              <Text style={styles.insightValue}>
-                {formatPrice(analytics?.totalExpenses || 0)}
-              </Text>
-            </View>
-
-            <View style={styles.insightItem}>
-              <Text style={styles.insightLabel}>
-                {t('analytics.netProfit')}
-              </Text>
-              <Text
-                style={[
-                  styles.insightValue,
-                  {
-                    color:
-                      (analytics?.netProfit || 0) > 0 ? '#10B981' : '#EF4444',
-                  },
-                ]}
-              >
-                {formatPrice(analytics?.netProfit || 0)}
-              </Text>
-            </View>
-
-            {analytics?.expensesByCategory &&
-            analytics.expensesByCategory.length > 0 ? (
-              <>
-                <Text style={styles.subSectionTitle}>
-                  {t('analytics.expensesByCategory')}
-                </Text>
-                {analytics.expensesByCategory.map(
-                  (category: any, index: number) => (
-                    <View key={index} style={styles.insightItem}>
-                      <Text style={styles.insightLabel}>
-                        {category.category_name}
-                      </Text>
-                      <View style={styles.expenseValueContainer}>
-                        <Text style={styles.insightValue}>
-                          {formatPrice(category.amount)}
-                        </Text>
-                        <Text style={styles.expensePercentage}>
-                          {category.percentage.toFixed(1)}%
-                        </Text>
-                      </View>
-                    </View>
-                  )
-                )}
-              </>
-            ) : (
-              <Text style={styles.noDataText}>
-                {t('analytics.noExpenseData')}
-              </Text>
-            )}
-          </Card>
+          {/* Daily Expenses Chart */}
+          <DailyExpensesChart startDate={startDate} endDate={endDate} />
 
           {/* Analytics Charts */}
           <AnalyticsCharts

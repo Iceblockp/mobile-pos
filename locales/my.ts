@@ -1309,6 +1309,7 @@ export const my: TranslationKeys = {
     netProfit: 'အမြတ်ငွေ(ကုန်ကျစရိတ်များနုတ်ပြီး)',
     expensesByCategory: 'အမျိုးအစားအလိုက်ကုန်ကျစရိတ်များ',
     noExpenseData: 'ဒီကာလအတွက် ကုန်ကျစရိတ်အချက်အလက်မရှိပါ',
+    expenseDays: 'ကုန်ကျစရိတ်ရှိသောနေ့များ',
     topPerformingProducts: 'အရောင်းရဆုံး ကုန်ပစ္စည်းများ',
     recentSales: 'လတ်တလောရောင်းချမှုများ',
     noSalesForPeriod: 'ဒီကာလအတွက် ရောင်းချမှုမရှိပါ',

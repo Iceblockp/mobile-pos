@@ -132,6 +132,8 @@ export default function Expenses() {
     ? useInfiniteExpenses(dateFilter, selectedDate)
     : useInfiniteExpensesByDateRange(startDate, endDate);
 
+  console.log('expens', data);
+
   // Flatten the paginated data
   const expenses = data?.pages.flatMap((page) => page.data) || [];
 

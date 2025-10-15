@@ -1226,6 +1226,7 @@ export const en = {
     netProfit: 'Net Profit (After Expenses)',
     expensesByCategory: 'Expenses by Category',
     noExpenseData: 'No expense data for this period',
+    expenseDays: 'Expense Days',
     topPerformingProducts: 'Top Performing Products',
     recentSales: 'Recent Sales',
     noSalesForPeriod: 'No sales for this period',
