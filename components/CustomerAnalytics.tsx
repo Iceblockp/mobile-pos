@@ -55,9 +55,11 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({
         );
         end.setHours(23, 59, 59, 999);
         break;
-      case 'range':
-        start = new Date(dateFilter.startDate);
-        end = new Date(dateFilter.endDate);
+      case 'year':
+        start = new Date(dateFilter.selectedYear, 0, 1);
+        start.setHours(0, 0, 0, 0);
+        end = new Date(dateFilter.selectedYear, 11, 31);
+        end.setHours(23, 59, 59, 999);
         break;
       default:
         start = today;
