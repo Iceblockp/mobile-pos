@@ -688,6 +688,24 @@ export const my: TranslationKeys = {
     contactAdmin: 'အက်ဒမင်ကို ဦးစွာဆက်သွယ်မည်',
     proceedAnyway: 'မည်သို့ပင်ဖြစ်စေ ဆက်လက်လုပ်ဆောင်မည်',
     contactPhone: 'ဆက်သွယ်ရန်ဖုန်းနံပါတ်',
+    // License Management
+    licenseManagement: 'လိုင်စင်စီမံခန့်ခွဲမှု',
+    currentLicenseStatus: 'လက်ရှိလိုင်စင်အခြေအနေ',
+    licenseActive: 'အသုံးပြုနိုင်သည်',
+    licenseExpired: 'သက်တမ်းကုန်ဆုံးပြီး',
+    licenseExpiring: 'မကြာမီကုန်ဆုံးမည်',
+    daysRemaining: 'ရက်ကျန်သည်',
+    extendLicense: 'လိုင်စင်သက်တမ်းတိုးမည်',
+    extendLicenseDescription: 'သင့်လက်ရှိလိုင်စင်သို့ အချိန်ပိုထည့်မည်',
+    licenseExtension: 'လိုင်စင်သက်တမ်းတိုးမှု',
+    selectExtensionDuration: 'တိုးမည့်ကာလရွေးပါ',
+    extensionWillBeAdded:
+      'တိုးမည့်ကာလကို သင့်လက်ရှိသက်တမ်းကုန်ဆုံးရက်သို့ ထည့်မည်',
+    newExpiryDate: 'သက်တမ်းကုန်ဆုံးရက်အသစ်',
+    licenseExtendedSuccessfully: 'လိုင်စင်သက်တမ်းအောင်မြင်စွာတိုးပါပြီ!',
+    licenseExtensionFailed:
+      'လိုင်စင်သက်တမ်းတိုးမှုမအောင်မြင်ပါ။ သင့်အတည်ပြုကုဒ်ကို စစ်ဆေးပါ။',
+    generateExtensionChallenge: 'သက်တမ်းတိုးရန်လိုင်စင်ဖန်တီးမည်',
     // Challenge Display
     step1: 'အဆင့် ၁',
     copyChallengeCode: 'လိုင်စင်ကုဒ်ကူးယူမည်',
@@ -925,6 +943,8 @@ export const my: TranslationKeys = {
     customersSubtitle: 'ဖောက်သည်အချက်အလက်နှင့် မှတ်တမ်းများစီမံခန့်ခွဲမည်',
     shopSettings: 'ဆိုင်ဆက်တင်များ',
     shopSettingsSubtitle: 'သင့်လုပ်ငန်းအချက်အလက်နှင့် အမှတ်တံဆိပ်ပြင်ဆင်မည်',
+    licenseManagement: 'လိုင်စင်စီမံခန့်ခွဲမှု',
+    licenseManagementSubtitle: 'သင့်လိုင်စင်ကြည့်ရှုပြီး သက်တမ်းတိုးမည်',
     expenses: 'ကုန်ကျစရိတ်များ',
     expensesSubtitle: 'လုပ်ငန်းကုန်ကျစရိတ်များခြေရာခံမည်',
     help: 'အကူအညီနှင့် ပံ့ပိုးမှု',

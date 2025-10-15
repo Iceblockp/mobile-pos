@@ -12,15 +12,13 @@ import {
   DollarSign,
   HelpCircle,
   Globe,
-  Download,
-  Upload,
   Info,
   Store,
   Truck,
   Users,
-  ShareIcon,
   FileUp,
   FileDown,
+  ShieldCheck,
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 
@@ -68,6 +66,14 @@ export default function More() {
       color: '#059669',
       backgroundColor: '#ECFDF5',
       route: '/shop-settings',
+    },
+    {
+      id: 'licenseManagement',
+      title: t('more.licenseManagement'),
+      icon: ShieldCheck,
+      color: '#2563EB',
+      backgroundColor: '#EFF6FF',
+      route: '/license-management',
     },
     {
       id: 'language',
