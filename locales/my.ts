@@ -1300,6 +1300,7 @@ export const my: TranslationKeys = {
     businessInsights: 'လုပ်ငန်းသုံးသပ်မှုများ',
     dailyAverageRevenue: 'နေ့စဉ်ပျမ်းမျှဝင်ငွေ',
     dailyAverageProfit: 'နေ့စဉ်ပျမ်းမျှအမြတ်အစွန်း',
+    averageDaily: 'နေ့စဉ်ပျမ်းမျှ',
     costOfGoodsSold: 'ရောင်းကုန်များ၏ကုန်ကျစရိတ်',
     itemsSold: 'ရောင်းချသောပစ္စည်းများ',
     units: 'ခု',

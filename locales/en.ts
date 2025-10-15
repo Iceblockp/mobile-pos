@@ -1216,6 +1216,7 @@ export const en = {
     businessInsights: 'Business Insights',
     dailyAverageRevenue: 'Daily Average Sale Value',
     dailyAverageProfit: 'Daily Average Profit',
+    averageDaily: 'Avg Daily',
     costOfGoodsSold: 'Cost of Goods Sold',
     cogs: 'COGS',
     itemsSold: 'Items Sold',

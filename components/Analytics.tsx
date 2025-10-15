@@ -18,6 +18,7 @@ import { DateFilterComponent } from '@/components/DateFilter';
 import { useCustomAnalytics, useSalesByDateRange } from '@/hooks/useQueries';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import AnalyticsCharts from '@/components/AnalyticsCharts';
+import DailySalesChart from '@/components/DailySalesChart';
 import { Sale } from '@/services/database';
 import {
   ChartBar as BarChart3,
@@ -488,69 +489,8 @@ export default function Analytics() {
             </Card>
           </View>
 
-          {/* Business Insights */}
-          <Card>
-            <Text style={styles.sectionTitle}>
-              {t('analytics.businessInsights')}
-            </Text>
-
-            <View style={styles.insightItem}>
-              <Text style={styles.insightLabel}>
-                {t('analytics.dailyAverageRevenue')}
-              </Text>
-              <Text style={styles.insightValue}>
-                {formatPrice(
-                  (analytics?.totalRevenue || 0) / getDaysInPeriod()
-                )}
-              </Text>
-            </View>
-
-            <View style={styles.insightItem}>
-              <Text style={styles.insightLabel}>
-                {t('analytics.dailyAverageProfit')}
-              </Text>
-              <Text style={styles.insightValue}>
-                {formatPrice((analytics?.totalProfit || 0) / getDaysInPeriod())}
-              </Text>
-            </View>
-
-            <View style={styles.insightItem}>
-              <Text style={styles.insightLabel}>
-                {t('analytics.costOfGoodsSold')}
-              </Text>
-              <Text style={styles.insightValue}>
-                {formatPrice(analytics?.totalCost || 0)}
-              </Text>
-            </View>
-
-            <View style={styles.insightItem}>
-              <Text style={styles.insightLabel}>
-                {t('analytics.profitMargin')}
-              </Text>
-              <Text
-                style={[
-                  styles.insightValue,
-                  {
-                    color:
-                      (analytics?.profitMargin || 0) > 20
-                        ? '#10B981'
-                        : '#F59E0B',
-                  },
-                ]}
-              >
-                {analytics?.profitMargin?.toFixed(1) || 0}%
-              </Text>
-            </View>
-
-            <View style={styles.insightItem}>
-              <Text style={styles.insightLabel}>
-                {t('analytics.itemsSold')}
-              </Text>
-              <Text style={styles.insightValue}>
-                {analytics?.totalItemsSold || 0} {t('analytics.units')}
-              </Text>
-            </View>
-          </Card>
+          {/* Daily Sales Chart */}
+          <DailySalesChart startDate={startDate} endDate={endDate} />
 
           {/* Expense Summary */}
           <Card>
