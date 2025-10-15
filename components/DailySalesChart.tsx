@@ -128,15 +128,6 @@ export default function DailySalesChart({
       ])
     );
 
-    // Debug: Log data for year view
-    if (days > 300) {
-      console.log('DailySalesChart - Year view data:', revenueData);
-      console.log(
-        'DailySalesChart - DataMap keys:',
-        Array.from(dataMap.keys())
-      );
-    }
-
     if (days <= 1) {
       // Hourly intervals for single day - use local timezone
       for (let hour = 0; hour < 24; hour++) {
@@ -164,11 +155,6 @@ export default function DailySalesChart({
         const monthKey = `${monthDate.getFullYear()}-${String(
           month + 1
         ).padStart(2, '0')}`;
-
-        console.log(
-          `DailySalesChart - Looking for key: ${monthKey}, found value:`,
-          dataMap.get(monthKey)?.revenue || 0
-        );
 
         completeLabels.push(formatDate(monthKey));
         completeData.push(dataMap.get(monthKey)?.revenue || 0);

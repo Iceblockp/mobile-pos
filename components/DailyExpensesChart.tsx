@@ -123,15 +123,6 @@ export default function DailyExpensesChart({
       revenueData.map((item) => [item.date, { expenses: item.expenses }])
     );
 
-    // Debug: Log data for year view
-    if (days > 300) {
-      console.log('DailyExpensesChart - Year view data:', revenueData);
-      console.log(
-        'DailyExpensesChart - DataMap keys:',
-        Array.from(dataMap.keys())
-      );
-    }
-
     // For single day view, expenses might not have hourly granularity
     // so we need to handle daily expense data differently
     const isSingleDay = days <= 1;
@@ -163,11 +154,6 @@ export default function DailyExpensesChart({
         const monthKey = `${monthDate.getFullYear()}-${String(
           month + 1
         ).padStart(2, '0')}`;
-
-        console.log(
-          `DailyExpensesChart - Looking for key: ${monthKey}, found value:`,
-          dataMap.get(monthKey)?.expenses || 0
-        );
 
         completeLabels.push(formatDate(monthKey));
         completeData.push(dataMap.get(monthKey)?.expenses || 0);

@@ -17,9 +17,9 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { DateFilterComponent } from '@/components/DateFilter';
 import { useCustomAnalytics, useSalesByDateRange } from '@/hooks/useQueries';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
-import AnalyticsCharts from '@/components/AnalyticsCharts';
 import DailySalesChart from '@/components/DailySalesChart';
 import DailyExpensesChart from '@/components/DailyExpensesChart';
+import { ReusablePieChart } from '@/components/Charts';
 import { Sale } from '@/services/database';
 import {
   ChartBar as BarChart3,
@@ -504,12 +504,39 @@ export default function Analytics() {
           {/* Daily Expenses Chart */}
           <DailyExpensesChart startDate={startDate} endDate={endDate} />
 
-          {/* Analytics Charts */}
-          <AnalyticsCharts
-            startDate={startDate}
-            endDate={endDate}
-            analytics={analytics}
-          />
+          {/* Expense Breakdown Pie Chart */}
+          {analytics?.expensesByCategory &&
+          analytics.expensesByCategory.length > 0 ? (
+            <ReusablePieChart
+              title={t('analytics.expenseBreakdown')}
+              data={analytics.expensesByCategory.map(
+                (category: any, index: number) => ({
+                  name: category.category_name,
+                  value: category.amount,
+                  color: [
+                    '#EF4444',
+                    '#F59E0B',
+                    '#10B981',
+                    '#3B82F6',
+                    '#8B5CF6',
+                    '#EC4899',
+                    '#6B7280',
+                    '#059669',
+                  ][index % 8],
+                })
+              )}
+              size={200}
+              showPercentage={true}
+              showLegend={true}
+            />
+          ) : (
+            <Card>
+              <Text style={styles.sectionTitle}>
+                {t('analytics.expenseBreakdown')}
+              </Text>
+              <Text style={styles.noData}>{t('analytics.noExpenseData')}</Text>
+            </Card>
+          )}
 
           {/* Top Performing Products */}
           <Card>
