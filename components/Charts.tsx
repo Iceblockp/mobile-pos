@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, Dimensions, ScrollView, Text } from 'react-native';
+import { View, StyleSheet, Dimensions, ScrollView } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import {
   LineChart as GiftedLineChart,
   BarChart as GiftedBarChart,

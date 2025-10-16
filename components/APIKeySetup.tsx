@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
   Alert,
   Linking,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Ionicons } from '@expo/vector-icons';
 import { APIKeyManager } from '../services/apiKeyManager';
 import { validateApiKeyFormat } from '../utils/aiAnalyticsConfig';
@@ -127,13 +127,15 @@ const APIKeySetup: React.FC<APIKeySetupProps> = ({ onComplete, onCancel }) => {
         >
           <Ionicons name="close" size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>{t('aiAnalytics.title')} Setup</Text>
+        <Text style={styles.title} weight="medium">
+          {t('aiAnalytics.title')} Setup
+        </Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
+          <Text style={styles.sectionTitle} weight="medium">
             {t('aiAnalytics.configureApiKey')}
           </Text>
           <Text style={styles.sectionDescription}>
@@ -144,7 +146,9 @@ const APIKeySetup: React.FC<APIKeySetupProps> = ({ onComplete, onCancel }) => {
 
         {existingKey && (
           <View style={styles.existingKeySection}>
-            <Text style={styles.existingKeyTitle}>Current API Key</Text>
+            <Text style={styles.existingKeyTitle} weight="medium">
+              Current API Key
+            </Text>
             <View style={styles.existingKeyContainer}>
               <Text style={styles.existingKeyText}>{existingKey}</Text>
               <TouchableOpacity
@@ -159,7 +163,7 @@ const APIKeySetup: React.FC<APIKeySetupProps> = ({ onComplete, onCancel }) => {
         )}
 
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>
+          <Text style={styles.inputLabel} weight="medium">
             {existingKey ? 'New API Key' : 'API Key'}
           </Text>
           <TextInput
@@ -189,7 +193,7 @@ const APIKeySetup: React.FC<APIKeySetupProps> = ({ onComplete, onCancel }) => {
           {isValidating ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={styles.saveButtonText}>
+            <Text style={styles.saveButtonText} weight="medium">
               {existingKey ? 'Update API Key' : 'Save API Key'}
             </Text>
           )}
@@ -200,7 +204,7 @@ const APIKeySetup: React.FC<APIKeySetupProps> = ({ onComplete, onCancel }) => {
             style={styles.instructionsToggle}
             onPress={() => setShowInstructions(!showInstructions)}
           >
-            <Text style={styles.instructionsToggleText}>
+            <Text style={styles.instructionsToggleText} weight="medium">
               How to get a Gemini API key
             </Text>
             <Ionicons
@@ -274,7 +278,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
     color: '#333',
   },
   placeholder: {
@@ -289,14 +292,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '600',
     color: '#333',
     marginBottom: 8,
   },
   sectionDescription: {
     fontSize: 16,
     color: '#666',
-    lineHeight: 22,
   },
   existingKeySection: {
     marginBottom: 24,
@@ -306,7 +307,6 @@ const styles = StyleSheet.create({
   },
   existingKeyTitle: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#666',
     marginBottom: 8,
   },
@@ -318,7 +318,6 @@ const styles = StyleSheet.create({
   existingKeyText: {
     fontSize: 16,
     color: '#333',
-    fontFamily: 'monospace',
   },
   clearButton: {
     padding: 8,
@@ -328,7 +327,6 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#333',
     marginBottom: 8,
   },
@@ -340,7 +338,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     backgroundColor: '#FFFFFF',
-    fontFamily: 'monospace',
   },
   errorText: {
     fontSize: 14,
@@ -360,7 +357,6 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
   },
   instructionsSection: {
     marginBottom: 24,
@@ -374,7 +370,6 @@ const styles = StyleSheet.create({
   instructionsToggleText: {
     fontSize: 16,
     color: '#007AFF',
-    fontWeight: '500',
   },
   instructionsContent: {
     paddingTop: 16,
@@ -383,7 +378,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginBottom: 8,
-    lineHeight: 20,
   },
   openLinkButton: {
     flexDirection: 'row',
@@ -411,7 +405,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: '#E65100',
-    lineHeight: 20,
   },
 });
 

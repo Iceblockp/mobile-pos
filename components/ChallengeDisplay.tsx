@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Copy, Info } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useTranslation } from '@/context/LocalizationContext';
@@ -48,7 +49,6 @@ const styles = StyleSheet.create({
   },
   stepNumber: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#3B82F6',
     marginBottom: 4,
   },

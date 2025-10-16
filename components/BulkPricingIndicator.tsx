@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { TrendingDown, Gift, ArrowUp } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import {
@@ -52,7 +53,7 @@ export const BulkPricingIndicator: React.FC<BulkPricingIndicatorProps> = ({
         {hasSavings && (
           <View style={styles.compactSavings}>
             <Gift size={12} color="#DC2626" />
-            <Text style={styles.compactSavingsText}>
+            <Text style={styles.compactSavingsText} weight="medium">
               {formatBulkSavings(pricing.totalSavings, t('common.locale'))}
             </Text>
           </View>
@@ -64,7 +65,7 @@ export const BulkPricingIndicator: React.FC<BulkPricingIndicatorProps> = ({
             onPress={handleUpsellClick}
           >
             <ArrowUp size={10} color="#059669" />
-            <Text style={styles.compactUpsellText}>
+            <Text style={styles.compactUpsellText} weight="medium">
               {nextTier.min_quantity}+ for {formatMMK(nextTier.bulk_price)}
             </Text>
           </TouchableOpacity>
@@ -80,33 +81,39 @@ export const BulkPricingIndicator: React.FC<BulkPricingIndicatorProps> = ({
         <View style={styles.activeBulkPricing}>
           <View style={styles.bulkPricingHeader}>
             <TrendingDown size={16} color="#059669" />
-            <Text style={styles.bulkPricingTitle}>
+            <Text style={styles.bulkPricingTitle} weight="medium">
               {t('bulkPricing.bulkDiscount')}
             </Text>
           </View>
 
           <View style={styles.pricingDetails}>
             <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>
+              <Text style={styles.priceLabel} weight="medium">
                 {t('bulkPricing.regularPrice')}:
               </Text>
-              <Text style={[styles.priceValue, styles.originalPrice]}>
+              <Text
+                style={[styles.priceValue, styles.originalPrice]}
+                weight="medium"
+              >
                 {formatMMK(pricing.originalPrice)}
               </Text>
             </View>
 
             <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>
+              <Text style={styles.priceLabel} weight="medium">
                 {t('bulkPricing.bestPrice')}:
               </Text>
-              <Text style={[styles.priceValue, styles.bulkPrice]}>
+              <Text
+                style={[styles.priceValue, styles.bulkPrice]}
+                weight="medium"
+              >
                 {formatMMK(pricing.bulkPrice)}
               </Text>
             </View>
 
             <View style={styles.savingsRow}>
               <Gift size={14} color="#DC2626" />
-              <Text style={styles.savingsText}>
+              <Text style={styles.savingsText} weight="medium">
                 {t('bulkPricing.youSave')}: {formatMMK(pricing.totalSavings)} (
                 {pricing.discountPercentage.toFixed(1)}%)
               </Text>
@@ -124,7 +131,7 @@ export const BulkPricingIndicator: React.FC<BulkPricingIndicatorProps> = ({
           <View style={styles.upsellContent}>
             <ArrowUp size={16} color="#059669" />
             <View style={styles.upsellText}>
-              <Text style={styles.upsellTitle}>
+              <Text style={styles.upsellTitle} weight="medium">
                 {t('bulkPricing.getMoreSavings')}
               </Text>
               <Text style={styles.upsellDetails}>
@@ -132,7 +139,7 @@ export const BulkPricingIndicator: React.FC<BulkPricingIndicatorProps> = ({
                 {t('bulkPricing.for')} {formatMMK(nextTier.bulk_price)}{' '}
                 {t('bulkPricing.each')}
               </Text>
-              <Text style={styles.upsellSavings}>
+              <Text style={styles.upsellSavings} weight="medium">
                 {t('bulkPricing.additionalSavings')}:{' '}
                 {formatMMK(
                   (product.price - nextTier.bulk_price) *
@@ -148,7 +155,7 @@ export const BulkPricingIndicator: React.FC<BulkPricingIndicatorProps> = ({
       {/* Bulk Pricing Tiers Overview */}
       {!hasActiveBulkPricing && product.bulk_pricing && (
         <View style={styles.tiersOverview}>
-          <Text style={styles.tiersTitle}>
+          <Text style={styles.tiersTitle} weight="medium">
             {t('bulkPricing.quantityBreaks')}
           </Text>
           <View style={styles.tiersList}>
@@ -159,10 +166,10 @@ export const BulkPricingIndicator: React.FC<BulkPricingIndicatorProps> = ({
                   ((product.price - tier.bulk_price) / product.price) * 100;
                 return (
                   <View key={index} style={styles.tierItem}>
-                    <Text style={styles.tierQuantity}>
+                    <Text style={styles.tierQuantity} weight="medium">
                       {tier.min_quantity}+
                     </Text>
-                    <Text style={styles.tierPrice}>
+                    <Text style={styles.tierPrice} weight="medium">
                       {formatMMK(tier.bulk_price)}
                     </Text>
                     <Text style={styles.tierDiscount}>
@@ -199,7 +206,6 @@ const styles = StyleSheet.create({
   },
   bulkPricingTitle: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#059669',
     marginLeft: 6,
   },
@@ -213,12 +219,10 @@ const styles = StyleSheet.create({
   },
   priceLabel: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   priceValue: {
     fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
   },
   originalPrice: {
     color: '#9CA3AF',
@@ -237,7 +241,6 @@ const styles = StyleSheet.create({
   },
   savingsText: {
     fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
     color: '#DC2626',
     marginLeft: 4,
   },
@@ -261,18 +264,15 @@ const styles = StyleSheet.create({
   },
   upsellTitle: {
     fontSize: 13,
-    fontFamily: 'Inter-SemiBold',
     color: '#1D4ED8',
   },
   upsellDetails: {
     fontSize: 11,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
   upsellSavings: {
     fontSize: 11,
-    fontFamily: 'Inter-SemiBold',
     color: '#059669',
     marginTop: 2,
   },
@@ -287,7 +287,6 @@ const styles = StyleSheet.create({
   },
   tiersTitle: {
     fontSize: 13,
-    fontFamily: 'Inter-SemiBold',
     color: '#374151',
     marginBottom: 8,
   },
@@ -301,20 +300,17 @@ const styles = StyleSheet.create({
   },
   tierQuantity: {
     fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
     color: '#059669',
     minWidth: 30,
   },
   tierPrice: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#111827',
     flex: 1,
     textAlign: 'center',
   },
   tierDiscount: {
     fontSize: 11,
-    fontFamily: 'Inter-Regular',
     color: '#DC2626',
   },
 
@@ -335,7 +331,6 @@ const styles = StyleSheet.create({
   },
   compactSavingsText: {
     fontSize: 10,
-    fontFamily: 'Inter-SemiBold',
     color: '#DC2626',
     marginLeft: 2,
   },
@@ -349,7 +344,6 @@ const styles = StyleSheet.create({
   },
   compactUpsellText: {
     fontSize: 9,
-    fontFamily: 'Inter-Medium',
     color: '#059669',
     marginLeft: 2,
   },

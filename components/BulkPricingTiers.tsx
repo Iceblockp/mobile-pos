@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   Alert,
   ScrollView,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { PriceInput } from '@/components/PriceInput';
@@ -127,7 +127,7 @@ export const BulkPricingTiers: React.FC<BulkPricingTiersProps> = ({
       <View style={styles.tierHeader}>
         <View style={styles.tierInfo}>
           <Package size={16} color="#059669" />
-          <Text style={styles.tierTitle}>
+          <Text style={styles.tierTitle} weight="medium">
             {t('bulkPricing.tier')} {index + 1}
           </Text>
         </View>
@@ -141,7 +141,7 @@ export const BulkPricingTiers: React.FC<BulkPricingTiersProps> = ({
 
       <View style={styles.tierInputs}>
         <View style={styles.tierInputGroup}>
-          <Text style={styles.tierInputLabel}>
+          <Text style={styles.tierInputLabel} weight="medium">
             {t('bulkPricing.minQuantity')}
           </Text>
           <TextInput
@@ -168,7 +168,7 @@ export const BulkPricingTiers: React.FC<BulkPricingTiersProps> = ({
       </View>
 
       <View style={styles.tierPreview}>
-        <Text style={styles.tierPreviewText}>
+        <Text style={styles.tierPreviewText} weight="medium">
           {t('bulkPricing.preview')}: {formatPrice(tier.bulk_price)}
           <Text style={styles.discountText}>
             {' '}
@@ -194,7 +194,7 @@ export const BulkPricingTiers: React.FC<BulkPricingTiersProps> = ({
       <View style={styles.compactContainer}>
         <View style={styles.compactHeader}>
           <TrendingDown size={14} color="#059669" />
-          <Text style={styles.compactTitle}>
+          <Text style={styles.compactTitle} weight="medium">
             {t('bulkPricing.bulkPricing')} ({initialTiers.length})
           </Text>
         </View>
@@ -203,10 +203,10 @@ export const BulkPricingTiers: React.FC<BulkPricingTiersProps> = ({
           <View style={styles.compactTiers}>
             {sortedTiers.map((tier, index) => (
               <View key={index} style={styles.compactTier}>
-                <Text style={styles.compactTierQuantity}>
+                <Text style={styles.compactTierQuantity} weight="medium">
                   {tier.min_quantity}+
                 </Text>
-                <Text style={styles.compactTierPrice}>
+                <Text style={styles.compactTierPrice} weight="medium">
                   {formatPrice(tier.bulk_price)}
                 </Text>
                 <Text style={styles.compactTierDiscount}>
@@ -229,11 +229,13 @@ export const BulkPricingTiers: React.FC<BulkPricingTiersProps> = ({
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <TrendingDown size={20} color="#059669" />
-          <Text style={styles.title}>{t('bulkPricing.bulkPricing')}</Text>
+          <Text style={styles.title} weight="medium">
+            {t('bulkPricing.bulkPricing')}
+          </Text>
         </View>
         <TouchableOpacity style={styles.addTierButton} onPress={addTier}>
           <Plus size={16} color="#FFFFFF" />
-          <Text style={styles.addTierButtonText}>
+          <Text style={styles.addTierButtonText} weight="medium">
             {t('bulkPricing.addTier')}
           </Text>
         </TouchableOpacity>
@@ -242,7 +244,9 @@ export const BulkPricingTiers: React.FC<BulkPricingTiersProps> = ({
       {tiers.length === 0 ? (
         <View style={styles.emptyState}>
           <Package size={32} color="#9CA3AF" />
-          <Text style={styles.emptyStateText}>{t('bulkPricing.noTiers')}</Text>
+          <Text style={styles.emptyStateText} weight="medium">
+            {t('bulkPricing.noTiers')}
+          </Text>
           <Text style={styles.emptyStateSubtext}>
             {t('bulkPricing.addTierToStart')}
           </Text>
@@ -285,7 +289,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginLeft: 8,
   },
@@ -299,7 +302,6 @@ const styles = StyleSheet.create({
   },
   addTierButtonText: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
     marginLeft: 4,
   },
@@ -309,13 +311,11 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     marginTop: 12,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#9CA3AF',
     marginTop: 4,
     textAlign: 'center',
@@ -339,7 +339,6 @@ const styles = StyleSheet.create({
   },
   tierTitle: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginLeft: 8,
   },
@@ -356,7 +355,6 @@ const styles = StyleSheet.create({
   },
   tierInputLabel: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     marginBottom: 4,
   },
@@ -368,7 +366,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
   },
   tierPreview: {
@@ -379,7 +376,6 @@ const styles = StyleSheet.create({
   },
   tierPreviewText: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#059669',
   },
   discountText: {
@@ -393,7 +389,6 @@ const styles = StyleSheet.create({
   },
   validationError: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#DC2626',
     marginBottom: 2,
   },
@@ -409,7 +404,6 @@ const styles = StyleSheet.create({
   },
   compactTitle: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   addTierButtonCompact: {
@@ -434,17 +428,14 @@ const styles = StyleSheet.create({
   },
   compactTierQuantity: {
     fontSize: 10,
-    fontFamily: 'Inter-SemiBold',
     color: '#059669',
   },
   compactTierPrice: {
     fontSize: 9,
-    fontFamily: 'Inter-Medium',
     color: '#111827',
   },
   compactTierDiscount: {
     fontSize: 8,
-    fontFamily: 'Inter-Regular',
     color: '#DC2626',
   },
 });

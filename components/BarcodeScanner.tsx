@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Modal,
@@ -9,6 +8,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { X, Camera, Flashlight } from 'lucide-react-native';
 import { Audio } from 'expo-av'; // Import Audio from expo-av
@@ -89,7 +89,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
               <X size={24} color="#FFFFFF" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>
+            <Text style={styles.headerTitle} weight="medium">
               {t('barcodeScanner.cameraPermission')}
             </Text>
             <View style={styles.placeholder} />
@@ -97,7 +97,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
           <View style={styles.permissionContainer}>
             <Camera size={64} color="#6B7280" />
-            <Text style={styles.permissionTitle}>
+            <Text style={styles.permissionTitle} weight="bold">
               {t('barcodeScanner.cameraAccessRequired')}
             </Text>
             <Text style={styles.permissionText}>
@@ -107,7 +107,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               style={styles.permissionButton}
               onPress={requestPermission}
             >
-              <Text style={styles.permissionButtonText}>
+              <Text style={styles.permissionButtonText} weight="medium">
                 {t('barcodeScanner.grantPermission')}
               </Text>
             </TouchableOpacity>
@@ -152,7 +152,9 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <X size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('barcodeScanner.title')}</Text>
+          <Text style={styles.headerTitle} weight="medium">
+            {t('barcodeScanner.title')}
+          </Text>
           <TouchableOpacity
             style={styles.flashButton}
             onPress={() => setFlashOn(!flashOn)}
@@ -186,7 +188,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               style={styles.rescanButton}
               onPress={resetScanner}
             >
-              <Text style={styles.rescanButtonText}>
+              <Text style={styles.rescanButtonText} weight="medium">
                 {t('barcodeScanner.scanAnother')}
               </Text>
             </TouchableOpacity>
@@ -220,7 +222,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
   flashButton: {
@@ -268,7 +269,6 @@ const styles = StyleSheet.create({
   },
   instructionText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 16,
@@ -281,7 +281,6 @@ const styles = StyleSheet.create({
   },
   rescanButtonText: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
   loadingContainer: {
@@ -291,7 +290,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 18,
-    fontFamily: 'Inter-Regular',
     color: '#FFFFFF',
   },
   permissionContainer: {
@@ -302,7 +300,6 @@ const styles = StyleSheet.create({
   },
   permissionTitle: {
     fontSize: 24,
-    fontFamily: 'Inter-Bold',
     color: '#FFFFFF',
     marginTop: 24,
     marginBottom: 16,
@@ -310,10 +307,8 @@ const styles = StyleSheet.create({
   },
   permissionText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#9CA3AF',
     textAlign: 'center',
-    lineHeight: 24,
     marginBottom: 32,
   },
   permissionButton: {
@@ -324,7 +319,6 @@ const styles = StyleSheet.create({
   },
   permissionButtonText: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
 });
