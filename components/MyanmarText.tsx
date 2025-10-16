@@ -31,21 +31,21 @@ export const MyanmarText: React.FC<MyanmarTextProps> = ({
 
   const myanmarStyle = {
     fontFamily: getFontFamily(),
-    fontWeight: Platform.select({
-      ios: 'normal' as const,
-      android:
-        weight === 'bold'
-          ? ('700' as const)
-          : weight === 'medium'
-          ? ('500' as const)
-          : ('400' as const),
-      default: 'normal' as const,
-    }),
+    // fontWeight: Platform.select({
+    //   ios: 'normal' as const,
+    //   android:
+    //     weight === 'bold'
+    //       ? ('700' as const)
+    //       : weight === 'medium'
+    //       ? ('500' as const)
+    //       : ('400' as const),
+    //   default: 'normal' as const,
+    // }),
     // Ensure proper text rendering
     includeFontPadding: Platform.OS === 'android' ? true : false,
-    textAlignVertical:
-      Platform.OS === 'android' ? ('center' as const) : undefined,
-    ...(weight === 'bold' ? { lineHeight: 28 } : {}),
+    // textAlignVertical:
+    //   Platform.OS === 'android' ? ('center' as const) : undefined,
+    // ...(weight === 'bold' ? { lineHeight: 28 } : {}),
   };
 
   return (

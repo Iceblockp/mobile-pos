@@ -110,7 +110,9 @@ const Index = () => {
             resizeMode="cover"
           />
           <View style={styles.headerTextContainer}>
-            <Text style={styles.title}>{t('license.title')}</Text>
+            <Text style={styles.title} weight="bold">
+              {t('license.title')}
+            </Text>
             <Text style={styles.subtitle}>
               {t('license.verificationRequired')}
             </Text>
@@ -122,7 +124,7 @@ const Index = () => {
           <View style={styles.verificationCard}>
             <View style={styles.verificationCardHeader}>
               <ShieldCheck size={24} color="#3B82F6" />
-              <Text style={styles.verificationCardTitle}>
+              <Text style={styles.verificationCardTitle} weight="medium">
                 {t('license.verifyLicense')}
               </Text>
             </View>
@@ -162,7 +164,7 @@ const Index = () => {
               }
               disabled={loading}
             >
-              <Text style={styles.regenerateButtonText}>
+              <Text style={styles.regenerateButtonText} weight="medium">
                 {loading
                   ? t('license.generating')
                   : t('license.generateNewChallenge')}
@@ -175,7 +177,9 @@ const Index = () => {
             <Text style={styles.contactLabel}>
               {t('license.contactPhone')}:
             </Text>
-            <Text style={styles.contactPhone}>+959425743536</Text>
+            <Text style={styles.contactPhone} weight="bold">
+              +959425743536
+            </Text>
           </View>
         </ScrollView>
 
@@ -200,7 +204,9 @@ const Index = () => {
           resizeMode="contain"
         />
         <View style={styles.welcomeHeaderText}>
-          <Text style={styles.welcomeTitle}>{t('license.title')}</Text>
+          <Text style={styles.welcomeTitle} weight="bold">
+            {t('license.title')}
+          </Text>
           <Text style={styles.welcomeSubtitle}>
             {t('license.licenseValidUntil')} {getExpiryDate()}
           </Text>
@@ -214,7 +220,7 @@ const Index = () => {
           <View style={styles.expirationWarning}>
             <View style={styles.warningHeader}>
               <ShieldCheck size={20} color="#F59E0B" />
-              <Text style={styles.warningTitle}>
+              <Text style={styles.warningTitle} weight="medium">
                 {t('license.licenseExpiringSoon')}
               </Text>
             </View>
@@ -242,7 +248,10 @@ const Index = () => {
               onPress={() => handleRegenerateChallenge(30)}
             >
               <ShieldCheck size={16} color="#FFFFFF" />
-              <Text style={styles.regenerateChallengeButtonText}>
+              <Text
+                style={styles.regenerateChallengeButtonText}
+                weight="medium"
+              >
                 {t('license.regenerateChallengeButton')}
               </Text>
             </TouchableOpacity>
@@ -255,14 +264,16 @@ const Index = () => {
             style={styles.welcomeImage}
             resizeMode="contain"
           />
-          <Text style={styles.welcomeGreeting}>{t('license.welcome')}</Text>
+          <Text style={styles.welcomeGreeting} weight="bold">
+            {t('license.welcome')}
+          </Text>
           <Text style={styles.welcomeMessage}>{t('license.systemReady')}</Text>
 
           <TouchableOpacity
             onPress={() => router.push('/(tabs)/dashboard')}
             style={styles.getStartedButton}
           >
-            <Text style={styles.getStartedButtonText}>
+            <Text style={styles.getStartedButtonText} weight="medium">
               {t('license.getStarted')}
             </Text>
             <ArrowRight size={16} color="#FFFFFF" />
@@ -274,7 +285,7 @@ const Index = () => {
             style={styles.renewButton}
             onPress={() => setModalVisible(true)}
           >
-            <Text style={styles.renewButtonText}>
+            <Text style={styles.renewButtonText} weight="medium">
               {t('license.renewLicense')}
             </Text>
           </TouchableOpacity>
@@ -283,7 +294,9 @@ const Index = () => {
         {/* Contact Phone Section */}
         <View style={styles.contactSection}>
           <Text style={styles.contactLabel}>{t('license.contactPhone')}:</Text>
-          <Text style={styles.contactPhone}>+959425743536</Text>
+          <Text style={styles.contactPhone} weight="bold">
+            +959425743536
+          </Text>
         </View>
       </View>
 
@@ -342,7 +355,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    fontWeight: '700',
     color: '#1F2937',
   },
   subtitle: {
@@ -371,14 +383,12 @@ const styles = StyleSheet.create({
   },
   verificationCardTitle: {
     fontSize: 18,
-    fontWeight: '600',
     color: '#1F2937',
     marginLeft: 10,
   },
   verificationCardText: {
     fontSize: 14,
     color: '#4B5563',
-    lineHeight: 20,
     marginBottom: 20,
   },
   durationButton: {
@@ -410,7 +420,6 @@ const styles = StyleSheet.create({
   regenerateButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '600',
   },
 
   // Welcome screen styles (when license is valid)
@@ -435,7 +444,6 @@ const styles = StyleSheet.create({
   },
   welcomeTitle: {
     fontSize: 20,
-    fontWeight: '700',
     color: '#FFFFFF',
   },
   welcomeSubtitle: {
@@ -468,7 +476,6 @@ const styles = StyleSheet.create({
   },
   welcomeGreeting: {
     fontSize: 24,
-    fontWeight: '700',
     color: '#1F2937',
     marginBottom: 12,
     textAlign: 'center',
@@ -477,7 +484,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6B7280',
     textAlign: 'center',
-    lineHeight: 24,
     marginBottom: 30,
   },
   getStartedButton: {
@@ -493,7 +499,6 @@ const styles = StyleSheet.create({
   getStartedButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
     marginRight: 8,
   },
   renewButton: {
@@ -506,7 +511,6 @@ const styles = StyleSheet.create({
   renewButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
   },
 
   // Expiration Warning Styles
@@ -530,14 +534,12 @@ const styles = StyleSheet.create({
   },
   warningTitle: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#92400E',
     marginLeft: 8,
   },
   warningMessage: {
     fontSize: 14,
     color: '#A16207',
-    lineHeight: 20,
     marginBottom: 16,
   },
   regenerateChallengeButton: {
@@ -552,7 +554,6 @@ const styles = StyleSheet.create({
   regenerateChallengeButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '600',
     marginLeft: 6,
   },
 
@@ -577,7 +578,6 @@ const styles = StyleSheet.create({
   },
   contactPhone: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#2563EB',
     letterSpacing: 0.5,
   },
