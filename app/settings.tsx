@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
@@ -9,6 +8,7 @@ import {
   Switch,
   Alert,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft,
@@ -316,12 +316,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   subtitle: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
@@ -339,7 +337,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginLeft: 8,
   },
@@ -372,13 +369,11 @@ const styles = StyleSheet.create({
   },
   settingTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 2,
   },
   settingDescription: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     lineHeight: 18,
   },
@@ -412,7 +407,6 @@ const styles = StyleSheet.create({
   },
   actionTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 2,
   },
@@ -421,7 +415,6 @@ const styles = StyleSheet.create({
   },
   actionDescription: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     lineHeight: 18,
   },
@@ -431,7 +424,6 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 12,
   },
@@ -447,7 +439,6 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     lineHeight: 20,
     marginBottom: 8,

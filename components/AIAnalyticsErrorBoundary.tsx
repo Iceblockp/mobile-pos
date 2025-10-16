@@ -1,6 +1,7 @@
 import React, { Component, ReactNode } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { MyanmarText as Text } from './MyanmarText';
 
 interface Props {
   children: ReactNode;
@@ -52,7 +53,9 @@ class AIAnalyticsErrorBoundary extends Component<Props, State> {
               <Ionicons name="warning" size={48} color="#FF6B6B" />
             </View>
 
-            <Text style={styles.title}>Something went wrong</Text>
+            <Text style={styles.title} weight="medium">
+              Something went wrong
+            </Text>
 
             <Text style={styles.message}>
               The AI Analytics feature encountered an unexpected error. This
@@ -62,7 +65,9 @@ class AIAnalyticsErrorBoundary extends Component<Props, State> {
 
             {this.state.error && __DEV__ && (
               <View style={styles.debugContainer}>
-                <Text style={styles.debugTitle}>Debug Information:</Text>
+                <Text style={styles.debugTitle} weight="medium">
+                  Debug Information:
+                </Text>
                 <Text style={styles.debugText}>{this.state.error.message}</Text>
               </View>
             )}
@@ -73,12 +78,16 @@ class AIAnalyticsErrorBoundary extends Component<Props, State> {
                 onPress={this.handleRetry}
               >
                 <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                <Text style={styles.retryButtonText}>Try Again</Text>
+                <Text style={styles.retryButtonText} weight="medium">
+                  Try Again
+                </Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.helpContainer}>
-              <Text style={styles.helpTitle}>Troubleshooting Tips:</Text>
+              <Text style={styles.helpTitle} weight="medium">
+                Troubleshooting Tips:
+              </Text>
               <Text style={styles.helpItem}>
                 • Check your internet connection
               </Text>
@@ -130,7 +139,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '600',
     color: '#333',
     marginBottom: 12,
     textAlign: 'center',
@@ -139,7 +147,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
-    lineHeight: 22,
     marginBottom: 20,
   },
   debugContainer: {
@@ -151,7 +158,6 @@ const styles = StyleSheet.create({
   },
   debugTitle: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#333',
     marginBottom: 8,
   },
@@ -174,7 +180,6 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
     marginLeft: 8,
   },
   helpContainer: {
@@ -182,7 +187,6 @@ const styles = StyleSheet.create({
   },
   helpTitle: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#333',
     marginBottom: 12,
   },
@@ -190,7 +194,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginBottom: 6,
-    lineHeight: 20,
   },
 });
 

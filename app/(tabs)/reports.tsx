@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { View, StyleSheet, SafeAreaView } from 'react-native';
 import { useTranslation } from '@/context/LocalizationContext';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 
 // Import the analytics component
 import AnalyticsScreen from '../../components/Analytics';
@@ -33,12 +33,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
   },
   subtitle: {
     fontSize: 15,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 4,
   },

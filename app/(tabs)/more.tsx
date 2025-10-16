@@ -1,11 +1,9 @@
-import React from 'react';
 import {
   View,
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
   ScrollView,
-  Text,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -21,6 +19,7 @@ import {
   ShieldCheck,
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 
 export default function More() {
   const router = useRouter();
@@ -116,7 +115,9 @@ export default function More() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={[styles.title]}>{t('more.title')}</Text>
+        <Text style={[styles.title]} weight="bold">
+          {t('more.title')}
+        </Text>
         <Text style={styles.subtitle}>{t('more.subtitle')}</Text>
       </View>
 
@@ -139,7 +140,9 @@ export default function More() {
                 >
                   <IconComponent size={20} color={item.color} />
                 </View>
-                <Text style={styles.menuItemTitle}>{item.title}</Text>
+                <Text style={styles.menuItemTitle} weight="bold">
+                  {item.title}
+                </Text>
               </TouchableOpacity>
             );
           })}
@@ -147,10 +150,16 @@ export default function More() {
 
         {/* App Info Section */}
         <View style={styles.appInfoSection}>
-          <Text style={styles.appInfoTitle}>{t('more.appInfo')}</Text>
+          <Text style={styles.appInfoTitle} weight="medium">
+            {t('more.appInfo')}
+          </Text>
           <View style={styles.appInfoCard}>
-            <Text style={styles.appName}>Mobile POS</Text>
-            <Text style={styles.appVersion}>Version 1.0.0</Text>
+            <Text style={styles.appName} weight="bold">
+              Mobile POS
+            </Text>
+            <Text style={styles.appVersion} weight="medium">
+              Version 1.0.0
+            </Text>
             <Text style={styles.appDescription}>
               {t('more.appDescription')}
             </Text>
@@ -175,13 +184,11 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: 'NotoSansMyanmar-Bold',
     color: '#111827',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 16,
-    fontFamily: 'NotoSansMyanmar-Regular',
     color: '#6B7280',
   },
   content: {
@@ -218,7 +225,6 @@ const styles = StyleSheet.create({
   },
   menuItemTitle: {
     fontSize: 14,
-    fontFamily: 'NotoSansMyanmar-Bold',
     color: '#111827',
     textAlign: 'center',
   },
@@ -228,7 +234,6 @@ const styles = StyleSheet.create({
   },
   appInfoTitle: {
     fontSize: 18,
-    fontFamily: 'NotoSansMyanmar-Medium',
     color: '#111827',
     marginBottom: 12,
   },
@@ -245,19 +250,16 @@ const styles = StyleSheet.create({
   },
   appName: {
     fontSize: 20,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
     marginBottom: 4,
   },
   appVersion: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     marginBottom: 8,
   },
   appDescription: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',
   },

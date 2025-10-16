@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
@@ -13,11 +12,9 @@ import { useRouter } from 'expo-router';
 import {
   ArrowLeft,
   FileText,
-  Database,
   Share,
   CheckCircle,
   HelpCircle,
-  Save,
 } from 'lucide-react-native';
 import DataManagementGuide from '@/components/DataManagementGuide';
 import { ExportPreviewModal } from '@/components/ExportPreviewModal';
@@ -29,6 +26,7 @@ import {
   ExportProgress,
   ExportPreview,
 } from '@/services/dataExportService';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 
 interface ExportOption {
   id: string;
@@ -235,7 +233,9 @@ export default function DataExport() {
           <ArrowLeft size={24} color="#111827" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.title}>{t('dataExport.title')}</Text>
+          <Text style={styles.title} weight="medium">
+            {t('dataExport.title')}
+          </Text>
           <Text style={styles.subtitle}>{t('dataExport.subtitle')}</Text>
         </View>
         <View style={styles.headerButtons}>
@@ -246,7 +246,9 @@ export default function DataExport() {
             <HelpCircle size={16} color="#6B7280" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.infoButton} onPress={showExportInfo}>
-            <Text style={styles.infoButtonText}>?</Text>
+            <Text style={styles.infoButtonText} weight="medium">
+              ?
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -256,7 +258,7 @@ export default function DataExport() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <FileText size={20} color="#6B7280" />
-            <Text style={styles.sectionTitle}>
+            <Text style={styles.sectionTitle} weight="medium">
               {t('dataExport.exportOptions')}
             </Text>
           </View>
@@ -294,7 +296,9 @@ export default function DataExport() {
                   <IconComponent size={24} color={option.color} />
                 </View>
                 <View style={styles.exportContent}>
-                  <Text style={styles.exportTitle}>{option.title}</Text>
+                  <Text style={styles.exportTitle} weight="medium">
+                    {option.title}
+                  </Text>
                   <Text style={styles.exportDescription}>
                     {option.description}
                   </Text>
@@ -302,13 +306,15 @@ export default function DataExport() {
                 <View style={styles.exportAction}>
                   {isCurrentlyExporting ? (
                     <View style={styles.loadingContainer}>
-                      <Text style={styles.loadingText}>
+                      <Text style={styles.loadingText} weight="medium">
                         {t('dataExport.exporting')}
                       </Text>
                     </View>
                   ) : isGeneratingPreview ? (
                     <View style={styles.loadingContainer}>
-                      <Text style={styles.loadingText}>Preparing...</Text>
+                      <Text style={styles.loadingText} weight="medium">
+                        Preparing...
+                      </Text>
                     </View>
                   ) : (
                     <Share size={20} color="#9CA3AF" />
@@ -321,7 +327,9 @@ export default function DataExport() {
 
         {/* Export Information */}
         <View style={styles.infoSection}>
-          <Text style={styles.infoTitle}>{t('dataExport.exportInfo')}</Text>
+          <Text style={styles.infoTitle} weight="medium">
+            {t('dataExport.exportInfo')}
+          </Text>
           <View style={styles.infoCard}>
             <View style={styles.infoItem}>
               <CheckCircle size={16} color="#10B981" />
@@ -346,7 +354,7 @@ export default function DataExport() {
 
         {/* Data Security Notice */}
         <View style={styles.securitySection}>
-          <Text style={styles.securityTitle}>
+          <Text style={styles.securityTitle} weight="medium">
             {t('dataExport.dataSecurity')}
           </Text>
           <View style={styles.securityCard}>
@@ -374,17 +382,17 @@ export default function DataExport() {
         <Modal visible={true} animationType="fade" transparent={true}>
           <View style={styles.progressModalOverlay}>
             <View style={styles.progressModalContainer}>
-              <Text style={styles.progressModalTitle}>
+              <Text style={styles.progressModalTitle} weight="medium">
                 {t('dataExport.exporting')}
               </Text>
 
-              <Text style={styles.progressModalStage}>
+              <Text style={styles.progressModalStage} weight="medium">
                 {exportProgress.stage}
               </Text>
 
               {/* Show more specific progress information */}
               {exportProgress.percentage > 0 && (
-                <Text style={styles.progressModalPercentage}>
+                <Text style={styles.progressModalPercentage} weight="medium">
                   {Math.round(exportProgress.percentage)}% complete
                 </Text>
               )}
@@ -402,7 +410,7 @@ export default function DataExport() {
                 </View>
               </View>
 
-              <Text style={styles.progressModalText}>
+              <Text style={styles.progressModalText} weight="medium">
                 {exportProgress.current} / {exportProgress.total}{' '}
                 {t('dataExport.itemsProcessed')}
               </Text>
@@ -461,12 +469,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   subtitle: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
@@ -480,7 +486,6 @@ const styles = StyleSheet.create({
   },
   infoButtonText: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#6B7280',
   },
   content: {
@@ -497,15 +502,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginLeft: 8,
   },
   sectionDescription: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
-    lineHeight: 20,
   },
   exportList: {
     paddingHorizontal: 20,
@@ -540,15 +542,12 @@ const styles = StyleSheet.create({
   },
   exportTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 4,
   },
   exportDescription: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
-    lineHeight: 18,
   },
   exportAction: {
     marginLeft: 12,
@@ -558,7 +557,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   infoSection: {
@@ -567,7 +565,6 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 12,
   },
@@ -588,9 +585,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
-    lineHeight: 20,
     marginLeft: 8,
     flex: 1,
   },
@@ -600,7 +595,6 @@ const styles = StyleSheet.create({
   },
   securityTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 12,
   },
@@ -613,16 +607,12 @@ const styles = StyleSheet.create({
   },
   securityText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#7F1D1D',
-    lineHeight: 20,
     marginBottom: 12,
   },
   securityBullet: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#7F1D1D',
-    lineHeight: 20,
     marginBottom: 4,
   },
   progressModalOverlay: {
@@ -641,14 +631,12 @@ const styles = StyleSheet.create({
   },
   progressModalTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 8,
     textAlign: 'center',
   },
   progressModalStage: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     marginBottom: 16,
     textAlign: 'center',
@@ -671,20 +659,17 @@ const styles = StyleSheet.create({
   },
   progressModalText: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#111827',
     marginBottom: 4,
     textAlign: 'center',
   },
   progressModalSubtext: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',
   },
   progressModalPercentage: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#10B981',
     textAlign: 'center',
     marginBottom: 8,

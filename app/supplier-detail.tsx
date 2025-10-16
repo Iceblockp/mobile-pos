@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -22,6 +21,7 @@ import {
 } from '@/hooks/useQueries';
 import { SupplierProduct } from '@/services/database';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 
 export default function SupplierDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -80,8 +80,12 @@ export default function SupplierDetail() {
   const renderProductItem = ({ item }: { item: SupplierProduct }) => (
     <View style={styles.productCard}>
       <View style={styles.productHeader}>
-        <Text style={styles.productName}>{item.product_name}</Text>
-        <Text style={styles.productStock}>Stock: {item.current_stock}</Text>
+        <Text style={styles.productName} weight="medium">
+          {item.product_name}
+        </Text>
+        <Text style={styles.productStock} weight="medium">
+          Stock: {item.current_stock}
+        </Text>
       </View>
       <View style={styles.productStats}>
         <Text style={styles.productStat}>
@@ -110,7 +114,9 @@ export default function SupplierDetail() {
       <SafeAreaView style={styles.container}>
         <View style={styles.errorState}>
           <Ionicons name="alert-circle-outline" size={64} color="#EF4444" />
-          <Text style={styles.errorTitle}>Supplier Not Found</Text>
+          <Text style={styles.errorTitle} weight="medium">
+            Supplier Not Found
+          </Text>
           <Text style={styles.errorText}>
             The supplier you're looking for doesn't exist or has been deleted.
           </Text>
@@ -134,7 +140,7 @@ export default function SupplierDetail() {
         >
           <Ionicons name="arrow-back" size={24} color="#374151" />
         </TouchableOpacity>
-        <Text style={styles.title} numberOfLines={1}>
+        <Text style={styles.title} numberOfLines={1} weight="medium">
           {supplier.name}
         </Text>
         <View style={styles.headerActions}>
@@ -150,7 +156,9 @@ export default function SupplierDetail() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Supplier Info */}
         <View style={styles.infoCard}>
-          <Text style={styles.sectionTitle}>Contact Information</Text>
+          <Text style={styles.sectionTitle} weight="medium">
+            Contact Information
+          </Text>
 
           <View style={styles.infoRow}>
             <Ionicons name="person" size={20} color="#6B7280" />
@@ -195,23 +203,25 @@ export default function SupplierDetail() {
         ) : (
           analytics && (
             <View style={styles.analyticsCard}>
-              <Text style={styles.sectionTitle}>Analytics (Last 30 Days)</Text>
+              <Text style={styles.sectionTitle} weight="medium">
+                Analytics (Last 30 Days)
+              </Text>
 
               <View style={styles.statsGrid}>
                 <View style={styles.statItem}>
-                  <Text style={styles.statValue}>
+                  <Text style={styles.statValue} weight="medium">
                     {analytics.totalProducts}
                   </Text>
                   <Text style={styles.statLabel}>Total Products</Text>
                 </View>
                 <View style={styles.statItem}>
-                  <Text style={styles.statValue}>
+                  <Text style={styles.statValue} weight="medium">
                     {formatPrice(analytics.totalPurchaseValue)}
                   </Text>
                   <Text style={styles.statLabel}>Purchase Value</Text>
                 </View>
                 <View style={styles.statItem}>
-                  <Text style={styles.statValue}>
+                  <Text style={styles.statValue} weight="medium">
                     {analytics.recentDeliveries.length}
                   </Text>
                   <Text style={styles.statLabel}>Recent Deliveries</Text>
@@ -220,7 +230,9 @@ export default function SupplierDetail() {
 
               {analytics.topProducts.length > 0 && (
                 <View style={styles.topProductsSection}>
-                  <Text style={styles.subsectionTitle}>Top Products</Text>
+                  <Text style={styles.subsectionTitle} weight="medium">
+                    Top Products
+                  </Text>
                   {analytics.topProducts.slice(0, 3).map((product, index) => (
                     <View
                       key={product.product_id}
@@ -242,7 +254,9 @@ export default function SupplierDetail() {
 
         {/* Products */}
         <View style={styles.productsCard}>
-          <Text style={styles.sectionTitle}>Products ({products.length})</Text>
+          <Text style={styles.sectionTitle} weight="medium">
+            Products ({products.length})
+          </Text>
 
           {productsLoading ? (
             <View style={styles.loadingSection}>
@@ -298,7 +312,6 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     fontSize: 20,
-    fontWeight: '600',
     color: '#111827',
   },
   headerActions: {
@@ -325,7 +338,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
     color: '#111827',
     marginBottom: 16,
   },
@@ -346,7 +358,6 @@ const styles = StyleSheet.create({
   infoValue: {
     fontSize: 16,
     color: '#111827',
-    lineHeight: 22,
   },
   analyticsCard: {
     backgroundColor: '#FFFFFF',
@@ -366,7 +377,6 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 20,
-    fontWeight: '600',
     color: '#111827',
     marginBottom: 4,
   },
@@ -382,7 +392,6 @@ const styles = StyleSheet.create({
   },
   subsectionTitle: {
     fontSize: 16,
-    fontWeight: '500',
     color: '#374151',
     marginBottom: 12,
   },
@@ -423,14 +432,12 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 16,
-    fontWeight: '500',
     color: '#111827',
     flex: 1,
   },
   productStock: {
     fontSize: 14,
     color: '#059669',
-    fontWeight: '500',
   },
   productStats: {
     flexDirection: 'row',
@@ -462,7 +469,6 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     fontSize: 20,
-    fontWeight: '600',
     color: '#EF4444',
     marginTop: 16,
     marginBottom: 8,
@@ -471,7 +477,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6B7280',
     textAlign: 'center',
-    lineHeight: 24,
     marginBottom: 24,
   },
 });

@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
@@ -13,6 +12,7 @@ import {
   useLocalization,
   LANGUAGE_OPTIONS,
 } from '@/context/LocalizationContext';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 
 export default function LanguageSettings() {
   const router = useRouter();
@@ -33,7 +33,9 @@ export default function LanguageSettings() {
           <ArrowLeft size={24} color="#111827" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.title}>{t('languageSettings.title')}</Text>
+          <Text style={styles.title} weight="medium">
+            {t('languageSettings.title')}
+          </Text>
           <Text style={styles.subtitle}>{t('languageSettings.subtitle')}</Text>
         </View>
       </View>
@@ -43,7 +45,7 @@ export default function LanguageSettings() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Globe size={20} color="#6B7280" />
-            <Text style={styles.sectionTitle}>
+            <Text style={styles.sectionTitle} weight="medium">
               {t('languageSettings.currentLanguage')}
             </Text>
           </View>
@@ -65,7 +67,9 @@ export default function LanguageSettings() {
               activeOpacity={0.7}
             >
               <View style={styles.languageInfo}>
-                <Text style={styles.languageName}>{lang.nativeName}</Text>
+                <Text style={styles.languageName} weight="medium">
+                  {lang.nativeName}
+                </Text>
                 <Text style={styles.languageNameSecondary}>{lang.name}</Text>
               </View>
               {language === lang.code && (
@@ -79,7 +83,7 @@ export default function LanguageSettings() {
 
         {/* Information Section */}
         <View style={styles.infoSection}>
-          <Text style={styles.infoTitle}>
+          <Text style={styles.infoTitle} weight="medium">
             {t('languageSettings.languageInfo')}
           </Text>
           <View style={styles.infoCard}>
@@ -100,19 +104,19 @@ export default function LanguageSettings() {
 
         {/* Supported Languages */}
         <View style={styles.supportedSection}>
-          <Text style={styles.supportedTitle}>
+          <Text style={styles.supportedTitle} weight="medium">
             {t('languageSettings.supportedLanguages')}
           </Text>
           <View style={styles.supportedList}>
             <View style={styles.supportedItem}>
               <Text style={styles.supportedFlag}>🇺🇸</Text>
-              <Text style={styles.supportedName}>
+              <Text style={styles.supportedName} weight="medium">
                 {t('languageSettings.english')}
               </Text>
             </View>
             <View style={styles.supportedItem}>
               <Text style={styles.supportedFlag}>🇲🇲</Text>
-              <Text style={styles.supportedName}>
+              <Text style={styles.supportedName} weight="medium">
                 {t('languageSettings.myanmar')}
               </Text>
             </View>
@@ -146,12 +150,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   subtitle: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
@@ -169,15 +171,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginLeft: 8,
   },
   sectionDescription: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
-    lineHeight: 20,
   },
   languageList: {
     paddingHorizontal: 20,
@@ -208,12 +207,10 @@ const styles = StyleSheet.create({
   },
   languageName: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   languageNameSecondary: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
@@ -231,7 +228,6 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 12,
   },
@@ -247,9 +243,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
-    lineHeight: 20,
     marginBottom: 8,
   },
   supportedSection: {
@@ -258,7 +252,6 @@ const styles = StyleSheet.create({
   },
   supportedTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 12,
   },
@@ -283,7 +276,6 @@ const styles = StyleSheet.create({
   },
   supportedName: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#374151',
   },
 });

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, StyleSheet, Modal, Text, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Modal, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { ChatMessage, AIAnalyticsState } from '../types/aiAnalytics';
 import { AIAnalyticsService } from '../services/aiAnalyticsService';
@@ -13,6 +13,7 @@ import { generateUUID } from '../utils/uuid';
 import { useTranslation } from '../context/LocalizationContext';
 import { useDatabase } from '../context/DatabaseContext';
 import APIKeySetup from './APIKeySetup';
+import { MyanmarText as Text } from './MyanmarText';
 
 const AIAnalyticsTab: React.FC = () => {
   const { t } = useTranslation();
@@ -278,7 +279,7 @@ const AIAnalyticsTab: React.FC = () => {
                 activeOpacity={0.7}
                 testID="api-key-settings-button"
               >
-                <Text style={styles.apiKeyButtonText}>
+                <Text style={styles.apiKeyButtonText} weight="medium">
                   {t('aiAnalytics.apiKeySettings')}
                 </Text>
               </TouchableOpacity>
@@ -310,7 +311,7 @@ const AIAnalyticsTab: React.FC = () => {
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{getErrorMessage(state.error)}</Text>
             <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-              <Text style={styles.retryButtonText}>
+              <Text style={styles.retryButtonText} weight="medium">
                 {t('aiAnalytics.retry')}
               </Text>
             </TouchableOpacity>
@@ -365,7 +366,6 @@ const styles = StyleSheet.create({
   apiKeyButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
   },
   errorContainer: {
     backgroundColor: '#FFEBEE',
@@ -390,7 +390,6 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '600',
   },
   loadingContainer: {
     flex: 1,

@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
   Alert,
-  TextInput,
   Modal,
   Platform,
   Dimensions,
@@ -16,6 +14,7 @@ import {
   Image,
   FlatList,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -69,6 +68,7 @@ import {
 } from '@/utils/bulkPricingUtils';
 import { SaleDateTimeSelector } from '@/components/SaleDateTimeSelector';
 import { convertISOToDBFormat } from '@/utils/dateUtils';
+import { MyanmarTextInput as TextInput } from '@/components/MyanmarTextInput';
 
 interface CartItem {
   product: Product;
@@ -497,7 +497,9 @@ export default function Sales() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t('sales.title')}</Text>
+        <Text style={styles.title} weight="bold">
+          {t('sales.title')}
+        </Text>
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.historyButton}
@@ -520,19 +522,27 @@ export default function Sales() {
           <View style={styles.cartHeader}>
             <View style={styles.cartTitleContainer}>
               <ShoppingCart size={20} color="#059669" />
-              <Text style={styles.cartTitle}>{t('sales.shoppingCart')}</Text>
+              <Text style={styles.cartTitle} weight="medium">
+                {t('sales.shoppingCart')}
+              </Text>
               <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>{cart.length}</Text>
+                <Text style={styles.cartBadgeText} weight="bold">
+                  {cart.length}
+                </Text>
               </View>
             </View>
             <View style={styles.cartHeaderRight}>
-              <Text style={styles.cartTotal}>{formatPrice(total)}</Text>
+              <Text style={styles.cartTotal} weight="bold">
+                {formatPrice(total)}
+              </Text>
             </View>
           </View>
 
           {/* Customer Selection */}
           <View style={styles.customerSection}>
-            <Text style={styles.customerLabel}>{t('sales.customer')}</Text>
+            <Text style={styles.customerLabel} weight="medium">
+              {t('sales.customer')}
+            </Text>
             <CustomerSelector
               selectedCustomer={selectedCustomer}
               onCustomerSelect={setSelectedCustomer}
@@ -547,29 +557,29 @@ export default function Sales() {
               return cartTotals.totalSavings > 0 ? (
                 <View style={styles.bulkPricingSummary}>
                   <View style={styles.savingsRow}>
-                    <Text style={styles.savingsLabel}>
+                    <Text style={styles.savingsLabel} weight="medium">
                       {t('sales.subtotal')}
                     </Text>
-                    <Text style={styles.originalTotal}>
+                    <Text style={styles.originalTotal} weight="medium">
                       {formatPrice(cartTotals.originalTotal)}
                     </Text>
                   </View>
                   {cartTotals.bulkSavings > 0 && (
                     <View style={styles.savingsRow}>
-                      <Text style={styles.savingsLabel}>
+                      <Text style={styles.savingsLabel} weight="medium">
                         {t('bulkPricing.bulkDiscount')}
                       </Text>
-                      <Text style={styles.savingsAmount}>
+                      <Text style={styles.savingsAmount} weight="medium">
                         -{formatPrice(cartTotals.bulkSavings)}
                       </Text>
                     </View>
                   )}
                   {cartTotals.manualSavings > 0 && (
                     <View style={styles.savingsRow}>
-                      <Text style={styles.savingsLabel}>
+                      <Text style={styles.savingsLabel} weight="medium">
                         {t('sales.manualDiscount')}
                       </Text>
-                      <Text style={styles.savingsAmount}>
+                      <Text style={styles.savingsAmount} weight="medium">
                         -{formatPrice(cartTotals.manualSavings)}
                       </Text>
                     </View>
@@ -581,7 +591,9 @@ export default function Sales() {
           {cart.length === 0 ? (
             <View style={styles.emptyCart}>
               <ShoppingCart size={isSmallScreen ? 32 : 48} color="#9CA3AF" />
-              <Text style={styles.emptyCartText}>{t('sales.cartEmpty')}</Text>
+              <Text style={styles.emptyCartText} weight="medium">
+                {t('sales.cartEmpty')}
+              </Text>
               <Text style={styles.emptyCartSubtext}>
                 {t('sales.addProducts')}
               </Text>
@@ -603,7 +615,11 @@ export default function Sales() {
                       />
                     )}
                     <View style={styles.cartItemInfo}>
-                      <Text style={styles.cartItemName} numberOfLines={2}>
+                      <Text
+                        style={styles.cartItemName}
+                        numberOfLines={2}
+                        weight="medium"
+                      >
                         {item.product.name}
                       </Text>
                       <Text style={styles.cartItemPrice}>
@@ -625,7 +641,7 @@ export default function Sales() {
                       />
                     </View>
                     <View style={styles.cartItemSubtotalContainer}>
-                      <Text style={styles.cartItemSubtotal}>
+                      <Text style={styles.cartItemSubtotal} weight="bold">
                         {formatPrice(
                           getBulkPricePerUnit(item) * item.quantity -
                             item.discount
@@ -647,7 +663,9 @@ export default function Sales() {
                           <Minus size={16} color="#6B7280" />
                         </TouchableOpacity>
 
-                        <Text style={styles.quantity}>{item.quantity}</Text>
+                        <Text style={styles.quantity} weight="medium">
+                          {item.quantity}
+                        </Text>
 
                         <TouchableOpacity
                           style={styles.quantityButton}
@@ -669,7 +687,7 @@ export default function Sales() {
 
                     {/* Discount Input Section */}
                     <View style={styles.cartItemDiscountSection}>
-                      <Text style={styles.discountLabel}>
+                      <Text style={styles.discountLabel} weight="medium">
                         {t('sales.discount')}:
                       </Text>
                       <TextInput
@@ -682,7 +700,7 @@ export default function Sales() {
                         keyboardType="numeric"
                         placeholder="0"
                       />
-                      <Text style={styles.discountUnit}>
+                      <Text style={styles.discountUnit} weight="medium">
                         {formatPrice(0).replace('0', '').trim()}
                       </Text>
                     </View>
@@ -738,7 +756,9 @@ export default function Sales() {
       >
         <SafeAreaView style={styles.dialogContainer}>
           <View style={styles.dialogHeader}>
-            <Text style={styles.dialogTitle}>{t('sales.addProducts')}</Text>
+            <Text style={styles.dialogTitle} weight="medium">
+              {t('sales.addProducts')}
+            </Text>
             <TouchableOpacity
               style={styles.dialogCloseButton}
               onPress={() => setShowProductDialog(false)}
@@ -770,7 +790,7 @@ export default function Sales() {
             <View style={styles.categoryFilterContainer}>
               <View style={styles.categoryFilterHeader}>
                 <Filter size={16} color="#6B7280" />
-                <Text style={styles.categoryFilterTitle}>
+                <Text style={styles.categoryFilterTitle} weight="medium">
                   {t('sales.filterByCategory')}
                 </Text>
               </View>
@@ -2648,7 +2668,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
   },
   headerActions: {
@@ -2727,7 +2746,6 @@ const styles = StyleSheet.create({
   },
   customerLabel: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 8,
   },
@@ -2747,18 +2765,15 @@ const styles = StyleSheet.create({
   },
   savingsLabel: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   originalTotal: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#9CA3AF',
     textDecorationLine: 'line-through',
   },
   savingsAmount: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#DC2626',
   },
   cartTitleContainer: {
@@ -2768,7 +2783,6 @@ const styles = StyleSheet.create({
   },
   cartTitle: {
     fontSize: isSmallScreen ? 16 : 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginLeft: 8,
   },
@@ -2783,12 +2797,10 @@ const styles = StyleSheet.create({
   },
   cartBadgeText: {
     fontSize: 12,
-    fontFamily: 'Inter-Bold',
     color: '#FFFFFF',
   },
   cartTotal: {
     fontSize: isSmallScreen ? 18 : 22,
-    fontFamily: 'Inter-Bold',
     color: '#059669',
   },
   emptyCart: {
@@ -2798,13 +2810,11 @@ const styles = StyleSheet.create({
   },
   emptyCartText: {
     fontSize: isSmallScreen ? 16 : 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#6B7280',
     marginTop: 16,
   },
   emptyCartSubtext: {
     fontSize: isSmallScreen ? 12 : 14,
-    fontFamily: 'Inter-Regular',
     color: '#9CA3AF',
     marginTop: 8,
   },
@@ -2837,13 +2847,11 @@ const styles = StyleSheet.create({
   },
   cartItemName: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#111827',
     marginBottom: 2,
   },
   cartItemPrice: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginBottom: 2,
   },
@@ -2870,7 +2878,6 @@ const styles = StyleSheet.create({
   },
   quantity: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginHorizontal: 12,
     minWidth: 30,
@@ -2888,12 +2895,10 @@ const styles = StyleSheet.create({
   },
   cartItemSubtotal: {
     fontSize: 16,
-    fontFamily: 'Inter-Bold',
     color: '#059669',
   },
   cartItemDiscount: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#EF4444',
     marginTop: 2,
   },
@@ -2907,7 +2912,6 @@ const styles = StyleSheet.create({
   },
   discountLabel: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     marginRight: 6,
   },
@@ -2918,14 +2922,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     textAlign: 'center',
     backgroundColor: '#FFFFFF',
     minWidth: 60,
   },
   discountUnit: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     marginLeft: 6,
   },
@@ -2954,7 +2956,6 @@ const styles = StyleSheet.create({
   },
   dialogTitle: {
     fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   dialogCloseButton: {
@@ -2988,7 +2989,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
   },
   categoryFilterContainer: {
@@ -3001,7 +3001,6 @@ const styles = StyleSheet.create({
   },
   categoryFilterTitle: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     marginLeft: 6,
   },
@@ -3023,7 +3022,6 @@ const styles = StyleSheet.create({
   },
   categoryFilterText: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   categoryFilterTextActive: {
@@ -3058,7 +3056,6 @@ const styles = StyleSheet.create({
   },
   dialogProductName: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#111827',
   },
   dialogProductNameDisabled: {
@@ -3066,13 +3063,11 @@ const styles = StyleSheet.create({
   },
   dialogProductCategory: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
   dialogProductStock: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     marginTop: 4,
   },
   inStock: {
@@ -3083,14 +3078,12 @@ const styles = StyleSheet.create({
   },
   outOfStock: {
     color: '#EF4444',
-    fontFamily: 'Inter-SemiBold',
   },
   dialogProductPriceContainer: {
     alignItems: 'flex-end',
   },
   dialogProductPrice: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#10B981',
   },
   dialogProductPriceDisabled: {
@@ -3109,12 +3102,10 @@ const styles = StyleSheet.create({
   },
   emptyProductsText: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#6B7280',
   },
   emptyProductsSubtext: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#9CA3AF',
     marginTop: 8,
     textAlign: 'center',
@@ -3135,7 +3126,6 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   modalHeaderActions: {
@@ -3153,7 +3143,6 @@ const styles = StyleSheet.create({
   },
   modalClose: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#10B981',
   },
   filtersContainer: {
@@ -3178,7 +3167,6 @@ const styles = StyleSheet.create({
   },
   dateFilterText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   dateFilterTextActive: {
@@ -3198,7 +3186,6 @@ const styles = StyleSheet.create({
   },
   customDateText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#374151',
     marginLeft: 8,
   },
@@ -3210,7 +3197,6 @@ const styles = StyleSheet.create({
   },
   summaryText: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#374151',
     textAlign: 'center',
   },
@@ -3231,24 +3217,20 @@ const styles = StyleSheet.create({
   },
   saleId: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   saleDate: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
   salePayment: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#9CA3AF',
     marginTop: 2,
   },
   saleNote: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
     fontStyle: 'italic',
@@ -3260,7 +3242,6 @@ const styles = StyleSheet.create({
   },
   saleTotal: {
     fontSize: 18,
-    fontFamily: 'Inter-Bold',
     color: '#10B981',
   },
   emptyState: {
@@ -3270,13 +3251,11 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#6B7280',
     marginTop: 16,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#9CA3AF',
     marginTop: 8,
     textAlign: 'center',
@@ -3290,7 +3269,6 @@ const styles = StyleSheet.create({
   },
   saleDetailTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 16,
   },
@@ -3304,12 +3282,10 @@ const styles = StyleSheet.create({
   },
   saleDetailLabel: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
   },
   saleDetailValue: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   saleDetailTotal: {
@@ -3319,7 +3295,6 @@ const styles = StyleSheet.create({
   saleDetailProfit: {
     color: '#10B981',
     // fontSize: 18,
-    fontFamily: 'Inter-Bold',
   },
   saleItemRow: {
     flexDirection: 'row',
@@ -3334,12 +3309,10 @@ const styles = StyleSheet.create({
   },
   saleItemName: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#111827',
   },
   saleItemDetails: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
@@ -3349,7 +3322,6 @@ const styles = StyleSheet.create({
   },
   saleItemSubtotal: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#10B981',
   },
   saleItemPricing: {
@@ -3357,7 +3329,6 @@ const styles = StyleSheet.create({
   },
   saleItemProfit: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#10B981',
     marginTop: 2,
   },
@@ -3372,12 +3343,10 @@ const styles = StyleSheet.create({
   },
   saleItemsTotalLabel: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#374151',
   },
   saleItemsTotalValue: {
     fontSize: 18,
-    fontFamily: 'Inter-Bold',
     color: '#10B981',
   },
   saleDetailActions: {
@@ -3400,7 +3369,6 @@ const styles = StyleSheet.create({
   },
   deleteSaleButtonText: {
     color: '#FFFFFF',
-    fontFamily: 'Inter-Medium',
     fontSize: 14,
     marginLeft: 6,
   },
@@ -3413,7 +3381,6 @@ const styles = StyleSheet.create({
   loadingMoreText: {
     marginLeft: 8,
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
   },
   exportImageButton: {
@@ -3427,7 +3394,6 @@ const styles = StyleSheet.create({
   exportImageButtonText: {
     color: '#FFFFFF',
     marginLeft: 6,
-    fontFamily: 'Inter-Medium',
     fontSize: 14,
   },
   voucherToggleButton: {
@@ -3449,7 +3415,6 @@ const styles = StyleSheet.create({
     color: '#059669',
     marginLeft: 6,
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
   },
   voucherToggleButtonTextActive: {
     color: '#FFFFFF',
@@ -3486,7 +3451,6 @@ const styles = StyleSheet.create({
   },
   monthPickerTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   monthPickerCloseButton: {
@@ -3497,7 +3461,6 @@ const styles = StyleSheet.create({
   },
   yearSelectorLabel: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#374151',
     marginBottom: 8,
   },
@@ -3516,7 +3479,6 @@ const styles = StyleSheet.create({
   },
   yearOptionText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   yearOptionTextActive: {
@@ -3527,7 +3489,6 @@ const styles = StyleSheet.create({
   },
   monthSelectorLabel: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#374151',
     marginBottom: 8,
   },
@@ -3549,7 +3510,6 @@ const styles = StyleSheet.create({
   },
   monthOptionText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   monthOptionTextActive: {
@@ -3570,7 +3530,6 @@ const styles = StyleSheet.create({
   },
   monthPickerCancelText: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   monthPickerConfirmButton: {
@@ -3583,7 +3542,6 @@ const styles = StyleSheet.create({
   },
   monthPickerConfirmText: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#FFFFFF',
   },
 });

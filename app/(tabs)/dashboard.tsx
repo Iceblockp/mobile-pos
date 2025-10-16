@@ -1,7 +1,5 @@
-import React from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   SafeAreaView,
@@ -28,6 +26,7 @@ import { router } from 'expo-router';
 import { useTranslation } from '@/context/LocalizationContext';
 import { LanguageIconButton } from '@/components/LanguageIconButton';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -60,7 +59,9 @@ export default function Dashboard() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.title}>{t('dashboard.title')}</Text>
+          <Text style={styles.title} weight="bold">
+            {t('dashboard.title')}
+          </Text>
           <Text style={styles.subtitle}>{t('dashboard.subtitle')}</Text>
         </View>
         <View style={styles.headerRight}>
@@ -91,10 +92,10 @@ export default function Dashboard() {
                 <DollarSign size={18} color="#FFFFFF" />
               </View>
               <View style={styles.metricText}>
-                <Text style={styles.metricValue}>
+                <Text style={styles.metricValue} weight="bold">
                   {formatPrice(analytics?.totalRevenue || 0)}
                 </Text>
-                <Text style={styles.metricLabel}>
+                <Text style={styles.metricLabel} weight="medium">
                   {t('dashboard.totalRevenue')}
                 </Text>
               </View>
@@ -110,10 +111,10 @@ export default function Dashboard() {
                 <CreditCard size={18} color="#FFFFFF" />
               </View>
               <View style={styles.metricText}>
-                <Text style={styles.metricValue}>
+                <Text style={styles.metricValue} weight="bold">
                   {formatPrice(analytics?.totalExpenses || 0)}
                 </Text>
-                <Text style={styles.metricLabel}>
+                <Text style={styles.metricLabel} weight="medium">
                   {t('dashboard.totalExpenses')}
                 </Text>
               </View>
@@ -134,10 +135,11 @@ export default function Dashboard() {
                     styles.metricValue,
                     (analytics?.totalBalance || 0) < 0 && styles.negativeValue,
                   ]}
+                  weight="bold"
                 >
                   {formatPrice(analytics?.totalBalance || 0)}
                 </Text>
-                <Text style={styles.metricLabel}>
+                <Text style={styles.metricLabel} weight="medium">
                   {t('dashboard.totalBalance')}
                 </Text>
               </View>
@@ -153,10 +155,10 @@ export default function Dashboard() {
                 <TrendingUp size={18} color="#FFFFFF" />
               </View>
               <View style={styles.metricText}>
-                <Text style={styles.metricValue}>
+                <Text style={styles.metricValue} weight="bold">
                   {formatPrice(analytics?.totalProfit || 0)}
                 </Text>
-                <Text style={styles.metricLabel}>
+                <Text style={styles.metricLabel} weight="medium">
                   {t('dashboard.totalProfit')}
                 </Text>
               </View>
@@ -177,10 +179,11 @@ export default function Dashboard() {
                     styles.metricValue,
                     (analytics?.netProfit || 0) < 0 && styles.negativeValue,
                   ]}
+                  weight="bold"
                 >
                   {formatPrice(analytics?.netProfit || 0)}
                 </Text>
-                <Text style={styles.metricLabel}>
+                <Text style={styles.metricLabel} weight="medium">
                   {t('dashboard.netProfit')}
                 </Text>
               </View>
@@ -196,8 +199,10 @@ export default function Dashboard() {
                 <AlertTriangle size={18} color="#FFFFFF" />
               </View>
               <View style={styles.metricText}>
-                <Text style={styles.metricValue}>{lowStockCount}</Text>
-                <Text style={styles.metricLabel}>
+                <Text style={styles.metricValue} weight="bold">
+                  {lowStockCount}
+                </Text>
+                <Text style={styles.metricLabel} weight="medium">
                   {t('dashboard.lowStockItems')}
                 </Text>
                 {lowStockCount > 0 && (
@@ -205,7 +210,7 @@ export default function Dashboard() {
                     style={styles.actionLink}
                     onPress={() => router.push('/inventory')}
                   >
-                    <Text style={styles.actionLinkText}>
+                    <Text style={styles.actionLinkText} weight="medium">
                       {t('dashboard.viewDetails')}
                     </Text>
                   </TouchableOpacity>
@@ -263,18 +268,22 @@ export default function Dashboard() {
 
         <Card style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
+            <Text style={styles.sectionTitle} weight="medium">
               {t('dashboard.topProducts')} ({t('dashboard.thisMonth')})
             </Text>
             <TouchableOpacity onPress={() => router.push('/(tabs)/reports')}>
-              <Text style={styles.viewAllText}>{t('dashboard.viewAll')}</Text>
+              <Text style={styles.viewAllText} weight="medium">
+                {t('dashboard.viewAll')}
+              </Text>
             </TouchableOpacity>
           </View>
           {analytics?.topProducts && analytics.topProducts.length > 0 ? (
             analytics.topProducts.map((product: any, index: number) => (
               <View key={index} style={styles.productRow}>
                 <View style={styles.productRank}>
-                  <Text style={styles.rankNumber}>{index + 1}</Text>
+                  <Text style={styles.rankNumber} weight="bold">
+                    {index + 1}
+                  </Text>
                 </View>
                 {product.imageUrl && (
                   <Image
@@ -284,7 +293,9 @@ export default function Dashboard() {
                   />
                 )}
                 <View style={styles.productInfo}>
-                  <Text style={styles.productName}>{product.name}</Text>
+                  <Text style={styles.productName} weight="medium">
+                    {product.name}
+                  </Text>
                   <Text style={styles.productStats}>
                     {t('dashboard.sold')}: {product.quantity} •{' '}
                     {t('dashboard.revenue')}: {formatPrice(product.revenue)}
@@ -298,7 +309,9 @@ export default function Dashboard() {
           ) : (
             <View style={styles.emptyState}>
               <Package size={32} color="#9CA3AF" />
-              <Text style={styles.noData}>{t('dashboard.noSalesData')}</Text>
+              <Text style={styles.noData} weight="medium">
+                {t('dashboard.noSalesData')}
+              </Text>
               <Text style={styles.noDataSubtext}>
                 {t('dashboard.startMakingSales')}
               </Text>
@@ -308,27 +321,31 @@ export default function Dashboard() {
 
         <Card style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
+            <Text style={styles.sectionTitle} weight="medium">
               {t('dashboard.storeOverview')}
             </Text>
             <TouchableOpacity onPress={() => router.push('/inventory')}>
-              <Text style={styles.viewAllText}>{t('dashboard.manage')}</Text>
+              <Text style={styles.viewAllText} weight="medium">
+                {t('dashboard.manage')}
+              </Text>
             </TouchableOpacity>
           </View>
           <View style={styles.overviewRow}>
             <View style={styles.overviewIcon}>
               <Package size={16} color="#6B7280" />
             </View>
-            <Text style={styles.overviewLabel}>
+            <Text style={styles.overviewLabel} weight="medium">
               {t('dashboard.totalProducts')}
             </Text>
-            <Text style={styles.overviewValue}>{totalProducts}</Text>
+            <Text style={styles.overviewValue} weight="medium">
+              {totalProducts}
+            </Text>
           </View>
           <View style={styles.overviewRow}>
             <View style={styles.overviewIcon}>
               <AlertTriangle size={16} color="#EF4444" />
             </View>
-            <Text style={styles.overviewLabel}>
+            <Text style={styles.overviewLabel} weight="medium">
               {t('dashboard.lowStockItems')}
             </Text>
             <Text
@@ -336,6 +353,7 @@ export default function Dashboard() {
                 styles.overviewValue,
                 lowStockCount > 0 && styles.warningText,
               ]}
+              weight="medium"
             >
               {lowStockCount}
             </Text>
@@ -389,12 +407,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
   },
   subtitle: {
     fontSize: 15,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 4,
   },
@@ -434,17 +450,14 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     fontSize: 14,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
     textAlign: 'center',
   },
   metricLabel: {
     fontSize: 10,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     marginTop: 2,
     textAlign: 'center',
-    lineHeight: 12,
   },
   metricTrend: {
     flexDirection: 'row',
@@ -453,7 +466,6 @@ const styles = StyleSheet.create({
   },
   trendText: {
     fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
     color: '#059669',
     marginLeft: 4,
   },
@@ -462,7 +474,6 @@ const styles = StyleSheet.create({
   },
   actionLinkText: {
     fontSize: 9,
-    fontFamily: 'Inter-SemiBold',
     color: '#EF4444',
     textAlign: 'center',
   },
@@ -485,12 +496,10 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 17,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   viewAllText: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#059669',
   },
   productRow: {
@@ -518,7 +527,6 @@ const styles = StyleSheet.create({
   },
   rankNumber: {
     fontSize: 12,
-    fontFamily: 'Inter-Bold',
     color: '#6B7280',
   },
   productInfo: {
@@ -526,12 +534,10 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 15,
-    fontFamily: 'Inter-Medium',
     color: '#111827',
   },
   productStats: {
     fontSize: 13,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 4,
   },
@@ -549,13 +555,11 @@ const styles = StyleSheet.create({
   },
   noData: {
     fontSize: 15,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     marginTop: 12,
   },
   noDataSubtext: {
     fontSize: 13,
-    fontFamily: 'Inter-Regular',
     color: '#9CA3AF',
     marginTop: 4,
   },
@@ -578,12 +582,10 @@ const styles = StyleSheet.create({
   overviewLabel: {
     flex: 1,
     fontSize: 15,
-    fontFamily: 'Inter-Medium',
     color: '#374151',
   },
   overviewValue: {
     fontSize: 15,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   warningText: {

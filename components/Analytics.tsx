@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   SafeAreaView,
@@ -10,6 +9,7 @@ import {
   Platform,
   RefreshControl,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { CustomerAnalytics } from './CustomerAnalytics';
 import AIAnalyticsTab from './AIAnalyticsTab';
 import { Card } from '@/components/Card';
@@ -280,7 +280,7 @@ export default function Analytics() {
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.titleSection}>
-            <Text style={styles.title}>
+            <Text style={styles.title} weight="bold">
               {currentTab?.label || t('analytics.title')}
             </Text>
             <Text style={styles.subtitle}>{t('analytics.subtitle')}</Text>
@@ -309,7 +309,7 @@ export default function Analytics() {
           onPress={() => setShowTabPicker(false)}
         >
           <View style={styles.tabPickerModal}>
-            <Text style={styles.tabPickerTitle}>
+            <Text style={styles.tabPickerTitle} weight="medium">
               {t('analytics.selectView')}
             </Text>
 
@@ -335,6 +335,7 @@ export default function Analytics() {
                       styles.tabPickerOptionText,
                       isSelected && styles.tabPickerOptionTextSelected,
                     ]}
+                    weight={isSelected ? 'medium' : 'medium'}
                   >
                     {tab.label}
                   </Text>
@@ -368,7 +369,7 @@ export default function Analytics() {
 
           {/* Period Statistics */}
           <View style={styles.periodStats}>
-            <Text style={styles.periodStatsText}>
+            <Text style={styles.periodStatsText} weight="medium">
               {dateFilter.mode === 'year'
                 ? `12 months • ${analytics?.totalSales || 0} sales`
                 : `${getDaysInPeriod()} ${
@@ -390,10 +391,12 @@ export default function Analytics() {
                   <DollarSign size={18} color="#FFFFFF" />
                 </View>
                 <View style={styles.metricText}>
-                  <Text style={styles.metricValue}>
+                  <Text style={styles.metricValue} weight="bold">
                     {formatPrice(analytics?.totalRevenue || 0)}
                   </Text>
-                  <Text style={styles.metricLabel}>Total Sale Value</Text>
+                  <Text style={styles.metricLabel} weight="medium">
+                    Total Sale Value
+                  </Text>
                 </View>
               </View>
             </Card>
@@ -407,10 +410,10 @@ export default function Analytics() {
                   <TrendingDown size={18} color="#FFFFFF" />
                 </View>
                 <View style={styles.metricText}>
-                  <Text style={styles.metricValue}>
+                  <Text style={styles.metricValue} weight="bold">
                     {formatPrice(analytics?.totalExpenses || 0)}
                   </Text>
-                  <Text style={styles.metricLabel}>
+                  <Text style={styles.metricLabel} weight="medium">
                     {t('analytics.totalExpenses')}
                   </Text>
                 </View>
@@ -431,10 +434,13 @@ export default function Analytics() {
                       styles.metricValue,
                       (analytics?.netProfit || 0) < 0 && styles.negativeValue,
                     ]}
+                    weight="bold"
                   >
                     {formatPrice(analytics?.netProfit || 0)}
                   </Text>
-                  <Text style={styles.metricLabel}>Total Balance</Text>
+                  <Text style={styles.metricLabel} weight="medium">
+                    Total Balance
+                  </Text>
                 </View>
               </View>
             </Card>
@@ -448,10 +454,12 @@ export default function Analytics() {
                   <TrendingUp size={18} color="#FFFFFF" />
                 </View>
                 <View style={styles.metricText}>
-                  <Text style={styles.metricValue}>
+                  <Text style={styles.metricValue} weight="bold">
                     {formatPrice(analytics?.totalProfit || 0)}
                   </Text>
-                  <Text style={styles.metricLabel}>Total Sale Profit</Text>
+                  <Text style={styles.metricLabel} weight="medium">
+                    Total Sale Profit
+                  </Text>
                 </View>
               </View>
             </Card>
@@ -470,10 +478,11 @@ export default function Analytics() {
                       styles.metricValue,
                       (analytics?.netProfit || 0) < 0 && styles.negativeValue,
                     ]}
+                    weight="bold"
                   >
                     {formatPrice(analytics?.netProfit || 0)}
                   </Text>
-                  <Text style={styles.metricLabel}>
+                  <Text style={styles.metricLabel} weight="medium">
                     {t('analytics.netProfit')}
                   </Text>
                 </View>
@@ -489,10 +498,12 @@ export default function Analytics() {
                   <BarChart3 size={18} color="#FFFFFF" />
                 </View>
                 <View style={styles.metricText}>
-                  <Text style={styles.metricValue}>
+                  <Text style={styles.metricValue} weight="bold">
                     {analytics?.totalSales || 0}
                   </Text>
-                  <Text style={styles.metricLabel}>Total Sale Count</Text>
+                  <Text style={styles.metricLabel} weight="medium">
+                    Total Sale Count
+                  </Text>
                 </View>
               </View>
             </Card>
@@ -531,7 +542,7 @@ export default function Analytics() {
             />
           ) : (
             <Card>
-              <Text style={styles.sectionTitle}>
+              <Text style={styles.sectionTitle} weight="medium">
                 {t('analytics.expenseBreakdown')}
               </Text>
               <Text style={styles.noData}>{t('analytics.noExpenseData')}</Text>
@@ -540,17 +551,21 @@ export default function Analytics() {
 
           {/* Top Performing Products */}
           <Card>
-            <Text style={styles.sectionTitle}>
+            <Text style={styles.sectionTitle} weight="medium">
               {t('analytics.topPerformingProducts')}
             </Text>
             {analytics?.topProducts && analytics?.topProducts.length > 0 ? (
               analytics?.topProducts.map((product: any, index: number) => (
                 <View key={index} style={styles.productRank}>
                   <View style={styles.rankNumber}>
-                    <Text style={styles.rankText}>{index + 1}</Text>
+                    <Text style={styles.rankText} weight="bold">
+                      {index + 1}
+                    </Text>
                   </View>
                   <View style={styles.productInfo}>
-                    <Text style={styles.productName}>{product.name}</Text>
+                    <Text style={styles.productName} weight="medium">
+                      {product.name}
+                    </Text>
                     <Text style={styles.productStats}>
                       {product.quantity} {t('analytics.units')} •{' '}
                       {t('analytics.profit')}: {formatPrice(product.profit)}
@@ -561,7 +576,7 @@ export default function Analytics() {
                     </Text>
                   </View>
                   <View style={styles.productRevenue}>
-                    <Text style={styles.revenueAmount}>
+                    <Text style={styles.revenueAmount} weight="medium">
                       {formatPrice(product.revenue)}
                     </Text>
                   </View>
@@ -576,14 +591,14 @@ export default function Analytics() {
 
           {/* Recent Sales */}
           <Card>
-            <Text style={styles.sectionTitle}>
+            <Text style={styles.sectionTitle} weight="medium">
               {t('analytics.recentSales')}
             </Text>
             {recentSales.length > 0 ? (
               recentSales.slice(0, 10).map((sale) => (
                 <View key={sale.id} style={styles.saleItem}>
                   <View style={styles.saleInfo}>
-                    <Text style={styles.saleId}>
+                    <Text style={styles.saleId} weight="medium">
                       {t('analytics.saleId')}
                       {sale.id}
                     </Text>
@@ -595,7 +610,7 @@ export default function Analytics() {
                       {sale.payment_method.toUpperCase()}
                     </Text>
                   </View>
-                  <Text style={styles.saleAmount}>
+                  <Text style={styles.saleAmount} weight="medium">
                     {formatPrice(sale.total)}
                   </Text>
                 </View>
@@ -642,12 +657,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
   },
   subtitle: {
     fontSize: 15,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 4,
   },
@@ -685,7 +698,6 @@ const styles = StyleSheet.create({
   },
   tabPickerTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 16,
     textAlign: 'center',
@@ -705,14 +717,12 @@ const styles = StyleSheet.create({
   },
   tabPickerOptionText: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     marginLeft: 12,
     flex: 1,
   },
   tabPickerOptionTextSelected: {
     color: '#059669',
-    fontFamily: 'Inter-SemiBold',
   },
   selectedIndicator: {
     width: 8,
@@ -742,11 +752,9 @@ const styles = StyleSheet.create({
   periodStatsText: {
     fontSize: 12,
     color: '#6B7280',
-    fontFamily: 'Inter-Medium',
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   metricsGrid: {
@@ -785,24 +793,20 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     fontSize: 14,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
     textAlign: 'center',
   },
   metricLabel: {
     fontSize: 10,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     marginTop: 2,
     textAlign: 'center',
-    lineHeight: 12,
   },
   negativeValue: {
     color: '#EF4444',
   },
   metricSubtext: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
@@ -813,7 +817,6 @@ const styles = StyleSheet.create({
   },
   growthText: {
     fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
     marginLeft: 4,
   },
   insightItem: {
@@ -826,12 +829,10 @@ const styles = StyleSheet.create({
   },
   insightLabel: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#374151',
   },
   insightValue: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   productRank: {
@@ -852,7 +853,6 @@ const styles = StyleSheet.create({
   },
   rankText: {
     fontSize: 16,
-    fontFamily: 'Inter-Bold',
     color: '#FFFFFF',
   },
   productInfo: {
@@ -860,17 +860,14 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#111827',
   },
   productStats: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
   },
   productMargin: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#10B981',
   },
   productRevenue: {
@@ -878,7 +875,6 @@ const styles = StyleSheet.create({
   },
   revenueAmount: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#10B981',
   },
   saleItem: {
@@ -894,27 +890,22 @@ const styles = StyleSheet.create({
   },
   saleId: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#111827',
   },
   saleDate: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
   },
   salePayment: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#9CA3AF',
   },
   saleAmount: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   noData: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',
     paddingVertical: 24,
@@ -922,7 +913,6 @@ const styles = StyleSheet.create({
 
   subSectionTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginTop: 16,
     marginBottom: 8,
@@ -933,13 +923,11 @@ const styles = StyleSheet.create({
   },
   expensePercentage: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginLeft: 8,
   },
   noDataText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     fontStyle: 'italic',
     marginTop: 8,

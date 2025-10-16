@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Dimensions,
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { LineChart, PieChart, StackedBarChart } from 'react-native-chart-kit';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -338,7 +338,9 @@ export default function AnalyticsCharts({
     <Card>
       <View style={styles.header}>
         <Activity size={20} color="#059669" />
-        <Text style={styles.title}>{t('analytics.performanceCharts')}</Text>
+        <Text style={styles.title} weight="medium">
+          {t('analytics.performanceCharts')}
+        </Text>
       </View>
 
       {/* Chart Type Selector */}
@@ -364,6 +366,7 @@ export default function AnalyticsCharts({
                   styles.tabText,
                   activeChart === tab.id && styles.activeTabText,
                 ]}
+                weight="medium"
               >
                 {tab.title}
               </Text>
@@ -386,7 +389,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
     color: '#111827',
     marginLeft: 8,
   },
@@ -410,7 +412,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     marginLeft: 6,
-    fontWeight: '500',
   },
   activeTabText: {
     color: '#FFFFFF',
@@ -474,7 +475,6 @@ const styles = StyleSheet.create({
   },
   profitSummaryLabel: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#374151',
     marginBottom: 4,
   },
@@ -485,6 +485,5 @@ const styles = StyleSheet.create({
   profitSummaryProfit: {
     fontSize: 11,
     color: '#10B981',
-    fontWeight: '500',
   },
 });

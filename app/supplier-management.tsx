@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TextInput,
   FlatList,
@@ -18,6 +17,7 @@ import { SupplierFormModal } from '@/components/SupplierFormModal';
 import { useSuppliers, useSupplierMutations } from '@/hooks/useQueries';
 import { SupplierWithStats } from '@/services/database';
 import { useDebounce } from '@/hooks/useDebounce';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 
 export default function SupplierManagement() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -95,7 +95,9 @@ export default function SupplierManagement() {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Ionicons name="business-outline" size={64} color="#9CA3AF" />
-      <Text style={styles.emptyStateTitle}>No Suppliers Found</Text>
+      <Text style={styles.emptyStateTitle} weight="medium">
+        No Suppliers Found
+      </Text>
       <Text style={styles.emptyStateText}>
         {searchQuery
           ? 'No suppliers match your search criteria'
@@ -114,7 +116,9 @@ export default function SupplierManagement() {
   const renderError = () => (
     <View style={styles.errorState}>
       <Ionicons name="alert-circle-outline" size={64} color="#EF4444" />
-      <Text style={styles.errorTitle}>Error Loading Suppliers</Text>
+      <Text style={styles.errorTitle} weight="medium">
+        Error Loading Suppliers
+      </Text>
       <Text style={styles.errorText}>
         {error instanceof Error ? error.message : 'Something went wrong'}
       </Text>
@@ -150,7 +154,9 @@ export default function SupplierManagement() {
         >
           <Ionicons name="arrow-back" size={24} color="#374151" />
         </TouchableOpacity>
-        <Text style={styles.title}>Suppliers</Text>
+        <Text style={styles.title} weight="medium">
+          Suppliers
+        </Text>
         <TouchableOpacity style={styles.addButton} onPress={handleAddSupplier}>
           <Ionicons name="add" size={24} color="#3B82F6" />
         </TouchableOpacity>
@@ -224,10 +230,10 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
+    marginRight: 8,
   },
   title: {
     fontSize: 20,
-    fontWeight: '600',
     color: '#111827',
   },
   addButton: {
@@ -269,7 +275,6 @@ const styles = StyleSheet.create({
   },
   emptyStateTitle: {
     fontSize: 20,
-    fontWeight: '600',
     color: '#374151',
     marginTop: 16,
     marginBottom: 8,
@@ -278,7 +283,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6B7280',
     textAlign: 'center',
-    lineHeight: 24,
     marginBottom: 24,
   },
   emptyStateButton: {
@@ -292,7 +296,6 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     fontSize: 20,
-    fontWeight: '600',
     color: '#EF4444',
     marginTop: 16,
     marginBottom: 8,
@@ -301,7 +304,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6B7280',
     textAlign: 'center',
-    lineHeight: 24,
     marginBottom: 24,
   },
   retryButton: {

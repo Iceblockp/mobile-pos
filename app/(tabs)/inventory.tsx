@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   SafeAreaView,
@@ -13,6 +12,7 @@ import {
   FlatList,
   Modal,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -235,8 +235,10 @@ export default function Inventory() {
                   <Package size={24} color="#FFFFFF" />
                 </View>
                 <View style={styles.summaryText}>
-                  <Text style={styles.summaryValue}>{products.length}</Text>
-                  <Text style={styles.summaryLabel}>
+                  <Text style={styles.summaryValue} weight="bold">
+                    {products.length}
+                  </Text>
+                  <Text style={styles.summaryLabel} weight="medium">
                     {t('inventory.totalProducts')}
                   </Text>
                 </View>
@@ -251,10 +253,10 @@ export default function Inventory() {
                   <AlertTriangle size={24} color="#FFFFFF" />
                 </View>
                 <View style={styles.summaryText}>
-                  <Text style={styles.summaryValue}>
+                  <Text style={styles.summaryValue} weight="bold">
                     {lowStockProducts.length}
                   </Text>
-                  <Text style={styles.summaryLabel}>
+                  <Text style={styles.summaryLabel} weight="medium">
                     {t('inventory.lowStock')}
                   </Text>
                 </View>
@@ -264,7 +266,7 @@ export default function Inventory() {
 
           {lowStockProducts.length > 0 && (
             <Card>
-              <Text style={styles.sectionTitle}>
+              <Text style={styles.sectionTitle} weight="medium">
                 {t('inventory.lowStockAlert')}
               </Text>
 
@@ -391,7 +393,7 @@ export default function Inventory() {
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.titleSection}>
-            <Text style={styles.title}>
+            <Text style={styles.title} weight="bold">
               {currentTab?.label || t('inventory.title')}
             </Text>
             {/* <Text style={styles.subtitle}>{t('inventory.subtitle')}</Text> */}
@@ -420,7 +422,7 @@ export default function Inventory() {
           onPress={() => setShowTabPicker(false)}
         >
           <View style={styles.tabPickerModal}>
-            <Text style={styles.tabPickerTitle}>
+            <Text style={styles.tabPickerTitle} weight="medium">
               {t('inventory.selectView')}
             </Text>
 
@@ -521,12 +523,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
   },
   subtitle: {
     fontSize: 15,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 4,
   },
@@ -564,7 +564,6 @@ const styles = StyleSheet.create({
   },
   tabPickerTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 16,
     textAlign: 'center',
@@ -584,14 +583,12 @@ const styles = StyleSheet.create({
   },
   tabPickerOptionText: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     marginLeft: 12,
     flex: 1,
   },
   tabPickerOptionTextSelected: {
     color: '#059669',
-    fontFamily: 'Inter-SemiBold',
   },
   selectedIndicator: {
     width: 8,
@@ -639,18 +636,15 @@ const styles = StyleSheet.create({
   },
   summaryValue: {
     fontSize: 22,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
   },
   summaryLabel: {
     fontSize: 13,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     marginTop: 4,
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 16,
   },
@@ -674,12 +668,10 @@ const styles = StyleSheet.create({
   },
   alertProductName: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#111827',
   },
   alertProductDetails: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#F59E0B',
   },
   actionButtons: {
@@ -706,7 +698,6 @@ const styles = StyleSheet.create({
   },
   adjustButtonText: {
     fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
   productItem: {
@@ -729,22 +720,18 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#111827',
   },
   productCategory: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
   },
   productSupplier: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#9CA3AF',
   },
   productPrice: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#10B981',
   },
   productStock: {
@@ -752,12 +739,10 @@ const styles = StyleSheet.create({
   },
   stockQuantity: {
     fontSize: 20,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
   },
   stockStatus: {
     fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
     marginTop: 2,
     marginBottom: 8,
   },
@@ -771,22 +756,18 @@ const styles = StyleSheet.create({
   },
   supplierName: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#111827',
   },
   supplierContact: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
   },
   supplierDetails: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#9CA3AF',
   },
   supplierAddress: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#9CA3AF',
   },
   modal: {
@@ -808,13 +789,11 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 8,
   },
   modalSubtitle: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginBottom: 16,
   },
@@ -826,7 +805,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
     marginBottom: 16,
   },
@@ -859,7 +837,6 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
     marginLeft: 8,
   },

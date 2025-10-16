@@ -1,15 +1,10 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
-} from 'react-native';
+import { View, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import Expenses from '@/components/ExpensesManager';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 
 export default function ExpensesPage() {
   const router = useRouter();
@@ -26,7 +21,9 @@ export default function ExpensesPage() {
           <ArrowLeft size={24} color="#111827" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.title}>{t('expenses.title')}</Text>
+          <Text style={styles.title} weight="medium">
+            {t('expenses.title')}
+          </Text>
           <Text style={styles.subtitle}>{t('navigation.expenses')}</Text>
         </View>
       </View>
@@ -62,12 +59,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   subtitle: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },

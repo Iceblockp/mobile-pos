@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
@@ -12,7 +11,6 @@ import { useRouter } from 'expo-router';
 import {
   ArrowLeft,
   FolderOpen,
-  Database,
   CheckCircle,
   HelpCircle,
   FileSearch,
@@ -32,6 +30,7 @@ import {
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { ConflictResolutionModal } from '@/components/ConflictResolutionModal';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 
 interface ImportOption {
   id: string;
@@ -463,7 +462,9 @@ export default function DataImport() {
           <ArrowLeft size={24} color="#111827" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.title}>{t('dataImport.title')}</Text>
+          <Text style={styles.title} weight="medium">
+            {t('dataImport.title')}
+          </Text>
           <Text style={styles.subtitle}>{t('dataImport.subtitle')}</Text>
         </View>
         <View style={styles.headerButtons}>
@@ -474,7 +475,9 @@ export default function DataImport() {
             <HelpCircle size={16} color="#6B7280" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.infoButton} onPress={showImportInfo}>
-            <Text style={styles.infoButtonText}>?</Text>
+            <Text style={styles.infoButtonText} weight="medium">
+              ?
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -484,7 +487,9 @@ export default function DataImport() {
         {importProgress && (
           <View style={styles.progressSection}>
             <View style={styles.progressCard}>
-              <Text style={styles.progressTitle}>{importProgress.stage}</Text>
+              <Text style={styles.progressTitle} weight="medium">
+                {importProgress.stage}
+              </Text>
               <View style={styles.progressBar}>
                 <View
                   style={[
@@ -501,7 +506,7 @@ export default function DataImport() {
               </Text>
               {/* Show percentage for better feedback */}
               {importProgress.percentage > 0 && (
-                <Text style={styles.progressPercentage}>
+                <Text style={styles.progressPercentage} weight="medium">
                   {Math.round(importProgress.percentage)}% complete
                 </Text>
               )}
@@ -513,7 +518,7 @@ export default function DataImport() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <FolderOpen size={20} color="#6B7280" />
-            <Text style={styles.sectionTitle}>
+            <Text style={styles.sectionTitle} weight="medium">
               {t('dataImport.importOptions')}
             </Text>
           </View>
@@ -547,7 +552,9 @@ export default function DataImport() {
                   <IconComponent size={24} color={option.color} />
                 </View>
                 <View style={styles.importContent}>
-                  <Text style={styles.importTitle}>{option.title}</Text>
+                  <Text style={styles.importTitle} weight="medium">
+                    {option.title}
+                  </Text>
                   <Text style={styles.importDescription}>
                     {option.description}
                   </Text>
@@ -555,7 +562,7 @@ export default function DataImport() {
                 <View style={styles.importAction}>
                   {isCurrentlyImporting ? (
                     <View style={styles.loadingContainer}>
-                      <Text style={styles.loadingText}>
+                      <Text style={styles.loadingText} weight="medium">
                         {t('dataImport.importing')}
                       </Text>
                     </View>
@@ -570,7 +577,9 @@ export default function DataImport() {
 
         {/* Import Information */}
         <View style={styles.infoSection}>
-          <Text style={styles.infoTitle}>{t('dataImport.importInfo')}</Text>
+          <Text style={styles.infoTitle} weight="medium">
+            {t('dataImport.importInfo')}
+          </Text>
           <View style={styles.infoCard}>
             <View style={styles.infoItem}>
               <CheckCircle size={16} color="#10B981" />
@@ -599,7 +608,7 @@ export default function DataImport() {
 
         {/* Data Security Notice */}
         <View style={styles.securitySection}>
-          <Text style={styles.securityTitle}>
+          <Text style={styles.securityTitle} weight="medium">
             {t('dataImport.dataSecurity')}
           </Text>
           <View style={styles.securityCard}>
@@ -676,12 +685,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   subtitle: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
@@ -695,7 +702,6 @@ const styles = StyleSheet.create({
   },
   infoButtonText: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#6B7280',
   },
   content: {
@@ -717,7 +723,6 @@ const styles = StyleSheet.create({
   },
   progressTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 12,
   },
@@ -734,13 +739,11 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',
   },
   progressPercentage: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#3B82F6',
     textAlign: 'center',
     marginTop: 4,
@@ -756,15 +759,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginLeft: 8,
   },
   sectionDescription: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
-    lineHeight: 20,
   },
   importList: {
     paddingHorizontal: 20,
@@ -799,15 +799,12 @@ const styles = StyleSheet.create({
   },
   importTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 4,
   },
   importDescription: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
-    lineHeight: 18,
   },
   importAction: {
     marginLeft: 12,
@@ -817,7 +814,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   infoSection: {
@@ -826,7 +822,6 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 12,
   },
@@ -847,9 +842,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
-    lineHeight: 20,
     marginLeft: 8,
     flex: 1,
   },
@@ -859,7 +852,6 @@ const styles = StyleSheet.create({
   },
   securityTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 12,
   },
@@ -872,16 +864,12 @@ const styles = StyleSheet.create({
   },
   securityText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#7F1D1D',
-    lineHeight: 20,
     marginBottom: 12,
   },
   securityBullet: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#7F1D1D',
-    lineHeight: 20,
     marginBottom: 4,
   },
   conflictModalOverlay: {
@@ -900,14 +888,12 @@ const styles = StyleSheet.create({
   },
   conflictModalTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 8,
     textAlign: 'center',
   },
   conflictModalSubtitle: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginBottom: 16,
     textAlign: 'center',
@@ -926,19 +912,16 @@ const styles = StyleSheet.create({
   },
   conflictMessage: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#7F1D1D',
     marginBottom: 4,
   },
   conflictType: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#991B1B',
     textTransform: 'capitalize',
   },
   moreConflictsText: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',
     fontStyle: 'italic',
@@ -958,7 +941,6 @@ const styles = StyleSheet.create({
   updateButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
   },
   skipButton: {
     backgroundColor: '#F59E0B',
@@ -966,7 +948,6 @@ const styles = StyleSheet.create({
   skipButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
   },
   cancelButton: {
     backgroundColor: '#F3F4F6',
@@ -974,6 +955,5 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: '#6B7280',
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
   },
 });

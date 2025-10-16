@@ -1,13 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
   ScrollView,
-  TextInput,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -20,6 +17,8 @@ import { ReceiptTemplateSelector } from '@/components/ReceiptTemplateSelector';
 import { ReceiptPreview } from '@/components/ReceiptPreview';
 import { CurrencySelector } from '@/components/CurrencySelector';
 import { useShopSettings } from '@/context/ShopSettingsContext';
+import { MyanmarText as Text } from '@/components/MyanmarText';
+import { MyanmarTextInput as TextInput } from '@/components/MyanmarTextInput';
 
 export default function ShopSettingsPage() {
   const router = useRouter();
@@ -147,7 +146,9 @@ export default function ShopSettingsPage() {
           <ArrowLeft size={24} color="#111827" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.title}>{t('shopSettings.title')}</Text>
+          <Text style={styles.title} weight="bold">
+            {t('shopSettings.title')}
+          </Text>
           <Text style={styles.subtitle}>{t('shopSettings.subtitle')}</Text>
         </View>
         <TouchableOpacity
@@ -173,14 +174,14 @@ export default function ShopSettingsPage() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Store size={20} color="#059669" />
-            <Text style={styles.sectionTitle}>
+            <Text style={styles.sectionTitle} weight="medium">
               {t('shopSettings.basicInfo')}
             </Text>
           </View>
 
           {/* Shop Name */}
           <View style={styles.fieldContainer}>
-            <Text style={styles.fieldLabel}>
+            <Text style={styles.fieldLabel} weight="medium">
               {t('shopSettings.shopName')}{' '}
               <Text style={styles.required}>*</Text>
             </Text>
@@ -201,7 +202,9 @@ export default function ShopSettingsPage() {
 
           {/* Address */}
           <View style={styles.fieldContainer}>
-            <Text style={styles.fieldLabel}>{t('shopSettings.address')}</Text>
+            <Text style={styles.fieldLabel} weight="medium">
+              {t('shopSettings.address')}
+            </Text>
             <TextInput
               style={[
                 styles.textInput,
@@ -223,7 +226,9 @@ export default function ShopSettingsPage() {
 
           {/* Phone */}
           <View style={styles.fieldContainer}>
-            <Text style={styles.fieldLabel}>{t('shopSettings.phone')}</Text>
+            <Text style={styles.fieldLabel} weight="medium">
+              {t('shopSettings.phone')}
+            </Text>
             <TextInput
               style={[styles.textInput, errors.phone && styles.textInputError]}
               value={formData.phone}
@@ -245,7 +250,7 @@ export default function ShopSettingsPage() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Palette size={20} color="#059669" />
-            <Text style={styles.sectionTitle}>
+            <Text style={styles.sectionTitle} weight="medium">
               {t('shopSettings.branding')}
             </Text>
           </View>
@@ -263,14 +268,14 @@ export default function ShopSettingsPage() {
         {/* Receipt Customization Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
+            <Text style={styles.sectionTitle} weight="medium">
               {t('shopSettings.receiptCustomization')}
             </Text>
           </View>
 
           {/* Receipt Footer */}
           <View style={styles.fieldContainer}>
-            <Text style={styles.fieldLabel}>
+            <Text style={styles.fieldLabel} weight="medium">
               {t('shopSettings.receiptFooter')}
             </Text>
             <TextInput
@@ -296,7 +301,7 @@ export default function ShopSettingsPage() {
 
           {/* Thank You Message */}
           <View style={styles.fieldContainer}>
-            <Text style={styles.fieldLabel}>
+            <Text style={styles.fieldLabel} weight="medium">
               {t('shopSettings.thankYouMessage')}
             </Text>
             <TextInput
@@ -324,7 +329,7 @@ export default function ShopSettingsPage() {
         {/* Template Selection Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
+            <Text style={styles.sectionTitle} weight="medium">
               {t('shopSettings.template')}
             </Text>
           </View>
@@ -344,7 +349,9 @@ export default function ShopSettingsPage() {
         {/* Receipt Preview Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{t('shopSettings.preview')}</Text>
+            <Text style={styles.sectionTitle} weight="medium">
+              {t('shopSettings.preview')}
+            </Text>
           </View>
 
           {shopSettingsService && formInitialized && (
@@ -392,7 +399,7 @@ export default function ShopSettingsPage() {
             ) : (
               <>
                 <Save size={20} color="#FFFFFF" />
-                <Text style={styles.mobileSaveButtonText}>
+                <Text style={styles.mobileSaveButtonText} weight="medium">
                   {t('shopSettings.save')}
                 </Text>
               </>
@@ -438,12 +445,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
   },
   subtitle: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
@@ -483,7 +488,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginLeft: 8,
   },
@@ -492,7 +496,6 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#374151',
     marginBottom: 8,
   },
@@ -506,7 +509,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
     backgroundColor: '#FFFFFF',
   },
@@ -518,13 +520,11 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#EF4444',
     marginTop: 4,
   },
   characterCount: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#9CA3AF',
     textAlign: 'right',
     marginTop: 4,
@@ -545,7 +545,6 @@ const styles = StyleSheet.create({
   },
   mobileSaveButtonText: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
     marginLeft: 8,
   },
@@ -561,6 +560,5 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
     color: '#6B7280',
-    fontFamily: 'Inter-Regular',
   },
 });

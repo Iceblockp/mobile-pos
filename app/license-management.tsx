@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   StyleSheet,
-  Text,
   View,
   SafeAreaView,
   TouchableOpacity,
@@ -13,6 +12,7 @@ import { ShieldCheck, ArrowLeft, Clock, Calendar } from 'lucide-react-native';
 import { useLicense } from '@/hooks/useLicense';
 import { useTranslation } from '@/context/LocalizationContext';
 import { LicenseExtensionModal } from '@/components/LicenseExtensionModal';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 
 export default function LicenseManagement() {
   const router = useRouter();
@@ -86,7 +86,9 @@ export default function LicenseManagement() {
         >
           <ArrowLeft size={24} color="#374151" />
         </TouchableOpacity>
-        <Text style={styles.title}>{t('license.licenseManagement')}</Text>
+        <Text style={styles.title} weight="medium">
+          {t('license.licenseManagement')}
+        </Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -95,7 +97,7 @@ export default function LicenseManagement() {
         <View style={styles.statusCard}>
           <View style={styles.statusHeader}>
             <ShieldCheck size={24} color={statusInfo.color} />
-            <Text style={styles.statusTitle}>
+            <Text style={styles.statusTitle} weight="medium">
               {t('license.currentLicenseStatus')}
             </Text>
           </View>
@@ -109,7 +111,10 @@ export default function LicenseManagement() {
               },
             ]}
           >
-            <Text style={[styles.statusText, { color: statusInfo.color }]}>
+            <Text
+              style={[styles.statusText, { color: statusInfo.color }]}
+              weight="medium"
+            >
               {statusInfo.status}
             </Text>
           </View>
@@ -121,7 +126,9 @@ export default function LicenseManagement() {
                 <Text style={styles.statusLabel}>
                   {t('license.licenseValidUntil')}:
                 </Text>
-                <Text style={styles.statusValue}>{expiryDate}</Text>
+                <Text style={styles.statusValue} weight="medium">
+                  {expiryDate}
+                </Text>
               </View>
 
               {isValid && (
@@ -139,7 +146,7 @@ export default function LicenseManagement() {
         {/* License Extension Section */}
         <View style={styles.extensionCard}>
           <View style={styles.extensionHeader}>
-            <Text style={styles.extensionTitle}>
+            <Text style={styles.extensionTitle} weight="medium">
               {t('license.extendLicense')}
             </Text>
             <Text style={styles.extensionDescription}>
@@ -152,7 +159,7 @@ export default function LicenseManagement() {
             onPress={() => setExtensionModalVisible(true)}
           >
             <ShieldCheck size={20} color="#FFFFFF" />
-            <Text style={styles.extendButtonText}>
+            <Text style={styles.extendButtonText} weight="medium">
               {t('license.extendLicense')}
             </Text>
           </TouchableOpacity>
@@ -163,7 +170,7 @@ export default function LicenseManagement() {
           <View style={styles.warningCard}>
             <View style={styles.warningHeader}>
               <ShieldCheck size={20} color="#F59E0B" />
-              <Text style={styles.warningTitle}>
+              <Text style={styles.warningTitle} weight="medium">
                 {t('license.licenseExpiringSoon')}
               </Text>
             </View>
@@ -176,8 +183,12 @@ export default function LicenseManagement() {
 
         {/* Contact Information */}
         <View style={styles.contactCard}>
-          <Text style={styles.contactTitle}>{t('license.contactPhone')}</Text>
-          <Text style={styles.contactPhone}>+959425743536</Text>
+          <Text style={styles.contactTitle} weight="medium">
+            {t('license.contactPhone')}
+          </Text>
+          <Text style={styles.contactPhone} weight="bold">
+            +959425743536
+          </Text>
         </View>
       </ScrollView>
 
@@ -219,7 +230,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '600',
     color: '#111827',
   },
   placeholder: {
@@ -247,7 +257,6 @@ const styles = StyleSheet.create({
   },
   statusTitle: {
     fontSize: 18,
-    fontWeight: '600',
     color: '#111827',
     marginLeft: 10,
   },
@@ -261,7 +270,6 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 14,
-    fontWeight: '600',
   },
   statusDetails: {
     gap: 8,
@@ -277,7 +285,6 @@ const styles = StyleSheet.create({
   },
   statusValue: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#111827',
   },
   extensionCard: {
@@ -296,14 +303,12 @@ const styles = StyleSheet.create({
   },
   extensionTitle: {
     fontSize: 18,
-    fontWeight: '600',
     color: '#111827',
     marginBottom: 8,
   },
   extensionDescription: {
     fontSize: 14,
     color: '#6B7280',
-    lineHeight: 20,
   },
   extendButton: {
     backgroundColor: '#2563EB',
@@ -318,7 +323,6 @@ const styles = StyleSheet.create({
   extendButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
   },
   warningCard: {
     backgroundColor: '#FFFBEB',
@@ -335,14 +339,12 @@ const styles = StyleSheet.create({
   },
   warningTitle: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#92400E',
     marginLeft: 8,
   },
   warningMessage: {
     fontSize: 14,
     color: '#A16207',
-    lineHeight: 20,
   },
   contactCard: {
     backgroundColor: '#FFFFFF',
@@ -357,13 +359,11 @@ const styles = StyleSheet.create({
   },
   contactTitle: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#374151',
     marginBottom: 8,
   },
   contactPhone: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#2563EB',
     letterSpacing: 0.5,
   },

@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   SafeAreaView,
@@ -27,6 +26,7 @@ import {
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import { LanguageIconButton } from '@/components/LanguageIconButton';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 
 export default function Help() {
   const { t } = useTranslation();
@@ -43,7 +43,9 @@ export default function Help() {
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Phone size={20} color="#2563EB" />
-        <Text style={styles.cardTitle}>{t('help.contactInfo')}</Text>
+        <Text style={styles.cardTitle} weight="medium">
+          {t('help.contactInfo')}
+        </Text>
       </View>
 
       <TouchableOpacity style={styles.contactItem} onPress={handlePhoneCall}>
@@ -51,8 +53,12 @@ export default function Help() {
           <Phone size={16} color="#059669" />
         </View>
         <View style={styles.contactDetails}>
-          <Text style={styles.contactLabel}>{t('help.adminPhone')}</Text>
-          <Text style={styles.contactValue}>+959425743536</Text>
+          <Text style={styles.contactLabel} weight="medium">
+            {t('help.adminPhone')}
+          </Text>
+          <Text style={styles.contactValue} weight="medium">
+            +959425743536
+          </Text>
         </View>
         <ChevronRight size={16} color="#9CA3AF" />
       </TouchableOpacity>
@@ -62,8 +68,12 @@ export default function Help() {
           <Mail size={16} color="#059669" />
         </View>
         <View style={styles.contactDetails}>
-          <Text style={styles.contactLabel}>{t('help.supportEmail')}</Text>
-          <Text style={styles.contactValue}>phonyo126@gmail.com</Text>
+          <Text style={styles.contactLabel} weight="medium">
+            {t('help.supportEmail')}
+          </Text>
+          <Text style={styles.contactValue} weight="medium">
+            phonyo126@gmail.com
+          </Text>
         </View>
         <ChevronRight size={16} color="#9CA3AF" />
       </TouchableOpacity>
@@ -73,7 +83,9 @@ export default function Help() {
           <Clock size={16} color="#6B7280" />
         </View>
         <View style={styles.contactDetails}>
-          <Text style={styles.contactLabel}>{t('help.businessHours')}</Text>
+          <Text style={styles.contactLabel} weight="medium">
+            {t('help.businessHours')}
+          </Text>
           <Text style={styles.businessHourText}>
             {t('help.mondayToFriday')}
           </Text>
@@ -88,17 +100,25 @@ export default function Help() {
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Zap size={20} color="#F59E0B" />
-        <Text style={styles.cardTitle}>{t('help.quickStart')}</Text>
+        <Text style={styles.cardTitle} weight="medium">
+          {t('help.quickStart')}
+        </Text>
       </View>
 
-      <Text style={styles.sectionSubtitle}>{t('help.quickStartTitle')}</Text>
+      <Text style={styles.sectionSubtitle} weight="medium">
+        {t('help.quickStartTitle')}
+      </Text>
 
       <View style={styles.stepContainer}>
         <View style={styles.stepNumber}>
-          <Text style={styles.stepNumberText}>1</Text>
+          <Text style={styles.stepNumberText} weight="bold">
+            1
+          </Text>
         </View>
         <View style={styles.stepContent}>
-          <Text style={styles.stepTitle}>{t('help.step1Title')}</Text>
+          <Text style={styles.stepTitle} weight="medium">
+            {t('help.step1Title')}
+          </Text>
           <Text style={styles.stepDescription}>
             {t('help.step1Description')}
           </Text>
@@ -107,10 +127,14 @@ export default function Help() {
 
       <View style={styles.stepContainer}>
         <View style={styles.stepNumber}>
-          <Text style={styles.stepNumberText}>2</Text>
+          <Text style={styles.stepNumberText} weight="bold">
+            2
+          </Text>
         </View>
         <View style={styles.stepContent}>
-          <Text style={styles.stepTitle}>{t('help.step2Title')}</Text>
+          <Text style={styles.stepTitle} weight="medium">
+            {t('help.step2Title')}
+          </Text>
           <Text style={styles.stepDescription}>
             {t('help.step2Description')}
           </Text>
@@ -119,10 +143,14 @@ export default function Help() {
 
       <View style={styles.stepContainer}>
         <View style={styles.stepNumber}>
-          <Text style={styles.stepNumberText}>3</Text>
+          <Text style={styles.stepNumberText} weight="bold">
+            3
+          </Text>
         </View>
         <View style={styles.stepContent}>
-          <Text style={styles.stepTitle}>{t('help.step3Title')}</Text>
+          <Text style={styles.stepTitle} weight="medium">
+            {t('help.step3Title')}
+          </Text>
           <Text style={styles.stepDescription}>
             {t('help.step3Description')}
           </Text>
@@ -131,10 +159,14 @@ export default function Help() {
 
       <View style={styles.stepContainer}>
         <View style={styles.stepNumber}>
-          <Text style={styles.stepNumberText}>4</Text>
+          <Text style={styles.stepNumberText} weight="bold">
+            4
+          </Text>
         </View>
         <View style={styles.stepContent}>
-          <Text style={styles.stepTitle}>{t('help.step4Title')}</Text>
+          <Text style={styles.stepTitle} weight="medium">
+            {t('help.step4Title')}
+          </Text>
           <Text style={styles.stepDescription}>
             {t('help.step4Description')}
           </Text>
@@ -147,10 +179,14 @@ export default function Help() {
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Settings size={20} color="#8B5CF6" />
-        <Text style={styles.cardTitle}>{t('help.features')}</Text>
+        <Text style={styles.cardTitle} weight="medium">
+          {t('help.features')}
+        </Text>
       </View>
 
-      <Text style={styles.sectionSubtitle}>{t('help.featuresTitle')}</Text>
+      <Text style={styles.sectionSubtitle} weight="medium">
+        {t('help.featuresTitle')}
+      </Text>
 
       <View style={styles.featureItem}>
         <View style={[styles.featureIcon, { backgroundColor: '#EFF6FF' }]}>
@@ -232,12 +268,16 @@ export default function Help() {
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <BookOpen size={20} color="#059669" />
-        <Text style={styles.cardTitle}>{t('help.userManual')}</Text>
+        <Text style={styles.cardTitle} weight="medium">
+          {t('help.userManual')}
+        </Text>
       </View>
 
       {/* How to Make a Sale */}
       <View style={styles.howToSection}>
-        <Text style={styles.howToTitle}>{t('help.howToSell')}</Text>
+        <Text style={styles.howToTitle} weight="medium">
+          {t('help.howToSell')}
+        </Text>
         <Text style={styles.howToStep}>{t('help.howToSellStep1')}</Text>
         <Text style={styles.howToStep}>{t('help.howToSellStep2')}</Text>
         <Text style={styles.howToStep}>{t('help.howToSellStep3')}</Text>
@@ -249,7 +289,9 @@ export default function Help() {
 
       {/* How to Manage Inventory */}
       <View style={styles.howToSection}>
-        <Text style={styles.howToTitle}>{t('help.howToManageInventory')}</Text>
+        <Text style={styles.howToTitle} weight="medium">
+          {t('help.howToManageInventory')}
+        </Text>
         <Text style={styles.howToStep}>{t('help.howToInventoryStep1')}</Text>
         <Text style={styles.howToStep}>{t('help.howToInventoryStep2')}</Text>
         <Text style={styles.howToStep}>{t('help.howToInventoryStep3')}</Text>
@@ -261,7 +303,9 @@ export default function Help() {
 
       {/* How to Use Barcode Scanner */}
       <View style={styles.howToSection}>
-        <Text style={styles.howToTitle}>{t('help.howToUseBarcode')}</Text>
+        <Text style={styles.howToTitle} weight="medium">
+          {t('help.howToUseBarcode')}
+        </Text>
         <Text style={styles.howToStep}>{t('help.howToBarcodeStep1')}</Text>
         <Text style={styles.howToStep}>{t('help.howToBarcodeStep2')}</Text>
         <Text style={styles.howToStep}>{t('help.howToBarcodeStep3')}</Text>
@@ -272,7 +316,9 @@ export default function Help() {
 
       {/* How to Manage Expenses */}
       <View style={styles.howToSection}>
-        <Text style={styles.howToTitle}>{t('help.howToManageExpenses')}</Text>
+        <Text style={styles.howToTitle} weight="medium">
+          {t('help.howToManageExpenses')}
+        </Text>
         <Text style={styles.howToStep}>{t('help.howToExpensesStep1')}</Text>
         <Text style={styles.howToStep}>{t('help.howToExpensesStep2')}</Text>
         <Text style={styles.howToStep}>{t('help.howToExpensesStep3')}</Text>
@@ -283,7 +329,9 @@ export default function Help() {
 
       {/* How to View Reports */}
       <View style={styles.howToSection}>
-        <Text style={styles.howToTitle}>{t('help.howToViewReports')}</Text>
+        <Text style={styles.howToTitle} weight="medium">
+          {t('help.howToViewReports')}
+        </Text>
         <Text style={styles.howToStep}>{t('help.howToReportsStep1')}</Text>
         <Text style={styles.howToStep}>
           2. View analytics with different time periods
@@ -302,7 +350,9 @@ export default function Help() {
 
       {/* How to Export Data */}
       <View style={styles.howToSection}>
-        <Text style={styles.howToTitle}>{t('help.howToExportData')}</Text>
+        <Text style={styles.howToTitle} weight="medium">
+          {t('help.howToExportData')}
+        </Text>
         <Text style={styles.howToStep}>{t('help.howToExportStep1')}</Text>
         <Text style={styles.howToStep}>{t('help.howToExportStep2')}</Text>
         <Text style={styles.howToStep}>{t('help.howToExportStep3')}</Text>
@@ -313,7 +363,9 @@ export default function Help() {
 
       {/* How to Change Language */}
       <View style={styles.howToSection}>
-        <Text style={styles.howToTitle}>{t('help.howToChangeLanguage')}</Text>
+        <Text style={styles.howToTitle} weight="medium">
+          {t('help.howToChangeLanguage')}
+        </Text>
         <Text style={styles.howToStep}>{t('help.howToLanguageStep1')}</Text>
         <Text style={styles.howToStep}>{t('help.howToLanguageStep2')}</Text>
         <Text style={styles.howToStep}>{t('help.howToLanguageStep3')}</Text>
@@ -327,41 +379,55 @@ export default function Help() {
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Zap size={20} color="#F59E0B" />
-        <Text style={styles.cardTitle}>{t('help.tipsAndTricks')}</Text>
+        <Text style={styles.cardTitle} weight="medium">
+          {t('help.tipsAndTricks')}
+        </Text>
       </View>
 
-      <Text style={styles.sectionSubtitle}>{t('help.tipsSubtitle')}</Text>
+      <Text style={styles.sectionSubtitle} weight="medium">
+        {t('help.tipsSubtitle')}
+      </Text>
 
       <View style={styles.tipItem}>
-        <Text style={styles.tipTitle}>{t('help.quickActions')}</Text>
+        <Text style={styles.tipTitle} weight="medium">
+          {t('help.quickActions')}
+        </Text>
         <Text style={styles.tipText}>{t('help.quickActionsTip1')}</Text>
         <Text style={styles.tipText}>{t('help.quickActionsTip2')}</Text>
         <Text style={styles.tipText}>{t('help.quickActionsTip3')}</Text>
       </View>
 
       <View style={styles.tipItem}>
-        <Text style={styles.tipTitle}>{t('help.betterAnalytics')}</Text>
+        <Text style={styles.tipTitle} weight="medium">
+          {t('help.betterAnalytics')}
+        </Text>
         <Text style={styles.tipText}>{t('help.analyticsTip1')}</Text>
         <Text style={styles.tipText}>{t('help.analyticsTip2')}</Text>
         <Text style={styles.tipText}>{t('help.analyticsTip3')}</Text>
       </View>
 
       <View style={styles.tipItem}>
-        <Text style={styles.tipTitle}>{t('help.salesOptimization')}</Text>
+        <Text style={styles.tipTitle} weight="medium">
+          {t('help.salesOptimization')}
+        </Text>
         <Text style={styles.tipText}>{t('help.salesOptTip1')}</Text>
         <Text style={styles.tipText}>{t('help.salesOptTip2')}</Text>
         <Text style={styles.tipText}>{t('help.salesOptTip3')}</Text>
       </View>
 
       <View style={styles.tipItem}>
-        <Text style={styles.tipTitle}>{t('help.maintenance')}</Text>
+        <Text style={styles.tipTitle} weight="medium">
+          {t('help.maintenance')}
+        </Text>
         <Text style={styles.tipText}>{t('help.maintenanceTip1')}</Text>
         <Text style={styles.tipText}>{t('help.maintenanceTip2')}</Text>
         <Text style={styles.tipText}>{t('help.maintenanceTip3')}</Text>
       </View>
 
       <View style={styles.tipItem}>
-        <Text style={styles.tipTitle}>{t('help.performance')}</Text>
+        <Text style={styles.tipTitle} weight="medium">
+          {t('help.performance')}
+        </Text>
         <Text style={styles.tipText}>{t('help.performanceTip1')}</Text>
         <Text style={styles.tipText}>{t('help.performanceTip2')}</Text>
         <Text style={styles.tipText}>{t('help.performanceTip3')}</Text>
@@ -373,29 +439,35 @@ export default function Help() {
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <AlertCircle size={20} color="#EF4444" />
-        <Text style={styles.cardTitle}>{t('help.troubleshooting')}</Text>
+        <Text style={styles.cardTitle} weight="medium">
+          {t('help.troubleshooting')}
+        </Text>
       </View>
 
-      <Text style={styles.sectionSubtitle}>
+      <Text style={styles.sectionSubtitle} weight="medium">
         {t('help.troubleshootingTitle')}
       </Text>
 
       <View style={styles.troubleshootItem}>
-        <Text style={styles.troubleshootTitle}>{t('help.licenseIssue')}</Text>
+        <Text style={styles.troubleshootTitle} weight="medium">
+          {t('help.licenseIssue')}
+        </Text>
         <Text style={styles.troubleshootSolution}>
           {t('help.licenseIssueSolution')}
         </Text>
       </View>
 
       <View style={styles.troubleshootItem}>
-        <Text style={styles.troubleshootTitle}>{t('help.barcodeIssue')}</Text>
+        <Text style={styles.troubleshootTitle} weight="medium">
+          {t('help.barcodeIssue')}
+        </Text>
         <Text style={styles.troubleshootSolution}>
           {t('help.barcodeIssueSolution')}
         </Text>
       </View>
 
       <View style={styles.troubleshootItem}>
-        <Text style={styles.troubleshootTitle}>
+        <Text style={styles.troubleshootTitle} weight="medium">
           {t('help.dataBackupIssue')}
         </Text>
         <Text style={styles.troubleshootSolution}>
@@ -404,7 +476,7 @@ export default function Help() {
       </View>
 
       <View style={styles.troubleshootItem}>
-        <Text style={styles.troubleshootTitle}>
+        <Text style={styles.troubleshootTitle} weight="medium">
           {t('help.performanceIssue')}
         </Text>
         <Text style={styles.troubleshootSolution}>
@@ -413,7 +485,7 @@ export default function Help() {
       </View>
 
       <View style={styles.troubleshootItem}>
-        <Text style={styles.troubleshootTitle}>
+        <Text style={styles.troubleshootTitle} weight="medium">
           {t('help.salesNotShowing')}
         </Text>
         <Text style={styles.troubleshootSolution}>
@@ -422,7 +494,7 @@ export default function Help() {
       </View>
 
       <View style={styles.troubleshootItem}>
-        <Text style={styles.troubleshootTitle}>
+        <Text style={styles.troubleshootTitle} weight="medium">
           {t('help.imagesNotLoading')}
         </Text>
         <Text style={styles.troubleshootSolution}>
@@ -431,7 +503,7 @@ export default function Help() {
       </View>
 
       <View style={styles.troubleshootItem}>
-        <Text style={styles.troubleshootTitle}>
+        <Text style={styles.troubleshootTitle} weight="medium">
           {t('help.exportNotWorking')}
         </Text>
         <Text style={styles.troubleshootSolution}>
@@ -440,7 +512,7 @@ export default function Help() {
       </View>
 
       <View style={styles.troubleshootItem}>
-        <Text style={styles.troubleshootTitle}>
+        <Text style={styles.troubleshootTitle} weight="medium">
           {t('help.languageNotChanging')}
         </Text>
         <Text style={styles.troubleshootSolution}>
@@ -454,7 +526,9 @@ export default function Help() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.title}>{t('help.title')}</Text>
+          <Text style={styles.title} weight="bold">
+            {t('help.title')}
+          </Text>
           <Text style={styles.subtitle}>{t('help.subtitle')}</Text>
         </View>
         <LanguageIconButton style={styles.languageSelector} />
@@ -501,7 +575,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
     color: '#111827',
   },
   subtitle: {
@@ -531,13 +604,11 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: '600',
     color: '#111827',
     marginLeft: 10,
   },
   sectionSubtitle: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#374151',
     marginBottom: 16,
   },
@@ -564,12 +635,10 @@ const styles = StyleSheet.create({
   },
   contactLabel: {
     fontSize: 14,
-    fontWeight: '500',
     color: '#6B7280',
   },
   contactValue: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#111827',
     marginTop: 2,
   },
@@ -581,7 +650,6 @@ const styles = StyleSheet.create({
   businessHourText: {
     fontSize: 14,
     color: '#6B7280',
-    lineHeight: 20,
   },
 
   // Quick Start Guide Styles
@@ -601,7 +669,6 @@ const styles = StyleSheet.create({
   },
   stepNumberText: {
     fontSize: 14,
-    fontWeight: '700',
     color: '#FFFFFF',
   },
   stepContent: {
@@ -609,14 +676,12 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#111827',
     marginBottom: 4,
   },
   stepDescription: {
     fontSize: 14,
     color: '#6B7280',
-    lineHeight: 20,
   },
 
   // Features Overview Styles
@@ -637,7 +702,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: '#374151',
-    lineHeight: 20,
   },
 
   // How To Use Styles
@@ -646,21 +710,18 @@ const styles = StyleSheet.create({
   },
   howToTitle: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#111827',
     marginBottom: 8,
   },
   howToStep: {
     fontSize: 14,
     color: '#6B7280',
-    lineHeight: 20,
     marginBottom: 4,
     paddingLeft: 8,
   },
   howToNote: {
     fontSize: 13,
     color: '#059669',
-    lineHeight: 18,
     marginTop: 8,
     marginBottom: 4,
     paddingLeft: 8,
@@ -676,14 +737,12 @@ const styles = StyleSheet.create({
   },
   tipTitle: {
     fontSize: 15,
-    fontWeight: '600',
     color: '#111827',
     marginBottom: 8,
   },
   tipText: {
     fontSize: 14,
     color: '#6B7280',
-    lineHeight: 20,
     marginBottom: 2,
   },
 
@@ -696,14 +755,12 @@ const styles = StyleSheet.create({
   },
   troubleshootTitle: {
     fontSize: 15,
-    fontWeight: '600',
     color: '#EF4444',
     marginBottom: 6,
   },
   troubleshootSolution: {
     fontSize: 14,
     color: '#6B7280',
-    lineHeight: 20,
   },
 
   bottomPadding: {
