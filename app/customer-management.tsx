@@ -1,11 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
-  TextInput,
   FlatList,
   Alert,
   RefreshControl,
@@ -26,6 +24,8 @@ import { useCustomers, useCustomerMutations } from '@/hooks/useQueries';
 import { Customer } from '@/services/database';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useToast } from '@/context/ToastContext';
+import { MyanmarText as Text } from '@/components/MyanmarText';
+import { MyanmarTextInput as TextInput } from '@/components/MyanmarTextInput';
 
 type SortOption = 'name' | 'totalSpent' | 'visitCount' | 'recent';
 type FilterOption = 'all' | 'active' | 'inactive';
@@ -140,7 +140,7 @@ export default function CustomerManagement() {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Users size={64} color="#D1D5DB" />
-      <Text style={styles.emptyTitle}>
+      <Text style={styles.emptyTitle} weight="medium">
         {searchQuery || filterBy !== 'all'
           ? t('customers.noCustomersFound')
           : t('customers.noCustomers')}
@@ -156,7 +156,7 @@ export default function CustomerManagement() {
           onPress={handleAddCustomer}
         >
           <Plus size={16} color="#FFFFFF" />
-          <Text style={styles.emptyButtonText}>
+          <Text style={styles.emptyButtonText} weight="medium">
             {t('customers.addCustomer')}
           </Text>
         </TouchableOpacity>
@@ -170,7 +170,9 @@ export default function CustomerManagement() {
     return (
       <View style={styles.filterContainer}>
         <View style={styles.filterSection}>
-          <Text style={styles.filterTitle}>Sort By</Text>
+          <Text style={styles.filterTitle} weight="medium">
+            Sort By
+          </Text>
           <View style={styles.filterOptions}>
             {[
               { key: 'name', label: 'Name' },
@@ -191,6 +193,7 @@ export default function CustomerManagement() {
                     styles.filterOptionText,
                     sortBy === option.key && styles.filterOptionTextActive,
                   ]}
+                  weight="medium"
                 >
                   {option.label}
                 </Text>
@@ -200,7 +203,9 @@ export default function CustomerManagement() {
         </View>
 
         <View style={styles.filterSection}>
-          <Text style={styles.filterTitle}>Filter By</Text>
+          <Text style={styles.filterTitle} weight="medium">
+            Filter By
+          </Text>
           <View style={styles.filterOptions}>
             {[
               { key: 'all', label: 'All Customers' },
@@ -220,6 +225,7 @@ export default function CustomerManagement() {
                     styles.filterOptionText,
                     filterBy === option.key && styles.filterOptionTextActive,
                   ]}
+                  weight="medium"
                 >
                   {option.label}
                 </Text>
@@ -244,7 +250,9 @@ export default function CustomerManagement() {
             style={styles.retryButton}
             onPress={() => refetch()}
           >
-            <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
+            <Text style={styles.retryButtonText} weight="medium">
+              {t('common.retry')}
+            </Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -263,7 +271,9 @@ export default function CustomerManagement() {
             <ArrowLeft size={24} color="#111827" />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>{t('more.customers')}</Text>
+            <Text style={styles.headerTitle} weight="bold">
+              {t('more.customers')}
+            </Text>
             <Text style={styles.headerSubtitle}>
               {filteredAndSortedCustomers.length} {t('customers.customers')}
             </Text>
@@ -359,12 +369,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
   },
   headerSubtitle: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
@@ -392,7 +400,6 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
   },
   filterButton: {
@@ -420,7 +427,6 @@ const styles = StyleSheet.create({
   },
   filterTitle: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 8,
   },
@@ -443,7 +449,6 @@ const styles = StyleSheet.create({
   },
   filterOptionText: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   filterOptionTextActive: {
@@ -462,18 +467,15 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginTop: 16,
     marginBottom: 8,
   },
   emptyDescription: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',
     marginBottom: 24,
-    lineHeight: 20,
   },
   emptyButton: {
     flexDirection: 'row',
@@ -485,7 +487,6 @@ const styles = StyleSheet.create({
   },
   emptyButtonText: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
     marginLeft: 8,
   },
@@ -497,7 +498,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#EF4444',
     textAlign: 'center',
     marginBottom: 16,
@@ -510,7 +510,6 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
 });

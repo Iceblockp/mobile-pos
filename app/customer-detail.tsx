@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
@@ -27,6 +26,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useCustomer, useCustomerMutations } from '@/hooks/useQueries';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useToast } from '@/context/ToastContext';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 
 export default function CustomerDetail() {
   const router = useRouter();
@@ -118,7 +118,9 @@ export default function CustomerDetail() {
             style={styles.retryButton}
             onPress={() => router.back()}
           >
-            <Text style={styles.retryButtonText}>Go Back</Text>
+            <Text style={styles.retryButtonText} weight="medium">
+              Go Back
+            </Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -136,7 +138,9 @@ export default function CustomerDetail() {
           <ArrowLeft size={24} color="#111827" />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>{customer.name}</Text>
+          <Text style={styles.headerTitle} weight="bold">
+            {customer.name}
+          </Text>
           <Text style={styles.headerSubtitle}>Customer Details</Text>
         </View>
         <View style={styles.headerActions}>
@@ -157,7 +161,9 @@ export default function CustomerDetail() {
               <User size={32} color="#059669" />
             </View>
             <View style={styles.customerBasicInfo}>
-              <Text style={styles.customerName}>{customer.name}</Text>
+              <Text style={styles.customerName} weight="bold">
+                {customer.name}
+              </Text>
               <Text style={styles.customerSince}>
                 Customer since {formatDate(customer.created_at)}
               </Text>
@@ -195,38 +201,48 @@ export default function CustomerDetail() {
             <View style={styles.statIconContainer}>
               <ShoppingBag size={24} color="#059669" />
             </View>
-            <Text style={styles.statValue}>
+            <Text style={styles.statValue} weight="bold">
               {formatMMK(customer.total_spent)}
             </Text>
-            <Text style={styles.statLabel}>{t('customers.totalSpent')}</Text>
+            <Text style={styles.statLabel} weight="medium">
+              {t('customers.totalSpent')}
+            </Text>
           </Card>
 
           <Card style={styles.statCard}>
             <View style={styles.statIconContainer}>
               <Calendar size={24} color="#3B82F6" />
             </View>
-            <Text style={styles.statValue}>{customer.visit_count}</Text>
-            <Text style={styles.statLabel}>{t('customers.visits')}</Text>
+            <Text style={styles.statValue} weight="bold">
+              {customer.visit_count}
+            </Text>
+            <Text style={styles.statLabel} weight="medium">
+              {t('customers.visits')}
+            </Text>
           </Card>
 
           <Card style={styles.statCard}>
             <View style={styles.statIconContainer}>
               <TrendingUp size={24} color="#F59E0B" />
             </View>
-            <Text style={styles.statValue}>
+            <Text style={styles.statValue} weight="bold">
               {customer.visit_count > 0
                 ? formatMMK(
                     Math.round(customer.total_spent / customer.visit_count)
                   )
                 : formatMMK(0)}
             </Text>
-            <Text style={styles.statLabel}>{t('customers.avgOrder')}</Text>
+            <Text style={styles.statLabel} weight="medium">
+              {t('customers.avgOrder')}
+            </Text>
           </Card>
         </View>
 
         {/* Purchase History */}
         <Card style={styles.historyCard}>
-          <Text style={styles.sectionTitle}>Purchase History</Text>
+          <Text style={styles.sectionTitle} weight="medium">
+            Purchase History
+          </Text>
           {customer.visit_count > 0 ? (
             <View style={styles.historyContent}>
               <Text style={styles.historyText}>
@@ -235,7 +251,7 @@ export default function CustomerDetail() {
                 with a total value of {formatMMK(customer.total_spent)}.
               </Text>
               <TouchableOpacity style={styles.viewHistoryButton}>
-                <Text style={styles.viewHistoryButtonText}>
+                <Text style={styles.viewHistoryButtonText} weight="medium">
                   View Full History
                 </Text>
               </TouchableOpacity>
@@ -251,7 +267,9 @@ export default function CustomerDetail() {
 
         {/* Customer Notes */}
         <Card style={styles.notesCard}>
-          <Text style={styles.sectionTitle}>Notes</Text>
+          <Text style={styles.sectionTitle} weight="medium">
+            Notes
+          </Text>
           <Text style={styles.notesText}>
             Customer notes and preferences will be available in a future update.
           </Text>
@@ -294,12 +312,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
   },
   headerSubtitle: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
@@ -337,13 +353,11 @@ const styles = StyleSheet.create({
   },
   customerName: {
     fontSize: 24,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
     marginBottom: 4,
   },
   customerSince: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
   },
   contactInfo: {
@@ -355,7 +369,6 @@ const styles = StyleSheet.create({
   },
   contactText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
     marginLeft: 12,
     flex: 1,
@@ -381,13 +394,11 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 18,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     textAlign: 'center',
   },
@@ -396,7 +407,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 12,
   },
@@ -405,7 +415,6 @@ const styles = StyleSheet.create({
   },
   historyText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     lineHeight: 20,
     marginBottom: 16,
@@ -418,7 +427,6 @@ const styles = StyleSheet.create({
   },
   viewHistoryButtonText: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
   noHistoryContent: {
@@ -427,7 +435,6 @@ const styles = StyleSheet.create({
   },
   noHistoryText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',
   },
@@ -436,7 +443,6 @@ const styles = StyleSheet.create({
   },
   notesText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     fontStyle: 'italic',
   },
@@ -448,7 +454,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#EF4444',
     textAlign: 'center',
     marginBottom: 16,
@@ -461,7 +466,6 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
 });
