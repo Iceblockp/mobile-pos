@@ -1,6 +1,5 @@
 import {
   StyleSheet,
-  Text,
   View,
   SafeAreaView,
   ActivityIndicator,
@@ -24,6 +23,7 @@ import { LanguageIconButton } from '@/components/LanguageIconButton';
 import { useTranslation } from '@/context/LocalizationContext';
 import { MigrationProgress } from '@/components/MigrationProgress';
 import { useMigration } from '@/context/MigrationContext';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 
 const Index = () => {
   const {

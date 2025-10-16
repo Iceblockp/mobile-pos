@@ -44,7 +44,7 @@ export default function TabLayout() {
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontFamily: 'Inter-Medium',
+          fontFamily: 'NotoSansMyanmar-Bold',
           marginTop: 4,
         },
         tabBarIconStyle: {

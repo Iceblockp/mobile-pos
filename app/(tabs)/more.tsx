@@ -1,11 +1,11 @@
 import React from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
   ScrollView,
+  Text,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -116,7 +116,7 @@ export default function More() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t('more.title')}</Text>
+        <Text style={[styles.title]}>{t('more.title')}</Text>
         <Text style={styles.subtitle}>{t('more.subtitle')}</Text>
       </View>
 
@@ -175,13 +175,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'NotoSansMyanmar-Bold',
     color: '#111827',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'NotoSansMyanmar-Regular',
     color: '#6B7280',
   },
   content: {
@@ -218,10 +218,9 @@ const styles = StyleSheet.create({
   },
   menuItemTitle: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'NotoSansMyanmar-Bold',
     color: '#111827',
     textAlign: 'center',
-    lineHeight: 18,
   },
   appInfoSection: {
     padding: 20,
@@ -229,7 +228,7 @@ const styles = StyleSheet.create({
   },
   appInfoTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'NotoSansMyanmar-Medium',
     color: '#111827',
     marginBottom: 12,
   },
@@ -261,6 +260,5 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',
-    lineHeight: 20,
   },
 });
