@@ -10,13 +10,7 @@ import {
   Linking,
   Platform,
 } from 'react-native';
-import {
-  X,
-  Printer,
-  Share,
-  ExternalLink,
-  Smartphone,
-} from 'lucide-react-native';
+import { X, Printer, Share, ExternalLink } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -317,42 +311,6 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
     }
   };
 
-  const shareForBluetoothPrinting = async () => {
-    setIsSharing(true);
-    try {
-      const htmlContent = await generatePDFReceipt();
-
-      const { uri } = await Print.printToFileAsync({
-        html: htmlContent,
-        base64: false,
-      });
-
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, {
-          mimeType: 'application/pdf',
-          dialogTitle: `Receipt #${receiptData.saleId} - For Bluetooth Printing`,
-        });
-
-        // Show helpful message
-        Alert.alert(
-          t('printing.bluetoothPrintingTip'),
-          t('printing.bluetoothPrintingTipMessage'),
-          [{ text: t('printing.gotIt'), style: 'default' }]
-        );
-      } else {
-        Alert.alert(
-          'Sharing Not Available',
-          'Sharing is not available on this device'
-        );
-      }
-    } catch (error) {
-      console.error('Share error:', error);
-      Alert.alert('Share Error', 'Failed to share receipt. Please try again.');
-    } finally {
-      setIsSharing(false);
-    }
-  };
-
   const openPrintingAppsInfo = () => {
     Alert.alert(
       t('printing.bluetoothPrintingApps'),
@@ -431,7 +389,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'Share PDF',
-            onPress: () => shareForBluetoothPrinting(),
+            onPress: () => shareReceipt(),
           },
         ]
       );
@@ -511,23 +469,6 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
                 </Text>
                 <Text style={styles.actionButtonSubtext}>
                   {t('printing.sharePDFDesc')}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Share for Bluetooth Printing */}
-              <TouchableOpacity
-                style={[styles.actionButton, styles.bluetoothActionButton]}
-                onPress={shareForBluetoothPrinting}
-                disabled={isPrinting || isSharing || isBluetoothPrinting}
-              >
-                <Smartphone size={24} color="#7C3AED" />
-                <Text
-                  style={[styles.actionButtonText, styles.bluetoothActionText]}
-                >
-                  {t('printing.shareForBluetooth')}
-                </Text>
-                <Text style={styles.actionButtonSubtext}>
-                  {t('printing.shareForBluetoothDesc')}
                 </Text>
               </TouchableOpacity>
 
@@ -614,10 +555,7 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
     backgroundColor: '#F9FAFB',
   },
-  bluetoothActionButton: {
-    borderColor: '#7C3AED',
-    backgroundColor: '#F3F4F6',
-  },
+
   directBluetoothButton: {
     borderColor: '#059669',
     backgroundColor: '#ECFDF5',
@@ -629,9 +567,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
-  bluetoothActionText: {
-    color: '#7C3AED',
-  },
+
   directBluetoothText: {
     color: '#059669',
   },

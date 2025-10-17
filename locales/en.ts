@@ -203,8 +203,7 @@ export const en = {
     printReceiptDesc: 'Print to any available printer',
     sharePDF: 'Share PDF',
     sharePDFDesc: 'Share via email, messaging, etc.',
-    shareForBluetooth: 'Share for Bluetooth Printing',
-    shareForBluetoothDesc: 'Share to Bluetooth printing apps',
+
     getBluetoothApps: 'Get Bluetooth Printing Apps',
     preparingToPrint: 'Preparing to print...',
     preparingToShare: 'Preparing to share...',

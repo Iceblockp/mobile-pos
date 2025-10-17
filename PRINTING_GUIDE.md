@@ -19,18 +19,12 @@ Your POS app uses the **EnhancedPrintManager** component for reliable, professio
 - **Digital receipts** for email, messaging, cloud storage
 - **Record keeping** and customer copies
 
-#### **3. 📱 Share for Bluetooth Printing** ⭐
-
-- **Optimized workflow** for Bluetooth thermal printers
-- **Guides users** to install Bluetooth printing apps
-- **Professional thermal receipt output**
-
 ## 📱 **Bluetooth Thermal Printing Workflow**
 
 ### **For Your Customers:**
 
 1. **Complete sale** in your POS app
-2. **Choose "Share for Bluetooth Printing"**
+2. **Choose "Share PDF"**
 3. **Select a Bluetooth printing app** from the share menu
 4. **App connects** to paired thermal printer
 5. **Receipt prints** immediately
@@ -55,7 +49,7 @@ Your POS app uses the **EnhancedPrintManager** component for reliable, professio
 
 1. **Pair thermal printer** in device Bluetooth settings
 2. **Install a Bluetooth printing app** (recommended: PrinterShare)
-3. **Use "Share for Bluetooth Printing"** option
+3. **Use "Share PDF"** option
 
 ## 🎯 **Benefits**
 

@@ -208,8 +208,7 @@ export const my: TranslationKeys = {
     printReceiptDesc: 'ရရှိနိုင်သော ပုံနှိပ်စက်တစ်ခုခုသို့ ပုံနှိပ်မည်',
     sharePDF: 'PDF မျှဝေမည်',
     sharePDFDesc: 'အီးမေးလ်၊ မက်ဆေ့ချ် စသည်ဖြင့် မျှဝေမည်',
-    shareForBluetooth: 'ဘလူးတုသ်ပုံနှိပ်ရန် မျှဝေမည်',
-    shareForBluetoothDesc: 'ဘလူးတုသ်ပုံနှိပ်အက်ပ်များသို့ မျှဝေမည်',
+
     getBluetoothApps: 'ဘလူးတုသ်ပုံနှိပ်အက်ပ်များရယူမည်',
     preparingToPrint: 'ပုံနှိပ်ရန်ပြင်ဆင်နေသည်...',
     preparingToShare: 'မျှဝေရန်ပြင်ဆင်နေသည်...',

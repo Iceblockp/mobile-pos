@@ -100,7 +100,6 @@ const handlePrintReceipt = () => {
 
 - **Print Receipt**: Direct printing to any available printer
 - **Share PDF**: Share via email, messaging, etc.
-- **Share for Bluetooth Printing**: Optimized for Bluetooth thermal printers
 - **Get Bluetooth Printing Apps**: Guidance for app installation
 
 ## 🌐 **Localization Support**

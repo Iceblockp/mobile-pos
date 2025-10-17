@@ -18,8 +18,7 @@ printing: {
   printReceiptDesc: 'Print to any available printer',
   sharePDF: 'Share PDF',
   sharePDFDesc: 'Share via email, messaging, etc.',
-  shareForBluetooth: 'Share for Bluetooth Printing',
-  shareForBluetoothDesc: 'Share to Bluetooth printing apps',
+
   getBluetoothApps: 'Get Bluetooth Printing Apps',
   preparingToPrint: 'Preparing to print...',
   preparingToShare: 'Preparing to share...',
@@ -57,8 +56,7 @@ printing: {
   printReceiptDesc: 'ရရှိနိုင်သော ပုံနှိပ်စက်တစ်ခုခုသို့ ပုံနှိပ်မည်',
   sharePDF: 'PDF မျှဝေမည်',
   sharePDFDesc: 'အီးမေးလ်၊ မက်ဆေ့ချ် စသည်ဖြင့် မျှဝေမည်',
-  shareForBluetooth: 'ဘလူးတုသ်ပုံနှိပ်ရန် မျှဝေမည်',
-  shareForBluetoothDesc: 'ဘလူးတုသ်ပုံနှိပ်အက်ပ်များသို့ မျှဝေမည်',
+
   // ... and all other Myanmar translations
 }
 ```
