@@ -943,6 +943,8 @@ export const my: TranslationKeys = {
     customersSubtitle: 'ဖောက်သည်အချက်အလက်နှင့် မှတ်တမ်းများစီမံခန့်ခွဲမည်',
     shopSettings: 'ဆိုင်ဆက်တင်များ',
     shopSettingsSubtitle: 'သင့်လုပ်ငန်းအချက်အလက်နှင့် အမှတ်တံဆိပ်ပြင်ဆင်မည်',
+    printerSettings: 'ပရင်တာဆက်တင်များ',
+    printerSettingsSubtitle: 'ဘောက်ချာများအတွက် အပူပရင်တာပြင်ဆင်မည်',
     licenseManagement: 'လိုင်စင်စီမံခန့်ခွဲမှု',
     licenseManagementSubtitle: 'သင့်လိုင်စင်ကြည့်ရှုပြီး သက်တမ်းတိုးမည်',
     expenses: 'ကုန်ကျစရိတ်များ',

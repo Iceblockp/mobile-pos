@@ -15,7 +15,9 @@
       "bundleIdentifier": "com.pyaephyonyo.pos",
       "buildNumber": "10",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to connect to thermal printers for receipt printing.",
+        "NSBluetoothPeripheralUsageDescription": "This app uses Bluetooth to connect to thermal printers for receipt printing."
       }
     },
     "web": {
@@ -77,6 +79,27 @@
       "expo-web-browser",
       "expo-sqlite",
       [
+        "./plugins/react-native-bluetooth-classic.js",
+        {
+          "peripheralUsageDescription": "This app uses Bluetooth to connect to thermal printers for receipt printing.",
+          "alwaysUsageDescription": "This app uses Bluetooth to connect to thermal printers for receipt printing."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          },
+          "android": {
+            "minSdkVersion": 24,
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
+          }
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/pos.png",
@@ -101,7 +124,15 @@
         "foregroundImage": "./assets/images/pos.png",
         "backgroundColor": "#ffffff"
       },
-      "versionCode": 10
+      "versionCode": 10,
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_SCAN"
+      ]
     }
   }
 }

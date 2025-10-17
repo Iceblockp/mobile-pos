@@ -26,6 +26,7 @@ import {
   ReceiptData as TemplateReceiptData,
 } from '@/services/templateEngine';
 import { ShopSettings } from '@/services/shopSettingsStorage';
+import { BluetoothPrinterService } from '@/services/bluetoothPrinterService';
 
 interface CartItem {
   product: {
@@ -61,6 +62,8 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
   const { t } = useTranslation();
   const [isPrinting, setIsPrinting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [isBluetoothPrinting, setIsBluetoothPrinting] = useState(false);
+  const [bluetoothAvailable, setBluetoothAvailable] = useState(false);
   const [shopSettings, setShopSettings] = useState<ShopSettings | null>(null);
   const [templateEngine, setTemplateEngine] = useState<TemplateEngine | null>(
     null
@@ -68,7 +71,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
   const [shopSettingsService, setShopSettingsService] =
     useState<ShopSettingsService | null>(null);
 
-  // Load shop settings when component mounts
+  // Load shop settings and check Bluetooth availability when component mounts
   useEffect(() => {
     const loadShopSettings = async () => {
       try {
@@ -86,8 +89,19 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
       }
     };
 
+    const checkBluetoothAvailability = async () => {
+      try {
+        const available = await BluetoothPrinterService.isBluetoothAvailable();
+        setBluetoothAvailable(available);
+      } catch (error) {
+        console.error('Error checking Bluetooth availability:', error);
+        setBluetoothAvailable(false);
+      }
+    };
+
     if (visible) {
       loadShopSettings();
+      checkBluetoothAvailability();
     }
   }, [visible]);
 
@@ -359,6 +373,73 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
     );
   };
 
+  const printDirectToBluetooth = async () => {
+    setIsBluetoothPrinting(true);
+    try {
+      // Check if connected to a printer
+      const isConnected = await BluetoothPrinterService.isConnected();
+      if (!isConnected) {
+        // Try to auto-connect to saved printer
+        const autoConnected = await BluetoothPrinterService.autoConnect();
+        if (!autoConnected) {
+          Alert.alert(
+            'Printer Not Connected',
+            'Please connect to a thermal printer in Printer Settings first.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Open Settings',
+                onPress: () => {
+                  onClose();
+                },
+              },
+            ]
+          );
+          return;
+        }
+      }
+
+      // Convert receipt data for Bluetooth printing
+      const bluetoothReceiptData = {
+        saleId: receiptData.saleId,
+        items: receiptData.items,
+        total: receiptData.total,
+        paymentMethod: receiptData.paymentMethod,
+        note: receiptData.note,
+        date: receiptData.date,
+      };
+
+      // Print directly to Bluetooth printer
+      await BluetoothPrinterService.printReceipt(
+        bluetoothReceiptData,
+        shopSettings
+      );
+
+      Alert.alert(
+        'Print Successful',
+        'Receipt printed successfully to thermal printer.',
+        [{ text: 'OK', onPress: onClose }]
+      );
+    } catch (error) {
+      console.error('Bluetooth print error:', error);
+
+      // Fallback to PDF sharing
+      Alert.alert(
+        'Print Failed',
+        'Direct printing failed. Would you like to share the receipt instead?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Share PDF',
+            onPress: () => shareForBluetoothPrinting(),
+          },
+        ]
+      );
+    } finally {
+      setIsBluetoothPrinting(false);
+    }
+  };
+
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
@@ -374,11 +455,40 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
             <Text style={styles.description}>{t('printing.chooseMethod')}</Text>
 
             <View style={styles.actions}>
-              {/* Direct Print Option */}
+              {/* Direct Bluetooth Print Option */}
+              {bluetoothAvailable && (
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.directBluetoothButton]}
+                  onPress={printDirectToBluetooth}
+                  disabled={isPrinting || isSharing || isBluetoothPrinting}
+                >
+                  <Printer size={24} color="#059669" />
+                  <Text
+                    style={[
+                      styles.actionButtonText,
+                      styles.directBluetoothText,
+                    ]}
+                  >
+                    Print Direct
+                  </Text>
+                  <Text style={styles.actionButtonSubtext}>
+                    Print directly to thermal printer
+                  </Text>
+                  {isBluetoothPrinting && (
+                    <ActivityIndicator
+                      size="small"
+                      color="#059669"
+                      style={{ marginTop: 4 }}
+                    />
+                  )}
+                </TouchableOpacity>
+              )}
+
+              {/* System Print Option */}
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={printReceipt}
-                disabled={isPrinting || isSharing}
+                disabled={isPrinting || isSharing || isBluetoothPrinting}
               >
                 <Printer size={24} color="#059669" />
                 <Text style={styles.actionButtonText}>
@@ -393,7 +503,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={shareReceipt}
-                disabled={isPrinting || isSharing}
+                disabled={isPrinting || isSharing || isBluetoothPrinting}
               >
                 <Share size={24} color="#2563EB" />
                 <Text style={styles.actionButtonText}>
@@ -408,7 +518,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
               <TouchableOpacity
                 style={[styles.actionButton, styles.bluetoothActionButton]}
                 onPress={shareForBluetoothPrinting}
-                disabled={isPrinting || isSharing}
+                disabled={isPrinting || isSharing || isBluetoothPrinting}
               >
                 <Smartphone size={24} color="#7C3AED" />
                 <Text
@@ -433,12 +543,14 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
               </TouchableOpacity>
             </View>
 
-            {(isPrinting || isSharing) && (
+            {(isPrinting || isSharing || isBluetoothPrinting) && (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color="#059669" />
                 <Text style={styles.loadingText}>
                   {isPrinting
                     ? t('printing.preparingToPrint')
+                    : isBluetoothPrinting
+                    ? 'Printing to thermal printer...'
                     : t('printing.preparingToShare')}
                 </Text>
               </View>
@@ -506,6 +618,10 @@ const styles = StyleSheet.create({
     borderColor: '#7C3AED',
     backgroundColor: '#F3F4F6',
   },
+  directBluetoothButton: {
+    borderColor: '#059669',
+    backgroundColor: '#ECFDF5',
+  },
   actionButtonText: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
@@ -515,6 +631,9 @@ const styles = StyleSheet.create({
   },
   bluetoothActionText: {
     color: '#7C3AED',
+  },
+  directBluetoothText: {
+    color: '#059669',
   },
   actionButtonSubtext: {
     fontSize: 14,

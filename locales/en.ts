@@ -892,6 +892,8 @@ export const en = {
     customersSubtitle: 'Manage customer information and history',
     shopSettings: 'Shop Settings',
     shopSettingsSubtitle: 'Configure your business information and branding',
+    printerSettings: 'Printer Settings',
+    printerSettingsSubtitle: 'Configure thermal printer for receipts',
     licenseManagement: 'License Management',
     licenseManagementSubtitle: 'View and extend your license',
     expenses: 'Expenses',

@@ -17,6 +17,7 @@ import {
   FileUp,
   FileDown,
   ShieldCheck,
+  Printer,
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import { MyanmarText as Text } from '@/components/MyanmarText';
@@ -65,6 +66,14 @@ export default function More() {
       color: '#059669',
       backgroundColor: '#ECFDF5',
       route: '/shop-settings',
+    },
+    {
+      id: 'printerSettings',
+      title: t('more.printerSettings'),
+      icon: Printer,
+      color: '#8B5CF6',
+      backgroundColor: '#F5F3FF',
+      route: '/printer-settings',
     },
     {
       id: 'licenseManagement',
