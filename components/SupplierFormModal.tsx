@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   TextInput,
@@ -11,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -146,7 +146,7 @@ export const SupplierFormModal: React.FC<SupplierFormModalProps> = ({
     }
   ) => (
     <View style={styles.inputContainer}>
-      <Text style={styles.inputLabel}>
+      <Text style={styles.inputLabel} weight="medium">
         {label}
         {options?.required && <Text style={styles.required}> *</Text>}
       </Text>
@@ -185,7 +185,7 @@ export const SupplierFormModal: React.FC<SupplierFormModalProps> = ({
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Ionicons name="close" size={24} color="#374151" />
           </TouchableOpacity>
-          <Text style={styles.title}>
+          <Text style={styles.title} weight="medium">
             {isEditing ? 'Edit Supplier' : 'Add Supplier'}
           </Text>
           <View style={styles.placeholder} />
@@ -229,7 +229,7 @@ export const SupplierFormModal: React.FC<SupplierFormModalProps> = ({
           <Button
             title="Cancel"
             onPress={onClose}
-            variant="outline"
+            variant="secondary"
             style={styles.cancelButton}
             disabled={isLoading}
           />
@@ -271,7 +271,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
     color: '#111827',
   },
   placeholder: {
@@ -287,7 +286,6 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 16,
-    fontWeight: '500',
     color: '#374151',
     marginBottom: 8,
   },

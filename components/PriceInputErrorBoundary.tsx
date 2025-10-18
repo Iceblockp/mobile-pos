@@ -1,5 +1,6 @@
 import React, { Component, ReactNode } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { AlertTriangle, RefreshCw } from 'lucide-react-native';
 
 interface Props {
@@ -70,7 +71,9 @@ export class PriceInputErrorBoundary extends Component<Props, State> {
         <View style={styles.errorContainer}>
           <View style={styles.errorContent}>
             <AlertTriangle size={24} color="#EF4444" />
-            <Text style={styles.errorTitle}>Price Input Error</Text>
+            <Text style={styles.errorTitle} weight="medium">
+              Price Input Error
+            </Text>
             <Text style={styles.errorMessage}>
               Something went wrong with the price input. Please try again.
             </Text>
@@ -79,7 +82,9 @@ export class PriceInputErrorBoundary extends Component<Props, State> {
               onPress={this.handleRetry}
             >
               <RefreshCw size={16} color="#FFFFFF" />
-              <Text style={styles.retryButtonText}>Try Again</Text>
+              <Text style={styles.retryButtonText} weight="medium">
+                Try Again
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -105,13 +110,11 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#EF4444',
     textAlign: 'center',
   },
   errorMessage: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',
     marginBottom: 8,
@@ -127,7 +130,6 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#FFFFFF',
   },
 });

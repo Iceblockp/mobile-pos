@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   Modal,
   StyleSheet,
   SafeAreaView,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import {
   useLocalization,
   LANGUAGE_OPTIONS,
@@ -42,7 +42,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
       >
         <Globe size={20} color="#6B7280" />
         {showLabel && (
-          <Text style={styles.languageButtonText}>
+          <Text style={styles.languageButtonText} weight="medium">
             {currentLanguage?.nativeName}
           </Text>
         )}
@@ -56,7 +56,9 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
       >
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Select Language</Text>
+            <Text style={styles.modalTitle} weight="medium">
+              Select Language
+            </Text>
             <TouchableOpacity
               onPress={() => setShowModal(false)}
               style={styles.closeButton}
@@ -76,7 +78,9 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                 onPress={() => handleLanguageChange(lang.code)}
               >
                 <View style={styles.languageInfo}>
-                  <Text style={styles.languageName}>{lang.nativeName}</Text>
+                  <Text style={styles.languageName} weight="medium">
+                    {lang.nativeName}
+                  </Text>
                   <Text style={styles.languageNameSecondary}>{lang.name}</Text>
                 </View>
                 {language === lang.code && <Check size={20} color="#10B981" />}
@@ -107,7 +111,6 @@ const styles = StyleSheet.create({
   languageButtonText: {
     marginLeft: 8,
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#374151',
   },
   modalContainer: {
@@ -126,7 +129,6 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   closeButton: {
@@ -156,12 +158,10 @@ const styles = StyleSheet.create({
   },
   languageName: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   languageNameSecondary: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
@@ -173,7 +173,6 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#9CA3AF',
     textAlign: 'center',
   },

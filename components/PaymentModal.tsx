@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   TouchableOpacity,
@@ -9,6 +8,7 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import {
   X,
   CreditCard,
@@ -111,7 +111,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>{t('paymentModal.title')}</Text>
+            <Text style={styles.title} weight="medium">
+              {t('paymentModal.title')}
+            </Text>
             <TouchableOpacity
               onPress={handleClose}
               style={styles.closeButton}
@@ -123,15 +125,17 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
           {/* Total Amount */}
           <View style={styles.totalSection}>
-            <Text style={styles.totalLabel}>
+            <Text style={styles.totalLabel} weight="medium">
               {t('paymentModal.totalAmount')}
             </Text>
-            <Text style={styles.totalAmount}>{formatPrice(total)}</Text>
+            <Text style={styles.totalAmount} weight="bold">
+              {formatPrice(total)}
+            </Text>
           </View>
 
           {/* Payment Method Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
+            <Text style={styles.sectionTitle} weight="medium">
               {t('paymentModal.paymentMethod')}
             </Text>
             <TouchableOpacity
@@ -161,7 +165,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                           color={selectedMethod?.color || '#10B981'}
                         />
                       </View>
-                      <Text style={styles.paymentMethodDropdownText}>
+                      <Text
+                        style={styles.paymentMethodDropdownText}
+                        weight="medium"
+                      >
                         {selectedMethod?.label || t('paymentModal.cash')}
                       </Text>
                     </>
@@ -186,7 +193,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             >
               <View style={styles.pickerContainer}>
                 <View style={styles.pickerHeader}>
-                  <Text style={styles.pickerTitle}>
+                  <Text style={styles.pickerTitle} weight="medium">
                     {t('paymentModal.selectPaymentMethod')}
                   </Text>
                   <TouchableOpacity
@@ -229,6 +236,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                               styles.pickerOptionText,
                               isSelected && styles.pickerOptionTextSelected,
                             ]}
+                            weight={isSelected ? 'medium' : 'regular'}
                           >
                             {method.label}
                           </Text>
@@ -248,7 +256,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
           {/* Sale Note */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
+            <Text style={styles.sectionTitle} weight="medium">
               {t('paymentModal.saleNote')}
             </Text>
             <TextInput
@@ -276,12 +284,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   shouldPrintReceipt && styles.checkboxChecked,
                 ]}
               >
-                {shouldPrintReceipt && <Text style={styles.checkmark}>✓</Text>}
+                {shouldPrintReceipt && (
+                  <Text style={styles.checkmark} weight="bold">
+                    ✓
+                  </Text>
+                )}
               </View>
               <View style={styles.checkboxContent}>
                 <View style={styles.checkboxHeader}>
                   <Printer size={16} color="#6B7280" />
-                  <Text style={styles.checkboxLabel}>
+                  <Text style={styles.checkboxLabel} weight="medium">
                     {t('paymentModal.printReceipt')}
                   </Text>
                 </View>
@@ -299,7 +311,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               onPress={handleClose}
               disabled={loading}
             >
-              <Text style={styles.cancelButtonText}>
+              <Text style={styles.cancelButtonText} weight="medium">
                 {t('paymentModal.cancel')}
               </Text>
             </TouchableOpacity>
@@ -315,12 +327,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               {loading ? (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="small" color="#FFFFFF" />
-                  <Text style={styles.confirmButtonText}>
+                  <Text style={styles.confirmButtonText} weight="medium">
                     {t('paymentModal.processing')}
                   </Text>
                 </View>
               ) : (
-                <Text style={styles.confirmButtonText}>
+                <Text style={styles.confirmButtonText} weight="medium">
                   {t('paymentModal.makeSale')}
                 </Text>
               )}
@@ -356,7 +368,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   closeButton: {
@@ -371,13 +382,11 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     marginBottom: 4,
   },
   totalAmount: {
     fontSize: 24,
-    fontFamily: 'Inter-Bold',
     color: '#059669',
   },
   section: {
@@ -385,7 +394,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 8,
   },
@@ -417,7 +425,6 @@ const styles = StyleSheet.create({
   },
   paymentMethodDropdownText: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#374151',
   },
   // Picker Modal Styles
@@ -455,7 +462,6 @@ const styles = StyleSheet.create({
   },
   pickerTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   pickerCloseButton: {
@@ -482,12 +488,10 @@ const styles = StyleSheet.create({
   },
   pickerOptionText: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#374151',
   },
   pickerOptionTextSelected: {
     color: '#059669',
-    fontFamily: 'Inter-SemiBold',
   },
   paymentMethodIconContainer: {
     width: 40,
@@ -499,12 +503,10 @@ const styles = StyleSheet.create({
   },
   paymentMethodLabel: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#374151',
   },
   paymentMethodLabelSelected: {
     color: '#059669',
-    fontFamily: 'Inter-SemiBold',
   },
   selectedIndicator: {
     width: 24,
@@ -522,7 +524,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
     backgroundColor: '#FFFFFF',
     textAlignVertical: 'top',
@@ -555,7 +556,6 @@ const styles = StyleSheet.create({
   checkmark: {
     color: '#FFFFFF',
     fontSize: 12,
-    fontFamily: 'Inter-Bold',
   },
   checkboxContent: {
     flex: 1,
@@ -567,15 +567,12 @@ const styles = StyleSheet.create({
   },
   checkboxLabel: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginLeft: 6,
   },
   checkboxDescription: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
-    lineHeight: 16,
   },
   actions: {
     flexDirection: 'row',
@@ -594,7 +591,6 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#6B7280',
   },
   confirmButton: {
@@ -610,7 +606,6 @@ const styles = StyleSheet.create({
   },
   confirmButtonText: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
   loadingContainer: {

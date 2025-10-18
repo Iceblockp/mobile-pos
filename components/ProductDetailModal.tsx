@@ -532,7 +532,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   Modal,
@@ -541,6 +540,7 @@ import {
   Image,
   Alert,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { Product } from '@/services/database';
@@ -615,7 +615,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.title}>{product.name}</Text>
+            <Text style={styles.title} weight="bold">
+              {product.name}
+            </Text>
             <Text style={styles.category}>{product.category}</Text>
           </View>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -637,12 +639,14 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
           {/* Basic Information */}
           <Card style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('products.basicInfo')}</Text>
+            <Text style={styles.sectionTitle} weight="medium">
+              {t('products.basicInfo')}
+            </Text>
 
             <View style={styles.infoRow}>
               <Package size={20} color="#6B7280" />
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>
+                <Text style={styles.infoLabel} weight="medium">
                   {t('products.productName')}
                 </Text>
                 <Text style={styles.infoValue}>{product.name}</Text>
@@ -828,12 +832,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
   },
   category: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 4,
   },
@@ -859,7 +861,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 16,
   },
@@ -874,12 +875,10 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   infoValue: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
     marginTop: 2,
   },
@@ -897,12 +896,10 @@ const styles = StyleSheet.create({
   },
   pricingLabel: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   pricingValue: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginTop: 4,
   },
@@ -923,12 +920,10 @@ const styles = StyleSheet.create({
   },
   stockLabel: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   stockValue: {
     fontSize: 24,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
     marginTop: 4,
   },
@@ -945,7 +940,6 @@ const styles = StyleSheet.create({
   },
   lowStockWarningText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#DC2626',
     textAlign: 'center',
   },

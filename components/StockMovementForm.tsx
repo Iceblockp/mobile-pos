@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   TextInput,
@@ -9,6 +8,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { SimplePriceInput } from '@/components/PriceInput';
@@ -122,7 +122,9 @@ export const StockMovementForm: React.FC<StockMovementFormProps> = ({
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Package size={24} color="#059669" />
-              <Text style={styles.title}>{t('stockMovement.title')}</Text>
+              <Text style={styles.title} weight="medium">
+                {t('stockMovement.title')}
+              </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <X size={24} color="#6B7280" />
@@ -131,8 +133,10 @@ export const StockMovementForm: React.FC<StockMovementFormProps> = ({
 
           {product && (
             <View style={styles.productInfo}>
-              <Text style={styles.productName}>{product.name}</Text>
-              <Text style={styles.currentStock}>
+              <Text style={styles.productName} weight="medium">
+                {product.name}
+              </Text>
+              <Text style={styles.currentStock} weight="medium">
                 {t('stockMovement.currentStock')}: {product.quantity}
               </Text>
             </View>
@@ -144,7 +148,9 @@ export const StockMovementForm: React.FC<StockMovementFormProps> = ({
           >
             {/* Movement Type Selection */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('stockMovement.type')}</Text>
+              <Text style={styles.sectionTitle} weight="medium">
+                {t('stockMovement.type')}
+              </Text>
               <View style={styles.typeSelector}>
                 <TouchableOpacity
                   style={[
@@ -162,6 +168,7 @@ export const StockMovementForm: React.FC<StockMovementFormProps> = ({
                       styles.typeButtonText,
                       type === 'stock_in' && styles.typeButtonTextActive,
                     ]}
+                    weight="medium"
                   >
                     {t('stockMovement.stockIn')}
                   </Text>
@@ -183,6 +190,7 @@ export const StockMovementForm: React.FC<StockMovementFormProps> = ({
                       styles.typeButtonText,
                       type === 'stock_out' && styles.typeButtonTextActive,
                     ]}
+                    weight="medium"
                   >
                     {t('stockMovement.stockOut')}
                   </Text>
@@ -192,7 +200,9 @@ export const StockMovementForm: React.FC<StockMovementFormProps> = ({
 
             {/* Quantity Input */}
             <View style={styles.section}>
-              <Text style={styles.label}>{t('stockMovement.quantity')}</Text>
+              <Text style={styles.label} weight="medium">
+                {t('stockMovement.quantity')}
+              </Text>
               <TextInput
                 style={styles.input}
                 value={quantity}
@@ -205,7 +215,7 @@ export const StockMovementForm: React.FC<StockMovementFormProps> = ({
 
             {/* Reason Input (required for stock_out) */}
             <View style={styles.section}>
-              <Text style={styles.label}>
+              <Text style={styles.label} weight="medium">
                 {t('stockMovement.reason')}
                 {type === 'stock_out' && (
                   <Text style={styles.required}> *</Text>
@@ -229,7 +239,7 @@ export const StockMovementForm: React.FC<StockMovementFormProps> = ({
             {/* Supplier Selection (for stock_in) */}
             {type === 'stock_in' && (
               <View style={styles.section}>
-                <Text style={styles.label}>
+                <Text style={styles.label} weight="medium">
                   {t('stockMovement.supplier')} ({t('common.optional')})
                 </Text>
                 <View style={styles.supplierSelector}>
@@ -245,6 +255,7 @@ export const StockMovementForm: React.FC<StockMovementFormProps> = ({
                         styles.supplierOptionText,
                         !supplierId && styles.supplierOptionTextActive,
                       ]}
+                      weight="medium"
                     >
                       {t('stockMovement.noSupplier')}
                     </Text>
@@ -265,6 +276,7 @@ export const StockMovementForm: React.FC<StockMovementFormProps> = ({
                           supplierId === supplier.id &&
                             styles.supplierOptionTextActive,
                         ]}
+                        weight="medium"
                       >
                         {supplier.name}
                       </Text>
@@ -277,7 +289,7 @@ export const StockMovementForm: React.FC<StockMovementFormProps> = ({
             {/* Reference Number (for stock_in) */}
             {type === 'stock_in' && (
               <View style={styles.section}>
-                <Text style={styles.label}>
+                <Text style={styles.label} weight="medium">
                   {t('stockMovement.referenceNumber')} ({t('common.optional')})
                 </Text>
                 <TextInput
@@ -293,7 +305,7 @@ export const StockMovementForm: React.FC<StockMovementFormProps> = ({
             {/* Unit Cost (for stock_in) */}
             {type === 'stock_in' && (
               <View style={styles.section}>
-                <Text style={styles.label}>
+                <Text style={styles.label} weight="medium">
                   {t('stockMovement.unitCost')} ({t('common.optional')})
                 </Text>
                 <SimplePriceInput
@@ -368,7 +380,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginLeft: 12,
   },
@@ -383,12 +394,10 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   currentStock: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#059669',
     marginTop: 4,
   },
@@ -401,13 +410,11 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 12,
   },
   label: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#374151',
     marginBottom: 8,
   },
@@ -422,7 +429,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
   },
   textArea: {
@@ -451,7 +457,6 @@ const styles = StyleSheet.create({
   },
   typeButtonText: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#6B7280',
     marginLeft: 8,
   },
@@ -475,7 +480,6 @@ const styles = StyleSheet.create({
   },
   supplierOptionText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   supplierOptionTextActive: {
@@ -483,7 +487,6 @@ const styles = StyleSheet.create({
   },
   costPreview: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#059669',
     marginTop: 4,
   },

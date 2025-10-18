@@ -5,13 +5,8 @@ import React, {
   useCallback,
   useMemo,
 } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TextInputProps,
-} from 'react-native';
+import { View, StyleSheet, TextInput, TextInputProps } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Ionicons } from '@expo/vector-icons';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import { PriceInputErrorBoundary } from './PriceInputErrorBoundary';
@@ -126,7 +121,7 @@ export const PriceInput: React.FC<PriceInputProps> = ({
   return (
     <PriceInputErrorBoundary>
       <View style={styles.container}>
-        <Text style={styles.label}>
+        <Text style={styles.label} weight="medium">
           {label}
           {required && <Text style={styles.required}> *</Text>}
         </Text>
@@ -139,7 +134,7 @@ export const PriceInput: React.FC<PriceInputProps> = ({
         >
           {showCurrencySymbol &&
             currentCurrency?.symbolPosition === 'before' && (
-              <Text style={styles.currencySymbol}>
+              <Text style={styles.currencySymbol} weight="medium">
                 {currentCurrency.symbol}
               </Text>
             )}
@@ -157,7 +152,7 @@ export const PriceInput: React.FC<PriceInputProps> = ({
 
           {showCurrencySymbol &&
             currentCurrency?.symbolPosition === 'after' && (
-              <Text style={styles.currencySymbol}>
+              <Text style={styles.currencySymbol} weight="medium">
                 {currentCurrency.symbol}
               </Text>
             )}
@@ -228,7 +223,9 @@ export const SimplePriceInput: React.FC<StandardPriceInputProps> = ({
         ]}
       >
         {showCurrencySymbol && currentCurrency?.symbolPosition === 'before' && (
-          <Text style={styles.currencySymbol}>{currentCurrency.symbol}</Text>
+          <Text style={styles.currencySymbol} weight="medium">
+            {currentCurrency.symbol}
+          </Text>
         )}
 
         <TextInput
@@ -243,7 +240,9 @@ export const SimplePriceInput: React.FC<StandardPriceInputProps> = ({
         />
 
         {showCurrencySymbol && currentCurrency?.symbolPosition === 'after' && (
-          <Text style={styles.currencySymbol}>{currentCurrency.symbol}</Text>
+          <Text style={styles.currencySymbol} weight="medium">
+            {currentCurrency.symbol}
+          </Text>
         )}
 
         {isValid && (
@@ -328,7 +327,11 @@ export const PriceDisplay: React.FC<PriceDisplayProps> = ({
 
   return (
     <View style={[styles.displayContainer, containerStyle]}>
-      {showLabel && <Text style={styles.displayLabel}>{label}</Text>}
+      {showLabel && (
+        <Text style={styles.displayLabel} weight="medium">
+          {label}
+        </Text>
+      )}
       <Text style={getTextStyle()}>{getDisplayText()}</Text>
     </View>
   );
@@ -369,7 +372,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontWeight: '500',
     color: '#374151',
     marginBottom: 8,
   },
@@ -392,7 +394,6 @@ const styles = StyleSheet.create({
   currencySymbol: {
     fontSize: 16,
     color: '#6B7280',
-    fontWeight: '500',
     marginHorizontal: 4,
   },
   input: {
@@ -447,16 +448,13 @@ const styles = StyleSheet.create({
   },
   displayValue: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#111827',
   },
   compactText: {
     fontSize: 14,
-    fontWeight: '500',
   },
   detailedText: {
     fontSize: 18,
-    fontWeight: '700',
   },
 });
 

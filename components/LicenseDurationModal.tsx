@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Clock, X } from 'lucide-react-native';
 import { LICENSE_PACKAGES } from '@/utils/admin';
 import { useTranslation } from '@/context/LocalizationContext';
@@ -36,7 +37,7 @@ export const LicenseDurationModal = ({
           <View style={styles.modalHeader}>
             <View style={styles.headerLeft}>
               <Clock size={20} color="#3B82F6" />
-              <Text style={styles.title}>
+              <Text style={styles.title} weight="medium">
                 {t('license.selectLicenseDuration')}
               </Text>
             </View>
@@ -61,6 +62,7 @@ export const LicenseDurationModal = ({
                       styles.optionTitle,
                       selectedDuration === key && styles.selectedOptionText,
                     ]}
+                    weight="medium"
                   >
                     {config.description}
                   </Text>
@@ -114,7 +116,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#1F2937',
     marginLeft: 8,
   },
@@ -144,7 +145,6 @@ const styles = StyleSheet.create({
   },
   optionTitle: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#374151',
     marginBottom: 2,
   },

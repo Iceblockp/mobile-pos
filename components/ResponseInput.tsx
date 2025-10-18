@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
   Alert,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Key, Check } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 
@@ -38,8 +38,12 @@ export const ResponseInput = ({ onVerify, verifying }: ResponseInputProps) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.stepNumber}>{t('license.step2')}</Text>
-        <Text style={styles.title}>{t('license.enterResponseCode')}</Text>
+        <Text style={styles.stepNumber} weight="medium">
+          {t('license.step2')}
+        </Text>
+        <Text style={styles.title} weight="medium">
+          {t('license.enterResponseCode')}
+        </Text>
       </View>
 
       <TextInput
@@ -58,7 +62,7 @@ export const ResponseInput = ({ onVerify, verifying }: ResponseInputProps) => {
         disabled={verifying}
       >
         <Check size={16} color="#FFFFFF" />
-        <Text style={styles.verifyButtonText}>
+        <Text style={styles.verifyButtonText} weight="medium">
           {verifying ? t('license.verifying') : t('license.verifyLicense')}
         </Text>
       </TouchableOpacity>
@@ -75,13 +79,11 @@ const styles = StyleSheet.create({
   },
   stepNumber: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#3B82F6',
     marginBottom: 4,
   },
   title: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#1F2937',
   },
   input: {
@@ -108,7 +110,6 @@ const styles = StyleSheet.create({
   verifyButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
     marginLeft: 8,
   },
 });

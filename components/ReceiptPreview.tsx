@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  Dimensions,
-} from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Dimensions } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { WebView } from 'react-native-webview';
 import { useTranslation } from '@/context/LocalizationContext';
 import { ShopSettingsService } from '@/services/shopSettingsService';
@@ -87,7 +82,9 @@ export const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({
   if (error) {
     return (
       <View style={[styles.container, styles.errorContainer, style]}>
-        <Text style={styles.errorText}>{error}</Text>
+        <Text style={styles.errorText} weight="medium">
+          {error}
+        </Text>
         <Text style={styles.errorSubtext}>
           Please check your settings and try again
         </Text>
@@ -98,7 +95,9 @@ export const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({
   return (
     <View style={[styles.container, style]}>
       <View style={styles.previewHeader}>
-        <Text style={styles.previewTitle}>{t('shopSettings.preview')}</Text>
+        <Text style={styles.previewTitle} weight="medium">
+          {t('shopSettings.preview')}
+        </Text>
         <Text style={styles.previewSubtitle}>
           Live preview with your shop information
         </Text>
@@ -204,7 +203,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: '#6B7280',
-    fontFamily: 'Inter-Regular',
   },
   errorContainer: {
     justifyContent: 'center',
@@ -215,16 +213,13 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     color: '#EF4444',
-    fontFamily: 'Inter-SemiBold',
     textAlign: 'center',
     marginBottom: 8,
   },
   errorSubtext: {
     fontSize: 14,
     color: '#6B7280',
-    fontFamily: 'Inter-Regular',
     textAlign: 'center',
-    lineHeight: 20,
   },
   previewHeader: {
     paddingBottom: 16,
@@ -234,15 +229,12 @@ const styles = StyleSheet.create({
   },
   previewTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 4,
   },
   previewSubtitle: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
-    lineHeight: 20,
   },
   previewWrapper: {
     backgroundColor: '#FFFFFF',

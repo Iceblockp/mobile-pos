@@ -2,11 +2,11 @@ import React from 'react';
 import {
   Modal,
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   Dimensions,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { ShieldAlert, Phone, X } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 
@@ -40,7 +40,7 @@ export const RegenerateWarningModal: React.FC<RegenerateWarningModalProps> = ({
               <View style={styles.warningIconContainer}>
                 <ShieldAlert size={24} color="#F59E0B" />
               </View>
-              <Text style={styles.title}>
+              <Text style={styles.title} weight="bold">
                 {t('license.regenerateWarningTitle')}
               </Text>
             </View>
@@ -59,11 +59,13 @@ export const RegenerateWarningModal: React.FC<RegenerateWarningModalProps> = ({
             <View style={styles.contactCard}>
               <View style={styles.contactHeader}>
                 <Phone size={16} color="#2563EB" />
-                <Text style={styles.contactTitle}>
+                <Text style={styles.contactTitle} weight="medium">
                   {t('license.contactPhone')}
                 </Text>
               </View>
-              <Text style={styles.phoneNumber}>+959425743536</Text>
+              <Text style={styles.phoneNumber} weight="bold">
+                +959425743536
+              </Text>
             </View>
           </View>
 
@@ -71,7 +73,7 @@ export const RegenerateWarningModal: React.FC<RegenerateWarningModalProps> = ({
           <View style={styles.actions}>
             <TouchableOpacity style={styles.contactButton} onPress={onClose}>
               <Phone size={16} color="#2563EB" />
-              <Text style={styles.contactButtonText}>
+              <Text style={styles.contactButtonText} weight="medium">
                 {t('license.contactAdmin')}
               </Text>
             </TouchableOpacity>
@@ -83,7 +85,7 @@ export const RegenerateWarningModal: React.FC<RegenerateWarningModalProps> = ({
                 onClose();
               }}
             >
-              <Text style={styles.proceedButtonText}>
+              <Text style={styles.proceedButtonText} weight="medium">
                 {t('license.proceedAnyway')}
               </Text>
             </TouchableOpacity>
@@ -137,9 +139,7 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     fontSize: 18,
-    fontWeight: '700',
     color: '#1F2937',
-    lineHeight: 24,
   },
   closeButton: {
     width: 32,
@@ -157,7 +157,6 @@ const styles = StyleSheet.create({
   message: {
     fontSize: 15,
     color: '#4B5563',
-    lineHeight: 22,
     marginBottom: 20,
   },
   contactCard: {
@@ -174,13 +173,11 @@ const styles = StyleSheet.create({
   },
   contactTitle: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#1E40AF',
     marginLeft: 8,
   },
   phoneNumber: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#2563EB',
     letterSpacing: 0.5,
   },
@@ -204,7 +201,6 @@ const styles = StyleSheet.create({
   },
   contactButtonText: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#2563EB',
     marginLeft: 6,
   },
@@ -219,7 +215,6 @@ const styles = StyleSheet.create({
   },
   proceedButtonText: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#FFFFFF',
   },
 });

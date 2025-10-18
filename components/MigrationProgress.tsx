@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Modal, ActivityIndicator } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { useMigration } from '@/context/MigrationContext';
 
 interface MigrationProgressProps {
@@ -24,7 +25,9 @@ export const MigrationProgress: React.FC<MigrationProgressProps> = ({
     >
       <View style={styles.overlay}>
         <View style={styles.container}>
-          <Text style={styles.title}>Database Migration</Text>
+          <Text style={styles.title} weight="bold">
+            Database Migration
+          </Text>
           <Text style={styles.subtitle}>
             Upgrading your database to use improved identifiers
           </Text>
@@ -38,7 +41,7 @@ export const MigrationProgress: React.FC<MigrationProgressProps> = ({
                 ]}
               />
             </View>
-            <Text style={styles.progressText}>
+            <Text style={styles.progressText} weight="medium">
               {migrationStatus.progress.toFixed(0)}%
             </Text>
           </View>
@@ -74,7 +77,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
     color: '#333',
     marginBottom: 8,
     textAlign: 'center',
@@ -84,7 +86,6 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 24,
     textAlign: 'center',
-    lineHeight: 20,
   },
   progressContainer: {
     width: '100%',
@@ -106,7 +107,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
     textAlign: 'center',
-    fontWeight: '600',
   },
   statusContainer: {
     flexDirection: 'row',

@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useStockMovements } from '@/hooks/useQueries';
@@ -102,6 +102,7 @@ export const MovementHistory: React.FC<MovementHistoryProps> = ({
               styles.movementTypeText,
               { color: getMovementColor(item.type) },
             ]}
+            weight="medium"
           >
             {item.type === 'stock_in'
               ? t('stockMovement.stockIn')
@@ -115,12 +116,14 @@ export const MovementHistory: React.FC<MovementHistoryProps> = ({
         {showProductName && item.product_name && (
           <View style={styles.movementRow}>
             <Package size={16} color="#6B7280" />
-            <Text style={styles.movementProductName}>{item.product_name}</Text>
+            <Text style={styles.movementProductName} weight="medium">
+              {item.product_name}
+            </Text>
           </View>
         )}
 
         <View style={styles.movementRow}>
-          <Text style={styles.movementLabel}>
+          <Text style={styles.movementLabel} weight="medium">
             {t('stockMovement.quantity')}:
           </Text>
           <Text
@@ -128,6 +131,7 @@ export const MovementHistory: React.FC<MovementHistoryProps> = ({
               styles.movementQuantity,
               { color: getMovementColor(item.type) },
             ]}
+            weight="bold"
           >
             {item.type === 'stock_in' ? '+' : '-'}
             {item.quantity}
@@ -144,13 +148,15 @@ export const MovementHistory: React.FC<MovementHistoryProps> = ({
         {item.supplier_name && (
           <View style={styles.movementRow}>
             <User size={16} color="#6B7280" />
-            <Text style={styles.movementSupplier}>{item.supplier_name}</Text>
+            <Text style={styles.movementSupplier} weight="medium">
+              {item.supplier_name}
+            </Text>
           </View>
         )}
 
         {item.reference_number && (
           <View style={styles.movementRow}>
-            <Text style={styles.movementLabel}>
+            <Text style={styles.movementLabel} weight="medium">
               {t('stockMovement.reference')}:
             </Text>
             <Text style={styles.movementReference}>
@@ -161,10 +167,12 @@ export const MovementHistory: React.FC<MovementHistoryProps> = ({
 
         {item.unit_cost && (
           <View style={styles.movementRow}>
-            <Text style={styles.movementLabel}>
+            <Text style={styles.movementLabel} weight="medium">
               {t('stockMovement.unitCost')}:
             </Text>
-            <Text style={styles.movementCost}>{formatMMK(item.unit_cost)}</Text>
+            <Text style={styles.movementCost} weight="medium">
+              {formatMMK(item.unit_cost)}
+            </Text>
           </View>
         )}
       </View>
@@ -174,7 +182,7 @@ export const MovementHistory: React.FC<MovementHistoryProps> = ({
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Package size={48} color="#9CA3AF" />
-      <Text style={styles.emptyStateText}>
+      <Text style={styles.emptyStateText} weight="medium">
         {t('stockMovement.noMovements')}
       </Text>
       <Text style={styles.emptyStateSubtext}>
@@ -197,7 +205,9 @@ export const MovementHistory: React.FC<MovementHistoryProps> = ({
             style={styles.loadMoreButton}
             onPress={() => setPage(page + 1)}
           >
-            <Text style={styles.loadMoreText}>{t('common.loadMore')}</Text>
+            <Text style={styles.loadMoreText} weight="medium">
+              {t('common.loadMore')}
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -217,7 +227,9 @@ export const MovementHistory: React.FC<MovementHistoryProps> = ({
       {!compact && (
         <View style={styles.header}>
           <Calendar size={20} color="#059669" />
-          <Text style={styles.title}>{t('stockMovement.history')}</Text>
+          <Text style={styles.title} weight="medium">
+            {t('stockMovement.history')}
+          </Text>
         </View>
       )}
 
@@ -269,7 +281,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginLeft: 12,
   },
@@ -300,12 +311,10 @@ const styles = StyleSheet.create({
   },
   movementTypeText: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     marginLeft: 8,
   },
   movementDate: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
   },
   movementContent: {
@@ -318,39 +327,32 @@ const styles = StyleSheet.create({
   },
   movementLabel: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   movementQuantity: {
     fontSize: 16,
-    fontFamily: 'Inter-Bold',
   },
   movementProductName: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     flex: 1,
   },
   movementReason: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     flex: 1,
   },
   movementSupplier: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#059669',
     flex: 1,
   },
   movementReference: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
   },
   movementCost: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#059669',
   },
   emptyState: {
@@ -359,13 +361,11 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     marginTop: 16,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#9CA3AF',
     marginTop: 4,
     textAlign: 'center',
@@ -380,7 +380,6 @@ const styles = StyleSheet.create({
   },
   loadMoreText: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#059669',
   },
 });

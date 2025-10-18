@@ -1,11 +1,6 @@
 import React from 'react';
-import {
-  View,
-  ScrollView,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-} from 'react-native';
+import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { ChatMessage } from '../types/aiAnalytics';
 import { useTranslation } from '../context/LocalizationContext';
 
@@ -76,7 +71,9 @@ const MessageList: React.FC<MessageListProps> = ({
   if (messages.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>{t('aiAnalytics.emptyStateTitle')}</Text>
+        <Text style={styles.emptyText} weight="medium">
+          {t('aiAnalytics.emptyStateTitle')}
+        </Text>
         <Text style={styles.emptySubtext}>
           {t('aiAnalytics.emptyStateSubtitle')}
         </Text>
@@ -112,7 +109,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: '600',
     color: '#333',
     textAlign: 'center',
     marginBottom: 8,
@@ -121,7 +117,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
-    lineHeight: 20,
   },
   messageContainer: {
     marginBottom: 16,
@@ -163,7 +158,6 @@ const styles = StyleSheet.create({
   },
   messageText: {
     fontSize: 16,
-    lineHeight: 22,
   },
   userText: {
     color: '#FFFFFF',

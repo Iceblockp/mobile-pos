@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useStockMovementSummary } from '@/hooks/useQueries';
@@ -71,47 +72,46 @@ export const MovementSummary: React.FC<MovementSummaryProps> = ({
     },
   ];
 
-  const renderCard = (card: (typeof summaryCards)[0], index: number) => (
-    <Card
-      key={index}
-      style={
-        compact
-          ? [
-              styles.summaryCard,
-              styles.summaryCardCompact,
-              { backgroundColor: card.backgroundColor },
-            ]
-          : [styles.summaryCard, { backgroundColor: card.backgroundColor }]
-      }
-    >
-      <View style={styles.cardContent}>
-        <View style={[styles.iconContainer, { backgroundColor: card.color }]}>
-          <card.icon size={compact ? 20 : 24} color="#FFFFFF" />
+  const renderCard = (card: (typeof summaryCards)[0], index: number) => {
+    const cardStyle = {
+      ...styles.summaryCard,
+      ...(compact ? styles.summaryCardCompact : {}),
+      backgroundColor: card.backgroundColor,
+    };
+
+    return (
+      <Card key={index} style={cardStyle}>
+        <View style={styles.cardContent}>
+          <View style={[styles.iconContainer, { backgroundColor: card.color }]}>
+            <card.icon size={compact ? 20 : 24} color="#FFFFFF" />
+          </View>
+          <View style={styles.cardText}>
+            <Text
+              style={
+                compact
+                  ? [styles.cardValue, styles.cardValueCompact]
+                  : styles.cardValue
+              }
+              weight="bold"
+            >
+              {typeof card.value === 'number' && card.value >= 0 ? '+' : ''}
+              {card.value}
+            </Text>
+            <Text
+              style={
+                compact
+                  ? [styles.cardTitle, styles.cardTitleCompact]
+                  : styles.cardTitle
+              }
+              weight="medium"
+            >
+              {card.title}
+            </Text>
+          </View>
         </View>
-        <View style={styles.cardText}>
-          <Text
-            style={
-              compact
-                ? [styles.cardValue, styles.cardValueCompact]
-                : styles.cardValue
-            }
-          >
-            {typeof card.value === 'number' && card.value >= 0 ? '+' : ''}
-            {card.value}
-          </Text>
-          <Text
-            style={
-              compact
-                ? [styles.cardTitle, styles.cardTitleCompact]
-                : styles.cardTitle
-            }
-          >
-            {card.title}
-          </Text>
-        </View>
-      </View>
-    </Card>
-  );
+      </Card>
+    );
+  };
 
   return (
     <View
@@ -120,7 +120,9 @@ export const MovementSummary: React.FC<MovementSummaryProps> = ({
       }
     >
       {!compact && (
-        <Text style={styles.sectionTitle}>{t('stockMovement.summary')}</Text>
+        <Text style={styles.sectionTitle} weight="medium">
+          {t('stockMovement.summary')}
+        </Text>
       )}
 
       <View
@@ -145,7 +147,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 16,
     paddingHorizontal: 20,
@@ -192,7 +193,6 @@ const styles = StyleSheet.create({
   },
   cardValue: {
     fontSize: 20,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
   },
   cardValueCompact: {
@@ -200,7 +200,6 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 13,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     marginTop: 2,
   },

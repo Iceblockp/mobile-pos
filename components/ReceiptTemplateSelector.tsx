@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
   Dimensions,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { WebView } from 'react-native-webview';
 import { Check, Eye } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
@@ -109,7 +109,9 @@ export const ReceiptTemplateSelector: React.FC<
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>{t('shopSettings.template')}</Text>
+      <Text style={styles.sectionTitle} weight="medium">
+        {t('shopSettings.template')}
+      </Text>
       <Text style={styles.sectionSubtitle}>
         Choose a receipt template that matches your business style
       </Text>
@@ -131,7 +133,7 @@ export const ReceiptTemplateSelector: React.FC<
             >
               <View style={styles.templateInfo}>
                 <View style={styles.templateTitleRow}>
-                  <Text style={styles.templateName}>
+                  <Text style={styles.templateName} weight="medium">
                     {t(`shopSettings.templates.${template.id}`) ||
                       template.name}
                   </Text>
@@ -153,7 +155,7 @@ export const ReceiptTemplateSelector: React.FC<
               onPress={() => togglePreview(template.id)}
             >
               <Eye size={16} color="#059669" />
-              <Text style={styles.previewToggleText}>
+              <Text style={styles.previewToggleText} weight="medium">
                 {expandedPreview === template.id
                   ? 'Hide Preview'
                   : 'Show Preview'}
@@ -200,7 +202,7 @@ export const ReceiptTemplateSelector: React.FC<
 
       {/* Selected Template Info */}
       <View style={styles.selectedInfo}>
-        <Text style={styles.selectedInfoText}>
+        <Text style={styles.selectedInfoText} weight="medium">
           Selected:{' '}
           {t(`shopSettings.templates.${selectedTemplate}`) ||
             templates.find((t) => t.id === selectedTemplate)?.name ||
@@ -225,20 +227,16 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: '#6B7280',
-    fontFamily: 'Inter-Regular',
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 8,
   },
   sectionSubtitle: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginBottom: 20,
-    lineHeight: 20,
   },
   templatesContainer: {
     flex: 1,
@@ -271,7 +269,6 @@ const styles = StyleSheet.create({
   },
   templateName: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   selectedBadge: {
@@ -284,9 +281,7 @@ const styles = StyleSheet.create({
   },
   templateDescription: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
-    lineHeight: 20,
   },
   previewToggle: {
     flexDirection: 'row',
@@ -299,7 +294,6 @@ const styles = StyleSheet.create({
   },
   previewToggleText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#059669',
     marginLeft: 8,
   },
@@ -314,7 +308,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 12,
     color: '#6B7280',
-    fontFamily: 'Inter-Regular',
   },
   previewWrapper: {
     height: 400,
@@ -337,7 +330,6 @@ const styles = StyleSheet.create({
   previewErrorText: {
     fontSize: 14,
     color: '#EF4444',
-    fontFamily: 'Inter-Regular',
   },
   selectedInfo: {
     padding: 16,
@@ -347,7 +339,6 @@ const styles = StyleSheet.create({
   },
   selectedInfoText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#374151',
     textAlign: 'center',
   },

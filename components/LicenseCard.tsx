@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Shield, ShieldCheck, Calendar, RefreshCw } from 'lucide-react-native';
 import { LICENSE_PACKAGES } from '@/utils/admin';
 
@@ -50,6 +51,7 @@ export const LicenseCard = ({
             styles.status,
             isLicensed ? styles.licensedText : styles.unlicensedText,
           ]}
+          weight="bold"
         >
           {isLicensed ? 'Licensed' : 'Unlicensed'}
         </Text>
@@ -78,7 +80,9 @@ export const LicenseCard = ({
               style={styles.selectDurationButton}
               onPress={onSelectDuration}
             >
-              <Text style={styles.selectDurationText}>Select Duration</Text>
+              <Text style={styles.selectDurationText} weight="medium">
+                Select Duration
+              </Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -87,7 +91,7 @@ export const LicenseCard = ({
             disabled={loading}
           >
             <RefreshCw size={16} color="#FFFFFF" />
-            <Text style={styles.regenerateText}>
+            <Text style={styles.regenerateText} weight="medium">
               {loading ? 'Generating...' : 'Generate New Challenge'}
             </Text>
           </TouchableOpacity>
@@ -120,7 +124,6 @@ const styles = StyleSheet.create({
   },
   status: {
     fontSize: 18,
-    fontWeight: '700',
     marginLeft: 8,
   },
   licensedText: {
@@ -144,7 +147,6 @@ const styles = StyleSheet.create({
   unlicensedInfo: {
     fontSize: 14,
     color: '#4B5563',
-    lineHeight: 20,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -162,7 +164,6 @@ const styles = StyleSheet.create({
   selectDurationText: {
     color: '#3B82F6',
     fontSize: 14,
-    fontWeight: '500',
   },
   regenerateButton: {
     flex: 1,
@@ -179,7 +180,6 @@ const styles = StyleSheet.create({
   regenerateText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '600',
     marginLeft: 8,
   },
 });

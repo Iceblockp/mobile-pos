@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   TextInput,
   Alert,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { StockMovementForm } from '@/components/StockMovementForm';
@@ -111,7 +111,7 @@ export const QuickStockActions: React.FC<QuickStockActionsProps> = ({
                   <TrendingDown size={20} color="#EF4444" />
                 )}
               </View>
-              <Text style={styles.quickFormTitle}>
+              <Text style={styles.quickFormTitle} weight="medium">
                 {quickType === 'stock_in'
                   ? t('stockMovement.addStock')
                   : t('stockMovement.removeStock')}
@@ -146,7 +146,7 @@ export const QuickStockActions: React.FC<QuickStockActionsProps> = ({
                 title={t('common.confirm')}
                 onPress={handleQuickMovement}
                 style={styles.quickFormButton}
-                loading={addStockMovement.isPending}
+                disabled={addStockMovement.isPending}
               />
             </View>
 
@@ -157,7 +157,7 @@ export const QuickStockActions: React.FC<QuickStockActionsProps> = ({
                 handleFullFormOpen(quickType);
               }}
             >
-              <Text style={styles.fullFormLinkText}>
+              <Text style={styles.fullFormLinkText} weight="medium">
                 {t('stockMovement.useFullForm')}
               </Text>
             </TouchableOpacity>
@@ -212,11 +212,13 @@ export const QuickStockActions: React.FC<QuickStockActionsProps> = ({
     <Card style={styles.container}>
       <View style={styles.header}>
         <Package size={20} color="#6B7280" />
-        <Text style={styles.title}>{t('stockMovement.quickActions')}</Text>
+        <Text style={styles.title} weight="medium">
+          {t('stockMovement.quickActions')}
+        </Text>
       </View>
 
       <View style={styles.currentStock}>
-        <Text style={styles.currentStockLabel}>
+        <Text style={styles.currentStockLabel} weight="medium">
           {t('stockMovement.currentStock')}:
         </Text>
         <Text
@@ -224,6 +226,7 @@ export const QuickStockActions: React.FC<QuickStockActionsProps> = ({
             styles.currentStockValue,
             product.quantity <= product.min_stock && styles.lowStockValue,
           ]}
+          weight="bold"
         >
           {product.quantity}
         </Text>
@@ -238,7 +241,7 @@ export const QuickStockActions: React.FC<QuickStockActionsProps> = ({
           }}
         >
           <TrendingUp size={24} color="#059669" />
-          <Text style={styles.actionCardTitle}>
+          <Text style={styles.actionCardTitle} weight="medium">
             {t('stockMovement.addStock')}
           </Text>
           <Text style={styles.actionCardSubtitle}>
@@ -254,7 +257,7 @@ export const QuickStockActions: React.FC<QuickStockActionsProps> = ({
           }}
         >
           <TrendingDown size={24} color="#EF4444" />
-          <Text style={styles.actionCardTitle}>
+          <Text style={styles.actionCardTitle} weight="medium">
             {t('stockMovement.removeStock')}
           </Text>
           <Text style={styles.actionCardSubtitle}>
@@ -280,7 +283,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   currentStock: {
@@ -295,12 +297,10 @@ const styles = StyleSheet.create({
   },
   currentStockLabel: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   currentStockValue: {
     fontSize: 18,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
   },
   lowStockValue: {
@@ -327,14 +327,12 @@ const styles = StyleSheet.create({
   },
   actionCardTitle: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginTop: 8,
     textAlign: 'center',
   },
   actionCardSubtitle: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
     textAlign: 'center',
@@ -394,13 +392,11 @@ const styles = StyleSheet.create({
   },
   quickFormTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     flex: 1,
   },
   quickFormSubtitle: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginBottom: 16,
   },
@@ -412,7 +408,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
     marginBottom: 20,
   },
@@ -430,7 +425,6 @@ const styles = StyleSheet.create({
   },
   fullFormLinkText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#3B82F6',
   },
 });

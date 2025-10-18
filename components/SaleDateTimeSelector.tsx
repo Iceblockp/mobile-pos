@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   Platform,
   ViewStyle,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation, useLocalization } from '@/context/LocalizationContext';
 import { formatSaleDateTime } from '@/utils/dateFormatters';
@@ -94,7 +94,7 @@ export const SaleDateTimeSelector: React.FC<SaleDateTimeSelectorProps> = ({
           onPress={handleDateTimePress}
           activeOpacity={0.7}
         >
-          <Text style={styles.dateTimeText}>
+          <Text style={styles.dateTimeText} weight="medium">
             {formatDateTime(selectedDateTime)}
           </Text>
         </TouchableOpacity>
@@ -150,7 +150,6 @@ const styles = StyleSheet.create({
   },
   dateTimeText: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
 });

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Modal,
   Alert,
   Dimensions,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Camera, CameraView } from 'expo-camera';
 import { X, Camera as CameraIcon } from 'lucide-react-native';
 import { useLocalization } from '../context/LocalizationContext';
@@ -204,7 +204,9 @@ export default function TextScanner({
               {t('scanner.cameraPermissionRequired')}
             </Text>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Text style={styles.closeButtonText}>{t('common.close')}</Text>
+              <Text style={styles.closeButtonText} weight="medium">
+                {t('common.close')}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -234,7 +236,7 @@ export default function TextScanner({
             <TouchableOpacity style={styles.closeIcon} onPress={onClose}>
               <X size={24} color="#FFFFFF" />
             </TouchableOpacity>
-            <Text style={styles.headerText}>
+            <Text style={styles.headerText} weight="medium">
               {t('scanner.scanProductName')}
             </Text>
             <View style={styles.placeholder} />
@@ -328,7 +330,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: '600',
   },
   placeholder: {
     width: 40,
@@ -390,6 +391,5 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
   },
 });

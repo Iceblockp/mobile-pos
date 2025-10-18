@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Clock } from 'lucide-react-native';
 import { LICENSE_PACKAGES } from '@/utils/admin';
 
@@ -17,7 +18,9 @@ export const LicenseDurationSelector = ({
     <View style={styles.container}>
       <View style={styles.header}>
         <Clock size={20} color="#3B82F6" />
-        <Text style={styles.title}>Select License Duration</Text>
+        <Text style={styles.title} weight="medium">
+          Select License Duration
+        </Text>
       </View>
 
       <View style={styles.optionsContainer}>
@@ -36,6 +39,7 @@ export const LicenseDurationSelector = ({
                   styles.optionTitle,
                   selectedDuration === key && styles.selectedOptionText,
                 ]}
+                weight="medium"
               >
                 {config.description}
               </Text>
@@ -81,7 +85,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#1F2937',
     marginLeft: 8,
   },
@@ -108,7 +111,6 @@ const styles = StyleSheet.create({
   },
   optionTitle: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#374151',
     marginBottom: 2,
   },

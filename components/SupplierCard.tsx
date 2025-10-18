@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Ionicons } from '@expo/vector-icons';
 import { SupplierWithStats } from '@/services/database';
 import { useCurrencyFormatter } from '@/hooks/useCurrency';
@@ -23,7 +24,9 @@ export const SupplierCard: React.FC<SupplierCardProps> = ({
     <TouchableOpacity style={styles.card} onPress={onView} activeOpacity={0.7}>
       <View style={styles.header}>
         <View style={styles.supplierInfo}>
-          <Text style={styles.supplierName}>{supplier.name}</Text>
+          <Text style={styles.supplierName} weight="medium">
+            {supplier.name}
+          </Text>
           <Text style={styles.contactName}>{supplier.contact_name}</Text>
         </View>
         <View style={styles.actions}>
@@ -70,17 +73,19 @@ export const SupplierCard: React.FC<SupplierCardProps> = ({
 
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{supplier.total_products || 0}</Text>
+          <Text style={styles.statValue} weight="medium">
+            {supplier.total_products || 0}
+          </Text>
           <Text style={styles.statLabel}>Products</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>
+          <Text style={styles.statValue} weight="medium">
             {supplier.recent_deliveries || 0}
           </Text>
           <Text style={styles.statLabel}>Recent Deliveries</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>
+          <Text style={styles.statValue} weight="medium">
             {formatPrice(supplier.total_purchase_value || 0)}
           </Text>
           <Text style={styles.statLabel}>Purchase Value</Text>
@@ -118,7 +123,6 @@ const styles = StyleSheet.create({
   },
   supplierName: {
     fontSize: 18,
-    fontWeight: '600',
     color: '#111827',
     marginBottom: 4,
   },
@@ -158,7 +162,6 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginLeft: 8,
     flex: 1,
-    lineHeight: 20,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -172,7 +175,6 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#111827',
     marginBottom: 4,
   },

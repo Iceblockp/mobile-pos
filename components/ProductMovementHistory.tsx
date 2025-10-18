@@ -1,12 +1,12 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Modal,
   SafeAreaView,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { EnhancedMovementHistory } from '@/components/inventory/EnhancedMovementHistory';
@@ -84,7 +84,9 @@ export const ProductMovementHistory: React.FC<ProductMovementHistoryProps> =
           >
             <SafeAreaView style={styles.modalContainer}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{modalTitle}</Text>
+                <Text style={styles.modalTitle} weight="medium">
+                  {modalTitle}
+                </Text>
                 <TouchableOpacity
                   style={styles.modalCloseButton}
                   onPress={handleCloseHistoryModal}
@@ -132,7 +134,7 @@ export const ProductMovementHistory: React.FC<ProductMovementHistoryProps> =
               onPress={handleOpenHistoryModal}
             >
               <History size={16} color="#6B7280" />
-              <Text style={styles.compactButtonText}>
+              <Text style={styles.compactButtonText} weight="medium">
                 {t('stockMovement.history')}
               </Text>
             </TouchableOpacity>
@@ -161,14 +163,16 @@ export const ProductMovementHistory: React.FC<ProductMovementHistoryProps> =
     return (
       <Card style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>{t('stockMovement.title')}</Text>
+          <Text style={styles.title} weight="medium">
+            {t('stockMovement.title')}
+          </Text>
           <View style={styles.actions}>
             <TouchableOpacity
               style={styles.actionButton}
               onPress={handleOpenHistoryModal}
             >
               <History size={20} color="#6B7280" />
-              <Text style={styles.actionButtonText}>
+              <Text style={styles.actionButtonText} weight="medium">
                 {t('stockMovement.history')}
               </Text>
             </TouchableOpacity>
@@ -176,7 +180,7 @@ export const ProductMovementHistory: React.FC<ProductMovementHistoryProps> =
         </View>
 
         <View style={styles.quickActionsContainer}>
-          <Text style={styles.quickActionsTitle}>
+          <Text style={styles.quickActionsTitle} weight="medium">
             {t('stockMovement.quickActions')}
           </Text>
           <View style={styles.quickActionsRow}>
@@ -185,7 +189,7 @@ export const ProductMovementHistory: React.FC<ProductMovementHistoryProps> =
               onPress={handleStockIn}
             >
               <TrendingUp size={24} color="#059669" />
-              <Text style={styles.quickActionCardTitle}>
+              <Text style={styles.quickActionCardTitle} weight="medium">
                 {t('stockMovement.addStock')}
               </Text>
               <Text style={styles.quickActionCardSubtitle}>
@@ -198,7 +202,7 @@ export const ProductMovementHistory: React.FC<ProductMovementHistoryProps> =
               onPress={handleStockOut}
             >
               <TrendingDown size={24} color="#EF4444" />
-              <Text style={styles.quickActionCardTitle}>
+              <Text style={styles.quickActionCardTitle} weight="medium">
                 {t('stockMovement.removeStock')}
               </Text>
               <Text style={styles.quickActionCardSubtitle}>
@@ -209,7 +213,7 @@ export const ProductMovementHistory: React.FC<ProductMovementHistoryProps> =
         </View>
 
         <View style={styles.recentMovements}>
-          <Text style={styles.recentMovementsTitle}>
+          <Text style={styles.recentMovementsTitle} weight="medium">
             {t('stockMovement.recentActivity')}
           </Text>
           <EnhancedMovementHistory
@@ -237,7 +241,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   actions: {
@@ -257,7 +260,6 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   quickActionsContainer: {
@@ -265,7 +267,6 @@ const styles = StyleSheet.create({
   },
   quickActionsTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 12,
   },
@@ -290,14 +291,12 @@ const styles = StyleSheet.create({
   },
   quickActionCardTitle: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginTop: 8,
     textAlign: 'center',
   },
   quickActionCardSubtitle: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
     textAlign: 'center',
@@ -307,7 +306,6 @@ const styles = StyleSheet.create({
   },
   recentMovementsTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 12,
   },
@@ -332,7 +330,6 @@ const styles = StyleSheet.create({
   },
   compactButtonText: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   quickActions: {
@@ -369,7 +366,6 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     flex: 1,
   },

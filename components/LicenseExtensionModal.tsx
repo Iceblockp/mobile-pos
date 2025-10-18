@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import {
   Modal,
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
   Alert,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { X, ShieldCheck } from 'lucide-react-native';
 import { useLicense } from '@/hooks/useLicense';
 import { useTranslation } from '@/context/LocalizationContext';
@@ -109,7 +109,9 @@ export const LicenseExtensionModal: React.FC<LicenseExtensionModalProps> = ({
   const renderDurationSelection = () => (
     <ScrollView style={styles.content}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t('license.licenseExtension')}</Text>
+        <Text style={styles.title} weight="bold">
+          {t('license.licenseExtension')}
+        </Text>
         <Text style={styles.subtitle}>
           {t('license.selectExtensionDuration')}
         </Text>
@@ -126,7 +128,9 @@ export const LicenseExtensionModal: React.FC<LicenseExtensionModalProps> = ({
             onPress={() => setSelectedDuration(key)}
           >
             <View style={styles.durationInfo}>
-              <Text style={styles.durationTitle}>{pkg.description}</Text>
+              <Text style={styles.durationTitle} weight="medium">
+                {pkg.description}
+              </Text>
               <Text style={styles.durationMonths}>
                 {pkg.validityMonths}{' '}
                 {pkg.validityMonths === 1
@@ -149,7 +153,7 @@ export const LicenseExtensionModal: React.FC<LicenseExtensionModalProps> = ({
       </View>
 
       <View style={styles.extensionInfo}>
-        <Text style={styles.extensionInfoTitle}>
+        <Text style={styles.extensionInfoTitle} weight="medium">
           {t('license.extensionWillBeAdded')}
         </Text>
         <View style={styles.dateInfo}>
@@ -168,7 +172,7 @@ export const LicenseExtensionModal: React.FC<LicenseExtensionModalProps> = ({
         disabled={loading}
       >
         <ShieldCheck size={20} color="#FFFFFF" />
-        <Text style={styles.generateButtonText}>
+        <Text style={styles.generateButtonText} weight="medium">
           {loading
             ? t('license.generating')
             : t('license.generateExtensionChallenge')}
@@ -180,7 +184,9 @@ export const LicenseExtensionModal: React.FC<LicenseExtensionModalProps> = ({
   const renderChallengeStep = () => (
     <ScrollView style={styles.content}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t('license.licenseExtension')}</Text>
+        <Text style={styles.title} weight="bold">
+          {t('license.licenseExtension')}
+        </Text>
         <Text style={styles.subtitle}>
           {LICENSE_PACKAGES[selectedDuration]?.description}
         </Text>
@@ -197,7 +203,9 @@ export const LicenseExtensionModal: React.FC<LicenseExtensionModalProps> = ({
         style={styles.backButton}
         onPress={() => setStep('select')}
       >
-        <Text style={styles.backButtonText}>{t('common.back')}</Text>
+        <Text style={styles.backButtonText} weight="medium">
+          {t('common.back')}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -212,7 +220,9 @@ export const LicenseExtensionModal: React.FC<LicenseExtensionModalProps> = ({
       <View style={styles.container}>
         <View style={styles.modalHeader}>
           <View style={styles.placeholder} />
-          <Text style={styles.modalTitle}>{t('license.licenseExtension')}</Text>
+          <Text style={styles.modalTitle} weight="medium">
+            {t('license.licenseExtension')}
+          </Text>
           <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
             <X size={24} color="#374151" />
           </TouchableOpacity>
@@ -245,7 +255,6 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
     color: '#111827',
   },
   closeButton: {
@@ -260,14 +269,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: '700',
     color: '#111827',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
     color: '#6B7280',
-    lineHeight: 24,
   },
   durationList: {
     marginBottom: 24,
@@ -292,7 +299,6 @@ const styles = StyleSheet.create({
   },
   durationTitle: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#111827',
     marginBottom: 4,
   },
@@ -326,7 +332,6 @@ const styles = StyleSheet.create({
   },
   extensionInfoTitle: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#374151',
     marginBottom: 12,
   },
@@ -350,7 +355,6 @@ const styles = StyleSheet.create({
   generateButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
   },
   challengeSection: {
     marginBottom: 24,
@@ -365,6 +369,5 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
   },
 });
