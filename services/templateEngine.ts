@@ -474,9 +474,9 @@ export class TemplateEngine {
       body {
         font-family: 'Courier New', monospace;
         margin: 0;
-        padding: 20px;
-        font-size: 14px;
-        line-height: 1.4;
+        padding: 0px;
+        font-size: 36px;
+        line-height: 1.5;
         background: white;
         color: #000;
         width: 100%;
@@ -553,13 +553,13 @@ export class TemplateEngine {
         border-radius: 4px;
       }
       .shop-name {
-        font-size: 24px;
+        font-size: 48px;
         font-weight: bold;
         margin-bottom: 8px;
         word-wrap: break-word;
       }
       .shop-address, .shop-phone {
-        font-size: 14px;
+        font-size: 36px;
         margin-bottom: 4px;
         word-wrap: break-word;
       }
@@ -569,7 +569,7 @@ export class TemplateEngine {
       }
       .receipt-info {
         margin-bottom: 15px;
-        font-size: 14px;
+        font-size: 36px;
       }
       
       /* Responsive adjustments for thermal printing */
@@ -585,7 +585,7 @@ export class TemplateEngine {
         display: flex;
         justify-content: space-between;
         margin-bottom: 4px;
-        font-size: 14px;
+        font-size: 36px;
       }
       .items {
         margin-bottom: 20px;
@@ -598,18 +598,18 @@ export class TemplateEngine {
       .item-name {
         font-weight: bold;
         margin-bottom: 4px;
-        font-size: 16px;
+        font-size: 40px;
         word-wrap: break-word;
       }
       .item-details {
         display: flex;
         justify-content: space-between;
-        font-size: 14px;
+        font-size: 36px;
         align-items: center;
       }
       .item-details.discount {
         color: #dc3545;
-        font-size: 13px;
+        font-size: 32px;
         margin-top: 2px;
       }
       .total {
@@ -621,12 +621,12 @@ export class TemplateEngine {
         display: flex;
         justify-content: space-between;
         font-weight: bold;
-        font-size: 20px;
+        font-size: 48px;
         margin-bottom: 8px;
       }
       .footer {
         text-align: center;
-        font-size: 12px;
+        font-size: 32px;
         border-top: 1px dashed #000;
         padding-top: 15px;
         margin-top: 25px;
@@ -728,7 +728,7 @@ export class TemplateEngine {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         margin: 0;
         padding: 20px;
-        font-size: 14px;
+        font-size: 36px;
         line-height: 1.6;
         background: white;
         color: #333;
@@ -808,7 +808,7 @@ export class TemplateEngine {
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       }
       .shop-name {
-        font-size: 24px;
+        font-size: 48px;
         font-weight: 700;
         margin: 0 0 10px 0;
         color: #212529;
@@ -816,7 +816,7 @@ export class TemplateEngine {
       .shop-address, .shop-phone {
         margin: 5px 0;
         color: #6c757d;
-        font-size: 13px;
+        font-size: 36px;
       }
       
       /* Responsive adjustments for thermal printing */
@@ -969,7 +969,7 @@ export class TemplateEngine {
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
         margin: 0;
         padding: 15px;
-        font-size: 13px;
+        font-size: 34px;
         line-height: 1.4;
         background: white;
         color: #333;
@@ -1169,7 +1169,7 @@ export class TemplateEngine {
         font-family: 'Georgia', 'Times New Roman', serif;
         margin: 0;
         padding: 25px;
-        font-size: 14px;
+        font-size: 36px;
         line-height: 1.6;
         background: white;
         color: #2c3e50;

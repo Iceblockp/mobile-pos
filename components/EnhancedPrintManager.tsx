@@ -199,8 +199,8 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
               font-family: 'Courier New', monospace; 
               margin: 0; 
               padding: 20px; 
-              font-size: 14px; 
-              line-height: 1.4;
+              font-size: 36px; 
+              line-height: 1.5;
               background: white;
               color: #000;
               width: 100%;
@@ -250,18 +250,18 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
               padding-bottom: 15px; 
             }
             .store-name { 
-              font-size: 24px; 
+              font-size: 48px; 
               font-weight: bold; 
               margin-bottom: 8px; 
               word-wrap: break-word;
             }
             .store-info {
-              font-size: 14px;
+              font-size: 36px;
               margin-bottom: 4px;
               word-wrap: break-word;
             }
             .receipt-info {
-              font-size: 14px;
+              font-size: 36px;
               margin-bottom: 15px;
             }
             .receipt-info div {
@@ -278,13 +278,13 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
             .item-name { 
               font-weight: bold; 
               margin-bottom: 4px; 
-              font-size: 16px;
+              font-size: 40px;
               word-wrap: break-word;
             }
             .item-details { 
               display: flex; 
               justify-content: space-between; 
-              font-size: 14px; 
+              font-size: 36px; 
               align-items: center;
             }
             .item-qty-price {
@@ -296,7 +296,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
             }
             .discount-line {
               color: #dc3545;
-              font-size: 13px;
+              font-size: 32px;
               margin-top: 2px;
             }
             .total-section {
@@ -308,7 +308,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
               display: flex; 
               justify-content: space-between; 
               font-weight: bold; 
-              font-size: 20px; 
+              font-size: 48px; 
               margin-bottom: 8px;
             }
             .note-section {
@@ -317,19 +317,19 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
               background: #f5f5f5;
               border: 1px solid #ddd;
               border-radius: 4px;
-              font-size: 14px;
+              font-size: 36px;
             }
             .footer {
               text-align: center;
               margin-top: 25px;
-              font-size: 12px;
+              font-size: 32px;
               border-top: 1px dashed #000;
               padding-top: 15px;
             }
             .thank-you {
               font-weight: bold;
               margin-bottom: 8px;
-              font-size: 16px;
+              font-size: 40px;
             }
             
             /* Responsive design for different screen sizes */

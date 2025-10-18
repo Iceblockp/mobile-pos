@@ -1571,9 +1571,6 @@ export class DatabaseService {
       const saleId = generateUUID();
       const createdAt = formatTimestampForDatabase(sale.created_at);
 
-      console.log('sale d', sale.created_at);
-      console.log('first', createdAt);
-
       await this.db.runAsync(
         'INSERT INTO sales (id, total, payment_method, note, customer_id, created_at) VALUES (?, ?, ?, ?, ?, ?)',
         [
