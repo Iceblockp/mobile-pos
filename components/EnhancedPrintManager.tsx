@@ -172,7 +172,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
     }
   };
 
-  // Fallback receipt generation (original method)
+  // Responsive receipt generation - adapts to any paper size
   const generateFallbackReceipt = () => {
     const { saleId, items, total, paymentMethod, note, date } = receiptData;
 
@@ -181,51 +181,245 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
       <html>
         <head>
           <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Receipt #${saleId}</title>
           <style>
-            body { font-family: 'Courier New', monospace; margin: 0; padding: 20px; font-size: 14px; }
-            .receipt { max-width: 300px; margin: 0 auto; }
-            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-            .store-name { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
-            .item { margin-bottom: 8px; border-bottom: 1px dashed #ccc; padding-bottom: 5px; }
-            .item-name { font-weight: bold; margin-bottom: 2px; }
-            .item-details { display: flex; justify-content: space-between; font-size: 12px; }
-            .total-line { display: flex; justify-content: space-between; font-weight: bold; font-size: 18px; }
+            @page {
+              margin: 0.5in;
+              size: A4;
+            }
+            * {
+              box-sizing: border-box;
+            }
+            html {
+              width: 100%;
+              height: 100%;
+            }
+            body { 
+              font-family: 'Courier New', monospace; 
+              margin: 0; 
+              padding: 20px; 
+              font-size: 14px; 
+              line-height: 1.4;
+              background: white;
+              color: #000;
+              width: 100%;
+              min-height: 100vh;
+            }
+            .receipt { 
+              width: 100%;
+              min-width: 100%;
+              margin: 0;
+              padding: 0;
+              background: white;
+              display: block;
+            }
+            
+            /* Force content to expand using table layout */
+            .full-width-table {
+              width: 100%;
+              table-layout: fixed;
+              border-collapse: collapse;
+              min-width: 100%;
+            }
+            .full-width-cell {
+              width: 100%;
+              padding: 0;
+            }
+            
+            /* Force width with invisible spacer */
+            .width-spacer {
+              width: 100%;
+              height: 1px;
+              background: transparent;
+              border: none;
+              margin: 0;
+              padding: 0;
+              display: block;
+            }
+            
+            /* Ensure all content uses full width */
+            .header, .receipt-info, .items-section, .total-section, .footer {
+              width: 100%;
+              display: block;
+            }
+            .header { 
+              text-align: center; 
+              margin-bottom: 20px; 
+              border-bottom: 2px solid #000; 
+              padding-bottom: 15px; 
+            }
+            .store-name { 
+              font-size: 24px; 
+              font-weight: bold; 
+              margin-bottom: 8px; 
+              word-wrap: break-word;
+            }
+            .store-info {
+              font-size: 14px;
+              margin-bottom: 4px;
+              word-wrap: break-word;
+            }
+            .receipt-info {
+              font-size: 14px;
+              margin-bottom: 15px;
+            }
+            .receipt-info div {
+              margin-bottom: 4px;
+            }
+            .items-section {
+              margin: 20px 0;
+            }
+            .item { 
+              margin-bottom: 12px; 
+              border-bottom: 1px dashed #ccc; 
+              padding-bottom: 8px; 
+            }
+            .item-name { 
+              font-weight: bold; 
+              margin-bottom: 4px; 
+              font-size: 16px;
+              word-wrap: break-word;
+            }
+            .item-details { 
+              display: flex; 
+              justify-content: space-between; 
+              font-size: 14px; 
+              align-items: center;
+            }
+            .item-qty-price {
+              flex: 1;
+            }
+            .item-total {
+              text-align: right;
+              font-weight: bold;
+            }
+            .discount-line {
+              color: #dc3545;
+              font-size: 13px;
+              margin-top: 2px;
+            }
+            .total-section {
+              border-top: 2px solid #000;
+              padding-top: 15px;
+              margin-top: 20px;
+            }
+            .total-line { 
+              display: flex; 
+              justify-content: space-between; 
+              font-weight: bold; 
+              font-size: 20px; 
+              margin-bottom: 8px;
+            }
+            .note-section {
+              margin: 15px 0;
+              padding: 12px;
+              background: #f5f5f5;
+              border: 1px solid #ddd;
+              border-radius: 4px;
+              font-size: 14px;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 25px;
+              font-size: 12px;
+              border-top: 1px dashed #000;
+              padding-top: 15px;
+            }
+            .thank-you {
+              font-weight: bold;
+              margin-bottom: 8px;
+              font-size: 16px;
+            }
+            
+            /* Responsive design for different screen sizes */
+            @media screen and (max-width: 480px) {
+              body { padding: 15px; font-size: 13px; }
+              .receipt { max-width: 100%; }
+              .store-name { font-size: 20px; }
+              .item-name { font-size: 14px; }
+              .total-line { font-size: 18px; }
+            }
+            
+            /* Thermal printer optimization (when printing to small paper) */
+            @media print and (max-width: 3.5in) {
+              @page { margin: 0.1in; }
+              body { padding: 8px; font-size: 11px; }
+              .receipt { max-width: 100%; }
+              .store-name { font-size: 14px; }
+              .store-info { font-size: 10px; }
+              .receipt-info { font-size: 10px; }
+              .item-name { font-size: 12px; }
+              .item-details { font-size: 10px; }
+              .total-line { font-size: 14px; }
+              .footer { font-size: 9px; }
+              .header { margin-bottom: 10px; padding-bottom: 8px; }
+              .items-section { margin: 10px 0; }
+              .item { margin-bottom: 6px; padding-bottom: 4px; }
+              .total-section { padding-top: 8px; margin-top: 10px; }
+              .note-section { margin: 8px 0; padding: 6px; font-size: 10px; }
+              .footer { margin-top: 12px; padding-top: 8px; }
+            }
+            
+            /* Standard printer optimization */
+            @media print and (min-width: 3.5in) {
+              body { padding: 15px; }
+              .receipt { max-width: 350px; }
+            }
           </style>
         </head>
         <body>
-          <div class="receipt">
+          <div class="width-spacer"></div>
+          <table class="full-width-table">
+            <tr>
+              <td class="full-width-cell">
+                <div class="receipt">
+                  <div class="width-spacer"></div>
             <div class="header">
               <div class="store-name">${
                 shopSettings?.shopName || t('printing.mobilePOS')
               }</div>
               ${
                 shopSettings?.address
-                  ? `<div>${shopSettings.address}</div>`
+                  ? `<div class="store-info">${shopSettings.address}</div>`
                   : ''
               }
-              ${shopSettings?.phone ? `<div>${shopSettings.phone}</div>` : ''}
+              ${
+                shopSettings?.phone
+                  ? `<div class="store-info">${shopSettings.phone}</div>`
+                  : ''
+              }
             </div>
-            <div><strong>Receipt #:</strong> ${saleId}</div>
-            <div><strong>Date:</strong> ${formatDate(date)}</div>
-            <div><strong>Payment:</strong> ${paymentMethod.toUpperCase()}</div>
-            <div style="margin: 15px 0;">
+            
+            <div class="receipt-info">
+              <div><strong>${t(
+                'printing.receiptNumber'
+              )}:</strong> ${saleId}</div>
+              <div><strong>${t('common.date')}:</strong> ${formatDate(
+      date
+    )}</div>
+              <div><strong>${t(
+                'printing.paymentMethod'
+              )}:</strong> ${paymentMethod.toUpperCase()}</div>
+            </div>
+            
+            <div class="items-section">
               ${items
                 .map(
                   (item) => `
                 <div class="item">
                   <div class="item-name">${item.product.name}</div>
                   <div class="item-details">
-                    <span>${item.quantity} x ${formatMMK(
+                    <span class="item-qty-price">${item.quantity} x ${formatMMK(
                     item.product.price
                   )}</span>
-                    <span>${formatMMK(item.subtotal)}</span>
+                    <span class="item-total">${formatMMK(item.subtotal)}</span>
                   </div>
                   ${
                     item.discount > 0
                       ? `
-                    <div class="item-details" style="color: #dc3545;">
-                      <span>Discount</span>
+                    <div class="item-details discount-line">
+                      <span>${t('sales.discount')}</span>
                       <span>-${formatMMK(item.discount)}</span>
                     </div>
                   `
@@ -236,21 +430,38 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
                 )
                 .join('')}
             </div>
-            <div class="total-line">
-              <span>TOTAL</span>
-              <span>${formatMMK(total)}</span>
+            
+            <div class="total-section">
+              <div class="total-line">
+                <span>${t('common.total').toUpperCase()}</span>
+                <span>${formatMMK(total)}</span>
+              </div>
             </div>
+            
             ${
               note
-                ? `<div style="margin: 10px 0; padding: 8px; background: #f5f5f5;"><strong>Note:</strong> ${note}</div>`
+                ? `<div class="note-section"><strong>${t(
+                    'sales.saleNote'
+                  )}:</strong> ${note}</div>`
                 : ''
             }
-            <div style="text-align: center; margin-top: 20px; font-size: 12px;">
-              ${shopSettings?.thankYouMessage || t('printing.thankYou')}
-              <br>
-              ${shopSettings?.receiptFooter || ''}
-            </div>
-          </div>
+            
+            <div class="footer">
+              <div class="thank-you">${
+                shopSettings?.thankYouMessage || t('printing.thankYou')
+              }</div>
+              ${
+                shopSettings?.receiptFooter
+                  ? `<div>${shopSettings.receiptFooter}</div>`
+                  : ''
+              }
+              <div style="margin-top: 6px; font-size: 9px;">${t(
+                'printing.generatedBy'
+              )}</div>
+                </div>
+              </td>
+            </tr>
+          </table>
         </body>
       </html>
     `;
@@ -261,10 +472,18 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
     try {
       const htmlContent = await generatePDFReceipt();
 
-      // Generate PDF
+      // Generate PDF with responsive layout
       const { uri } = await Print.printToFileAsync({
         html: htmlContent,
         base64: false,
+        // width: 612, // 8.5 inches in points (8.5 * 72)
+        // height: 792, // 11 inches in points (11 * 72) - standard letter size
+        // margins: {
+        //   left: 36, // 0.5 inch
+        //   right: 36, // 0.5 inch
+        //   top: 36, // 0.5 inch
+        //   bottom: 36, // 0.5 inch
+        // },
       });
 
       // Open print dialog
@@ -290,6 +509,14 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
       const { uri } = await Print.printToFileAsync({
         html: htmlContent,
         base64: false,
+        // width: 612, // 8.5 inches in points (8.5 * 72)
+        // height: 792, // 11 inches in points (11 * 72) - standard letter size
+        // margins: {
+        //   left: 36, // 0.5 inch
+        //   right: 36, // 0.5 inch
+        //   top: 36, // 0.5 inch
+        //   bottom: 36, // 0.5 inch
+        // },
       });
 
       if (await Sharing.isAvailableAsync()) {

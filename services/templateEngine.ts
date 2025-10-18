@@ -402,56 +402,75 @@ export class TemplateEngine {
   // Template HTML definitions
   private getClassicTemplate(): string {
     return `
-      <div class="receipt">
-        <div class="header">
-          <img src="{{logoSrc}}" class="logo" style="display: {{showLogo}}" />
-          <div class="shop-name">{{shopName}}</div>
-          <div class="shop-address">{{address}}</div>
-          <div class="shop-phone">{{phone}}</div>
-        </div>
-        
-        <div class="divider"></div>
-        
-        <div class="receipt-info">
-          <div class="info-line">
-            <span>Receipt #:</span>
-            <span>{{saleId}}</span>
-          </div>
-          <div class="info-line">
-            <span>Date:</span>
-            <span>{{date}}</span>
-          </div>
-          <div class="info-line">
-            <span>Payment:</span>
-            <span>{{paymentMethod}}</span>
-          </div>
-        </div>
-        
-        <div class="divider"></div>
-        
-        <div class="items">
-          {{items}}
-        </div>
-        
-        <div class="divider"></div>
-        
-        <div class="total">
-          <div class="total-line">
-            <span>TOTAL</span>
-            <span>{{total}}</span>
-          </div>
-        </div>
-        
-        <div class="footer">
-          <div class="thank-you">{{thankYouMessage}}</div>
-          <div class="footer-message">{{receiptFooter}}</div>
-        </div>
-      </div>
+      <div class="width-spacer"></div>
+      <table class="full-width-table">
+        <tr>
+          <td class="full-width-cell">
+            <div class="receipt">
+              <div class="width-spacer"></div>
+              <div class="header">
+                <img src="{{logoSrc}}" class="logo" style="display: {{showLogo}}" />
+                <div class="shop-name">{{shopName}}</div>
+                <div class="shop-address">{{address}}</div>
+                <div class="shop-phone">{{phone}}</div>
+              </div>
+              
+              <div class="divider"></div>
+              
+              <div class="receipt-info">
+                <div class="info-line">
+                  <span>Receipt #:</span>
+                  <span>{{saleId}}</span>
+                </div>
+                <div class="info-line">
+                  <span>Date:</span>
+                  <span>{{date}}</span>
+                </div>
+                <div class="info-line">
+                  <span>Payment:</span>
+                  <span>{{paymentMethod}}</span>
+                </div>
+              </div>
+              
+              <div class="divider"></div>
+              
+              <div class="items">
+                {{items}}
+              </div>
+              
+              <div class="divider"></div>
+              
+              <div class="total">
+                <div class="total-line">
+                  <span>TOTAL</span>
+                  <span>{{total}}</span>
+                </div>
+              </div>
+              
+              <div class="footer">
+                <div class="thank-you">{{thankYouMessage}}</div>
+                <div class="footer-message">{{receiptFooter}}</div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </table>
     `;
   }
 
   private getClassicStyles(): string {
     return `
+      @page {
+        margin: 0.5in;
+        size: A4;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        width: 100%;
+        height: 100%;
+      }
       body {
         font-family: 'Courier New', monospace;
         margin: 0;
@@ -459,21 +478,71 @@ export class TemplateEngine {
         font-size: 14px;
         line-height: 1.4;
         background: white;
+        color: #000;
+        width: 100%;
+        min-height: 100vh;
       }
       .receipt {
-        max-width: 300px;
-        margin: 0 auto;
+        width: 100%;
+        min-width: 100%;
+        margin: 0;
+        padding: 0;
         background: white;
+        display: block;
       }
       
-      /* Print-specific styles */
-      @media print {
-        body { padding: 10px; }
-        .receipt { max-width: 280px; }
+      /* Force content to expand using table layout */
+      .full-width-table {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: collapse;
+        min-width: 100%;
+      }
+      .full-width-cell {
+        width: 100%;
+        padding: 0;
+      }
+      
+      /* Force width with invisible spacer */
+      .width-spacer {
+        width: 100%;
+        height: 1px;
+        background: transparent;
+        border: none;
+        margin: 0;
+        padding: 0;
+        display: block;
+      }
+      
+      /* Ensure all content uses full width */
+      .header, .receipt-info, .items, .total, .footer {
+        width: 100%;
+        display: block;
+      }
+      
+      /* Responsive design for different screen sizes */
+      @media screen and (max-width: 480px) {
+        body { padding: 15px; font-size: 13px; }
+        .receipt { max-width: 100%; }
+      }
+      
+      /* Thermal printer optimization (when printing to small paper) */
+      @media print and (max-width: 3.5in) {
+        @page { margin: 0.1in; }
+        body { padding: 8px; font-size: 11px; }
+        .receipt { max-width: 100%; }
+      }
+      
+      /* Standard printer optimization */
+      @media print and (min-width: 3.5in) {
+        body { padding: 15px; }
+        .receipt { max-width: 350px; }
       }
       .header {
         text-align: center;
-        margin-bottom: 15px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #000;
+        padding-bottom: 15px;
       }
       .logo {
         display: block;
@@ -484,56 +553,96 @@ export class TemplateEngine {
         border-radius: 4px;
       }
       .shop-name {
-        font-size: 18px;
+        font-size: 24px;
         font-weight: bold;
-        margin-bottom: 5px;
+        margin-bottom: 8px;
+        word-wrap: break-word;
       }
       .shop-address, .shop-phone {
-        font-size: 12px;
-        margin-bottom: 2px;
+        font-size: 14px;
+        margin-bottom: 4px;
+        word-wrap: break-word;
       }
       .divider {
         border-top: 1px dashed #000;
-        margin: 10px 0;
+        margin: 15px 0;
       }
       .receipt-info {
-        margin-bottom: 10px;
+        margin-bottom: 15px;
+        font-size: 14px;
+      }
+      
+      /* Responsive adjustments for thermal printing */
+      @media print and (max-width: 3.5in) {
+        .header { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px dashed #000; }
+        .logo { max-width: 50px; max-height: 50px; margin-bottom: 6px; }
+        .shop-name { font-size: 14px; margin-bottom: 4px; }
+        .shop-address, .shop-phone { font-size: 10px; margin-bottom: 2px; }
+        .divider { margin: 8px 0; }
+        .receipt-info { margin-bottom: 8px; font-size: 10px; }
       }
       .info-line {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 3px;
+        margin-bottom: 4px;
+        font-size: 14px;
       }
       .items {
-        margin-bottom: 10px;
+        margin-bottom: 20px;
       }
       .item {
-        margin-bottom: 8px;
+        margin-bottom: 12px;
+        border-bottom: 1px dashed #ccc;
+        padding-bottom: 8px;
       }
       .item-name {
         font-weight: bold;
-        margin-bottom: 2px;
+        margin-bottom: 4px;
+        font-size: 16px;
+        word-wrap: break-word;
       }
       .item-details {
         display: flex;
         justify-content: space-between;
-        font-size: 12px;
+        font-size: 14px;
+        align-items: center;
       }
       .item-details.discount {
-        color: #666;
+        color: #dc3545;
+        font-size: 13px;
+        margin-top: 2px;
       }
       .total {
         margin-bottom: 15px;
+        border-top: 2px solid #000;
+        padding-top: 15px;
       }
       .total-line {
         display: flex;
         justify-content: space-between;
         font-weight: bold;
-        font-size: 16px;
+        font-size: 20px;
+        margin-bottom: 8px;
       }
       .footer {
         text-align: center;
         font-size: 12px;
+        border-top: 1px dashed #000;
+        padding-top: 15px;
+        margin-top: 25px;
+      }
+      
+      /* Responsive adjustments for thermal printing */
+      @media print and (max-width: 3.5in) {
+        .info-line { margin-bottom: 2px; font-size: 10px; }
+        .items { margin-bottom: 10px; }
+        .item { margin-bottom: 6px; padding-bottom: 4px; }
+        .item-name { margin-bottom: 2px; font-size: 12px; }
+        .item-details { font-size: 10px; }
+        .item-details.discount { font-size: 9px; margin-top: 1px; }
+        .total { margin-bottom: 8px; border-top: 1px solid #000; padding-top: 8px; }
+        .total-line { font-size: 14px; margin-bottom: 4px; }
+        .footer { font-size: 9px; padding-top: 8px; margin-top: 12px; }
       }
       .thank-you {
         margin-bottom: 5px;
@@ -547,55 +656,74 @@ export class TemplateEngine {
 
   private getModernTemplate(): string {
     return `
-      <div class="receipt">
-        <div class="header">
-          <img src="{{logoSrc}}" class="logo" style="display: {{showLogo}}" />
-          <h1 class="shop-name">{{shopName}}</h1>
-          <p class="shop-address">{{address}}</p>
-          <p class="shop-phone">{{phone}}</p>
-        </div>
-        
-        <div class="receipt-info">
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="label">Receipt</span>
-              <span class="value">#{{saleId}}</span>
+      <div class="width-spacer"></div>
+      <table class="full-width-table">
+        <tr>
+          <td class="full-width-cell">
+            <div class="receipt">
+              <div class="width-spacer"></div>
+              <div class="header">
+                <img src="{{logoSrc}}" class="logo" style="display: {{showLogo}}" />
+                <h1 class="shop-name">{{shopName}}</h1>
+                <p class="shop-address">{{address}}</p>
+                <p class="shop-phone">{{phone}}</p>
+              </div>
+              
+              <div class="receipt-info">
+                <div class="info-grid">
+                  <div class="info-item">
+                    <span class="label">Receipt</span>
+                    <span class="value">#{{saleId}}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="label">Date</span>
+                    <span class="value">{{date}}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="label">Payment</span>
+                    <span class="value">{{paymentMethod}}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="items-section">
+                <h3>Items</h3>
+                <div class="items">
+                  {{items}}
+                </div>
+              </div>
+              
+              <div class="total-section">
+                <div class="total-line">
+                  <span class="total-label">TOTAL</span>
+                  <span class="total-amount">{{total}}</span>
+                </div>
+              </div>
+              
+              <div class="footer">
+                <p class="thank-you">{{thankYouMessage}}</p>
+                <p class="footer-message">{{receiptFooter}}</p>
+              </div>
             </div>
-            <div class="info-item">
-              <span class="label">Date</span>
-              <span class="value">{{date}}</span>
-            </div>
-            <div class="info-item">
-              <span class="label">Payment</span>
-              <span class="value">{{paymentMethod}}</span>
-            </div>
-          </div>
-        </div>
-        
-        <div class="items-section">
-          <h3>Items</h3>
-          <div class="items">
-            {{items}}
-          </div>
-        </div>
-        
-        <div class="total-section">
-          <div class="total-line">
-            <span class="total-label">TOTAL</span>
-            <span class="total-amount">{{total}}</span>
-          </div>
-        </div>
-        
-        <div class="footer">
-          <p class="thank-you">{{thankYouMessage}}</p>
-          <p class="footer-message">{{receiptFooter}}</p>
-        </div>
-      </div>
+          </td>
+        </tr>
+      </table>
     `;
   }
 
   private getModernStyles(): string {
     return `
+      @page {
+        margin: 0.5in;
+        size: A4;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        width: 100%;
+        height: 100%;
+      }
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         margin: 0;
@@ -604,19 +732,65 @@ export class TemplateEngine {
         line-height: 1.6;
         background: white;
         color: #333;
+        width: 100%;
+        min-height: 100vh;
       }
       .receipt {
-        max-width: 320px;
-        margin: 0 auto;
+        width: 100%;
+        min-width: 100%;
+        margin: 0;
         background: white;
         border-radius: 8px;
         overflow: hidden;
+        display: block;
       }
       
-      /* Print-specific styles */
-      @media print {
-        body { padding: 10px; }
-        .receipt { max-width: 300px; border-radius: 0; }
+      /* Force content to expand using table layout */
+      .full-width-table {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: collapse;
+        min-width: 100%;
+      }
+      .full-width-cell {
+        width: 100%;
+        padding: 0;
+      }
+      
+      /* Force width with invisible spacer */
+      .width-spacer {
+        width: 100%;
+        height: 1px;
+        background: transparent;
+        border: none;
+        margin: 0;
+        padding: 0;
+        display: block;
+      }
+      
+      /* Ensure all content uses full width */
+      .header, .receipt-info, .items-section, .total-section, .footer {
+        width: 100%;
+        display: block;
+      }
+      
+      /* Responsive design for different screen sizes */
+      @media screen and (max-width: 480px) {
+        body { padding: 15px; font-size: 13px; }
+        .receipt { max-width: 100%; }
+      }
+      
+      /* Thermal printer optimization (when printing to small paper) */
+      @media print and (max-width: 3.5in) {
+        @page { margin: 0.1in; }
+        body { padding: 8px; font-size: 11px; }
+        .receipt { max-width: 100%; border-radius: 0; }
+      }
+      
+      /* Standard printer optimization */
+      @media print and (min-width: 3.5in) {
+        body { padding: 15px; }
+        .receipt { max-width: 350px; border-radius: 0; }
       }
       .header {
         text-align: center;
@@ -643,6 +817,14 @@ export class TemplateEngine {
         margin: 5px 0;
         color: #6c757d;
         font-size: 13px;
+      }
+      
+      /* Responsive adjustments for thermal printing */
+      @media print and (max-width: 3.5in) {
+        .header { padding: 10px; }
+        .logo { max-width: 60px; max-height: 60px; margin-bottom: 8px; }
+        .shop-name { font-size: 16px; margin-bottom: 6px; }
+        .shop-address, .shop-phone { font-size: 10px; margin: 2px 0; }
       }
       .receipt-info {
         padding: 20px;
@@ -737,33 +919,52 @@ export class TemplateEngine {
 
   private getMinimalTemplate(): string {
     return `
-      <div class="receipt">
-        <div class="header">
-          <img src="{{logoSrc}}" class="logo" style="display: {{showLogo}}" />
-          <div class="shop-name">{{shopName}}</div>
-          <div class="contact">{{address}} • {{phone}}</div>
-        </div>
-        
-        <div class="meta">
-          #{{saleId}} • {{date}} • {{paymentMethod}}
-        </div>
-        
-        <div class="items">
-          {{items}}
-        </div>
-        
-        <div class="total">{{total}}</div>
-        
-        <div class="footer">
-          <div>{{thankYouMessage}}</div>
-          <div>{{receiptFooter}}</div>
-        </div>
-      </div>
+      <div class="width-spacer"></div>
+      <table class="full-width-table">
+        <tr>
+          <td class="full-width-cell">
+            <div class="receipt">
+              <div class="width-spacer"></div>
+              <div class="header">
+                <img src="{{logoSrc}}" class="logo" style="display: {{showLogo}}" />
+                <div class="shop-name">{{shopName}}</div>
+                <div class="contact">{{address}} • {{phone}}</div>
+              </div>
+              
+              <div class="meta">
+                #{{saleId}} • {{date}} • {{paymentMethod}}
+              </div>
+              
+              <div class="items">
+                {{items}}
+              </div>
+              
+              <div class="total">{{total}}</div>
+              
+              <div class="footer">
+                <div>{{thankYouMessage}}</div>
+                <div>{{receiptFooter}}</div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </table>
     `;
   }
 
   private getMinimalStyles(): string {
     return `
+      @page {
+        margin: 0.5in;
+        size: A4;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        width: 100%;
+        height: 100%;
+      }
       body {
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
         margin: 0;
@@ -772,16 +973,62 @@ export class TemplateEngine {
         line-height: 1.4;
         background: white;
         color: #333;
+        width: 100%;
+        min-height: 100vh;
       }
       .receipt {
-        max-width: 280px;
-        margin: 0 auto;
+        width: 100%;
+        min-width: 100%;
+        margin: 0;
+        display: block;
       }
       
-      /* Print-specific styles */
-      @media print {
-        body { padding: 8px; }
-        .receipt { max-width: 260px; }
+      /* Force content to expand using table layout */
+      .full-width-table {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: collapse;
+        min-width: 100%;
+      }
+      .full-width-cell {
+        width: 100%;
+        padding: 0;
+      }
+      
+      /* Force width with invisible spacer */
+      .width-spacer {
+        width: 100%;
+        height: 1px;
+        background: transparent;
+        border: none;
+        margin: 0;
+        padding: 0;
+        display: block;
+      }
+      
+      /* Ensure all content uses full width */
+      .header, .meta, .items, .total, .footer {
+        width: 100%;
+        display: block;
+      }
+      
+      /* Responsive design for different screen sizes */
+      @media screen and (max-width: 480px) {
+        body { padding: 12px; font-size: 12px; }
+        .receipt { max-width: 100%; }
+      }
+      
+      /* Thermal printer optimization (when printing to small paper) */
+      @media print and (max-width: 3.5in) {
+        @page { margin: 0.1in; }
+        body { padding: 6px; font-size: 10px; }
+        .receipt { max-width: 100%; }
+      }
+      
+      /* Standard printer optimization */
+      @media print and (min-width: 3.5in) {
+        body { padding: 12px; }
+        .receipt { max-width: 300px; }
       }
       .header {
         text-align: center;
@@ -856,49 +1103,68 @@ export class TemplateEngine {
 
   private getElegantTemplate(): string {
     return `
-      <div class="receipt">
-        <div class="header">
-          <img src="{{logoSrc}}" class="logo" style="display: {{showLogo}}" />
-          <div class="shop-name">{{shopName}}</div>
-          <div class="shop-details">
-            <div class="address">{{address}}</div>
-            <div class="phone">{{phone}}</div>
-          </div>
-        </div>
-        
-        <div class="receipt-details">
-          <table class="info-table">
-            <tr><td>Receipt Number</td><td>{{saleId}}</td></tr>
-            <tr><td>Date & Time</td><td>{{date}}</td></tr>
-            <tr><td>Payment Method</td><td>{{paymentMethod}}</td></tr>
-          </table>
-        </div>
-        
-        <div class="items-section">
-          <div class="section-title">Items Purchased</div>
-          <div class="items">
-            {{items}}
-          </div>
-        </div>
-        
-        <div class="total-section">
-          <div class="total-row">
-            <span class="total-label">Total Amount</span>
-            <span class="total-value">{{total}}</span>
-          </div>
-        </div>
-        
-        <div class="footer">
-          <div class="thank-you">{{thankYouMessage}}</div>
-          <div class="footer-note">{{receiptFooter}}</div>
-          <div class="signature">Thank you for choosing us</div>
-        </div>
-      </div>
+      <div class="width-spacer"></div>
+      <table class="full-width-table">
+        <tr>
+          <td class="full-width-cell">
+            <div class="receipt">
+              <div class="width-spacer"></div>
+              <div class="header">
+                <img src="{{logoSrc}}" class="logo" style="display: {{showLogo}}" />
+                <div class="shop-name">{{shopName}}</div>
+                <div class="shop-details">
+                  <div class="address">{{address}}</div>
+                  <div class="phone">{{phone}}</div>
+                </div>
+              </div>
+              
+              <div class="receipt-details">
+                <table class="info-table">
+                  <tr><td>Receipt Number</td><td>{{saleId}}</td></tr>
+                  <tr><td>Date & Time</td><td>{{date}}</td></tr>
+                  <tr><td>Payment Method</td><td>{{paymentMethod}}</td></tr>
+                </table>
+              </div>
+              
+              <div class="items-section">
+                <div class="section-title">Items Purchased</div>
+                <div class="items">
+                  {{items}}
+                </div>
+              </div>
+              
+              <div class="total-section">
+                <div class="total-row">
+                  <span class="total-label">Total Amount</span>
+                  <span class="total-value">{{total}}</span>
+                </div>
+              </div>
+              
+              <div class="footer">
+                <div class="thank-you">{{thankYouMessage}}</div>
+                <div class="footer-note">{{receiptFooter}}</div>
+                <div class="signature">Thank you for choosing us</div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </table>
     `;
   }
 
   private getElegantStyles(): string {
     return `
+      @page {
+        margin: 0.5in;
+        size: A4;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        width: 100%;
+        height: 100%;
+      }
       body {
         font-family: 'Georgia', 'Times New Roman', serif;
         margin: 0;
@@ -907,19 +1173,65 @@ export class TemplateEngine {
         line-height: 1.6;
         background: white;
         color: #2c3e50;
+        width: 100%;
+        min-height: 100vh;
       }
       .receipt {
-        max-width: 350px;
-        margin: 0 auto;
+        width: 100%;
+        min-width: 100%;
+        margin: 0;
         background: white;
         border: 2px solid #34495e;
         border-radius: 0;
+        display: block;
       }
       
-      /* Print-specific styles */
-      @media print {
-        body { padding: 15px; }
-        .receipt { max-width: 320px; }
+      /* Force content to expand using table layout */
+      .full-width-table {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: collapse;
+        min-width: 100%;
+      }
+      .full-width-cell {
+        width: 100%;
+        padding: 0;
+      }
+      
+      /* Force width with invisible spacer */
+      .width-spacer {
+        width: 100%;
+        height: 1px;
+        background: transparent;
+        border: none;
+        margin: 0;
+        padding: 0;
+        display: block;
+      }
+      
+      /* Ensure all content uses full width */
+      .header, .receipt-details, .items-section, .total-section, .footer {
+        width: 100%;
+        display: block;
+      }
+      
+      /* Responsive design for different screen sizes */
+      @media screen and (max-width: 480px) {
+        body { padding: 15px; font-size: 13px; }
+        .receipt { max-width: 100%; }
+      }
+      
+      /* Thermal printer optimization (when printing to small paper) */
+      @media print and (max-width: 3.5in) {
+        @page { margin: 0.1in; }
+        body { padding: 8px; font-size: 11px; }
+        .receipt { max-width: 100%; border-width: 1px; }
+      }
+      
+      /* Standard printer optimization */
+      @media print and (min-width: 3.5in) {
+        body { padding: 20px; }
+        .receipt { max-width: 380px; }
       }
       .header {
         text-align: center;
