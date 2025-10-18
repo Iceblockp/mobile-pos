@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { useRouter } from 'expo-router';
 import { Card } from '@/components/Card';
 import {
@@ -57,7 +58,9 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
         <View style={styles.customerInfo}>
           <View style={styles.nameRow}>
             <User size={18} color="#059669" />
-            <Text style={styles.customerName}>{customer.name}</Text>
+            <Text style={styles.customerName} weight="medium">
+              {customer.name}
+            </Text>
             {showNavigation && (
               <ChevronRight size={16} color="#9CA3AF" style={styles.chevron} />
             )}
@@ -117,19 +120,27 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
 
       <View style={styles.customerStats}>
         <View style={styles.statItem}>
-          <Text style={styles.statLabel}>{t('customers.totalSpent')}</Text>
-          <Text style={styles.statValue}>
+          <Text style={styles.statLabel} weight="medium">
+            {t('customers.totalSpent')}
+          </Text>
+          <Text style={styles.statValue} weight="medium">
             {formatMMK(customer.total_spent)}
           </Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statLabel}>{t('customers.visits')}</Text>
-          <Text style={styles.statValue}>{customer.visit_count}</Text>
+          <Text style={styles.statLabel} weight="medium">
+            {t('customers.visits')}
+          </Text>
+          <Text style={styles.statValue} weight="medium">
+            {customer.visit_count}
+          </Text>
         </View>
         {customer.total_spent > 0 && customer.visit_count > 0 && (
           <View style={styles.statItem}>
-            <Text style={styles.statLabel}>{t('customers.avgOrder')}</Text>
-            <Text style={styles.statValue}>
+            <Text style={styles.statLabel} weight="medium">
+              {t('customers.avgOrder')}
+            </Text>
+            <Text style={styles.statValue} weight="medium">
               {formatMMK(
                 Math.round(customer.total_spent / customer.visit_count)
               )}
@@ -176,7 +187,6 @@ const styles = StyleSheet.create({
   },
   customerName: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginLeft: 8,
   },
@@ -187,7 +197,6 @@ const styles = StyleSheet.create({
   },
   contactText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginLeft: 8,
     flex: 1,
@@ -213,13 +222,11 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     marginBottom: 4,
   },
   statValue: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
 });

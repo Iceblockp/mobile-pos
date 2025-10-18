@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   TouchableOpacity,
   ScrollView,
   SafeAreaView,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import {
   HelpCircle,
   X,
@@ -39,17 +39,23 @@ export default function DataManagementGuide({
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Download size={20} color="#3B82F6" />
-          <Text style={styles.sectionTitle}>{t('guide.exportOverview')}</Text>
+          <Text style={styles.sectionTitle} weight="medium">
+            {t('guide.exportOverview')}
+          </Text>
         </View>
         <Text style={styles.sectionText}>{t('guide.exportDescription')}</Text>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.stepTitle}>{t('guide.exportSteps')}</Text>
+        <Text style={styles.stepTitle} weight="medium">
+          {t('guide.exportSteps')}
+        </Text>
 
         <View style={styles.step}>
           <View style={styles.stepNumber}>
-            <Text style={styles.stepNumberText}>1</Text>
+            <Text style={styles.stepNumberText} weight="medium">
+              1
+            </Text>
           </View>
           <View style={styles.stepContent}>
             <Text style={styles.stepText}>{t('guide.exportStep1')}</Text>
@@ -58,7 +64,9 @@ export default function DataManagementGuide({
 
         <View style={styles.step}>
           <View style={styles.stepNumber}>
-            <Text style={styles.stepNumberText}>2</Text>
+            <Text style={styles.stepNumberText} weight="medium">
+              2
+            </Text>
           </View>
           <View style={styles.stepContent}>
             <Text style={styles.stepText}>{t('guide.exportStep2')}</Text>
@@ -67,7 +75,9 @@ export default function DataManagementGuide({
 
         <View style={styles.step}>
           <View style={styles.stepNumber}>
-            <Text style={styles.stepNumberText}>3</Text>
+            <Text style={styles.stepNumberText} weight="medium">
+              3
+            </Text>
           </View>
           <View style={styles.stepContent}>
             <Text style={styles.stepText}>{t('guide.exportStep3')}</Text>
@@ -76,7 +86,9 @@ export default function DataManagementGuide({
 
         <View style={styles.step}>
           <View style={styles.stepNumber}>
-            <Text style={styles.stepNumberText}>4</Text>
+            <Text style={styles.stepNumberText} weight="medium">
+              4
+            </Text>
           </View>
           <View style={styles.stepContent}>
             <Text style={styles.stepText}>{t('guide.exportStep4')}</Text>
@@ -87,7 +99,9 @@ export default function DataManagementGuide({
       <View style={styles.section}>
         <View style={styles.tipBox}>
           <CheckCircle size={16} color="#10B981" />
-          <Text style={styles.tipTitle}>{t('guide.exportTips')}</Text>
+          <Text style={styles.tipTitle} weight="medium">
+            {t('guide.exportTips')}
+          </Text>
         </View>
         <Text style={styles.tipText}>{t('guide.exportTip1')}</Text>
         <Text style={styles.tipText}>{t('guide.exportTip2')}</Text>
@@ -101,17 +115,23 @@ export default function DataManagementGuide({
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Upload size={20} color="#3B82F6" />
-          <Text style={styles.sectionTitle}>{t('guide.importOverview')}</Text>
+          <Text style={styles.sectionTitle} weight="medium">
+            {t('guide.importOverview')}
+          </Text>
         </View>
         <Text style={styles.sectionText}>{t('guide.importDescription')}</Text>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.stepTitle}>{t('guide.importSteps')}</Text>
+        <Text style={styles.stepTitle} weight="medium">
+          {t('guide.importSteps')}
+        </Text>
 
         <View style={styles.step}>
           <View style={styles.stepNumber}>
-            <Text style={styles.stepNumberText}>1</Text>
+            <Text style={styles.stepNumberText} weight="medium">
+              1
+            </Text>
           </View>
           <View style={styles.stepContent}>
             <Text style={styles.stepText}>{t('guide.importStep1')}</Text>
@@ -120,7 +140,9 @@ export default function DataManagementGuide({
 
         <View style={styles.step}>
           <View style={styles.stepNumber}>
-            <Text style={styles.stepNumberText}>2</Text>
+            <Text style={styles.stepNumberText} weight="medium">
+              2
+            </Text>
           </View>
           <View style={styles.stepContent}>
             <Text style={styles.stepText}>{t('guide.importStep2')}</Text>
@@ -129,7 +151,9 @@ export default function DataManagementGuide({
 
         <View style={styles.step}>
           <View style={styles.stepNumber}>
-            <Text style={styles.stepNumberText}>3</Text>
+            <Text style={styles.stepNumberText} weight="medium">
+              3
+            </Text>
           </View>
           <View style={styles.stepContent}>
             <Text style={styles.stepText}>{t('guide.importStep3')}</Text>
@@ -138,7 +162,9 @@ export default function DataManagementGuide({
 
         <View style={styles.step}>
           <View style={styles.stepNumber}>
-            <Text style={styles.stepNumberText}>4</Text>
+            <Text style={styles.stepNumberText} weight="medium">
+              4
+            </Text>
           </View>
           <View style={styles.stepContent}>
             <Text style={styles.stepText}>{t('guide.importStep4')}</Text>
@@ -147,7 +173,9 @@ export default function DataManagementGuide({
 
         <View style={styles.step}>
           <View style={styles.stepNumber}>
-            <Text style={styles.stepNumberText}>5</Text>
+            <Text style={styles.stepNumberText} weight="medium">
+              5
+            </Text>
           </View>
           <View style={styles.stepContent}>
             <Text style={styles.stepText}>{t('guide.importStep5')}</Text>
@@ -158,7 +186,9 @@ export default function DataManagementGuide({
       <View style={styles.section}>
         <View style={styles.warningBox}>
           <AlertTriangle size={16} color="#EF4444" />
-          <Text style={styles.warningTitle}>{t('guide.importWarnings')}</Text>
+          <Text style={styles.warningTitle} weight="medium">
+            {t('guide.importWarnings')}
+          </Text>
         </View>
         <Text style={styles.warningText}>{t('guide.importWarning1')}</Text>
         <Text style={styles.warningText}>{t('guide.importWarning2')}</Text>
@@ -168,7 +198,9 @@ export default function DataManagementGuide({
       <View style={styles.section}>
         <View style={styles.tipBox}>
           <CheckCircle size={16} color="#10B981" />
-          <Text style={styles.tipTitle}>{t('guide.importTips')}</Text>
+          <Text style={styles.tipTitle} weight="medium">
+            {t('guide.importTips')}
+          </Text>
         </View>
         <Text style={styles.tipText}>{t('guide.importTip1')}</Text>
         <Text style={styles.tipText}>{t('guide.importTip2')}</Text>
@@ -188,7 +220,9 @@ export default function DataManagementGuide({
         <SafeAreaView style={styles.modalContainer}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>{t('guide.dataManagementGuide')}</Text>
+            <Text style={styles.title} weight="medium">
+              {t('guide.dataManagementGuide')}
+            </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <X size={24} color="#6B7280" />
             </TouchableOpacity>
@@ -209,6 +243,7 @@ export default function DataManagementGuide({
                   styles.tabText,
                   activeTab === 'export' && styles.activeTabText,
                 ]}
+                weight="medium"
               >
                 {t('guide.exportTab')}
               </Text>
@@ -227,6 +262,7 @@ export default function DataManagementGuide({
                   styles.tabText,
                   activeTab === 'import' && styles.activeTabText,
                 ]}
+                weight="medium"
               >
                 {t('guide.importTab')}
               </Text>
@@ -239,7 +275,9 @@ export default function DataManagementGuide({
           {/* Footer */}
           <View style={styles.footer}>
             <TouchableOpacity style={styles.getStartedButton} onPress={onClose}>
-              <Text style={styles.getStartedText}>{t('guide.getStarted')}</Text>
+              <Text style={styles.getStartedText} weight="medium">
+                {t('guide.getStarted')}
+              </Text>
               <ArrowRight size={16} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
@@ -274,7 +312,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   closeButton: {
@@ -302,7 +339,6 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   activeTabText: {
@@ -323,18 +359,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   sectionText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
-    lineHeight: 20,
   },
   stepTitle: {
     fontSize: 15,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 12,
   },
@@ -355,7 +387,6 @@ const styles = StyleSheet.create({
   },
   stepNumberText: {
     fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
   stepContent: {
@@ -363,9 +394,7 @@ const styles = StyleSheet.create({
   },
   stepText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#374151',
-    lineHeight: 20,
   },
   tipBox: {
     flexDirection: 'row',
@@ -378,12 +407,10 @@ const styles = StyleSheet.create({
   },
   tipTitle: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#065F46',
   },
   tipText: {
     fontSize: 13,
-    fontFamily: 'Inter-Regular',
     color: '#047857',
     marginBottom: 4,
     paddingLeft: 8,
@@ -399,12 +426,10 @@ const styles = StyleSheet.create({
   },
   warningTitle: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#7F1D1D',
   },
   warningText: {
     fontSize: 13,
-    fontFamily: 'Inter-Regular',
     color: '#B91C1C',
     marginBottom: 4,
     paddingLeft: 8,
@@ -426,7 +451,6 @@ const styles = StyleSheet.create({
   },
   getStartedText: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
 });

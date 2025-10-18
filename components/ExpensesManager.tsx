@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   SafeAreaView,
@@ -12,6 +11,7 @@ import {
   RefreshControl,
   FlatList,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useExpenseCategories, useExpenseMutations } from '@/hooks/useQueries';
@@ -370,7 +370,7 @@ export default function Expenses() {
     <Card key={item.id} style={styles.expenseCard}>
       <View style={styles.expenseHeader}>
         <View>
-          <Text style={styles.expenseCategory}>
+          <Text style={styles.expenseCategory} weight="medium">
             {
               //@ts-ignore
               item.category_name
@@ -378,7 +378,9 @@ export default function Expenses() {
           </Text>
           <Text style={styles.expenseDate}>{formatDate(item.date)}</Text>
         </View>
-        <Text style={styles.expenseAmount}>{formatPrice(item.amount)}</Text>
+        <Text style={styles.expenseAmount} weight="medium">
+          {formatPrice(item.amount)}
+        </Text>
       </View>
 
       {item.description ? (
@@ -444,6 +446,7 @@ export default function Expenses() {
                 styles.dateFilterText,
                 dateFilter === item.key && styles.dateFilterTextActive,
               ]}
+              weight="medium"
             >
               {item.label}
             </Text>
@@ -460,7 +463,7 @@ export default function Expenses() {
             onPress={() => setShowDatePicker(true)}
           >
             <Calendar size={16} color="#6B7280" />
-            <Text style={styles.customDateText}>
+            <Text style={styles.customDateText} weight="medium">
               {selectedDate.toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'short',
@@ -479,7 +482,7 @@ export default function Expenses() {
             onPress={() => setShowMonthYearPicker(true)}
           >
             <Calendar size={16} color="#6B7280" />
-            <Text style={styles.customDateText}>
+            <Text style={styles.customDateText} weight="medium">
               {new Date(selectedYear, selectedMonth).toLocaleDateString(
                 'en-US',
                 {
@@ -494,7 +497,7 @@ export default function Expenses() {
 
       {/* Summary */}
       <View style={styles.summaryContainer}>
-        <Text style={styles.summaryText}>
+        <Text style={styles.summaryText} weight="medium">
           {expenses.length} {t('expenses.title').toLowerCase()} •{' '}
           {t('common.total')}:{' '}
           {formatPrice(
@@ -508,7 +511,9 @@ export default function Expenses() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t('expenses.title')}</Text>
+        <Text style={styles.title} weight="bold">
+          {t('expenses.title')}
+        </Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={styles.iconButton}
@@ -549,7 +554,9 @@ export default function Expenses() {
           isFetchingNextPage ? (
             <View style={styles.loadMoreContainer}>
               <LoadingSpinner />
-              <Text style={styles.loadMoreText}>{t('common.loadingMore')}</Text>
+              <Text style={styles.loadMoreText} weight="medium">
+                {t('common.loadingMore')}
+              </Text>
             </View>
           ) : (
             <View style={{ height: 300 }}></View>
@@ -577,7 +584,7 @@ export default function Expenses() {
       >
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
+            <Text style={styles.modalTitle} weight="bold">
               {editingExpense
                 ? t('expenses.editExpense')
                 : t('expenses.addExpense')}
@@ -588,7 +595,9 @@ export default function Expenses() {
                 resetForm();
               }}
             >
-              <Text style={styles.modalClose}>{t('common.cancel')}</Text>
+              <Text style={styles.modalClose} weight="medium">
+                {t('common.cancel')}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -598,7 +607,9 @@ export default function Expenses() {
           >
             <Card style={styles.categoryFormCard}>
               <View style={styles.formGroup}>
-                <Text style={styles.label}>{t('common.category')}</Text>
+                <Text style={styles.label} weight="medium">
+                  {t('common.category')}
+                </Text>
                 <TouchableOpacity
                   style={styles.select}
                   onPress={() => setShowCategorySelector(!showCategorySelector)}
@@ -626,7 +637,7 @@ export default function Expenses() {
                     {categories.length === 0 ? (
                       <View style={styles.emptyCategoryState}>
                         <Tag size={32} color="#9CA3AF" />
-                        <Text style={styles.emptyCategoryText}>
+                        <Text style={styles.emptyCategoryText} weight="medium">
                           {t('expenses.noCategoriesFound')}
                         </Text>
                         <Text style={styles.emptyCategorySubtext}>
@@ -640,7 +651,10 @@ export default function Expenses() {
                           }}
                         >
                           <Plus size={14} color="#FFFFFF" />
-                          <Text style={styles.createCategoryButtonText}>
+                          <Text
+                            style={styles.createCategoryButtonText}
+                            weight="medium"
+                          >
                             {t('expenses.createCategory')}
                           </Text>
                         </TouchableOpacity>
@@ -693,6 +707,7 @@ export default function Expenses() {
                                       formCategory === category.id &&
                                         styles.inlineCategoryNameSelected,
                                     ]}
+                                    weight="medium"
                                   >
                                     {category.name}
                                   </Text>
@@ -722,7 +737,10 @@ export default function Expenses() {
                           style={styles.inlineAddCategoryButton}
                         >
                           {/* <Plus size={14} color="#3B82F6" /> */}
-                          <Text style={styles.inlineAddCategoryText}>
+                          <Text
+                            style={styles.inlineAddCategoryText}
+                            weight="medium"
+                          >
                             {t('expenses.selectCategory')}
                           </Text>
                         </TouchableOpacity>
@@ -733,7 +751,9 @@ export default function Expenses() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>{t('common.amount')}</Text>
+                <Text style={styles.label} weight="medium">
+                  {t('common.amount')}
+                </Text>
                 <TextInput
                   style={styles.input}
                   value={formAmount}
@@ -744,7 +764,9 @@ export default function Expenses() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>{t('common.description')}</Text>
+                <Text style={styles.label} weight="medium">
+                  {t('common.description')}
+                </Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   value={formDescription}
@@ -756,7 +778,9 @@ export default function Expenses() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>{t('common.date')}</Text>
+                <Text style={styles.label} weight="medium">
+                  {t('common.date')}
+                </Text>
                 <TouchableOpacity
                   style={styles.dateInput}
                   onPress={() => setShowFormDatePicker(true)}
@@ -801,18 +825,20 @@ export default function Expenses() {
       >
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
+            <Text style={styles.modalTitle} weight="bold">
               {t('categories.manageCategories')}
             </Text>
             <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
-              <Text style={styles.modalClose}>{t('common.done')}</Text>
+              <Text style={styles.modalClose} weight="medium">
+                {t('common.done')}
+              </Text>
             </TouchableOpacity>
           </View>
 
           {/* Sticky Category Form - Not in ScrollView */}
           <View style={styles.stickyFormContainer}>
             <Card style={styles.categoryFormCard}>
-              <Text style={styles.formTitle}>
+              <Text style={styles.formTitle} weight="bold">
                 {editingCategory
                   ? t('categories.editCategory')
                   : t('categories.addNewCategory')}
@@ -852,7 +878,7 @@ export default function Expenses() {
 
           {/* Scrollable Categories List */}
           <View style={styles.categoriesListContainer}>
-            <Text style={styles.sectionTitle}>
+            <Text style={styles.sectionTitle} weight="medium">
               {t('categories.existingCategories')}
             </Text>
             <ScrollView
@@ -864,7 +890,9 @@ export default function Expenses() {
                 <Card key={category.id} style={styles.categoryCard}>
                   <View style={styles.categoryHeader}>
                     <View style={styles.categoryInfo}>
-                      <Text style={styles.categoryName}>{category.name}</Text>
+                      <Text style={styles.categoryName} weight="medium">
+                        {category.name}
+                      </Text>
                       {category.description && (
                         <Text style={styles.categoryDescription}>
                           {category.description}
@@ -925,7 +953,7 @@ export default function Expenses() {
         <View style={styles.monthPickerOverlay}>
           <View style={styles.monthPickerContainer}>
             <View style={styles.monthPickerHeader}>
-              <Text style={styles.monthPickerTitle}>
+              <Text style={styles.monthPickerTitle} weight="medium">
                 {t('sales.selectMonthYear')}
               </Text>
               <TouchableOpacity
@@ -976,7 +1004,9 @@ export default function Expenses() {
 
             {/* Month Selector */}
             <View style={[styles.monthSelectorContainer, { maxHeight: 300 }]}>
-              <Text style={styles.yearSelectorLabel}>{t('sales.year')}</Text>
+              <Text style={styles.yearSelectorLabel} weight="medium">
+                {t('sales.year')}
+              </Text>
               <View>
                 <ScrollView
                   horizontal
@@ -1000,6 +1030,7 @@ export default function Expenses() {
                           styles.yearOptionText,
                           selectedYear === year && styles.yearOptionTextActive,
                         ]}
+                        weight="medium"
                       >
                         {year}
                       </Text>
@@ -1007,7 +1038,9 @@ export default function Expenses() {
                   ))}
                 </ScrollView>
               </View>
-              <Text style={styles.monthSelectorLabel}>{t('sales.month')}</Text>
+              <Text style={styles.monthSelectorLabel} weight="medium">
+                {t('sales.month')}
+              </Text>
               <View style={[styles.monthGrid]}>
                 {Array.from({ length: 12 }, (_, i) => i).map((month) => (
                   <TouchableOpacity
@@ -1023,6 +1056,7 @@ export default function Expenses() {
                         styles.monthOptionText,
                         selectedMonth === month && styles.monthOptionTextActive,
                       ]}
+                      weight="medium"
                     >
                       {new Date(2024, month).toLocaleDateString('en-US', {
                         month: 'short',
@@ -1038,7 +1072,7 @@ export default function Expenses() {
                 style={styles.monthPickerCancelButton}
                 onPress={() => setShowMonthYearPicker(false)}
               >
-                <Text style={styles.monthPickerCancelText}>
+                <Text style={styles.monthPickerCancelText} weight="medium">
                   {t('common.cancel')}
                 </Text>
               </TouchableOpacity>
@@ -1049,7 +1083,7 @@ export default function Expenses() {
                   setShowMonthYearPicker(false);
                 }}
               >
-                <Text style={styles.monthPickerConfirmText}>
+                <Text style={styles.monthPickerConfirmText} weight="medium">
                   {t('common.confirm')}
                 </Text>
               </TouchableOpacity>
@@ -1083,7 +1117,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
   },
   addButton: {
@@ -1096,7 +1129,6 @@ const styles = StyleSheet.create({
   addButtonText: {
     color: '#FFFFFF',
     marginLeft: 8,
-    fontWeight: '500',
   },
   emptyText: {
     textAlign: 'center',
@@ -1116,7 +1148,6 @@ const styles = StyleSheet.create({
   },
   expenseCategory: {
     fontSize: 16,
-    fontWeight: '600',
   },
   expenseDate: {
     fontSize: 14,
@@ -1125,7 +1156,6 @@ const styles = StyleSheet.create({
   },
   expenseAmount: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#EF4444',
   },
   expenseDescription: {
@@ -1172,12 +1202,10 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
   },
   modalClose: {
     fontSize: 16,
     color: '#3B82F6',
-    fontWeight: '500',
   },
   stickyFormContainer: {
     backgroundColor: '#FFFFFF',
@@ -1204,7 +1232,6 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
     marginBottom: 16,
   },
   categoryFormCard: {
@@ -1222,7 +1249,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
     marginVertical: 16,
   },
   categoryCard: {
@@ -1239,7 +1265,6 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     fontSize: 16,
-    fontWeight: '600',
   },
   categoryDescription: {
     fontSize: 14,
@@ -1256,7 +1281,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     marginBottom: 8,
-    fontWeight: '500',
   },
   input: {
     borderWidth: 1,
@@ -1300,7 +1324,6 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
   },
   headerButtons: {
     flexDirection: 'row',
@@ -1333,7 +1356,6 @@ const styles = StyleSheet.create({
   },
   categoriesTitle: {
     fontSize: 16,
-    fontWeight: '600',
     marginBottom: 12,
   },
   categoryItem: {
@@ -1367,7 +1389,6 @@ const styles = StyleSheet.create({
   clearButtonText: {
     color: '#4B5563',
     fontSize: 16,
-    fontWeight: '600',
   },
   applyButton: {
     backgroundColor: '#3B82F6',
@@ -1376,7 +1397,6 @@ const styles = StyleSheet.create({
   applyButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
   },
 
   // Inline Category Selector Styles
@@ -1396,7 +1416,6 @@ const styles = StyleSheet.create({
   },
   emptyCategoryText: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#374151',
     marginTop: 12,
     textAlign: 'center',
@@ -1406,7 +1425,6 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 6,
     textAlign: 'center',
-    lineHeight: 20,
   },
   createCategoryButton: {
     flexDirection: 'row',
@@ -1420,7 +1438,6 @@ const styles = StyleSheet.create({
   createCategoryButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '600',
     marginLeft: 6,
   },
   categoryList: {
@@ -1461,7 +1478,6 @@ const styles = StyleSheet.create({
   },
   inlineCategoryName: {
     fontSize: 15,
-    fontWeight: '600',
     color: '#111827',
   },
   inlineCategoryNameSelected: {
@@ -1500,7 +1516,6 @@ const styles = StyleSheet.create({
   inlineAddCategoryText: {
     color: '#3B82F6',
     fontSize: 14,
-    fontWeight: '600',
     marginLeft: 6,
   },
 
@@ -1527,7 +1542,6 @@ const styles = StyleSheet.create({
   },
   dateFilterText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   dateFilterTextActive: {
@@ -1547,7 +1561,6 @@ const styles = StyleSheet.create({
   },
   customDateText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#374151',
     marginLeft: 8,
   },
@@ -1559,7 +1572,6 @@ const styles = StyleSheet.create({
   },
   summaryText: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#374151',
     textAlign: 'center',
   },
@@ -1570,7 +1582,6 @@ const styles = StyleSheet.create({
   },
   loadMoreText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     marginTop: 8,
   },
@@ -1602,7 +1613,6 @@ const styles = StyleSheet.create({
   },
   monthPickerTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   monthPickerCloseButton: {
@@ -1613,7 +1623,6 @@ const styles = StyleSheet.create({
   },
   yearSelectorLabel: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#374151',
     marginBottom: 8,
   },
@@ -1632,7 +1641,6 @@ const styles = StyleSheet.create({
   },
   yearOptionText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   yearOptionTextActive: {
@@ -1643,7 +1651,6 @@ const styles = StyleSheet.create({
   },
   monthSelectorLabel: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#374151',
     marginBottom: 8,
   },
@@ -1665,7 +1672,6 @@ const styles = StyleSheet.create({
   },
   monthOptionText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   monthOptionTextActive: {
@@ -1686,7 +1692,6 @@ const styles = StyleSheet.create({
   },
   monthPickerCancelText: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   monthPickerConfirmButton: {
@@ -1699,7 +1704,6 @@ const styles = StyleSheet.create({
   },
   monthPickerConfirmText: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#FFFFFF',
   },
 });

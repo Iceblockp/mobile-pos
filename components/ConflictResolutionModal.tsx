@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import {
   X,
   AlertTriangle,
@@ -63,9 +63,11 @@ export const ConflictResolutionModal: React.FC<
     return (
       <View style={styles.statisticsContainer}>
         <View style={styles.statisticsHeader}>
-          <Text style={styles.statisticsTitle}>Conflict Summary</Text>
+          <Text style={styles.statisticsTitle} weight="medium">
+            Conflict Summary
+          </Text>
           <View style={styles.totalConflictsBadge}>
-            <Text style={styles.totalConflictsText}>
+            <Text style={styles.totalConflictsText} weight="medium">
               {totalConflicts} total conflicts
             </Text>
           </View>
@@ -91,7 +93,7 @@ export const ConflictResolutionModal: React.FC<
                 }
               >
                 <View style={styles.statisticsCardHeader}>
-                  <Text style={styles.statisticsDataType}>
+                  <Text style={styles.statisticsDataType} weight="medium">
                     {dataType.charAt(0).toUpperCase() + dataType.slice(1)}
                   </Text>
                   <View
@@ -105,6 +107,7 @@ export const ConflictResolutionModal: React.FC<
                         styles.conflictCountText,
                         isSelected && styles.conflictCountTextSelected,
                       ]}
+                      weight="bold"
                     >
                       {stats.total}
                     </Text>
@@ -184,7 +187,7 @@ export const ConflictResolutionModal: React.FC<
           return (
             <View key={dataType} style={styles.dataTypeGroup}>
               <View style={styles.dataTypeHeader}>
-                <Text style={styles.dataTypeTitle}>
+                <Text style={styles.dataTypeTitle} weight="medium">
                   {dataType.charAt(0).toUpperCase() + dataType.slice(1)}(
                   {typeConflicts.length})
                 </Text>
@@ -211,6 +214,7 @@ export const ConflictResolutionModal: React.FC<
                           styles.conflictType,
                           { color: getConflictTypeColor(conflict.type) },
                         ]}
+                        weight="medium"
                       >
                         {conflict.type.replace('_', ' ').toUpperCase()}
                       </Text>
@@ -273,6 +277,7 @@ export const ConflictResolutionModal: React.FC<
               styles.uuidLabel,
               { color: hasValidUUID ? '#10B981' : '#6B7280' },
             ]}
+            weight="medium"
           >
             UUID:
           </Text>
@@ -328,7 +333,10 @@ export const ConflictResolutionModal: React.FC<
         style={[styles.matchingCriteria, { borderColor: getMatchingColor() }]}
       >
         {getMatchingIcon()}
-        <Text style={[styles.matchingText, { color: getMatchingColor() }]}>
+        <Text
+          style={[styles.matchingText, { color: getMatchingColor() }]}
+          weight="medium"
+        >
           {getMatchingText()}
         </Text>
       </View>
@@ -433,20 +441,25 @@ export const ConflictResolutionModal: React.FC<
         <View style={styles.recordsComparison}>
           <View style={styles.comparisonColumn}>
             <View style={styles.comparisonHeader}>
-              <Text style={styles.comparisonTitle}>Existing Record</Text>
+              <Text style={styles.comparisonTitle} weight="medium">
+                Existing Record
+              </Text>
               <View
                 style={[
                   styles.statusBadge,
                   { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
                 ]}
               >
-                <Text style={[styles.statusText, { color: '#DC2626' }]}>
+                <Text
+                  style={[styles.statusText, { color: '#DC2626' }]}
+                  weight="medium"
+                >
                   Current
                 </Text>
               </View>
             </View>
             <View style={[styles.recordCard, { borderColor: '#FECACA' }]}>
-              <Text style={styles.recordName}>
+              <Text style={styles.recordName} weight="medium">
                 {conflict.existingRecord.name || 'Unnamed Record'}
               </Text>
 
@@ -457,7 +470,7 @@ export const ConflictResolutionModal: React.FC<
               <View style={styles.recordDetailsContainer}>
                 {existingDetails.map((detail, index) => (
                   <View key={detail.key} style={styles.recordDetailRow}>
-                    <Text style={styles.recordDetailLabel}>
+                    <Text style={styles.recordDetailLabel} weight="medium">
                       {detail.label}:
                     </Text>
                     <Text style={styles.recordDetailValue}>{detail.value}</Text>
@@ -469,20 +482,25 @@ export const ConflictResolutionModal: React.FC<
 
           <View style={styles.comparisonColumn}>
             <View style={styles.comparisonHeader}>
-              <Text style={styles.comparisonTitle}>Import Data</Text>
+              <Text style={styles.comparisonTitle} weight="medium">
+                Import Data
+              </Text>
               <View
                 style={[
                   styles.statusBadge,
                   { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' },
                 ]}
               >
-                <Text style={[styles.statusText, { color: '#2563EB' }]}>
+                <Text
+                  style={[styles.statusText, { color: '#2563EB' }]}
+                  weight="medium"
+                >
                   New
                 </Text>
               </View>
             </View>
             <View style={[styles.recordCard, { borderColor: '#BFDBFE' }]}>
-              <Text style={styles.recordName}>
+              <Text style={styles.recordName} weight="medium">
                 {conflict.record.name || 'Unnamed Record'}
               </Text>
 
@@ -500,7 +518,7 @@ export const ConflictResolutionModal: React.FC<
 
                   return (
                     <View key={detail.key} style={styles.recordDetailRow}>
-                      <Text style={styles.recordDetailLabel}>
+                      <Text style={styles.recordDetailLabel} weight="medium">
                         {detail.label}:
                       </Text>
                       <Text
@@ -508,12 +526,18 @@ export const ConflictResolutionModal: React.FC<
                           styles.recordDetailValue,
                           isDifferent && styles.recordDetailValueChanged,
                         ]}
+                        weight={isDifferent ? 'medium' : undefined}
                       >
                         {detail.value}
                       </Text>
                       {isDifferent && (
                         <View style={styles.changeIndicator}>
-                          <Text style={styles.changeIndicatorText}>•</Text>
+                          <Text
+                            style={styles.changeIndicatorText}
+                            weight="bold"
+                          >
+                            •
+                          </Text>
                         </View>
                       )}
                     </View>
@@ -540,7 +564,7 @@ export const ConflictResolutionModal: React.FC<
           <View style={styles.header}>
             <View style={styles.headerContent}>
               <AlertTriangle size={24} color="#F59E0B" />
-              <Text style={styles.title}>
+              <Text style={styles.title} weight="medium">
                 {t('dataImport.conflictsDetected')}
               </Text>
             </View>
@@ -551,7 +575,7 @@ export const ConflictResolutionModal: React.FC<
 
           {/* Conflicts Summary */}
           <View style={styles.summaryContainer}>
-            <Text style={styles.summaryText}>
+            <Text style={styles.summaryText} weight="medium">
               {conflicts.length} {t('dataImport.conflictsFound')}
             </Text>
             {conflictSummary && (
@@ -568,6 +592,7 @@ export const ConflictResolutionModal: React.FC<
                       styles.viewToggleText,
                       showGroupedView && styles.viewToggleTextActive,
                     ]}
+                    weight="medium"
                   >
                     {t('dataImport.groupedView')}
                   </Text>
@@ -584,6 +609,7 @@ export const ConflictResolutionModal: React.FC<
                       styles.viewToggleText,
                       !showGroupedView && styles.viewToggleTextActive,
                     ]}
+                    weight="medium"
                   >
                     {t('dataImport.listView')}
                   </Text>
@@ -646,7 +672,7 @@ export const ConflictResolutionModal: React.FC<
                       style={styles.seeMoreButton}
                       onPress={() => setShowAllConflicts(!showAllConflicts)}
                     >
-                      <Text style={styles.seeMoreButtonText}>
+                      <Text style={styles.seeMoreButtonText} weight="medium">
                         {showAllConflicts
                           ? t('dataImport.seeLess')
                           : t('dataImport.seeMore')}
@@ -660,7 +686,7 @@ export const ConflictResolutionModal: React.FC<
 
           {/* Resolution Options */}
           <View style={styles.resolutionContainer}>
-            <Text style={styles.resolutionTitle}>
+            <Text style={styles.resolutionTitle} weight="medium">
               {t('dataImport.chooseResolution')}
             </Text>
 
@@ -687,6 +713,7 @@ export const ConflictResolutionModal: React.FC<
                       selectedResolution === 'update' &&
                         styles.resolutionOptionTitleSelected,
                     ]}
+                    weight="medium"
                   >
                     Use Import Data
                   </Text>
@@ -722,6 +749,7 @@ export const ConflictResolutionModal: React.FC<
                       selectedResolution === 'skip' &&
                         styles.resolutionOptionTitleSelected,
                     ]}
+                    weight="medium"
                   >
                     Keep Existing
                   </Text>
@@ -759,6 +787,7 @@ export const ConflictResolutionModal: React.FC<
                       selectedResolution === 'create_new' &&
                         styles.resolutionOptionTitleSelected,
                     ]}
+                    weight="medium"
                   >
                     Skip
                   </Text>
@@ -795,7 +824,9 @@ export const ConflictResolutionModal: React.FC<
           <View style={styles.actionButtons}>
             <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
               <X size={16} color="#6B7280" />
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.cancelButtonText} weight="medium">
+                Cancel
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -820,7 +851,7 @@ export const ConflictResolutionModal: React.FC<
               {selectedResolution === 'create_new' && (
                 <Plus size={16} color="#FFFFFF" />
               )}
-              <Text style={styles.resolveButtonText}>
+              <Text style={styles.resolveButtonText} weight="medium">
                 {selectedResolution === 'update' && 'Use Import Data'}
                 {selectedResolution === 'skip' && 'Keep Existing'}
                 {selectedResolution === 'create_new' && 'Skip Conflicts'}
@@ -864,7 +895,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginLeft: 8,
   },
@@ -881,7 +911,6 @@ const styles = StyleSheet.create({
   },
   summaryText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#7F1D1D',
     textAlign: 'center',
   },
@@ -906,12 +935,10 @@ const styles = StyleSheet.create({
   },
   conflictType: {
     fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
     marginLeft: 6,
   },
   conflictMessage: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#374151',
     marginBottom: 8,
   },
@@ -931,7 +958,6 @@ const styles = StyleSheet.create({
   },
   matchingText: {
     fontSize: 11,
-    fontFamily: 'Inter-SemiBold',
     marginLeft: 4,
   },
   recordsComparison: {
@@ -943,7 +969,6 @@ const styles = StyleSheet.create({
   },
   comparisonTitle: {
     fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
     color: '#6B7280',
     marginBottom: 4,
   },
@@ -956,13 +981,11 @@ const styles = StyleSheet.create({
   },
   recordName: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 6,
   },
   recordDetail: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
@@ -979,12 +1002,10 @@ const styles = StyleSheet.create({
   },
   uuidLabel: {
     fontSize: 10,
-    fontFamily: 'Inter-SemiBold',
     marginLeft: 4,
   },
   uuidValue: {
     fontSize: 10,
-    fontFamily: 'Inter-Regular',
     fontStyle: 'italic',
   },
   seeMoreContainer: {
@@ -993,7 +1014,6 @@ const styles = StyleSheet.create({
   },
   moreConflictsText: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     fontStyle: 'italic',
     marginBottom: 8,
@@ -1008,7 +1028,6 @@ const styles = StyleSheet.create({
   },
   seeMoreButtonText: {
     fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
     color: '#3B82F6',
   },
   resolutionContainer: {
@@ -1019,7 +1038,6 @@ const styles = StyleSheet.create({
   },
   resolutionTitle: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 8,
   },
@@ -1048,7 +1066,6 @@ const styles = StyleSheet.create({
   },
   resolutionOptionTitle: {
     fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     textAlign: 'center',
     marginBottom: 2,
@@ -1058,10 +1075,8 @@ const styles = StyleSheet.create({
   },
   resolutionOptionDesc: {
     fontSize: 10,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',
-    lineHeight: 12,
   },
   resolutionOptionDescSelected: {
     color: '#E5E7EB',
@@ -1087,7 +1102,6 @@ const styles = StyleSheet.create({
   },
   applyToAllText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#374151',
   },
   actionButtons: {
@@ -1113,7 +1127,6 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#6B7280',
   },
   resolveButton: {
@@ -1134,7 +1147,6 @@ const styles = StyleSheet.create({
   },
   resolveButtonText: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
   // Enhanced conflict display styles
@@ -1162,7 +1174,6 @@ const styles = StyleSheet.create({
   },
   viewToggleText: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   viewToggleTextActive: {
@@ -1182,7 +1193,6 @@ const styles = StyleSheet.create({
   },
   statisticsTitle: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#374151',
   },
   totalConflictsBadge: {
@@ -1195,12 +1205,10 @@ const styles = StyleSheet.create({
   },
   totalConflictsText: {
     fontSize: 11,
-    fontFamily: 'Inter-SemiBold',
     color: '#DC2626',
   },
   statisticsSubtitle: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginBottom: 12,
   },
@@ -1235,7 +1243,6 @@ const styles = StyleSheet.create({
   },
   statisticsDataType: {
     fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
     color: '#374151',
     flex: 1,
   },
@@ -1252,7 +1259,6 @@ const styles = StyleSheet.create({
   },
   conflictCountText: {
     fontSize: 11,
-    fontFamily: 'Inter-Bold',
     color: '#374151',
   },
   conflictCountTextSelected: {
@@ -1273,7 +1279,6 @@ const styles = StyleSheet.create({
   },
   statisticsDetail: {
     fontSize: 10,
-    fontFamily: 'Inter-Regular',
     flex: 1,
   },
   groupedConflictsContainer: {
@@ -1295,7 +1300,6 @@ const styles = StyleSheet.create({
   },
   dataTypeTitle: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#374151',
   },
   conflictTypeIndicator: {
@@ -1303,13 +1307,11 @@ const styles = StyleSheet.create({
   },
   conflictDataType: {
     fontSize: 10,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginLeft: 'auto',
   },
   moreConflictsInType: {
     fontSize: 11,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     fontStyle: 'italic',
     textAlign: 'center',
@@ -1331,7 +1333,6 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 10,
-    fontFamily: 'Inter-SemiBold',
   },
   recordDetailsContainer: {
     marginTop: 8,
@@ -1345,20 +1346,17 @@ const styles = StyleSheet.create({
   },
   recordDetailLabel: {
     fontSize: 11,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     flex: 1,
   },
   recordDetailValue: {
     fontSize: 11,
-    fontFamily: 'Inter-Regular',
     color: '#374151',
     flex: 2,
     textAlign: 'right',
   },
   recordDetailValueChanged: {
     color: '#2563EB',
-    fontFamily: 'Inter-SemiBold',
   },
   changeIndicator: {
     marginLeft: 4,
@@ -1368,6 +1366,5 @@ const styles = StyleSheet.create({
   changeIndicatorText: {
     fontSize: 12,
     color: '#2563EB',
-    fontFamily: 'Inter-Bold',
   },
 });

@@ -1,13 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-} from 'react-native';
-import { useCustomers, useCustomerAnalytics } from '@/hooks/useQueries';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
+import { useCustomerAnalytics } from '@/hooks/useQueries';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import { useTranslation } from '@/context/LocalizationContext';
 import { Users, Trophy, TrendingUp } from 'lucide-react-native';
@@ -17,9 +11,7 @@ interface CustomerAnalyticsProps {
   customerId?: string;
 }
 
-export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({
-  customerId,
-}) => {
+export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = () => {
   const { t } = useTranslation();
   const { formatPrice } = useCurrencyFormatter();
 
@@ -126,7 +118,7 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({
               <Text style={styles.summaryLabel}>
                 {t('analytics.totalCustomers')}
               </Text>
-              <Text style={styles.summaryValue}>
+              <Text style={styles.summaryValue} weight="bold">
                 {customerAnalytics?.totalCustomers || 0}
               </Text>
             </View>
@@ -135,7 +127,7 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({
               <Text style={styles.summaryLabel}>
                 {t('analytics.totalRevenue')}
               </Text>
-              <Text style={styles.summaryValue}>
+              <Text style={styles.summaryValue} weight="bold">
                 {formatPrice(customerAnalytics?.totalRevenue || 0)}
               </Text>
             </View>
@@ -144,7 +136,9 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({
 
         {/* Top Customers List */}
         <View style={styles.customerListCard}>
-          <Text style={styles.sectionTitle}>{t('analytics.topCustomers')}</Text>
+          <Text style={styles.sectionTitle} weight="medium">
+            {t('analytics.topCustomers')}
+          </Text>
 
           {customerAnalytics?.topCustomers &&
           customerAnalytics.topCustomers.length > 0 ? (
@@ -161,13 +155,17 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({
                       {index < 3 ? (
                         <Trophy size={16} color="#FFFFFF" />
                       ) : (
-                        <Text style={styles.rankText}>{index + 1}</Text>
+                        <Text style={styles.rankText} weight="bold">
+                          {index + 1}
+                        </Text>
                       )}
                     </View>
                   </View>
 
                   <View style={styles.customerInfo}>
-                    <Text style={styles.customerName}>{customer.name}</Text>
+                    <Text style={styles.customerName} weight="medium">
+                      {customer.name}
+                    </Text>
                     <Text style={styles.customerStats}>
                       {customer.total_orders || 0} {t('analytics.orders')} •{' '}
                       {customer.visit_count || 0} {t('analytics.visits')}
@@ -179,7 +177,7 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({
                   </View>
 
                   <View style={styles.customerAmount}>
-                    <Text style={styles.totalSpent}>
+                    <Text style={styles.totalSpent} weight="bold">
                       {formatPrice(customer.total_spent || 0)}
                     </Text>
                     <Text style={styles.spentLabel}>
@@ -216,7 +214,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 16,
   },
@@ -246,7 +243,6 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 8,
     marginBottom: 4,
@@ -254,7 +250,6 @@ const styles = StyleSheet.create({
   },
   summaryValue: {
     fontSize: 18,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
     textAlign: 'center',
   },
@@ -270,7 +265,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 16,
   },
@@ -293,7 +287,6 @@ const styles = StyleSheet.create({
   },
   rankText: {
     fontSize: 14,
-    fontFamily: 'Inter-Bold',
     color: '#FFFFFF',
   },
   customerInfo: {
@@ -301,19 +294,16 @@ const styles = StyleSheet.create({
   },
   customerName: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 2,
   },
   customerStats: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginBottom: 2,
   },
   customerAvg: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#059669',
   },
   customerAmount: {
@@ -321,12 +311,10 @@ const styles = StyleSheet.create({
   },
   totalSpent: {
     fontSize: 16,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
   },
   spentLabel: {
     fontSize: 10,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
@@ -336,7 +324,6 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',
     marginTop: 16,

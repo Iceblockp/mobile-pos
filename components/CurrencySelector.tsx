@@ -1,15 +1,14 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Modal,
-  FlatList,
   Alert,
   TextInput,
   ScrollView,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -51,8 +50,7 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
     getAllAvailableCurrencies,
   } = useCurrencyContext();
 
-  const { customCurrencies, saveCustomCurrency, deleteCustomCurrency } =
-    useCustomCurrencies();
+  const { saveCustomCurrency, deleteCustomCurrency } = useCustomCurrencies();
 
   // Load available currencies when modal opens
   const loadAvailableCurrencies = useCallback(async () => {
@@ -170,7 +168,9 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
         disabled={isLoading}
       >
         <View style={styles.currencyInfo}>
-          <Text style={styles.currencyName}>{currency.name}</Text>
+          <Text style={styles.currencyName} weight="medium">
+            {currency.name}
+          </Text>
           <Text style={styles.currencyCode}>
             {currency.code} ({currency.symbol})
           </Text>
@@ -196,9 +196,13 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
       >
         <View style={styles.currencyInfo}>
           <View style={styles.customCurrencyHeader}>
-            <Text style={styles.currencyName}>{item.name}</Text>
+            <Text style={styles.currencyName} weight="medium">
+              {item.name}
+            </Text>
             <View style={styles.customBadge}>
-              <Text style={styles.customBadgeText}>Custom</Text>
+              <Text style={styles.customBadgeText} weight="medium">
+                Custom
+              </Text>
             </View>
           </View>
           <Text style={styles.currencyCode}>
@@ -238,14 +242,16 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Shop Currency</Text>
+      <Text style={styles.label} weight="medium">
+        Shop Currency
+      </Text>
 
       <TouchableOpacity
         style={[styles.selector, compact && styles.compactSelector]}
         onPress={handleModalOpen}
       >
         <View style={styles.currentCurrency}>
-          <Text style={styles.currentCurrencyName}>
+          <Text style={styles.currentCurrencyName} weight="medium">
             {currentCurrency?.name || 'Select Currency'}
           </Text>
           <Text style={styles.currentCurrencyCode}>
@@ -258,7 +264,7 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
       {currentCurrency && (
         <View style={styles.preview}>
           <Text style={styles.previewLabel}>Preview:</Text>
-          <Text style={styles.previewExample}>
+          <Text style={styles.previewExample} weight="medium">
             {currentCurrency.symbol}1,234
             {currentCurrency.decimals > 0 ? '.56' : ''}
           </Text>
@@ -280,7 +286,9 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
             >
               <Ionicons name="close" size={24} color="#374151" />
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Select Currency</Text>
+            <Text style={styles.modalTitle} weight="medium">
+              Select Currency
+            </Text>
             <View style={styles.placeholder} />
           </View>
 
@@ -324,6 +332,7 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
                     styles.categoryTabText,
                     selectedCategory === 'predefined' && styles.activeTabText,
                   ]}
+                  weight="medium"
                 >
                   Predefined ({filteredPredefinedCurrencies.length})
                 </Text>
@@ -340,6 +349,7 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
                     styles.categoryTabText,
                     selectedCategory === 'custom' && styles.activeTabText,
                   ]}
+                  weight="medium"
                 >
                   Custom ({filteredCustomCurrencies.length})
                 </Text>
@@ -362,7 +372,9 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
               ) : (
                 <View style={styles.emptyState}>
                   <Ionicons name="search" size={48} color="#9CA3AF" />
-                  <Text style={styles.emptyStateText}>No currencies found</Text>
+                  <Text style={styles.emptyStateText} weight="medium">
+                    No currencies found
+                  </Text>
                   <Text style={styles.emptyStateSubtext}>
                     Try adjusting your search terms
                   </Text>
@@ -377,7 +389,9 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
             ) : (
               <View style={styles.emptyState}>
                 <Ionicons name="add-circle-outline" size={48} color="#9CA3AF" />
-                <Text style={styles.emptyStateText}>No custom currencies</Text>
+                <Text style={styles.emptyStateText} weight="medium">
+                  No custom currencies
+                </Text>
                 <Text style={styles.emptyStateSubtext}>
                   Create your first custom currency below
                 </Text>
@@ -391,9 +405,8 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
               <Button
                 title="Create Custom Currency"
                 onPress={handleCustomCurrency}
-                variant="outline"
+                variant="secondary"
                 style={styles.customButton}
-                icon="add"
               />
             </View>
           )}
@@ -416,7 +429,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontWeight: '500',
     color: '#374151',
     marginBottom: 8,
   },
@@ -440,7 +452,6 @@ const styles = StyleSheet.create({
   currentCurrencyName: {
     fontSize: 16,
     color: '#111827',
-    fontWeight: '500',
   },
   currentCurrencyCode: {
     fontSize: 14,
@@ -460,7 +471,6 @@ const styles = StyleSheet.create({
   previewExample: {
     fontSize: 14,
     color: '#111827',
-    fontWeight: '500',
   },
   loadingContainer: {
     paddingVertical: 20,
@@ -485,7 +495,6 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
     color: '#111827',
   },
   placeholder: {
@@ -539,7 +548,6 @@ const styles = StyleSheet.create({
   categoryTabText: {
     fontSize: 14,
     color: '#6B7280',
-    fontWeight: '500',
   },
   activeTabText: {
     color: '#111827',
@@ -569,7 +577,6 @@ const styles = StyleSheet.create({
   },
   currencyName: {
     fontSize: 16,
-    fontWeight: '500',
     color: '#111827',
     marginBottom: 4,
   },
@@ -604,7 +611,6 @@ const styles = StyleSheet.create({
   customBadgeText: {
     fontSize: 10,
     color: '#FFFFFF',
-    fontWeight: '600',
   },
   lastUsed: {
     fontSize: 11,
@@ -626,7 +632,6 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    fontWeight: '500',
     color: '#6B7280',
     marginTop: 12,
   },

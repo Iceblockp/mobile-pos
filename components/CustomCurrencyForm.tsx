@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   TextInput,
@@ -11,6 +10,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
 import { CurrencySettings } from '@/services/currencyManager';
@@ -29,7 +29,7 @@ export const CustomCurrencyForm: React.FC<CustomCurrencyFormProps> = ({
   onSubmit,
   editingCurrency,
 }) => {
-  const { validateCurrency } = useCurrencyContext();
+  const {} = useCurrencyContext();
 
   const [formData, setFormData] = useState<CurrencySettings>({
     code: '',
@@ -62,29 +62,41 @@ export const CustomCurrencyForm: React.FC<CustomCurrencyFormProps> = ({
   }, [visible, editingCurrency]);
 
   const validateForm = (): boolean => {
-    // Use the currency context validation
-    const validation = validateCurrency(formData);
+    const newErrors: Record<string, string> = {};
 
-    if (!validation.isValid) {
-      const newErrors: Record<string, string> = {};
-      validation.errors.forEach((error) => {
-        // Map validation errors to form fields
-        if (error.includes('code')) newErrors.code = error;
-        else if (error.includes('symbol')) newErrors.symbol = error;
-        else if (error.includes('name')) newErrors.name = error;
-        else if (error.includes('decimal')) newErrors.decimals = error;
-        else if (error.includes('thousand'))
-          newErrors.thousandSeparator = error;
-        else if (error.includes('separator'))
-          newErrors.decimalSeparator = error;
-        else newErrors.general = error;
-      });
-      setErrors(newErrors);
-      return false;
+    // Basic validation
+    if (!formData.code.trim()) {
+      newErrors.code = 'Currency code is required';
+    } else if (formData.code.trim().length !== 3) {
+      newErrors.code = 'Currency code must be 3 characters';
     }
 
-    setErrors({});
-    return true;
+    if (!formData.name.trim()) {
+      newErrors.name = 'Currency name is required';
+    }
+
+    if (!formData.symbol.trim()) {
+      newErrors.symbol = 'Currency symbol is required';
+    }
+
+    if (formData.decimals < 0 || formData.decimals > 4) {
+      newErrors.decimals = 'Decimal places must be between 0 and 4';
+    }
+
+    if (!formData.thousandSeparator) {
+      newErrors.thousandSeparator = 'Thousand separator is required';
+    }
+
+    if (!formData.decimalSeparator) {
+      newErrors.decimalSeparator = 'Decimal separator is required';
+    }
+
+    if (formData.thousandSeparator === formData.decimalSeparator) {
+      newErrors.general = 'Thousand and decimal separators must be different';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async () => {
@@ -107,7 +119,7 @@ export const CustomCurrencyForm: React.FC<CustomCurrencyFormProps> = ({
         lastUsed: editingCurrency?.lastUsed,
       };
 
-      await onSubmit(currency);
+      onSubmit(currency);
       handleReset();
     } catch (error) {
       Alert.alert(
@@ -148,7 +160,6 @@ export const CustomCurrencyForm: React.FC<CustomCurrencyFormProps> = ({
   };
 
   const getPreviewText = (): string => {
-    const amount = 1234.56;
     const formattedAmount =
       formData.decimals === 0 ? '1,234' : `1,234${formData.decimalSeparator}56`;
 
@@ -174,7 +185,9 @@ export const CustomCurrencyForm: React.FC<CustomCurrencyFormProps> = ({
     }
   ) => (
     <View style={styles.inputContainer}>
-      <Text style={styles.inputLabel}>{label}</Text>
+      <Text style={styles.inputLabel} weight="medium">
+        {label}
+      </Text>
       <TextInput
         style={[
           styles.input,
@@ -204,7 +217,9 @@ export const CustomCurrencyForm: React.FC<CustomCurrencyFormProps> = ({
     options: { label: string; value: string }[]
   ) => (
     <View style={styles.inputContainer}>
-      <Text style={styles.inputLabel}>{label}</Text>
+      <Text style={styles.inputLabel} weight="medium">
+        {label}
+      </Text>
       <View style={styles.pickerContainer}>
         {options.map((option) => (
           <TouchableOpacity
@@ -221,6 +236,7 @@ export const CustomCurrencyForm: React.FC<CustomCurrencyFormProps> = ({
                 formData[field] === option.value &&
                   styles.pickerOptionTextSelected,
               ]}
+              weight={formData[field] === option.value ? 'medium' : undefined}
             >
               {option.label}
             </Text>
@@ -250,7 +266,7 @@ export const CustomCurrencyForm: React.FC<CustomCurrencyFormProps> = ({
           >
             <Ionicons name="close" size={24} color="#374151" />
           </TouchableOpacity>
-          <Text style={styles.title}>
+          <Text style={styles.title} weight="medium">
             {editingCurrency ? 'Edit Currency' : 'Create Custom Currency'}
           </Text>
           <View style={styles.placeholder} />
@@ -294,7 +310,9 @@ export const CustomCurrencyForm: React.FC<CustomCurrencyFormProps> = ({
           {/* Preview */}
           <View style={styles.previewContainer}>
             <Text style={styles.previewLabel}>Preview:</Text>
-            <Text style={styles.previewText}>{getPreviewText()}</Text>
+            <Text style={styles.previewText} weight="medium">
+              {getPreviewText()}
+            </Text>
           </View>
         </ScrollView>
 
@@ -303,7 +321,7 @@ export const CustomCurrencyForm: React.FC<CustomCurrencyFormProps> = ({
           <Button
             title="Cancel"
             onPress={handleClose}
-            variant="outline"
+            variant="secondary"
             style={styles.cancelButton}
             disabled={isSubmitting}
           />
@@ -311,7 +329,6 @@ export const CustomCurrencyForm: React.FC<CustomCurrencyFormProps> = ({
             title={editingCurrency ? 'Update Currency' : 'Create Currency'}
             onPress={handleSubmit}
             style={styles.submitButton}
-            loading={isSubmitting}
             disabled={isSubmitting}
           />
         </View>
@@ -340,7 +357,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
     color: '#111827',
   },
   placeholder: {
@@ -356,7 +372,6 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 16,
-    fontWeight: '500',
     color: '#374151',
     marginBottom: 8,
   },
@@ -414,7 +429,6 @@ const styles = StyleSheet.create({
   },
   pickerOptionTextSelected: {
     color: '#3B82F6',
-    fontWeight: '500',
   },
   previewContainer: {
     backgroundColor: '#FFFFFF',
@@ -431,7 +445,6 @@ const styles = StyleSheet.create({
   },
   previewText: {
     fontSize: 20,
-    fontWeight: '600',
     color: '#111827',
   },
   footer: {

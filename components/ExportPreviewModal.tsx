@@ -1,12 +1,12 @@
 import React from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import {
   X,
   Database,
@@ -136,7 +136,9 @@ export const ExportPreviewModal: React.FC<ExportPreviewModalProps> = ({
           <IconComponent size={20} color={config.color} />
         </View>
         <View style={styles.dataTypeContent}>
-          <Text style={styles.dataTypeLabel}>{config.label}</Text>
+          <Text style={styles.dataTypeLabel} weight="medium">
+            {config.label}
+          </Text>
           <Text style={styles.dataTypeCount}>
             {count.toLocaleString()} {count === 1 ? 'record' : 'records'}
           </Text>
@@ -162,7 +164,9 @@ export const ExportPreviewModal: React.FC<ExportPreviewModalProps> = ({
           <View style={styles.header}>
             <View style={styles.headerContent}>
               <Database size={24} color="#3B82F6" />
-              <Text style={styles.title}>Export Preview</Text>
+              <Text style={styles.title} weight="medium">
+                Export Preview
+              </Text>
             </View>
             <TouchableOpacity style={styles.closeButton} onPress={onCancel}>
               <X size={24} color="#6B7280" />
@@ -184,7 +188,7 @@ export const ExportPreviewModal: React.FC<ExportPreviewModalProps> = ({
                   <Database size={20} color="#6B7280" />
                   <View style={styles.summaryContent}>
                     <Text style={styles.summaryLabel}>Total Records</Text>
-                    <Text style={styles.summaryValue}>
+                    <Text style={styles.summaryValue} weight="medium">
                       {preview.totalRecords.toLocaleString()}
                     </Text>
                   </View>
@@ -194,7 +198,7 @@ export const ExportPreviewModal: React.FC<ExportPreviewModalProps> = ({
                   <HardDrive size={20} color="#6B7280" />
                   <View style={styles.summaryContent}>
                     <Text style={styles.summaryLabel}>Estimated Size</Text>
-                    <Text style={styles.summaryValue}>
+                    <Text style={styles.summaryValue} weight="medium">
                       {preview.estimatedFileSize}
                     </Text>
                   </View>
@@ -204,7 +208,7 @@ export const ExportPreviewModal: React.FC<ExportPreviewModalProps> = ({
                   <Calendar size={20} color="#6B7280" />
                   <View style={styles.summaryContent}>
                     <Text style={styles.summaryLabel}>Export Date</Text>
-                    <Text style={styles.summaryValue}>
+                    <Text style={styles.summaryValue} weight="medium">
                       {formatDate(preview.exportDate)}
                     </Text>
                   </View>
@@ -213,7 +217,9 @@ export const ExportPreviewModal: React.FC<ExportPreviewModalProps> = ({
 
               {/* Data Types List */}
               <View style={styles.dataTypesContainer}>
-                <Text style={styles.dataTypesTitle}>Data to be exported:</Text>
+                <Text style={styles.dataTypesTitle} weight="medium">
+                  Data to be exported:
+                </Text>
                 <ScrollView
                   style={styles.dataTypesList}
                   showsVerticalScrollIndicator={false}
@@ -230,7 +236,9 @@ export const ExportPreviewModal: React.FC<ExportPreviewModalProps> = ({
               {/* Empty Export Warning */}
               {preview.totalRecords === 0 && (
                 <View style={styles.warningContainer}>
-                  <Text style={styles.warningTitle}>⚠️ Empty Export</Text>
+                  <Text style={styles.warningTitle} weight="medium">
+                    ⚠️ Empty Export
+                  </Text>
                   <Text style={styles.warningText}>
                     No data was found to export. An empty export file will be
                     created for consistency, but it will contain no business
@@ -245,7 +253,7 @@ export const ExportPreviewModal: React.FC<ExportPreviewModalProps> = ({
                   style={styles.cancelButton}
                   onPress={onCancel}
                 >
-                  <Text style={styles.cancelButtonText}>
+                  <Text style={styles.cancelButtonText} weight="medium">
                     {t('common.cancel')}
                   </Text>
                 </TouchableOpacity>
@@ -255,7 +263,7 @@ export const ExportPreviewModal: React.FC<ExportPreviewModalProps> = ({
                   onPress={onConfirm}
                 >
                   <Download size={20} color="#FFFFFF" />
-                  <Text style={styles.confirmButtonText}>
+                  <Text style={styles.confirmButtonText} weight="medium">
                     {preview.totalRecords === 0
                       ? 'Create Empty Export'
                       : 'Start Export'}
@@ -300,7 +308,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginLeft: 8,
   },
@@ -314,7 +321,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',
   },
@@ -335,13 +341,11 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginBottom: 2,
   },
   summaryValue: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   dataTypesContainer: {
@@ -351,7 +355,6 @@ const styles = StyleSheet.create({
   },
   dataTypesTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 12,
   },
@@ -380,13 +383,11 @@ const styles = StyleSheet.create({
   },
   dataTypeLabel: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 2,
   },
   dataTypeCount: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
   },
   warningContainer: {
@@ -400,15 +401,12 @@ const styles = StyleSheet.create({
   },
   warningTitle: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#7F1D1D',
     marginBottom: 4,
   },
   warningText: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#7F1D1D',
-    lineHeight: 16,
   },
   actionButtons: {
     flexDirection: 'row',
@@ -429,7 +427,6 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#6B7280',
   },
   confirmButton: {
@@ -445,7 +442,6 @@ const styles = StyleSheet.create({
   },
   confirmButtonText: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
 });

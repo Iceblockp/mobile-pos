@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Modal,
   ScrollView,
   Platform,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from '@/context/LocalizationContext';
@@ -184,8 +184,12 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
       {/* Header Row */}
       <View style={styles.headerRow}>
         <View style={styles.periodInfo}>
-          <Text style={styles.periodLabel}>Period</Text>
-          <Text style={styles.periodValue}>{getFilterDisplayText()}</Text>
+          <Text style={styles.periodLabel} weight="medium">
+            Period
+          </Text>
+          <Text style={styles.periodValue} weight="medium">
+            {getFilterDisplayText()}
+          </Text>
         </View>
 
         <View style={styles.actions}>
@@ -290,9 +294,13 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Select Period</Text>
+            <Text style={styles.modalTitle} weight="medium">
+              Select Period
+            </Text>
             <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-              <Text style={styles.modalClose}>Done</Text>
+              <Text style={styles.modalClose} weight="medium">
+                Done
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -309,6 +317,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                     styles.tabText,
                     activeTab === tab && styles.activeTabText,
                   ]}
+                  weight="medium"
                 >
                   {tab.charAt(0).toUpperCase() + tab.slice(1)}
                 </Text>
@@ -325,7 +334,9 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                     style={styles.quickOption}
                     onPress={() => handleQuickFilter('day', 'today')}
                   >
-                    <Text style={styles.quickOptionText}>Today</Text>
+                    <Text style={styles.quickOptionText} weight="medium">
+                      Today
+                    </Text>
                     <Text style={styles.quickOptionDate}>
                       {new Date().toLocaleDateString()}
                     </Text>
@@ -335,14 +346,18 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                     style={styles.quickOption}
                     onPress={() => handleQuickFilter('day', 'yesterday')}
                   >
-                    <Text style={styles.quickOptionText}>Yesterday</Text>
+                    <Text style={styles.quickOptionText} weight="medium">
+                      Yesterday
+                    </Text>
                     <Text style={styles.quickOptionDate}>
                       {new Date(Date.now() - 86400000).toLocaleDateString()}
                     </Text>
                   </TouchableOpacity>
                 </View>
 
-                <Text style={styles.sectionTitle}>Custom Date</Text>
+                <Text style={styles.sectionTitle} weight="medium">
+                  Custom Date
+                </Text>
                 <TouchableOpacity
                   style={styles.customDateButton}
                   onPress={() => {
@@ -351,7 +366,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                   }}
                 >
                   <Calendar size={20} color="#059669" />
-                  <Text style={styles.customDateText}>
+                  <Text style={styles.customDateText} weight="medium">
                     Pick a specific date
                   </Text>
                 </TouchableOpacity>
@@ -366,7 +381,9 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                     style={styles.quickOption}
                     onPress={() => handleQuickFilter('month', 'current')}
                   >
-                    <Text style={styles.quickOptionText}>This Month</Text>
+                    <Text style={styles.quickOptionText} weight="medium">
+                      This Month
+                    </Text>
                     <Text style={styles.quickOptionDate}>
                       {new Date().toLocaleDateString('en-US', {
                         month: 'long',
@@ -379,7 +396,9 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                     style={styles.quickOption}
                     onPress={() => handleQuickFilter('month', 'previous')}
                   >
-                    <Text style={styles.quickOptionText}>Last Month</Text>
+                    <Text style={styles.quickOptionText} weight="medium">
+                      Last Month
+                    </Text>
                     <Text style={styles.quickOptionDate}>
                       {new Date(
                         new Date().getFullYear(),
@@ -392,10 +411,14 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                   </TouchableOpacity>
                 </View>
 
-                <Text style={styles.sectionTitle}>Custom Month & Year</Text>
+                <Text style={styles.sectionTitle} weight="medium">
+                  Custom Month & Year
+                </Text>
                 <View style={styles.monthYearPicker}>
                   <View style={styles.yearPicker}>
-                    <Text style={styles.pickerLabel}>Year</Text>
+                    <Text style={styles.pickerLabel} weight="medium">
+                      Year
+                    </Text>
                     <View style={styles.yearControls}>
                       <TouchableOpacity
                         style={styles.yearButton}
@@ -408,7 +431,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                       >
                         <ChevronLeft size={16} color="#6B7280" />
                       </TouchableOpacity>
-                      <Text style={styles.yearText}>
+                      <Text style={styles.yearText} weight="bold">
                         {dateFilter.selectedYear}
                       </Text>
                       <TouchableOpacity
@@ -426,7 +449,9 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                   </View>
 
                   <View style={styles.monthGrid}>
-                    <Text style={styles.pickerLabel}>Month</Text>
+                    <Text style={styles.pickerLabel} weight="medium">
+                      Month
+                    </Text>
                     <View style={styles.monthButtons}>
                       {[
                         'Jan',
@@ -463,6 +488,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                               dateFilter.selectedMonth === index &&
                                 styles.monthButtonTextActive,
                             ]}
+                            weight="medium"
                           >
                             {month}
                           </Text>
@@ -482,7 +508,9 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                     style={styles.quickOption}
                     onPress={() => handleQuickFilter('year', 'current')}
                   >
-                    <Text style={styles.quickOptionText}>This Year</Text>
+                    <Text style={styles.quickOptionText} weight="medium">
+                      This Year
+                    </Text>
                     <Text style={styles.quickOptionDate}>
                       {new Date().getFullYear()}
                     </Text>
@@ -492,14 +520,18 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                     style={styles.quickOption}
                     onPress={() => handleQuickFilter('year', 'previous')}
                   >
-                    <Text style={styles.quickOptionText}>Last Year</Text>
+                    <Text style={styles.quickOptionText} weight="medium">
+                      Last Year
+                    </Text>
                     <Text style={styles.quickOptionDate}>
                       {new Date().getFullYear() - 1}
                     </Text>
                   </TouchableOpacity>
                 </View>
 
-                <Text style={styles.sectionTitle}>Custom Year</Text>
+                <Text style={styles.sectionTitle} weight="medium">
+                  Custom Year
+                </Text>
                 <View style={styles.yearSelector}>
                   <TouchableOpacity
                     style={styles.yearNavButton}
@@ -520,7 +552,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                       setShowFilterModal(false);
                     }}
                   >
-                    <Text style={styles.yearDisplayText}>
+                    <Text style={styles.yearDisplayText} weight="bold">
                       {dateFilter.selectedYear}
                     </Text>
                   </TouchableOpacity>
@@ -563,6 +595,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                             dateFilter.selectedYear === year &&
                               styles.yearGridButtonTextActive,
                           ]}
+                          weight="medium"
                         >
                           {year}
                         </Text>
@@ -584,9 +617,13 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
             <View style={styles.datePickerModal}>
               <View style={styles.datePickerHeader}>
                 <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                  <Text style={styles.datePickerCancel}>Cancel</Text>
+                  <Text style={styles.datePickerCancel} weight="medium">
+                    Cancel
+                  </Text>
                 </TouchableOpacity>
-                <Text style={styles.datePickerTitle}>Select Date</Text>
+                <Text style={styles.datePickerTitle} weight="medium">
+                  Select Date
+                </Text>
                 <TouchableOpacity
                   onPress={() => {
                     onDateFilterChange({
@@ -598,7 +635,9 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                     setShowFilterModal(false);
                   }}
                 >
-                  <Text style={styles.datePickerDone}>Done</Text>
+                  <Text style={styles.datePickerDone} weight="medium">
+                    Done
+                  </Text>
                 </TouchableOpacity>
               </View>
               <View style={styles.datePickerContent}>
@@ -660,13 +699,11 @@ const styles = StyleSheet.create({
   },
   periodLabel: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
     marginBottom: 4,
   },
   periodValue: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   actions: {
@@ -714,7 +751,6 @@ const styles = StyleSheet.create({
   },
   quickFilterText: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   quickFilterTextActive: {
@@ -736,12 +772,10 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   modalClose: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#059669',
   },
   tabContainer: {
@@ -768,7 +802,6 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   activeTabText: {
@@ -796,17 +829,14 @@ const styles = StyleSheet.create({
   },
   quickOptionText: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#111827',
   },
   quickOptionDate: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
   },
   sectionTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 12,
   },
@@ -822,7 +852,6 @@ const styles = StyleSheet.create({
   },
   customDateText: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#111827',
   },
   monthYearPicker: {
@@ -838,7 +867,6 @@ const styles = StyleSheet.create({
   },
   pickerLabel: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#374151',
   },
   yearControls: {
@@ -857,7 +885,6 @@ const styles = StyleSheet.create({
   },
   yearText: {
     fontSize: 18,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
     minWidth: 60,
     textAlign: 'center',
@@ -883,7 +910,6 @@ const styles = StyleSheet.create({
   },
   monthButtonText: {
     fontSize: 13,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   monthButtonTextActive: {
@@ -918,7 +944,6 @@ const styles = StyleSheet.create({
   },
   yearDisplayText: {
     fontSize: 24,
-    fontFamily: 'Inter-Bold',
     color: '#059669',
   },
   yearGrid: {
@@ -943,7 +968,6 @@ const styles = StyleSheet.create({
   },
   yearGridButtonText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   yearGridButtonTextActive: {
@@ -965,17 +989,14 @@ const styles = StyleSheet.create({
   },
   datePickerTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   datePickerCancel: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   datePickerDone: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#059669',
   },
   datePickerContent: {

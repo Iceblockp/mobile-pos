@@ -1,11 +1,6 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-} from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from '../context/LocalizationContext';
 
@@ -108,7 +103,9 @@ const DefaultQuestions: React.FC<DefaultQuestionsProps> = ({
         >
           <Ionicons name={question.icon} size={20} color="#FFFFFF" />
         </View>
-        <Text style={styles.questionText}>{question.text}</Text>
+        <Text style={styles.questionText} weight="medium">
+          {question.text}
+        </Text>
         <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
       </View>
     </TouchableOpacity>
@@ -116,7 +113,9 @@ const DefaultQuestions: React.FC<DefaultQuestionsProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t('aiAnalytics.quickQuestions')}</Text>
+      <Text style={styles.title} weight="medium">
+        {t('aiAnalytics.quickQuestions')}
+      </Text>
       <Text style={styles.subtitle}>
         {t('aiAnalytics.quickQuestionsSubtitle')}
       </Text>
@@ -139,7 +138,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '600',
     color: '#333',
     marginBottom: 4,
   },
@@ -147,7 +145,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginBottom: 20,
-    lineHeight: 20,
   },
   questionsContainer: {
     maxHeight: 300,
@@ -179,7 +176,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: '#333',
-    fontWeight: '500',
   },
 });
 

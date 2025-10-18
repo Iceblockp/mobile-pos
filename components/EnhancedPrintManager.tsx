@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   TouchableOpacity,
@@ -10,6 +9,7 @@ import {
   Linking,
   Platform,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { X, Printer, Share, ExternalLink } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import * as Print from 'expo-print';
@@ -630,7 +630,9 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
       <View style={styles.overlay}>
         <View style={styles.container}>
           <View style={styles.header}>
-            <Text style={styles.title}>{t('printing.title')}</Text>
+            <Text style={styles.title} weight="medium">
+              {t('printing.title')}
+            </Text>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
               <X size={24} color="#6B7280" />
             </TouchableOpacity>
@@ -653,6 +655,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
                       styles.actionButtonText,
                       styles.directBluetoothText,
                     ]}
+                    weight="medium"
                   >
                     Print Direct
                   </Text>
@@ -676,7 +679,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
                 disabled={isPrinting || isSharing || isBluetoothPrinting}
               >
                 <Printer size={24} color="#059669" />
-                <Text style={styles.actionButtonText}>
+                <Text style={styles.actionButtonText} weight="medium">
                   {t('printing.printReceipt')}
                 </Text>
                 <Text style={styles.actionButtonSubtext}>
@@ -691,7 +694,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
                 disabled={isPrinting || isSharing || isBluetoothPrinting}
               >
                 <Share size={24} color="#2563EB" />
-                <Text style={styles.actionButtonText}>
+                <Text style={styles.actionButtonText} weight="medium">
                   {t('printing.sharePDF')}
                 </Text>
                 <Text style={styles.actionButtonSubtext}>
@@ -705,7 +708,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
                 onPress={openPrintingAppsInfo}
               >
                 <ExternalLink size={16} color="#6B7280" />
-                <Text style={styles.infoButtonText}>
+                <Text style={styles.infoButtonText} weight="medium">
                   {t('printing.getBluetoothApps')}
                 </Text>
               </TouchableOpacity>
@@ -753,7 +756,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   closeButton: {
@@ -767,7 +769,6 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
     marginBottom: 32,
-    lineHeight: 24,
   },
   actions: {
     width: '100%',
@@ -789,7 +790,6 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginTop: 8,
     textAlign: 'center',
@@ -817,7 +817,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     marginLeft: 8,
-    fontFamily: 'Inter-Medium',
   },
   loadingContainer: {
     flexDirection: 'row',

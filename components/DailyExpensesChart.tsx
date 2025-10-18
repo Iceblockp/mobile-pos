@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { CustomBarChart } from '@/components/Charts';
@@ -100,7 +101,9 @@ export default function DailyExpensesChart({
       <Card>
         <View style={styles.header}>
           <TrendingDown size={20} color="#EF4444" />
-          <Text style={styles.title}>{t('analytics.dailyExpenses')}</Text>
+          <Text style={styles.title} weight="medium">
+            {t('analytics.dailyExpenses')}
+          </Text>
         </View>
         <View style={styles.noDataContainer}>
           <Text style={styles.noDataText}>{t('analytics.noExpenseData')}</Text>
@@ -207,7 +210,9 @@ export default function DailyExpensesChart({
     <Card>
       <View style={styles.header}>
         <TrendingDown size={20} color="#EF4444" />
-        <Text style={styles.title}>{t('analytics.dailyExpenses')}</Text>
+        <Text style={styles.title} weight="medium">
+          {t('analytics.dailyExpenses')}
+        </Text>
       </View>
 
       <CustomBarChart
@@ -232,7 +237,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginLeft: 8,
   },
@@ -243,7 +247,6 @@ const styles = StyleSheet.create({
   },
   noDataText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',
   },

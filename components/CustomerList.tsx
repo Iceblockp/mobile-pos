@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TextInput,
@@ -9,6 +8,7 @@ import {
   Alert,
   RefreshControl,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Search, Plus, Users } from 'lucide-react-native';
 import { CustomerCard } from '@/components/CustomerCard';
 import { CustomerForm } from '@/components/CustomerForm';
@@ -118,7 +118,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Users size={48} color="#D1D5DB" />
-      <Text style={styles.emptyTitle}>
+      <Text style={styles.emptyTitle} weight="medium">
         {searchQuery
           ? t('customers.noCustomersFound')
           : t('customers.noCustomers')}
@@ -134,7 +134,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({
           onPress={handleAddCustomer}
         >
           <Plus size={16} color="#FFFFFF" />
-          <Text style={styles.emptyButtonText}>
+          <Text style={styles.emptyButtonText} weight="medium">
             {t('customers.addCustomer')}
           </Text>
         </TouchableOpacity>
@@ -151,7 +151,9 @@ export const CustomerList: React.FC<CustomerListProps> = ({
       <View style={styles.errorState}>
         <Text style={styles.errorText}>{t('common.errorLoadingData')}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
-          <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
+          <Text style={styles.retryButtonText} weight="medium">
+            {t('common.retry')}
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -178,7 +180,9 @@ export const CustomerList: React.FC<CustomerListProps> = ({
             onPress={handleAddCustomer}
           >
             <Plus size={16} color="#FFFFFF" />
-            <Text style={styles.addButtonText}>{t('customers.add')}</Text>
+            <Text style={styles.addButtonText} weight="medium">
+              {t('customers.add')}
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -241,7 +245,6 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
   },
   addButton: {
@@ -254,7 +257,6 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
     marginLeft: 4,
   },
@@ -271,18 +273,15 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginTop: 16,
     marginBottom: 8,
   },
   emptyDescription: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',
     marginBottom: 24,
-    lineHeight: 20,
   },
   emptyButton: {
     flexDirection: 'row',
@@ -294,7 +293,6 @@ const styles = StyleSheet.create({
   },
   emptyButtonText: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
     marginLeft: 8,
   },
@@ -306,7 +304,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#EF4444',
     textAlign: 'center',
     marginBottom: 16,
@@ -319,7 +316,6 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
 });

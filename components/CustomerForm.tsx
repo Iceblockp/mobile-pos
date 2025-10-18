@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   TouchableOpacity,
@@ -9,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { X, User, Phone, Mail, MapPin } from 'lucide-react-native';
 import { Customer } from '@/services/database';
 import { useTranslation } from '@/context/LocalizationContext';
@@ -136,7 +136,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
         <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>
+            <Text style={styles.title} weight="medium">
               {customer
                 ? t('customers.editCustomer')
                 : t('customers.addCustomer')}
@@ -154,7 +154,9 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
           <View style={styles.form}>
             {/* Name Field */}
             <View style={styles.fieldContainer}>
-              <Text style={styles.fieldLabel}>{t('customers.name')} *</Text>
+              <Text style={styles.fieldLabel} weight="medium">
+                {t('customers.name')} *
+              </Text>
               <View style={styles.inputContainer}>
                 <User size={16} color="#6B7280" style={styles.inputIcon} />
                 <TextInput
@@ -172,7 +174,9 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
 
             {/* Phone Field */}
             <View style={styles.fieldContainer}>
-              <Text style={styles.fieldLabel}>{t('customers.phone')}</Text>
+              <Text style={styles.fieldLabel} weight="medium">
+                {t('customers.phone')}
+              </Text>
               <View style={styles.inputContainer}>
                 <Phone size={16} color="#6B7280" style={styles.inputIcon} />
                 <TextInput
@@ -191,7 +195,9 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
 
             {/* Email Field */}
             <View style={styles.fieldContainer}>
-              <Text style={styles.fieldLabel}>{t('customers.email')}</Text>
+              <Text style={styles.fieldLabel} weight="medium">
+                {t('customers.email')}
+              </Text>
               <View style={styles.inputContainer}>
                 <Mail size={16} color="#6B7280" style={styles.inputIcon} />
                 <TextInput
@@ -211,7 +217,9 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
 
             {/* Address Field */}
             <View style={styles.fieldContainer}>
-              <Text style={styles.fieldLabel}>{t('customers.address')}</Text>
+              <Text style={styles.fieldLabel} weight="medium">
+                {t('customers.address')}
+              </Text>
               <View style={styles.inputContainer}>
                 <MapPin size={16} color="#6B7280" style={styles.inputIcon} />
                 <TextInput
@@ -238,7 +246,9 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
               onPress={handleClose}
               disabled={loading}
             >
-              <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
+              <Text style={styles.cancelButtonText} weight="medium">
+                {t('common.cancel')}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -249,12 +259,12 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
               {loading ? (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="small" color="#FFFFFF" />
-                  <Text style={styles.saveButtonText}>
+                  <Text style={styles.saveButtonText} weight="medium">
                     {t('common.saving')}
                   </Text>
                 </View>
               ) : (
-                <Text style={styles.saveButtonText}>
+                <Text style={styles.saveButtonText} weight="medium">
                   {customer ? t('common.update') : t('common.save')}
                 </Text>
               )}
@@ -290,7 +300,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   closeButton: {
@@ -304,7 +313,6 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 8,
   },
@@ -325,7 +333,6 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
     padding: 0,
   },
@@ -349,7 +356,6 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#6B7280',
   },
   saveButton: {
@@ -365,7 +371,6 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
   loadingContainer: {

@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   TextInput,
@@ -9,6 +8,7 @@ import {
   FlatList,
   ActivityIndicator,
 } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import {
   User,
   Search,
@@ -96,12 +96,14 @@ export const CustomerSelector: React.FC<CustomerSelectorProps> = ({
       onPress={() => handleSelectCustomer(item)}
     >
       <View style={styles.customerInfo}>
-        <Text style={styles.customerName}>{item.name}</Text>
+        <Text style={styles.customerName} weight="medium">
+          {item.name}
+        </Text>
         {item.phone && <Text style={styles.customerContact}>{item.phone}</Text>}
         {item.email && <Text style={styles.customerContact}>{item.email}</Text>}
       </View>
       <View style={styles.customerStats}>
-        <Text style={styles.customerStat}>
+        <Text style={styles.customerStat} weight="medium">
           {item.visit_count} {t('customers.visits')}
         </Text>
       </View>
@@ -140,7 +142,7 @@ export const CustomerSelector: React.FC<CustomerSelectorProps> = ({
           <View style={styles.selectorText}>
             {selectedCustomer ? (
               <>
-                <Text style={styles.selectedCustomerName}>
+                <Text style={styles.selectedCustomerName} weight="medium">
                   {selectedCustomer.name}
                 </Text>
                 {selectedCustomer.phone && (
@@ -180,7 +182,7 @@ export const CustomerSelector: React.FC<CustomerSelectorProps> = ({
           <View style={styles.modalContainer}>
             {/* Header */}
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+              <Text style={styles.modalTitle} weight="medium">
                 {t('customers.selectCustomer')}
               </Text>
               <TouchableOpacity
@@ -210,7 +212,7 @@ export const CustomerSelector: React.FC<CustomerSelectorProps> = ({
               onPress={handleAddNewCustomer}
             >
               <UserPlus size={16} color="#059669" />
-              <Text style={styles.addNewButtonText}>
+              <Text style={styles.addNewButtonText} weight="medium">
                 {t('customers.addNewCustomer')}
               </Text>
             </TouchableOpacity>
@@ -242,7 +244,7 @@ export const CustomerSelector: React.FC<CustomerSelectorProps> = ({
                 handleCloseModal();
               }}
             >
-              <Text style={styles.walkInButtonText}>
+              <Text style={styles.walkInButtonText} weight="medium">
                 {t('customers.walkInCustomer')}
               </Text>
             </TouchableOpacity>
@@ -289,18 +291,15 @@ const styles = StyleSheet.create({
   },
   selectedCustomerName: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#059669',
   },
   selectedCustomerContact: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
   placeholderText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#9CA3AF',
   },
   clearButton: {
@@ -330,7 +329,6 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   closeButton: {
@@ -351,7 +349,6 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
   },
   addNewButton: {
@@ -367,7 +364,6 @@ const styles = StyleSheet.create({
   },
   addNewButtonText: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#059669',
     marginLeft: 8,
   },
@@ -391,12 +387,10 @@ const styles = StyleSheet.create({
   },
   customerName: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   customerContact: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
@@ -405,7 +399,6 @@ const styles = StyleSheet.create({
   },
   customerStat: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   emptyState: {
@@ -414,7 +407,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 8,
     textAlign: 'center',
@@ -427,7 +419,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginLeft: 8,
   },
@@ -442,7 +433,6 @@ const styles = StyleSheet.create({
   },
   walkInButtonText: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#6B7280',
   },
 });

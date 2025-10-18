@@ -1,5 +1,6 @@
 import React, { Component, ReactNode } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { MyanmarText as Text } from '@/components/MyanmarText';
 import { AlertTriangle, RefreshCw } from 'lucide-react-native';
 
 interface Props {
@@ -46,7 +47,9 @@ export class ErrorBoundary extends Component<Props, State> {
           <View style={styles.errorCard}>
             <AlertTriangle size={48} color="#EF4444" style={styles.icon} />
 
-            <Text style={styles.title}>Something went wrong</Text>
+            <Text style={styles.title} weight="medium">
+              Something went wrong
+            </Text>
 
             <Text style={styles.message}>
               {this.state.error?.message || 'An unexpected error occurred'}
@@ -57,7 +60,9 @@ export class ErrorBoundary extends Component<Props, State> {
               onPress={this.handleRetry}
             >
               <RefreshCw size={20} color="#FFFFFF" />
-              <Text style={styles.retryButtonText}>Try Again</Text>
+              <Text style={styles.retryButtonText} weight="medium">
+                Try Again
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -97,18 +102,15 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 8,
     textAlign: 'center',
   },
   message: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',
     marginBottom: 24,
-    lineHeight: 20,
   },
   retryButton: {
     backgroundColor: '#3B82F6',
@@ -122,7 +124,6 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
   },
 });
 
