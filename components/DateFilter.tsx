@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -47,7 +47,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
       case 'day':
         const isToday =
           selectedDate.toDateString() === new Date().toDateString();
-        if (isToday) return 'Today';
+        if (isToday) return t('common.today');
         return selectedDate.toLocaleDateString('en-US', {
           weekday: 'short',
           month: 'short',
@@ -55,27 +55,27 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
         });
       case 'month':
         const monthNames = [
-          'January',
-          'February',
-          'March',
-          'April',
-          'May',
-          'June',
-          'July',
-          'August',
-          'September',
-          'October',
-          'November',
-          'December',
+          t('analytics.january'),
+          t('analytics.february'),
+          t('analytics.march'),
+          t('analytics.april'),
+          t('analytics.may'),
+          t('analytics.june'),
+          t('analytics.july'),
+          t('analytics.august'),
+          t('analytics.september'),
+          t('analytics.october'),
+          t('analytics.november'),
+          t('analytics.december'),
         ];
         const isCurrentMonth =
           selectedMonth === new Date().getMonth() &&
           selectedYear === new Date().getFullYear();
-        if (isCurrentMonth) return 'This Month';
+        if (isCurrentMonth) return t('common.thisMonth');
         return `${monthNames[selectedMonth]} ${selectedYear}`;
       case 'year':
         const isCurrentYear = selectedYear === new Date().getFullYear();
-        if (isCurrentYear) return 'This Year';
+        if (isCurrentYear) return t('analytics.thisYear');
         return selectedYear.toString();
       default:
         return '';
@@ -185,7 +185,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
       <View style={styles.headerRow}>
         <View style={styles.periodInfo}>
           <Text style={styles.periodLabel} weight="medium">
-            Period
+            {t('analytics.analysisPeriod')}
           </Text>
           <Text style={styles.periodValue} weight="medium">
             {getFilterDisplayText()}
@@ -237,7 +237,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                 styles.quickFilterTextActive,
             ]}
           >
-            Today
+            {t('common.today')}
           </Text>
         </TouchableOpacity>
 
@@ -260,7 +260,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                 styles.quickFilterTextActive,
             ]}
           >
-            This Month
+            {t('common.thisMonth')}
           </Text>
         </TouchableOpacity>
 
@@ -281,7 +281,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                 styles.quickFilterTextActive,
             ]}
           >
-            This Year
+            {t('analytics.thisYear')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -295,11 +295,11 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle} weight="medium">
-              Select Period
+              {t('analytics.selectPeriod')}
             </Text>
             <TouchableOpacity onPress={() => setShowFilterModal(false)}>
               <Text style={styles.modalClose} weight="medium">
-                Done
+                {t('common.done')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -335,7 +335,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                     onPress={() => handleQuickFilter('day', 'today')}
                   >
                     <Text style={styles.quickOptionText} weight="medium">
-                      Today
+                      {t('common.today')}
                     </Text>
                     <Text style={styles.quickOptionDate}>
                       {new Date().toLocaleDateString()}
@@ -347,7 +347,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                     onPress={() => handleQuickFilter('day', 'yesterday')}
                   >
                     <Text style={styles.quickOptionText} weight="medium">
-                      Yesterday
+                      {t('analytics.yesterday')}
                     </Text>
                     <Text style={styles.quickOptionDate}>
                       {new Date(Date.now() - 86400000).toLocaleDateString()}
@@ -356,7 +356,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                 </View>
 
                 <Text style={styles.sectionTitle} weight="medium">
-                  Custom Date
+                  {t('analytics.customDate')}
                 </Text>
                 <TouchableOpacity
                   style={styles.customDateButton}
@@ -367,7 +367,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                 >
                   <Calendar size={20} color="#059669" />
                   <Text style={styles.customDateText} weight="medium">
-                    Pick a specific date
+                    {t('analytics.pickSpecificDate')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -382,7 +382,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                     onPress={() => handleQuickFilter('month', 'current')}
                   >
                     <Text style={styles.quickOptionText} weight="medium">
-                      This Month
+                      {t('common.thisMonth')}
                     </Text>
                     <Text style={styles.quickOptionDate}>
                       {new Date().toLocaleDateString('en-US', {
@@ -397,7 +397,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                     onPress={() => handleQuickFilter('month', 'previous')}
                   >
                     <Text style={styles.quickOptionText} weight="medium">
-                      Last Month
+                      {t('analytics.lastMonth')}
                     </Text>
                     <Text style={styles.quickOptionDate}>
                       {new Date(
@@ -412,12 +412,12 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                 </View>
 
                 <Text style={styles.sectionTitle} weight="medium">
-                  Custom Month & Year
+                  {t('analytics.customMonth')}
                 </Text>
                 <View style={styles.monthYearPicker}>
                   <View style={styles.yearPicker}>
                     <Text style={styles.pickerLabel} weight="medium">
-                      Year
+                      {t('sales.year')}
                     </Text>
                     <View style={styles.yearControls}>
                       <TouchableOpacity
@@ -450,22 +450,22 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
 
                   <View style={styles.monthGrid}>
                     <Text style={styles.pickerLabel} weight="medium">
-                      Month
+                      {t('sales.month')}
                     </Text>
                     <View style={styles.monthButtons}>
                       {[
-                        'Jan',
-                        'Feb',
-                        'Mar',
-                        'Apr',
-                        'May',
-                        'Jun',
-                        'Jul',
-                        'Aug',
-                        'Sep',
-                        'Oct',
-                        'Nov',
-                        'Dec',
+                        t('analytics.january').substring(0, 3),
+                        t('analytics.february').substring(0, 3),
+                        t('analytics.march').substring(0, 3),
+                        t('analytics.april').substring(0, 3),
+                        t('analytics.may').substring(0, 3),
+                        t('analytics.june').substring(0, 3),
+                        t('analytics.july').substring(0, 3),
+                        t('analytics.august').substring(0, 3),
+                        t('analytics.september').substring(0, 3),
+                        t('analytics.october').substring(0, 3),
+                        t('analytics.november').substring(0, 3),
+                        t('analytics.december').substring(0, 3),
                       ].map((month, index) => (
                         <TouchableOpacity
                           key={month}
@@ -509,7 +509,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                     onPress={() => handleQuickFilter('year', 'current')}
                   >
                     <Text style={styles.quickOptionText} weight="medium">
-                      This Year
+                      {t('analytics.thisYear')}
                     </Text>
                     <Text style={styles.quickOptionDate}>
                       {new Date().getFullYear()}
@@ -521,7 +521,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                     onPress={() => handleQuickFilter('year', 'previous')}
                   >
                     <Text style={styles.quickOptionText} weight="medium">
-                      Last Year
+                      {t('analytics.lastYear')}
                     </Text>
                     <Text style={styles.quickOptionDate}>
                       {new Date().getFullYear() - 1}
@@ -530,7 +530,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                 </View>
 
                 <Text style={styles.sectionTitle} weight="medium">
-                  Custom Year
+                  {t('analytics.customYear')}
                 </Text>
                 <View style={styles.yearSelector}>
                   <TouchableOpacity
@@ -618,11 +618,11 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
               <View style={styles.datePickerHeader}>
                 <TouchableOpacity onPress={() => setShowDatePicker(false)}>
                   <Text style={styles.datePickerCancel} weight="medium">
-                    Cancel
+                    {t('common.cancel')}
                   </Text>
                 </TouchableOpacity>
                 <Text style={styles.datePickerTitle} weight="medium">
-                  Select Date
+                  {t('common.selectDate')}
                 </Text>
                 <TouchableOpacity
                   onPress={() => {
@@ -636,7 +636,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                   }}
                 >
                   <Text style={styles.datePickerDone} weight="medium">
-                    Done
+                    {t('common.done')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -645,7 +645,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
                   value={tempDate}
                   mode="date"
                   display="spinner"
-                  onChange={(event, selectedDate) => {
+                  onChange={(_, selectedDate) => {
                     if (selectedDate) setTempDate(selectedDate);
                   }}
                 />
@@ -659,7 +659,7 @@ export const DateFilterComponent: React.FC<DateFilterProps> = ({
             value={tempDate}
             mode="date"
             display="default"
-            onChange={(event, selectedDate) => {
+            onChange={(_, selectedDate) => {
               setShowDatePicker(false);
               if (selectedDate) {
                 onDateFilterChange({

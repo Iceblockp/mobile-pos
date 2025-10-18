@@ -213,107 +213,112 @@ const Index = () => {
         </View>
         <LanguageIconButton style={styles.welcomeLanguageButton} />
       </View>
-
-      <View style={styles.welcomeContent}>
-        {/* License Expiration Warning */}
-        {isAboutToExpire() && (
-          <View style={styles.expirationWarning}>
-            <View style={styles.warningHeader}>
-              <ShieldCheck size={20} color="#F59E0B" />
-              <Text style={styles.warningTitle} weight="medium">
-                {t('license.licenseExpiringSoon')}
+      <ScrollView style={{ flex: 1 }}>
+        <View style={styles.welcomeContent}>
+          {/* License Expiration Warning */}
+          {isAboutToExpire() && (
+            <View style={styles.expirationWarning}>
+              <View style={styles.warningHeader}>
+                <ShieldCheck size={20} color="#F59E0B" />
+                <Text style={styles.warningTitle} weight="medium">
+                  {t('license.licenseExpiringSoon')}
+                </Text>
+              </View>
+              <Text style={styles.warningMessage}>
+                {t('license.licenseWillExpire')}{' '}
+                {Math.ceil(
+                  (new Date(
+                    licenseStatus?.expiryDate
+                      ? `${licenseStatus.expiryDate.slice(
+                          0,
+                          4
+                        )}-${licenseStatus.expiryDate.slice(
+                          4,
+                          6
+                        )}-${licenseStatus.expiryDate.slice(6, 8)}`
+                      : ''
+                  ).getTime() -
+                    new Date().getTime()) /
+                    (1000 * 3600 * 24)
+                )}{' '}
+                {t('analytics.days')}. {t('license.regenerateChallenge')}
               </Text>
-            </View>
-            <Text style={styles.warningMessage}>
-              {t('license.licenseWillExpire')}{' '}
-              {Math.ceil(
-                (new Date(
-                  licenseStatus?.expiryDate
-                    ? `${licenseStatus.expiryDate.slice(
-                        0,
-                        4
-                      )}-${licenseStatus.expiryDate.slice(
-                        4,
-                        6
-                      )}-${licenseStatus.expiryDate.slice(6, 8)}`
-                    : ''
-                ).getTime() -
-                  new Date().getTime()) /
-                  (1000 * 3600 * 24)
-              )}{' '}
-              {t('analytics.days')}. {t('license.regenerateChallenge')}
-            </Text>
-            <TouchableOpacity
-              style={styles.regenerateChallengeButton}
-              onPress={() => handleRegenerateChallenge(30)}
-            >
-              <ShieldCheck size={16} color="#FFFFFF" />
-              <Text
-                style={styles.regenerateChallengeButtonText}
-                weight="medium"
+              <TouchableOpacity
+                style={styles.regenerateChallengeButton}
+                onPress={() => handleRegenerateChallenge(30)}
               >
-                {t('license.regenerateChallengeButton')}
+                <ShieldCheck size={16} color="#FFFFFF" />
+                <Text
+                  style={styles.regenerateChallengeButtonText}
+                  weight="medium"
+                >
+                  {t('license.regenerateChallengeButton')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={styles.welcomeCard}>
+            <Image
+              source={require('@/assets/images/pos.png')}
+              style={styles.welcomeImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.welcomeGreeting} weight="bold">
+              {t('license.welcome')}
+            </Text>
+            <Text style={styles.welcomeMessage}>
+              {t('license.systemReady')}
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => router.push('/(tabs)/dashboard')}
+              style={styles.getStartedButton}
+            >
+              <Text style={styles.getStartedButtonText} weight="medium">
+                {t('license.getStarted')}
               </Text>
+              <ArrowRight size={16} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
-        )}
 
-        <View style={styles.welcomeCard}>
-          <Image
-            source={require('@/assets/images/pos.png')}
-            style={styles.welcomeImage}
-            resizeMode="contain"
-          />
-          <Text style={styles.welcomeGreeting} weight="bold">
-            {t('license.welcome')}
-          </Text>
-          <Text style={styles.welcomeMessage}>{t('license.systemReady')}</Text>
+          {isExpired && (
+            <TouchableOpacity
+              style={styles.renewButton}
+              onPress={() => setModalVisible(true)}
+            >
+              <Text style={styles.renewButtonText} weight="medium">
+                {t('license.renewLicense')}
+              </Text>
+            </TouchableOpacity>
+          )}
 
-          <TouchableOpacity
-            onPress={() => router.push('/(tabs)/dashboard')}
-            style={styles.getStartedButton}
-          >
-            <Text style={styles.getStartedButtonText} weight="medium">
-              {t('license.getStarted')}
+          {/* Contact Phone Section */}
+          <View style={styles.contactSection}>
+            <Text style={styles.contactLabel}>
+              {t('license.contactPhone')}:
             </Text>
-            <ArrowRight size={16} color="#FFFFFF" />
-          </TouchableOpacity>
+            <Text style={styles.contactPhone} weight="bold">
+              +959425743536
+            </Text>
+          </View>
         </View>
 
-        {isExpired && (
-          <TouchableOpacity
-            style={styles.renewButton}
-            onPress={() => setModalVisible(true)}
-          >
-            <Text style={styles.renewButtonText} weight="medium">
-              {t('license.renewLicense')}
-            </Text>
-          </TouchableOpacity>
-        )}
+        <LicenseDurationModal
+          visible={modalVisible}
+          selectedDuration={selectedDuration}
+          onDurationChange={setSelectedDuration}
+          onClose={() => setModalVisible(false)}
+        />
 
-        {/* Contact Phone Section */}
-        <View style={styles.contactSection}>
-          <Text style={styles.contactLabel}>{t('license.contactPhone')}:</Text>
-          <Text style={styles.contactPhone} weight="bold">
-            +959425743536
-          </Text>
-        </View>
-      </View>
+        <RegenerateWarningModal
+          visible={showWarningModal}
+          onClose={() => setShowWarningModal(false)}
+          onProceed={handleProceedRegeneration}
+        />
 
-      <LicenseDurationModal
-        visible={modalVisible}
-        selectedDuration={selectedDuration}
-        onDurationChange={setSelectedDuration}
-        onClose={() => setModalVisible(false)}
-      />
-
-      <RegenerateWarningModal
-        visible={showWarningModal}
-        onClose={() => setShowWarningModal(false)}
-        onProceed={handleProceedRegeneration}
-      />
-
-      <MigrationProgress visible={isMigrationInProgress} />
+        <MigrationProgress visible={isMigrationInProgress} />
+      </ScrollView>
     </SafeAreaView>
   );
 };

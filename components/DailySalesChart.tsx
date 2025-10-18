@@ -1,4 +1,3 @@
-import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Card } from '@/components/Card';
@@ -102,7 +101,7 @@ export default function DailySalesChart({
         <View style={styles.header}>
           <BarChart3 size={20} color="#059669" />
           <Text style={styles.title} weight="medium">
-            {t('analytics.dailySales')}
+            {t('dashboard.dailySales')}
           </Text>
         </View>
         <View style={styles.noDataContainer}>
@@ -221,7 +220,7 @@ export default function DailySalesChart({
         title=""
         formatYLabel={formatMMK}
         footer={{
-          label: `${totalSales} ${t('analytics.totalSales')} • ${t(
+          label: `${totalSales} ${t('dashboard.totalSales')} • ${t(
             'analytics.averageDaily'
           )}`,
           value: `${formatPrice(totalRevenue)} • ${formatPrice(averageDaily)}`,

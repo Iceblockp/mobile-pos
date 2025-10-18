@@ -1,4 +1,3 @@
-import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Card } from '@/components/Card';
@@ -102,7 +101,7 @@ export default function DailyExpensesChart({
         <View style={styles.header}>
           <TrendingDown size={20} color="#EF4444" />
           <Text style={styles.title} weight="medium">
-            {t('analytics.dailyExpenses')}
+            {t('dashboard.dailyExpenses')}
           </Text>
         </View>
         <View style={styles.noDataContainer}>
@@ -128,7 +127,6 @@ export default function DailyExpensesChart({
 
     // For single day view, expenses might not have hourly granularity
     // so we need to handle daily expense data differently
-    const isSingleDay = days <= 1;
 
     if (days <= 1) {
       // Hourly intervals for single day - use local timezone

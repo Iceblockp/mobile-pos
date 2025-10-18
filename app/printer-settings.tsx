@@ -60,9 +60,9 @@ export default function PrinterSettingsScreen() {
       const isAvailable = await BluetoothPrinterService.isBluetoothAvailable();
       if (!isAvailable) {
         Alert.alert(
-          'Bluetooth Required',
-          'Please enable Bluetooth to scan for printers.',
-          [{ text: 'OK' }]
+          t('printerSettings.bluetoothRequired'),
+          t('printerSettings.enableBluetooth'),
+          [{ text: t('common.confirm') }]
         );
         return;
       }
@@ -72,17 +72,17 @@ export default function PrinterSettingsScreen() {
 
       if (printers.length === 0) {
         Alert.alert(
-          'No Printers Found',
-          'No thermal printers found. Make sure your Xprinter P300 is paired in Bluetooth settings.',
-          [{ text: 'OK' }]
+          t('printerSettings.noPrintersFound'),
+          t('printerSettings.noPrintersFoundMessage'),
+          [{ text: t('common.confirm') }]
         );
       }
     } catch (error) {
       console.error('Error scanning for printers:', error);
       Alert.alert(
-        'Scan Failed',
-        'Failed to scan for printers. Please check Bluetooth permissions.',
-        [{ text: 'OK' }]
+        t('printerSettings.scanFailed'),
+        t('printerSettings.scanFailedMessage'),
+        [{ text: t('common.confirm') }]
       );
     } finally {
       setIsScanning(false);
@@ -96,22 +96,24 @@ export default function PrinterSettingsScreen() {
       if (success) {
         setSavedPrinter(device);
         setConnectionStatus(true);
-        Alert.alert('Connected', `Successfully connected to ${device.name}`, [
-          { text: 'OK' },
-        ]);
+        Alert.alert(
+          t('printerSettings.connected'),
+          `${t('printerSettings.connectedMessage')} ${device.name}`,
+          [{ text: t('common.confirm') }]
+        );
       } else {
         Alert.alert(
-          'Connection Failed',
-          'Failed to connect to the printer. Please try again.',
-          [{ text: 'OK' }]
+          t('printerSettings.connectionFailed'),
+          t('printerSettings.connectionFailedMessage'),
+          [{ text: t('common.confirm') }]
         );
       }
     } catch (error) {
       console.error('Error connecting to printer:', error);
       Alert.alert(
-        'Connection Error',
-        'An error occurred while connecting to the printer.',
-        [{ text: 'OK' }]
+        t('printerSettings.connectionError'),
+        t('printerSettings.connectionErrorMessage'),
+        [{ text: t('common.confirm') }]
       );
     } finally {
       setIsConnecting(false);
@@ -122,9 +124,11 @@ export default function PrinterSettingsScreen() {
     try {
       await BluetoothPrinterService.disconnect();
       setConnectionStatus(false);
-      Alert.alert('Disconnected', 'Printer disconnected successfully.', [
-        { text: 'OK' },
-      ]);
+      Alert.alert(
+        t('printerSettings.disconnected'),
+        t('printerSettings.disconnectedMessage'),
+        [{ text: t('common.confirm') }]
+      );
     } catch (error) {
       console.error('Error disconnecting printer:', error);
     }
@@ -132,12 +136,12 @@ export default function PrinterSettingsScreen() {
 
   const removeSavedPrinter = async () => {
     Alert.alert(
-      'Remove Printer',
-      'Are you sure you want to remove the saved printer?',
+      t('printerSettings.removePrinter'),
+      t('printerSettings.removePrinterMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t('printerSettings.remove'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -166,13 +170,13 @@ export default function PrinterSettingsScreen() {
           </TouchableOpacity>
           <View style={styles.headerLeft}>
             <Text style={styles.title} weight="bold">
-              Printer Settings
+              {t('printerSettings.title')}
             </Text>
           </View>
         </View>
         <Stack.Screen
           options={{
-            title: 'Printer Settings',
+            title: t('printerSettings.title'),
             headerStyle: { backgroundColor: '#f8f9fa' },
             headerTintColor: '#333',
           }}
@@ -181,7 +185,9 @@ export default function PrinterSettingsScreen() {
         <ScrollView style={styles.container}>
           {/* Current Printer Status */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Current Printer</Text>
+            <Text style={styles.sectionTitle}>
+              {t('printerSettings.currentPrinter')}
+            </Text>
 
             {savedPrinter ? (
               <View style={styles.printerCard}>
@@ -209,7 +215,7 @@ export default function PrinterSettingsScreen() {
                       onPress={disconnectPrinter}
                     >
                       <Text style={styles.disconnectButtonText}>
-                        Disconnect
+                        {t('printerSettings.disconnect')}
                       </Text>
                     </TouchableOpacity>
                   ) : (
@@ -221,7 +227,9 @@ export default function PrinterSettingsScreen() {
                       {isConnecting ? (
                         <ActivityIndicator size="small" color="#FFFFFF" />
                       ) : (
-                        <Text style={styles.connectButtonText}>Connect</Text>
+                        <Text style={styles.connectButtonText}>
+                          {t('printerSettings.connect')}
+                        </Text>
                       )}
                     </TouchableOpacity>
                   )}
@@ -230,16 +238,20 @@ export default function PrinterSettingsScreen() {
                     style={[styles.actionButton, styles.removeButton]}
                     onPress={removeSavedPrinter}
                   >
-                    <Text style={styles.removeButtonText}>Remove</Text>
+                    <Text style={styles.removeButtonText}>
+                      {t('printerSettings.remove')}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
             ) : (
               <View style={styles.noPrinterCard}>
                 <Bluetooth size={48} color="#9CA3AF" />
-                <Text style={styles.noPrinterText}>No printer configured</Text>
+                <Text style={styles.noPrinterText}>
+                  {t('printerSettings.noPrinterConfigured')}
+                </Text>
                 <Text style={styles.noPrinterSubtext}>
-                  Scan for available thermal printers below
+                  {t('printerSettings.scanForPrinters')}
                 </Text>
               </View>
             )}
@@ -248,7 +260,9 @@ export default function PrinterSettingsScreen() {
           {/* Available Printers */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Available Printers</Text>
+              <Text style={styles.sectionTitle}>
+                {t('printerSettings.availablePrinters')}
+              </Text>
               <TouchableOpacity
                 style={styles.scanButton}
                 onPress={scanForPrinters}
@@ -260,7 +274,9 @@ export default function PrinterSettingsScreen() {
                   <RefreshCw size={20} color="#059669" />
                 )}
                 <Text style={styles.scanButtonText}>
-                  {isScanning ? 'Scanning...' : 'Scan'}
+                  {isScanning
+                    ? t('printerSettings.scanning')
+                    : t('printerSettings.scan')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -285,39 +301,47 @@ export default function PrinterSettingsScreen() {
                   {isConnecting ? (
                     <ActivityIndicator size="small" color="#059669" />
                   ) : (
-                    <Text style={styles.connectText}>Connect</Text>
+                    <Text style={styles.connectText}>
+                      {t('printerSettings.connect')}
+                    </Text>
                   )}
                 </TouchableOpacity>
               ))
             ) : (
               <View style={styles.noDevicesCard}>
                 <Text style={styles.noDevicesText}>
-                  No printers found. Make sure your Xprinter P300 is:
+                  {t('printerSettings.noPrintersInstructions')}
                 </Text>
-                <Text style={styles.instructionText}>• Powered on</Text>
                 <Text style={styles.instructionText}>
-                  • Paired in Bluetooth settings
+                  {t('printerSettings.poweredOn')}
                 </Text>
-                <Text style={styles.instructionText}>• Within range</Text>
+                <Text style={styles.instructionText}>
+                  {t('printerSettings.pairedInBluetooth')}
+                </Text>
+                <Text style={styles.instructionText}>
+                  {t('printerSettings.withinRange')}
+                </Text>
               </View>
             )}
           </View>
 
           {/* Instructions */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Setup Instructions</Text>
+            <Text style={styles.sectionTitle}>
+              {t('printerSettings.setupInstructions')}
+            </Text>
             <View style={styles.instructionsCard}>
               <Text style={styles.instructionStep}>
-                1. Turn on your Xprinter P300
+                {t('printerSettings.step1')}
               </Text>
               <Text style={styles.instructionStep}>
-                2. Pair it in your device's Bluetooth settings
+                {t('printerSettings.step2')}
               </Text>
               <Text style={styles.instructionStep}>
-                3. Return here and tap "Scan"
+                {t('printerSettings.step3')}
               </Text>
               <Text style={styles.instructionStep}>
-                4. Select your printer to connect
+                {t('printerSettings.step4')}
               </Text>
             </View>
           </View>

@@ -209,7 +209,7 @@ export default function Analytics() {
         const isCurrentYear =
           dateFilter.selectedYear === new Date().getFullYear();
         if (isCurrentYear) {
-          return 'This Year';
+          return t('analytics.thisYear');
         }
         return dateFilter.selectedYear.toString();
       default:
@@ -371,12 +371,14 @@ export default function Analytics() {
           <View style={styles.periodStats}>
             <Text style={styles.periodStatsText} weight="medium">
               {dateFilter.mode === 'year'
-                ? `12 months • ${analytics?.totalSales || 0} sales`
+                ? `12 ${t('analytics.months')} • ${
+                    analytics?.totalSales || 0
+                  } ${t('analytics.sales')}`
                 : `${getDaysInPeriod()} ${
                     getDaysInPeriod() === 1
                       ? t('analytics.day')
                       : t('analytics.days')
-                  } • ${analytics?.totalSales || 0} sales`}
+                  } • ${analytics?.totalSales || 0} ${t('analytics.sales')}`}
             </Text>
           </View>
 
@@ -395,7 +397,7 @@ export default function Analytics() {
                     {formatPrice(analytics?.totalRevenue || 0)}
                   </Text>
                   <Text style={styles.metricLabel} weight="medium">
-                    Total Sale Value
+                    {t('analytics.totalSaleValue')}
                   </Text>
                 </View>
               </View>
@@ -439,7 +441,7 @@ export default function Analytics() {
                     {formatPrice(analytics?.netProfit || 0)}
                   </Text>
                   <Text style={styles.metricLabel} weight="medium">
-                    Total Balance
+                    {t('analytics.totalBalance')}
                   </Text>
                 </View>
               </View>
@@ -458,7 +460,7 @@ export default function Analytics() {
                     {formatPrice(analytics?.totalProfit || 0)}
                   </Text>
                   <Text style={styles.metricLabel} weight="medium">
-                    Total Sale Profit
+                    {t('analytics.totalSaleProfit')}
                   </Text>
                 </View>
               </View>
@@ -502,7 +504,7 @@ export default function Analytics() {
                     {analytics?.totalSales || 0}
                   </Text>
                   <Text style={styles.metricLabel} weight="medium">
-                    Total Sale Count
+                    {t('analytics.totalSaleCount')}
                   </Text>
                 </View>
               </View>

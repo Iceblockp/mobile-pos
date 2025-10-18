@@ -568,12 +568,12 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
         const autoConnected = await BluetoothPrinterService.autoConnect();
         if (!autoConnected) {
           Alert.alert(
-            'Printer Not Connected',
-            'Please connect to a thermal printer in Printer Settings first.',
+            t('printing.printerNotConnected'),
+            t('printing.connectThermalPrinter'),
             [
-              { text: 'Cancel', style: 'cancel' },
+              { text: t('common.cancel'), style: 'cancel' },
               {
-                text: 'Open Settings',
+                text: t('printing.openSettings'),
                 onPress: () => {
                   onClose();
                 },
@@ -601,9 +601,9 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
       );
 
       Alert.alert(
-        'Print Successful',
-        'Receipt printed successfully to thermal printer.',
-        [{ text: 'OK', onPress: onClose }]
+        t('printing.printSuccessful'),
+        t('printing.printSuccessfulMessage'),
+        [{ text: t('common.confirm'), onPress: onClose }]
       );
     } catch (error) {
       console.error('Bluetooth print error:', error);
@@ -660,7 +660,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
                     Print Direct
                   </Text>
                   <Text style={styles.actionButtonSubtext}>
-                    Print directly to thermal printer
+                    {t('printing.printDirectlyToThermal')}
                   </Text>
                   {isBluetoothPrinting && (
                     <ActivityIndicator
@@ -721,7 +721,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
                   {isPrinting
                     ? t('printing.preparingToPrint')
                     : isBluetoothPrinting
-                    ? 'Printing to thermal printer...'
+                    ? t('printing.printingToThermalPrinter')
                     : t('printing.preparingToShare')}
                 </Text>
               </View>
