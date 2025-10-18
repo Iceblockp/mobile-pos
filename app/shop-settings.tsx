@@ -247,7 +247,7 @@ export default function ShopSettingsPage() {
         </View>
 
         {/* Branding Section */}
-        <View style={styles.section}>
+        {/* <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Palette size={20} color="#059669" />
             <Text style={styles.sectionTitle} weight="medium">
@@ -255,7 +255,6 @@ export default function ShopSettingsPage() {
             </Text>
           </View>
 
-          {/* Logo Upload */}
           {shopSettingsService && (
             <LogoUploader
               logoPath={formData.logoPath}
@@ -263,7 +262,7 @@ export default function ShopSettingsPage() {
               shopSettingsService={shopSettingsService}
             />
           )}
-        </View>
+        </View> */}
 
         {/* Receipt Customization Section */}
         <View style={styles.section}>
@@ -336,7 +335,7 @@ export default function ShopSettingsPage() {
 
           {shopSettingsService && (
             <ReceiptTemplateSelector
-              selectedTemplate={formData.receiptTemplate}
+              selectedTemplate={formData.receiptTemplate || ''}
               onTemplateChange={(templateId) =>
                 handleFieldChange('receiptTemplate', templateId)
               }
@@ -347,7 +346,7 @@ export default function ShopSettingsPage() {
         </View>
 
         {/* Receipt Preview Section */}
-        <View style={styles.section}>
+        {/* <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle} weight="medium">
               {t('shopSettings.preview')}
@@ -370,7 +369,7 @@ export default function ShopSettingsPage() {
                     }
                   : null
               }
-              templateId={formData.receiptTemplate}
+              templateId={formData.receiptTemplate || ''}
               shopSettingsService={shopSettingsService}
               style={styles.previewContainer}
             />
@@ -382,7 +381,7 @@ export default function ShopSettingsPage() {
               <Text style={styles.loadingText}>{t('common.loading')}</Text>
             </View>
           )}
-        </View>
+        </View> */}
 
         {/* Save Button (Mobile) */}
         <View style={styles.mobileButtonContainer}>

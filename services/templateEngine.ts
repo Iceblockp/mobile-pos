@@ -409,7 +409,6 @@ export class TemplateEngine {
             <div class="receipt">
               <div class="width-spacer"></div>
               <div class="header">
-                <img src="{{logoSrc}}" class="logo" style="display: {{showLogo}}" />
                 <div class="shop-name">{{shopName}}</div>
                 <div class="shop-address">{{address}}</div>
                 <div class="shop-phone">{{phone}}</div>
@@ -663,7 +662,6 @@ export class TemplateEngine {
             <div class="receipt">
               <div class="width-spacer"></div>
               <div class="header">
-                <img src="{{logoSrc}}" class="logo" style="display: {{showLogo}}" />
                 <h1 class="shop-name">{{shopName}}</h1>
                 <p class="shop-address">{{address}}</p>
                 <p class="shop-phone">{{phone}}</p>
@@ -926,7 +924,6 @@ export class TemplateEngine {
             <div class="receipt">
               <div class="width-spacer"></div>
               <div class="header">
-                <img src="{{logoSrc}}" class="logo" style="display: {{showLogo}}" />
                 <div class="shop-name">{{shopName}}</div>
                 <div class="contact">{{address}} • {{phone}}</div>
               </div>
@@ -1110,7 +1107,6 @@ export class TemplateEngine {
             <div class="receipt">
               <div class="width-spacer"></div>
               <div class="header">
-                <img src="{{logoSrc}}" class="logo" style="display: {{showLogo}}" />
                 <div class="shop-name">{{shopName}}</div>
                 <div class="shop-details">
                   <div class="address">{{address}}</div>

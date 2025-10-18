@@ -540,9 +540,9 @@ export default function Sales() {
 
           {/* Customer Selection */}
           <View style={styles.customerSection}>
-            <Text style={styles.customerLabel} weight="medium">
+            {/* <Text style={styles.customerLabel} weight="medium">
               {t('sales.customer')}
-            </Text>
+            </Text> */}
             <CustomerSelector
               selectedCustomer={selectedCustomer}
               onCustomerSelect={setSelectedCustomer}
@@ -550,36 +550,36 @@ export default function Sales() {
             />
           </View>
 
-          {/* Bulk Pricing Summary */}
+          {/* Compact Bulk Pricing Summary */}
           {cart.length > 0 &&
             (() => {
               const cartTotals = getCartTotals();
               return cartTotals.totalSavings > 0 ? (
-                <View style={styles.bulkPricingSummary}>
-                  <View style={styles.savingsRow}>
-                    <Text style={styles.savingsLabel} weight="medium">
+                <View style={styles.bulkPricingSummaryCompact}>
+                  <View style={styles.savingsRowCompact}>
+                    <Text style={styles.savingsLabelCompact} weight="medium">
                       {t('sales.subtotal')}
                     </Text>
-                    <Text style={styles.originalTotal} weight="medium">
+                    <Text style={styles.originalTotalCompact} weight="medium">
                       {formatPrice(cartTotals.originalTotal)}
                     </Text>
                   </View>
                   {cartTotals.bulkSavings > 0 && (
-                    <View style={styles.savingsRow}>
-                      <Text style={styles.savingsLabel} weight="medium">
+                    <View style={styles.savingsRowCompact}>
+                      <Text style={styles.savingsLabelCompact} weight="medium">
                         {t('bulkPricing.bulkDiscount')}
                       </Text>
-                      <Text style={styles.savingsAmount} weight="medium">
+                      <Text style={styles.savingsAmountCompact} weight="medium">
                         -{formatPrice(cartTotals.bulkSavings)}
                       </Text>
                     </View>
                   )}
                   {cartTotals.manualSavings > 0 && (
-                    <View style={styles.savingsRow}>
-                      <Text style={styles.savingsLabel} weight="medium">
+                    <View style={styles.savingsRowCompact}>
+                      <Text style={styles.savingsLabelCompact} weight="medium">
                         {t('sales.manualDiscount')}
                       </Text>
-                      <Text style={styles.savingsAmount} weight="medium">
+                      <Text style={styles.savingsAmountCompact} weight="medium">
                         -{formatPrice(cartTotals.manualSavings)}
                       </Text>
                     </View>
@@ -2661,7 +2661,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingVertical: 5,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
@@ -2732,7 +2732,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   calendarIconButton: {
-    padding: 8,
+    padding: 2,
     borderRadius: 6,
     backgroundColor: '#F9FAFB',
     borderWidth: 1,
@@ -2742,7 +2742,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   customerSection: {
-    marginBottom: 20,
+    marginBottom: 5,
   },
   customerLabel: {
     fontSize: 14,
@@ -2757,14 +2757,32 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 16,
   },
+  bulkPricingSummaryCompact: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 6,
+    padding: 8,
+    marginBottom: 8,
+  },
   savingsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 4,
   },
+  savingsRowCompact: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
   savingsLabel: {
     fontSize: 14,
+    color: '#6B7280',
+  },
+  savingsLabelCompact: {
+    fontSize: 12,
     color: '#6B7280',
   },
   originalTotal: {
@@ -2772,8 +2790,17 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     textDecorationLine: 'line-through',
   },
+  originalTotalCompact: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    textDecorationLine: 'line-through',
+  },
   savingsAmount: {
     fontSize: 14,
+    color: '#DC2626',
+  },
+  savingsAmountCompact: {
+    fontSize: 12,
     color: '#DC2626',
   },
   cartTitleContainer: {
@@ -2934,7 +2961,7 @@ const styles = StyleSheet.create({
   cartActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 16,
+    marginTop: 4,
     gap: 12,
   },
   cartActionButton: {
