@@ -16,6 +16,7 @@ import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useSupplierMutations } from '@/hooks/useQueries';
 import { SupplierWithStats } from '@/services/database';
+import { useTranslation } from '@/context/LocalizationContext';
 
 interface SupplierFormModalProps {
   visible: boolean;
@@ -28,6 +29,7 @@ export const SupplierFormModal: React.FC<SupplierFormModalProps> = ({
   supplier,
   onClose,
 }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     name: '',
     contact_name: '',
@@ -66,28 +68,28 @@ export const SupplierFormModal: React.FC<SupplierFormModalProps> = ({
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Supplier name is required';
+      newErrors.name = t('suppliers.supplierNameRequired');
     }
 
     if (!formData.contact_name.trim()) {
-      newErrors.contact_name = 'Contact name is required';
+      newErrors.contact_name = t('suppliers.contactNameRequired');
     }
 
     if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
+      newErrors.phone = t('suppliers.phoneRequired');
     } else if (!/^[\+]?[0-9\-\s\(\)]{7,20}$/.test(formData.phone.trim())) {
-      newErrors.phone = 'Please enter a valid phone number';
+      newErrors.phone = t('suppliers.invalidPhone');
     }
 
     if (
       formData.email.trim() &&
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())
     ) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = t('suppliers.invalidEmail');
     }
 
     if (!formData.address.trim()) {
-      newErrors.address = 'Address is required';
+      newErrors.address = t('suppliers.addressRequired');
     }
 
     setErrors(newErrors);
@@ -113,17 +115,17 @@ export const SupplierFormModal: React.FC<SupplierFormModalProps> = ({
           id: supplier.id,
           data: supplierData,
         });
-        Alert.alert('Success', 'Supplier updated successfully');
+        Alert.alert(t('common.success'), t('suppliers.supplierUpdated'));
       } else {
         await addSupplier.mutateAsync(supplierData);
-        Alert.alert('Success', 'Supplier added successfully');
+        Alert.alert(t('common.success'), t('suppliers.supplierAdded'));
       }
 
       onClose();
     } catch (error) {
       Alert.alert(
-        'Error',
-        error instanceof Error ? error.message : 'Failed to save supplier'
+        t('common.error'),
+        error instanceof Error ? error.message : t('suppliers.failedToSave')
       );
     }
   };
@@ -186,55 +188,72 @@ export const SupplierFormModal: React.FC<SupplierFormModalProps> = ({
             <Ionicons name="close" size={24} color="#374151" />
           </TouchableOpacity>
           <Text style={styles.title} weight="medium">
-            {isEditing ? 'Edit Supplier' : 'Add Supplier'}
+            {isEditing
+              ? t('suppliers.editSupplier')
+              : t('suppliers.addSupplier')}
           </Text>
           <View style={styles.placeholder} />
         </View>
 
         {/* Form */}
         <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
-          {renderInput('name', 'Supplier Name', 'Enter supplier name', {
-            required: true,
-          })}
+          {renderInput(
+            'name',
+            t('suppliers.supplierName'),
+            t('suppliers.supplierNamePlaceholder'),
+            {
+              required: true,
+            }
+          )}
 
           {renderInput(
             'contact_name',
-            'Contact Person',
-            'Enter contact person name',
+            t('suppliers.contactPerson'),
+            t('suppliers.contactNamePlaceholder'),
             { required: true }
           )}
 
-          {renderInput('phone', 'Phone Number', 'Enter phone number', {
-            keyboardType: 'phone-pad',
-            required: true,
-          })}
+          {renderInput(
+            'phone',
+            t('suppliers.phone'),
+            t('suppliers.phonePlaceholder'),
+            {
+              keyboardType: 'phone-pad',
+              required: true,
+            }
+          )}
 
           {renderInput(
             'email',
-            'Email Address',
-            'Enter email address (optional)',
+            t('suppliers.email'),
+            t('suppliers.emailPlaceholder'),
             {
               keyboardType: 'email-address',
             }
           )}
 
-          {renderInput('address', 'Address', 'Enter supplier address', {
-            multiline: true,
-            required: true,
-          })}
+          {renderInput(
+            'address',
+            t('suppliers.address'),
+            t('suppliers.addressPlaceholder'),
+            {
+              multiline: true,
+              required: true,
+            }
+          )}
         </ScrollView>
 
         {/* Footer */}
         <View style={styles.footer}>
           <Button
-            title="Cancel"
+            title={t('common.cancel')}
             onPress={onClose}
             variant="secondary"
             style={styles.cancelButton}
             disabled={isLoading}
           />
           <Button
-            title={isEditing ? 'Update' : 'Add'}
+            title={isEditing ? t('common.update') : t('common.add')}
             onPress={handleSubmit}
             style={styles.submitButton}
             disabled={isLoading}

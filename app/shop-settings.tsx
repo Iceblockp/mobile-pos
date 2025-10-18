@@ -149,7 +149,7 @@ export default function ShopSettingsPage() {
           <Text style={styles.title} weight="bold">
             {t('shopSettings.title')}
           </Text>
-          <Text style={styles.subtitle}>{t('shopSettings.subtitle')}</Text>
+          {/* <Text style={styles.subtitle}>{t('shopSettings.subtitle')}</Text> */}
         </View>
         <TouchableOpacity
           style={[styles.saveButton, saving && styles.saveButtonDisabled]}
@@ -429,8 +429,8 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',

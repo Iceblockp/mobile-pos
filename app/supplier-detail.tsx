@@ -6,8 +6,8 @@ import {
   TouchableOpacity,
   Alert,
   FlatList,
+  SafeAreaView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -22,8 +22,10 @@ import {
 import { SupplierProduct } from '@/services/database';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import { MyanmarText as Text } from '@/components/MyanmarText';
+import { useTranslation } from '@/context/LocalizationContext';
 
 export default function SupplierDetail() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const supplierId = id || '';
   const [showEditModal, setShowEditModal] = useState(false);
@@ -51,24 +53,26 @@ export default function SupplierDetail() {
     if (!supplier) return;
 
     Alert.alert(
-      'Delete Supplier',
-      `Are you sure you want to delete "${supplier.name}"? This action cannot be undone.`,
+      t('suppliers.deleteSupplier'),
+      `${t('suppliers.areYouSure')} "${supplier.name}"? ${t(
+        'common.actionCannotBeUndone'
+      )}.`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await deleteSupplier.mutateAsync(supplier.id);
-              Alert.alert('Success', 'Supplier deleted successfully');
+              Alert.alert(t('common.success'), t('suppliers.supplierDeleted'));
               router.back();
             } catch (error) {
               Alert.alert(
-                'Error',
+                t('common.error'),
                 error instanceof Error
                   ? error.message
-                  : 'Failed to delete supplier'
+                  : t('suppliers.failedToSave')
               );
             }
           },
@@ -84,16 +88,16 @@ export default function SupplierDetail() {
           {item.product_name}
         </Text>
         <Text style={styles.productStock} weight="medium">
-          Stock: {item.current_stock}
+          {t('suppliers.stock')}: {item.current_stock}
         </Text>
       </View>
       <View style={styles.productStats}>
         <Text style={styles.productStat}>
-          Total Received: {item.total_received}
+          {t('suppliers.totalReceived')}: {item.total_received}
         </Text>
         {item.last_delivery_date && (
           <Text style={styles.productStat}>
-            Last Delivery:{' '}
+            {t('suppliers.lastDelivery')}:{' '}
             {new Date(item.last_delivery_date).toLocaleDateString()}
           </Text>
         )}
@@ -115,13 +119,13 @@ export default function SupplierDetail() {
         <View style={styles.errorState}>
           <Ionicons name="alert-circle-outline" size={64} color="#EF4444" />
           <Text style={styles.errorTitle} weight="medium">
-            Supplier Not Found
+            {t('suppliers.supplierNotFound')}
           </Text>
           <Text style={styles.errorText}>
-            The supplier you're looking for doesn't exist or has been deleted.
+            {t('suppliers.supplierNotFoundMessage')}
           </Text>
           <Button
-            title="Go Back"
+            title={t('suppliers.goBack')}
             onPress={() => router.back()}
             style={styles.backButton}
           />
@@ -157,13 +161,15 @@ export default function SupplierDetail() {
         {/* Supplier Info */}
         <View style={styles.infoCard}>
           <Text style={styles.sectionTitle} weight="medium">
-            Contact Information
+            {t('suppliers.contactInformation')}
           </Text>
 
           <View style={styles.infoRow}>
             <Ionicons name="person" size={20} color="#6B7280" />
             <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Contact Person</Text>
+              <Text style={styles.infoLabel}>
+                {t('suppliers.contactPerson')}
+              </Text>
               <Text style={styles.infoValue}>{supplier.contact_name}</Text>
             </View>
           </View>
@@ -171,7 +177,7 @@ export default function SupplierDetail() {
           <View style={styles.infoRow}>
             <Ionicons name="call" size={20} color="#6B7280" />
             <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Phone</Text>
+              <Text style={styles.infoLabel}>{t('suppliers.phone')}</Text>
               <Text style={styles.infoValue}>{supplier.phone}</Text>
             </View>
           </View>
@@ -180,7 +186,7 @@ export default function SupplierDetail() {
             <View style={styles.infoRow}>
               <Ionicons name="mail" size={20} color="#6B7280" />
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Email</Text>
+                <Text style={styles.infoLabel}>{t('suppliers.email')}</Text>
                 <Text style={styles.infoValue}>{supplier.email}</Text>
               </View>
             </View>
@@ -189,7 +195,7 @@ export default function SupplierDetail() {
           <View style={styles.infoRow}>
             <Ionicons name="location" size={20} color="#6B7280" />
             <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Address</Text>
+              <Text style={styles.infoLabel}>{t('suppliers.address')}</Text>
               <Text style={styles.infoValue}>{supplier.address}</Text>
             </View>
           </View>
@@ -204,7 +210,7 @@ export default function SupplierDetail() {
           analytics && (
             <View style={styles.analyticsCard}>
               <Text style={styles.sectionTitle} weight="medium">
-                Analytics (Last 30 Days)
+                {t('suppliers.analytics30Days')}
               </Text>
 
               <View style={styles.statsGrid}>
@@ -212,26 +218,32 @@ export default function SupplierDetail() {
                   <Text style={styles.statValue} weight="medium">
                     {analytics.totalProducts}
                   </Text>
-                  <Text style={styles.statLabel}>Total Products</Text>
+                  <Text style={styles.statLabel}>
+                    {t('suppliers.supplierTotalProducts')}
+                  </Text>
                 </View>
                 <View style={styles.statItem}>
                   <Text style={styles.statValue} weight="medium">
                     {formatPrice(analytics.totalPurchaseValue)}
                   </Text>
-                  <Text style={styles.statLabel}>Purchase Value</Text>
+                  <Text style={styles.statLabel}>
+                    {t('suppliers.purchaseValue')}
+                  </Text>
                 </View>
                 <View style={styles.statItem}>
                   <Text style={styles.statValue} weight="medium">
                     {analytics.recentDeliveries.length}
                   </Text>
-                  <Text style={styles.statLabel}>Recent Deliveries</Text>
+                  <Text style={styles.statLabel}>
+                    {t('suppliers.recentDeliveriesCount')}
+                  </Text>
                 </View>
               </View>
 
               {analytics.topProducts.length > 0 && (
                 <View style={styles.topProductsSection}>
                   <Text style={styles.subsectionTitle} weight="medium">
-                    Top Products
+                    {t('suppliers.supplierTopProducts')}
                   </Text>
                   {analytics.topProducts.slice(0, 3).map((product, index) => (
                     <View
@@ -242,7 +254,7 @@ export default function SupplierDetail() {
                         {product.product_name}
                       </Text>
                       <Text style={styles.topProductValue}>
-                        {product.total_received} units received
+                        {product.total_received} {t('suppliers.unitsReceived')}
                       </Text>
                     </View>
                   ))}
@@ -255,7 +267,7 @@ export default function SupplierDetail() {
         {/* Products */}
         <View style={styles.productsCard}>
           <Text style={styles.sectionTitle} weight="medium">
-            Products ({products.length})
+            {t('suppliers.productsCount')} ({products.length})
           </Text>
 
           {productsLoading ? (
@@ -274,7 +286,7 @@ export default function SupplierDetail() {
             <View style={styles.emptyProducts}>
               <Ionicons name="cube-outline" size={48} color="#9CA3AF" />
               <Text style={styles.emptyProductsText}>
-                No products associated with this supplier
+                {t('suppliers.noProductsAssociated')}
               </Text>
             </View>
           )}

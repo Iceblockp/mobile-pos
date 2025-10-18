@@ -24,7 +24,7 @@ export default function ExpensesPage() {
           <Text style={styles.title} weight="medium">
             {t('expenses.title')}
           </Text>
-          <Text style={styles.subtitle}>{t('navigation.expenses')}</Text>
+          {/* <Text style={styles.subtitle}>{t('navigation.expenses')}</Text> */}
         </View>
       </View>
 
@@ -44,8 +44,8 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',

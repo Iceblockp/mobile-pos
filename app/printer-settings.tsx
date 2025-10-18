@@ -1,20 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { Printer, Bluetooth, Check, X, RefreshCw } from 'lucide-react-native';
 import {
   BluetoothPrinterService,
   BluetoothDevice,
 } from '@/services/bluetoothPrinterService';
 import { useTranslation } from '@/context/LocalizationContext';
+import { MyanmarText as Text } from '@/components/MyanmarText';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function PrinterSettingsScreen() {
   const { t } = useTranslation();
@@ -154,156 +156,173 @@ export default function PrinterSettingsScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: 'Printer Settings',
-          headerStyle: { backgroundColor: '#f8f9fa' },
-          headerTintColor: '#333',
-        }}
-      />
-
-      <ScrollView style={styles.container}>
-        {/* Current Printer Status */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Current Printer</Text>
-
-          {savedPrinter ? (
-            <View style={styles.printerCard}>
-              <View style={styles.printerInfo}>
-                <Printer size={24} color="#059669" />
-                <View style={styles.printerDetails}>
-                  <Text style={styles.printerName}>{savedPrinter.name}</Text>
-                  <Text style={styles.printerAddress}>
-                    {savedPrinter.address}
-                  </Text>
-                </View>
-                <View style={styles.statusIndicator}>
-                  {connectionStatus ? (
-                    <Check size={20} color="#059669" />
-                  ) : (
-                    <X size={20} color="#EF4444" />
-                  )}
-                </View>
-              </View>
-
-              <View style={styles.printerActions}>
-                {connectionStatus ? (
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.disconnectButton]}
-                    onPress={disconnectPrinter}
-                  >
-                    <Text style={styles.disconnectButtonText}>Disconnect</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.connectButton]}
-                    onPress={() => connectToPrinter(savedPrinter)}
-                    disabled={isConnecting}
-                  >
-                    {isConnecting ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <Text style={styles.connectButtonText}>Connect</Text>
-                    )}
-                  </TouchableOpacity>
-                )}
-
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.removeButton]}
-                  onPress={removeSavedPrinter}
-                >
-                  <Text style={styles.removeButtonText}>Remove</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : (
-            <View style={styles.noPrinterCard}>
-              <Bluetooth size={48} color="#9CA3AF" />
-              <Text style={styles.noPrinterText}>No printer configured</Text>
-              <Text style={styles.noPrinterSubtext}>
-                Scan for available thermal printers below
-              </Text>
-            </View>
-          )}
+      <SafeAreaView style={{ flex: 1 }}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={{ padding: 8, marginRight: 8 }}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#374151" />
+          </TouchableOpacity>
+          <View style={styles.headerLeft}>
+            <Text style={styles.title} weight="bold">
+              Printer Settings
+            </Text>
+          </View>
         </View>
+        <Stack.Screen
+          options={{
+            title: 'Printer Settings',
+            headerStyle: { backgroundColor: '#f8f9fa' },
+            headerTintColor: '#333',
+          }}
+        />
 
-        {/* Available Printers */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Available Printers</Text>
-            <TouchableOpacity
-              style={styles.scanButton}
-              onPress={scanForPrinters}
-              disabled={isScanning}
-            >
-              {isScanning ? (
-                <ActivityIndicator size="small" color="#059669" />
-              ) : (
-                <RefreshCw size={20} color="#059669" />
-              )}
-              <Text style={styles.scanButtonText}>
-                {isScanning ? 'Scanning...' : 'Scan'}
-              </Text>
-            </TouchableOpacity>
+        <ScrollView style={styles.container}>
+          {/* Current Printer Status */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Current Printer</Text>
+
+            {savedPrinter ? (
+              <View style={styles.printerCard}>
+                <View style={styles.printerInfo}>
+                  <Printer size={24} color="#059669" />
+                  <View style={styles.printerDetails}>
+                    <Text style={styles.printerName}>{savedPrinter.name}</Text>
+                    <Text style={styles.printerAddress}>
+                      {savedPrinter.address}
+                    </Text>
+                  </View>
+                  <View style={styles.statusIndicator}>
+                    {connectionStatus ? (
+                      <Check size={20} color="#059669" />
+                    ) : (
+                      <X size={20} color="#EF4444" />
+                    )}
+                  </View>
+                </View>
+
+                <View style={styles.printerActions}>
+                  {connectionStatus ? (
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.disconnectButton]}
+                      onPress={disconnectPrinter}
+                    >
+                      <Text style={styles.disconnectButtonText}>
+                        Disconnect
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.connectButton]}
+                      onPress={() => connectToPrinter(savedPrinter)}
+                      disabled={isConnecting}
+                    >
+                      {isConnecting ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <Text style={styles.connectButtonText}>Connect</Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
+
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.removeButton]}
+                    onPress={removeSavedPrinter}
+                  >
+                    <Text style={styles.removeButtonText}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.noPrinterCard}>
+                <Bluetooth size={48} color="#9CA3AF" />
+                <Text style={styles.noPrinterText}>No printer configured</Text>
+                <Text style={styles.noPrinterSubtext}>
+                  Scan for available thermal printers below
+                </Text>
+              </View>
+            )}
           </View>
 
-          {availablePrinters.length > 0 ? (
-            availablePrinters.map((printer) => (
+          {/* Available Printers */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Available Printers</Text>
               <TouchableOpacity
-                key={printer.id}
-                style={styles.availablePrinterCard}
-                onPress={() => connectToPrinter(printer)}
-                disabled={isConnecting}
+                style={styles.scanButton}
+                onPress={scanForPrinters}
+                disabled={isScanning}
               >
-                <Printer size={20} color="#6B7280" />
-                <View style={styles.availablePrinterInfo}>
-                  <Text style={styles.availablePrinterName}>
-                    {printer.name}
-                  </Text>
-                  <Text style={styles.availablePrinterAddress}>
-                    {printer.address}
-                  </Text>
-                </View>
-                {isConnecting ? (
+                {isScanning ? (
                   <ActivityIndicator size="small" color="#059669" />
                 ) : (
-                  <Text style={styles.connectText}>Connect</Text>
+                  <RefreshCw size={20} color="#059669" />
                 )}
+                <Text style={styles.scanButtonText}>
+                  {isScanning ? 'Scanning...' : 'Scan'}
+                </Text>
               </TouchableOpacity>
-            ))
-          ) : (
-            <View style={styles.noDevicesCard}>
-              <Text style={styles.noDevicesText}>
-                No printers found. Make sure your Xprinter P300 is:
-              </Text>
-              <Text style={styles.instructionText}>• Powered on</Text>
-              <Text style={styles.instructionText}>
-                • Paired in Bluetooth settings
-              </Text>
-              <Text style={styles.instructionText}>• Within range</Text>
             </View>
-          )}
-        </View>
 
-        {/* Instructions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Setup Instructions</Text>
-          <View style={styles.instructionsCard}>
-            <Text style={styles.instructionStep}>
-              1. Turn on your Xprinter P300
-            </Text>
-            <Text style={styles.instructionStep}>
-              2. Pair it in your device's Bluetooth settings
-            </Text>
-            <Text style={styles.instructionStep}>
-              3. Return here and tap "Scan"
-            </Text>
-            <Text style={styles.instructionStep}>
-              4. Select your printer to connect
-            </Text>
+            {availablePrinters.length > 0 ? (
+              availablePrinters.map((printer) => (
+                <TouchableOpacity
+                  key={printer.id}
+                  style={styles.availablePrinterCard}
+                  onPress={() => connectToPrinter(printer)}
+                  disabled={isConnecting}
+                >
+                  <Printer size={20} color="#6B7280" />
+                  <View style={styles.availablePrinterInfo}>
+                    <Text style={styles.availablePrinterName}>
+                      {printer.name}
+                    </Text>
+                    <Text style={styles.availablePrinterAddress}>
+                      {printer.address}
+                    </Text>
+                  </View>
+                  {isConnecting ? (
+                    <ActivityIndicator size="small" color="#059669" />
+                  ) : (
+                    <Text style={styles.connectText}>Connect</Text>
+                  )}
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={styles.noDevicesCard}>
+                <Text style={styles.noDevicesText}>
+                  No printers found. Make sure your Xprinter P300 is:
+                </Text>
+                <Text style={styles.instructionText}>• Powered on</Text>
+                <Text style={styles.instructionText}>
+                  • Paired in Bluetooth settings
+                </Text>
+                <Text style={styles.instructionText}>• Within range</Text>
+              </View>
+            )}
           </View>
-        </View>
-      </ScrollView>
+
+          {/* Instructions */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Setup Instructions</Text>
+            <View style={styles.instructionsCard}>
+              <Text style={styles.instructionStep}>
+                1. Turn on your Xprinter P300
+              </Text>
+              <Text style={styles.instructionStep}>
+                2. Pair it in your device's Bluetooth settings
+              </Text>
+              <Text style={styles.instructionStep}>
+                3. Return here and tap "Scan"
+              </Text>
+              <Text style={styles.instructionStep}>
+                4. Select your printer to connect
+              </Text>
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     </>
   );
 }
@@ -315,6 +334,24 @@ const styles = StyleSheet.create({
   },
   section: {
     margin: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 10,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 24,
+    color: '#111827',
   },
   sectionTitle: {
     fontSize: 18,

@@ -27,6 +27,8 @@ import {
 import { useTranslation } from '@/context/LocalizationContext';
 import { LanguageIconButton } from '@/components/LanguageIconButton';
 import { MyanmarText as Text } from '@/components/MyanmarText';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 export default function Help() {
   const { t } = useTranslation();
@@ -525,11 +527,17 @@ export default function Help() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <TouchableOpacity
+          style={{ padding: 8, marginRight: 8 }}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#374151" />
+        </TouchableOpacity>
         <View style={styles.headerLeft}>
           <Text style={styles.title} weight="bold">
             {t('help.title')}
           </Text>
-          <Text style={styles.subtitle}>{t('help.subtitle')}</Text>
+          {/* <Text style={styles.subtitle}>{t('help.subtitle')}</Text> */}
         </View>
         <LanguageIconButton style={styles.languageSelector} />
       </View>
@@ -560,9 +568,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 10,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
@@ -574,7 +582,7 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     color: '#111827',
   },
   subtitle: {

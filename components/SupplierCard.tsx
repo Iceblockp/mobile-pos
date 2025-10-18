@@ -4,6 +4,7 @@ import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Ionicons } from '@expo/vector-icons';
 import { SupplierWithStats } from '@/services/database';
 import { useCurrencyFormatter } from '@/hooks/useCurrency';
+import { useTranslation } from '@/context/LocalizationContext';
 
 interface SupplierCardProps {
   supplier: SupplierWithStats;
@@ -18,6 +19,7 @@ export const SupplierCard: React.FC<SupplierCardProps> = ({
   onDelete,
   onView,
 }) => {
+  const { t } = useTranslation();
   const { formatPrice } = useCurrencyFormatter();
 
   return (
@@ -76,19 +78,23 @@ export const SupplierCard: React.FC<SupplierCardProps> = ({
           <Text style={styles.statValue} weight="medium">
             {supplier.total_products || 0}
           </Text>
-          <Text style={styles.statLabel}>Products</Text>
+          <Text style={styles.statLabel}>
+            {t('suppliers.supplierProducts')}
+          </Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statValue} weight="medium">
             {supplier.recent_deliveries || 0}
           </Text>
-          <Text style={styles.statLabel}>Recent Deliveries</Text>
+          <Text style={styles.statLabel}>
+            {t('suppliers.recentDeliveries')}
+          </Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statValue} weight="medium">
             {formatPrice(supplier.total_purchase_value || 0)}
           </Text>
-          <Text style={styles.statLabel}>Purchase Value</Text>
+          <Text style={styles.statLabel}>{t('suppliers.purchaseValue')}</Text>
         </View>
       </View>
     </TouchableOpacity>

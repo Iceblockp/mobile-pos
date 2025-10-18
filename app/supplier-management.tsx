@@ -18,8 +18,10 @@ import { useSuppliers, useSupplierMutations } from '@/hooks/useQueries';
 import { SupplierWithStats } from '@/services/database';
 import { useDebounce } from '@/hooks/useDebounce';
 import { MyanmarText as Text } from '@/components/MyanmarText';
+import { useTranslation } from '@/context/LocalizationContext';
 
 export default function SupplierManagement() {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingSupplier, setEditingSupplier] =
@@ -49,23 +51,25 @@ export default function SupplierManagement() {
 
   const handleDeleteSupplier = (supplier: SupplierWithStats) => {
     Alert.alert(
-      'Delete Supplier',
-      `Are you sure you want to delete "${supplier.name}"? This action cannot be undone.`,
+      t('suppliers.deleteSupplier'),
+      `${t('suppliers.areYouSure')} "${supplier.name}"? ${t(
+        'common.actionCannotBeUndone'
+      )}.`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await deleteSupplier.mutateAsync(supplier.id);
-              Alert.alert('Success', 'Supplier deleted successfully');
+              Alert.alert(t('common.success'), t('suppliers.supplierDeleted'));
             } catch (error) {
               Alert.alert(
-                'Error',
+                t('common.error'),
                 error instanceof Error
                   ? error.message
-                  : 'Failed to delete supplier'
+                  : t('suppliers.failedToSave')
               );
             }
           },
@@ -96,16 +100,16 @@ export default function SupplierManagement() {
     <View style={styles.emptyState}>
       <Ionicons name="business-outline" size={64} color="#9CA3AF" />
       <Text style={styles.emptyStateTitle} weight="medium">
-        No Suppliers Found
+        {t('suppliers.noSuppliersFound')}
       </Text>
       <Text style={styles.emptyStateText}>
         {searchQuery
-          ? 'No suppliers match your search criteria'
-          : 'Add your first supplier to get started'}
+          ? t('suppliers.noSuppliersMatch')
+          : t('suppliers.addFirstSupplier')}
       </Text>
       {!searchQuery && (
         <Button
-          title="Add Supplier"
+          title={t('suppliers.addSupplier')}
           onPress={handleAddSupplier}
           style={styles.emptyStateButton}
         />
@@ -117,13 +121,15 @@ export default function SupplierManagement() {
     <View style={styles.errorState}>
       <Ionicons name="alert-circle-outline" size={64} color="#EF4444" />
       <Text style={styles.errorTitle} weight="medium">
-        Error Loading Suppliers
+        {t('suppliers.errorLoadingSuppliers')}
       </Text>
       <Text style={styles.errorText}>
-        {error instanceof Error ? error.message : 'Something went wrong'}
+        {error instanceof Error
+          ? error.message
+          : t('suppliers.somethingWentWrong')}
       </Text>
       <Button
-        title="Try Again"
+        title={t('suppliers.tryAgain')}
         onPress={() => refetch()}
         style={styles.retryButton}
       />
@@ -155,7 +161,7 @@ export default function SupplierManagement() {
           <Ionicons name="arrow-back" size={24} color="#374151" />
         </TouchableOpacity>
         <Text style={styles.title} weight="medium">
-          Suppliers
+          {t('suppliers.title')}
         </Text>
         <TouchableOpacity style={styles.addButton} onPress={handleAddSupplier}>
           <Ionicons name="add" size={24} color="#3B82F6" />
@@ -172,7 +178,9 @@ export default function SupplierManagement() {
         />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search suppliers..."
+          placeholder={
+            t('suppliers.searchPlaceholder') || 'Search suppliers...'
+          }
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholderTextColor="#9CA3AF"
