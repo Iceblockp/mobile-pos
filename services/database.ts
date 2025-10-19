@@ -22,8 +22,24 @@ export interface Product {
   supplier_name?: string; // For joined queries
   imageUrl?: string; // Optional image URL property
   bulk_pricing?: BulkPricing[]; // For joined queries
+  has_bulk_pricing?: boolean; // Simple boolean flag for performance
   created_at: string;
   updated_at: string;
+}
+
+// Pagination interfaces
+export interface PaginatedResult<T> {
+  data: T[];
+  hasMore: boolean;
+  total?: number;
+  page: number;
+}
+
+export interface ProductSearchParams {
+  searchQuery?: string;
+  categoryId?: string;
+  page: number;
+  limit: number;
 }
 
 export interface Sale {
@@ -270,6 +286,13 @@ export class DatabaseService {
       CREATE INDEX IF NOT EXISTS idx_stock_movements_product_id ON stock_movements(product_id);
       CREATE INDEX IF NOT EXISTS idx_stock_movements_supplier_id ON stock_movements(supplier_id);
       CREATE INDEX IF NOT EXISTS idx_bulk_pricing_product_id ON bulk_pricing(product_id);
+      
+      -- Performance indexes for product search and pagination
+      CREATE INDEX IF NOT EXISTS idx_products_name ON products(name);
+      CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode);
+      CREATE INDEX IF NOT EXISTS idx_products_category_updated ON products(category_id, updated_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_products_updated_name ON products(updated_at DESC, name ASC);
+      CREATE INDEX IF NOT EXISTS idx_bulk_pricing_product_exists ON bulk_pricing(product_id);
     `);
 
     // Add description column to categories if it doesn't exist
@@ -1193,6 +1216,177 @@ export class DatabaseService {
       'SELECT p.*, c.name as category, s.name as supplier_name FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN suppliers s ON p.supplier_id = s.id ORDER BY p.name'
     );
     return result as Product[];
+  }
+
+  // New paginated product query with search and filtering
+  async getProductsPaginated(params: {
+    searchQuery?: string;
+    categoryId?: string;
+    sortBy?: 'name' | 'updated_at' | 'none';
+    sortOrder?: 'asc' | 'desc';
+    page: number;
+    limit: number;
+  }): Promise<{
+    data: Product[];
+    hasMore: boolean;
+    total?: number;
+    page: number;
+  }> {
+    const {
+      searchQuery,
+      categoryId,
+      sortBy = 'updated_at',
+      sortOrder = 'desc',
+      page,
+      limit,
+    } = params;
+    const offset = (page - 1) * limit;
+
+    let whereClause = '';
+    let queryParams: any[] = [];
+
+    // Build WHERE clause for search
+    if (searchQuery && searchQuery.trim()) {
+      whereClause = 'WHERE (p.name LIKE ? OR p.barcode = ?)';
+      const searchPattern = `%${searchQuery.trim()}%`;
+      queryParams.push(searchPattern, searchQuery.trim());
+    }
+
+    // Add category filter
+    if (categoryId && categoryId !== 'All') {
+      const categoryCondition = 'p.category_id = ?';
+      if (whereClause) {
+        whereClause += ` AND ${categoryCondition}`;
+      } else {
+        whereClause = `WHERE ${categoryCondition}`;
+      }
+      queryParams.push(categoryId);
+    }
+
+    // Build ORDER BY clause
+    let orderByClause = '';
+    if (sortBy === 'name') {
+      orderByClause = `ORDER BY p.name ${sortOrder.toUpperCase()}`;
+    } else if (sortBy === 'updated_at') {
+      orderByClause = `ORDER BY p.updated_at ${sortOrder.toUpperCase()}, p.name ASC`;
+    } else {
+      // Default sorting (none or fallback)
+      orderByClause = 'ORDER BY p.updated_at DESC, p.name ASC';
+    }
+
+    // Query with one extra item to check if there are more pages
+    const query = `
+      SELECT p.*, c.name as category, s.name as supplier_name,
+             CASE WHEN bp.product_id IS NOT NULL THEN 1 ELSE 0 END as has_bulk_pricing
+      FROM products p 
+      LEFT JOIN categories c ON p.category_id = c.id 
+      LEFT JOIN suppliers s ON p.supplier_id = s.id
+      LEFT JOIN (SELECT DISTINCT product_id FROM bulk_pricing) bp ON p.id = bp.product_id
+      ${whereClause}
+      ${orderByClause}
+      LIMIT ? OFFSET ?
+    `;
+
+    const result = await this.db.getAllAsync(query, [
+      ...queryParams,
+      limit + 1,
+      offset,
+    ]);
+    const products = result as Product[];
+
+    // Check if there are more pages
+    const hasMore = products.length > limit;
+    const data = hasMore ? products.slice(0, limit) : products;
+
+    return {
+      data,
+      hasMore,
+      page,
+    };
+  }
+
+  // Lightweight search for sales screen
+  async searchProductsForSale(
+    query: string,
+    limit: number = 20
+  ): Promise<Product[]> {
+    if (!query.trim()) return [];
+
+    const searchPattern = `%${query.trim()}%`;
+    const result = await this.db.getAllAsync(
+      `
+      SELECT p.id, p.name, p.barcode, p.price, p.cost, p.quantity, p.min_stock,
+             c.name as category,
+             CASE WHEN bp.product_id IS NOT NULL THEN 1 ELSE 0 END as has_bulk_pricing
+      FROM products p 
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN (SELECT DISTINCT product_id FROM bulk_pricing) bp ON p.id = bp.product_id
+      WHERE p.name LIKE ? OR p.barcode = ?
+      ORDER BY 
+        CASE WHEN p.barcode = ? THEN 0 ELSE 1 END,
+        p.name ASC
+      LIMIT ?
+    `,
+      [searchPattern, query.trim(), query.trim(), limit]
+    );
+
+    return result as Product[];
+  }
+
+  // Fast barcode lookup
+  async findProductByBarcode(barcode: string): Promise<Product | null> {
+    if (!barcode.trim()) return null;
+
+    const result = await this.db.getFirstAsync(
+      `
+      SELECT p.*, c.name as category, s.name as supplier_name,
+             CASE WHEN bp.product_id IS NOT NULL THEN 1 ELSE 0 END as has_bulk_pricing
+      FROM products p 
+      LEFT JOIN categories c ON p.category_id = c.id 
+      LEFT JOIN suppliers s ON p.supplier_id = s.id
+      LEFT JOIN (SELECT DISTINCT product_id FROM bulk_pricing) bp ON p.id = bp.product_id
+      WHERE p.barcode = ?
+    `,
+      [barcode.trim()]
+    );
+
+    return result as Product | null;
+  }
+
+  // Simple bulk pricing check
+  async hasProductBulkPricing(productId: string): Promise<boolean> {
+    const result = await this.db.getFirstAsync(
+      'SELECT 1 FROM bulk_pricing WHERE product_id = ? LIMIT 1',
+      [productId]
+    );
+    return !!result;
+  }
+
+  // Get product counts by category
+  async getCategoriesWithProductCounts(): Promise<
+    Array<{ id: string; name: string; product_count: number }>
+  > {
+    try {
+      const sql = `
+        SELECT 
+          c.id,
+          c.name,
+          COUNT(p.id) as product_count
+        FROM categories c
+        LEFT JOIN products p ON c.id = p.category_id
+        GROUP BY c.id, c.name
+        ORDER BY c.name
+      `;
+      const results = await this.db.getAllAsync(sql, []);
+      return results as Array<{
+        id: string;
+        name: string;
+        product_count: number;
+      }>;
+    } catch (error) {
+      console.error('Error in getCategoriesWithProductCounts:', error);
+      return [];
+    }
   }
 
   async getProductsWithBulkPricing(): Promise<Product[]> {

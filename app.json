@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mini POS",
     "slug": "pos",
-    "version": "4.2.1",
+    "version": "4.2.2",
     "orientation": "portrait",
     "jsEngine": "hermes",
     "icon": "./assets/images/pos.png",
@@ -13,7 +13,7 @@
       "supportsTablet": true,
       "icon": "./assets/images/pos.png",
       "bundleIdentifier": "com.pyaephyonyo.pos",
-      "buildNumber": "5",
+      "buildNumber": "6",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to connect to thermal printers for receipt printing.",

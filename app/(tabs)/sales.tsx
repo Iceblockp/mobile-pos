@@ -13,17 +13,23 @@ import {
   PixelRatio,
   Image,
   FlatList,
+  RefreshControl,
 } from 'react-native';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import OptimizedImage from '@/components/OptimizedImage';
 import {
   useProducts,
   useCategories,
   useSaleMutations,
   useSaleItems,
+  useProductSearchForSales,
+  useProductsInfinite,
+  useCategoriesWithCounts,
 } from '@/hooks/useQueries';
+import { useDebounce } from '@/hooks/useDebounce';
 import {
   useInfiniteSales,
   useInfiniteSalesByDateRange,
@@ -69,6 +75,8 @@ import {
 import { SaleDateTimeSelector } from '@/components/SaleDateTimeSelector';
 import { convertISOToDBFormat } from '@/utils/dateUtils';
 import { MyanmarTextInput as TextInput } from '@/components/MyanmarTextInput';
+import { useMemoryCleanup, useRenderPerformance } from '@/utils/memoryManager';
+import { useBarcodeActions } from '@/hooks/useBarcodeActions';
 
 interface CartItem {
   product: Product;
@@ -85,6 +93,24 @@ export default function Sales() {
   const { showToast } = useToast();
   const { t } = useTranslation();
   const { formatPrice } = useCurrencyFormatter();
+  const { db } = useDatabase();
+
+  // Memory management
+  const { addCleanup } = useMemoryCleanup();
+  useRenderPerformance('Sales');
+
+  // Unified barcode handling
+  const { handleBarcodeScanned: handleBarcodeAction } = useBarcodeActions({
+    context: 'sales',
+    onProductFound: (product) => {
+      addToCart(product);
+      setShowScanner(false);
+    },
+    onProductNotFound: (barcode) => {
+      setSearchQuery(barcode);
+      setShowProductDialog(true);
+    },
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showProductDialog, setShowProductDialog] = useState(false);
@@ -101,15 +127,32 @@ export default function Sales() {
   const [saleDateTime, setSaleDateTime] = useState<Date>(new Date());
   const [showDateTimeSelector, setShowDateTimeSelector] = useState(false);
 
-  // Use React Query for optimized data fetching
+  // Debounced search for performance
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+  // Use infinite scroll for products
   const {
-    data: products = [],
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
     isLoading: productsLoading,
-    error: productsError,
-  } = useProducts(true); // Include bulk pricing data
+    isFetching: productsIsFetching,
+    isRefetching: productsIsRefetching,
+    isError: productsError,
+    refetch,
+  } = useProductsInfinite(
+    debouncedSearchQuery || undefined,
+    selectedCategory !== 'All' ? selectedCategory : undefined
+  );
+
+  // Flatten all pages into a single array
+  const products = useMemo(() => {
+    return data?.pages.flatMap((page: any) => page.data) ?? [];
+  }, [data]);
 
   const { data: categories = [], isLoading: categoriesLoading } =
-    useCategories();
+    useCategoriesWithCounts();
 
   const { addSale } = useSaleMutations();
 
@@ -203,21 +246,11 @@ export default function Sales() {
   // Removed formatMMK function - now using standardized currency formatting
 
   const handleBarcodeScanned = async (barcode: string) => {
+    setLoading(true);
     try {
-      const product = products.find((p) => p.barcode === barcode);
-      if (product) {
-        addToCart(product);
-        setShowScanner(false);
-        showToast(t('messages.addedToCart', { name: product.name }), 'success');
-      } else {
-        Alert.alert(
-          t('sales.productNotFound'),
-          t('sales.noProductFoundWithBarcode')
-        );
-      }
-    } catch (error) {
-      Alert.alert(t('common.error'), t('sales.failedToFindProduct'));
-      console.error('Error finding product by barcode:', error);
+      await handleBarcodeAction(barcode);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -477,20 +510,9 @@ export default function Sales() {
     setShowPaymentModal(true);
   };
 
-  const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      const matchesSearch =
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.barcode?.includes(searchQuery);
+  // Products are now filtered server-side through the infinite query
 
-      const matchesCategory =
-        selectedCategory === 'All' || product.category === selectedCategory;
-
-      return matchesSearch && matchesCategory;
-    });
-  }, [products, searchQuery, selectedCategory]);
-
-  if (productsLoading || categoriesLoading) {
+  if (categoriesLoading) {
     return <LoadingSpinner />;
   }
 
@@ -814,31 +836,33 @@ export default function Sales() {
                         styles.categoryFilterTextActive,
                     ]}
                   >
-                    All ({products.length})
+                    All (
+                    {categories.reduce(
+                      (sum: number, cat: any) => sum + (cat.product_count || 0),
+                      0
+                    )}
+                    )
                   </Text>
                 </TouchableOpacity>
-                {categories.map((category) => {
-                  const categoryCount = products.filter(
-                    (p) => p.category === category.name
-                  ).length;
+                {categories.map((category: any) => {
                   return (
                     <TouchableOpacity
                       key={category.id}
                       style={[
                         styles.categoryFilterChip,
-                        selectedCategory === category.name &&
+                        selectedCategory === category.id &&
                           styles.categoryFilterChipActive,
                       ]}
-                      onPress={() => setSelectedCategory(category.name)}
+                      onPress={() => setSelectedCategory(category.id)}
                     >
                       <Text
                         style={[
                           styles.categoryFilterText,
-                          selectedCategory === category.name &&
+                          selectedCategory === category.id &&
                             styles.categoryFilterTextActive,
                         ]}
                       >
-                        {category.name} ({categoryCount})
+                        {category.name} ({category.product_count || 0})
                       </Text>
                     </TouchableOpacity>
                   );
@@ -847,10 +871,43 @@ export default function Sales() {
             </View>
 
             <FlatList
-              data={filteredProducts}
+              data={products}
               keyExtractor={(item) => item.id}
               style={styles.dialogProductsList}
               showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={isFetchingNextPage}
+                  onRefresh={refetch}
+                />
+              }
+              ListHeaderComponent={
+                productsIsRefetching && products.length > 0 ? (
+                  <View style={styles.refetchingIndicator}>
+                    <ActivityIndicator size="small" color="#2196F3" />
+                    <Text style={styles.refetchingText}>
+                      Updating products...
+                    </Text>
+                  </View>
+                ) : null
+              }
+              onEndReached={() => {
+                if (hasNextPage && !isFetchingNextPage) {
+                  fetchNextPage();
+                }
+              }}
+              onEndReachedThreshold={0.5}
+              ListFooterComponent={() => {
+                if (!isFetchingNextPage) return null;
+                return (
+                  <View style={styles.loadingFooter}>
+                    <ActivityIndicator size="small" color="#2196F3" />
+                    <Text style={styles.loadingText}>
+                      Loading more products...
+                    </Text>
+                  </View>
+                );
+              }}
               renderItem={({ item: product }) => (
                 <TouchableOpacity
                   style={[
@@ -862,9 +919,12 @@ export default function Sales() {
                 >
                   {product.imageUrl && (
                     <Image
+                      // <OptimizedImage
                       source={{ uri: product.imageUrl }}
                       style={styles.dialogProductImage}
                       resizeMode="cover"
+                      // lazy={true}
+                      // priority="normal"
                     />
                   )}
                   <View style={styles.dialogProductInfo}>
@@ -922,16 +982,28 @@ export default function Sales() {
                 </TouchableOpacity>
               )}
               ListEmptyComponent={
-                <View style={styles.emptyProductsState}>
-                  <Text style={styles.emptyProductsText}>
-                    {t('sales.noProductsFound')}
-                  </Text>
-                  <Text style={styles.emptyProductsSubtext}>
-                    {searchQuery || selectedCategory !== 'All'
-                      ? t('sales.adjustSearch')
-                      : t('sales.noProductsAvailable')}
-                  </Text>
-                </View>
+                productsLoading ||
+                (productsIsRefetching && products.length === 0) ? (
+                  <View style={styles.loadingProductsState}>
+                    <LoadingSpinner />
+                    <Text style={styles.loadingProductsText}>
+                      {productsIsRefetching
+                        ? 'Filtering products...'
+                        : 'Loading products...'}
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.emptyProductsState}>
+                    <Text style={styles.emptyProductsText}>
+                      {t('sales.noProductsFound')}
+                    </Text>
+                    <Text style={styles.emptyProductsSubtext}>
+                      {searchQuery || selectedCategory !== 'All'
+                        ? t('sales.adjustSearch')
+                        : t('sales.noProductsAvailable')}
+                    </Text>
+                  </View>
+                )
               }
               initialNumToRender={10}
               maxToRenderPerBatch={10}
@@ -3057,6 +3129,15 @@ const styles = StyleSheet.create({
   dialogProductsList: {
     flex: 1,
   },
+  loadingFooter: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 8,
+    color: '#666',
+    fontSize: 14,
+  },
   dialogProductItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -3136,6 +3217,31 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     marginTop: 8,
     textAlign: 'center',
+  },
+  loadingProductsState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+  },
+  loadingProductsText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  refetchingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    backgroundColor: '#F0F9FF',
+    marginBottom: 8,
+    borderRadius: 8,
+  },
+  refetchingText: {
+    fontSize: 12,
+    color: '#2196F3',
+    marginLeft: 8,
   },
   modalContainer: {
     flex: 1,

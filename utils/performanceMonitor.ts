@@ -1,15 +1,31 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 
-// Performance monitoring utilities for price input components
-export class PerformanceMonitor {
+/**
+ * Performance monitoring utilities for React Native
+ */
+
+interface PerformanceMetric {
+  name: string;
+  startTime: number;
+  endTime?: number;
+  duration?: number;
+  metadata?: Record<string, any>;
+}
+
+interface ComponentRenderMetric {
+  componentName: string;
+  renderCount: number;
+  averageRenderTime: number;
+  lastRenderTime: number;
+  slowRenders: number;
+}
+
+class PerformanceMonitor {
   private static instance: PerformanceMonitor;
-  private renderCounts: Map<string, number> = new Map();
-  private renderTimes: Map<string, number[]> = new Map();
-  private memoryUsage: number[] = [];
-  private infiniteLoopDetector: Map<
-    string,
-    { count: number; lastTime: number }
-  > = new Map();
+  private metrics: PerformanceMetric[] = [];
+  private componentMetrics: Map<string, ComponentRenderMetric> = new Map();
+  private readonly SLOW_RENDER_THRESHOLD = 16; // 16ms for 60fps
+  private readonly MAX_METRICS = 1000; // Limit stored metrics
 
   static getInstance(): PerformanceMonitor {
     if (!PerformanceMonitor.instance) {
@@ -18,315 +34,340 @@ export class PerformanceMonitor {
     return PerformanceMonitor.instance;
   }
 
-  // Track component render counts
-  trackRender(componentName: string): void {
-    const currentCount = this.renderCounts.get(componentName) || 0;
-    this.renderCounts.set(componentName, currentCount + 1);
+  /**
+   * Start measuring a performance metric
+   */
+  startMeasure(name: string, metadata?: Record<string, any>): string {
+    const measureId = `${name}-${Date.now()}-${Math.random()}`;
 
-    // Record render time
-    const renderTime = performance.now();
-    const times = this.renderTimes.get(componentName) || [];
-    times.push(renderTime);
+    if (__DEV__) {
+      const metric: PerformanceMetric = {
+        name,
+        startTime: performance.now(),
+        metadata,
+      };
 
-    // Keep only last 100 render times
-    if (times.length > 100) {
-      times.shift();
-    }
-    this.renderTimes.set(componentName, times);
+      this.metrics.push(metric);
 
-    // Detect potential infinite loops
-    this.detectInfiniteLoop(componentName);
-  }
-
-  // Detect potential infinite loops
-  private detectInfiniteLoop(componentName: string): void {
-    const now = Date.now();
-    const detector = this.infiniteLoopDetector.get(componentName) || {
-      count: 0,
-      lastTime: now,
-    };
-
-    // Reset counter if more than 1 second has passed
-    if (now - detector.lastTime > 1000) {
-      detector.count = 1;
-      detector.lastTime = now;
-    } else {
-      detector.count++;
-    }
-
-    this.infiniteLoopDetector.set(componentName, detector);
-
-    // Warn if component renders more than 50 times per second
-    if (detector.count > 50) {
-      console.warn(
-        `Potential infinite loop detected in ${componentName}: ${detector.count} renders in 1 second`
-      );
-
-      // Reset to prevent spam
-      detector.count = 0;
-      detector.lastTime = now;
-    }
-  }
-
-  // Get render statistics
-  getRenderStats(componentName: string): {
-    totalRenders: number;
-    averageRenderTime: number;
-    lastRenderTime: number;
-  } {
-    const totalRenders = this.renderCounts.get(componentName) || 0;
-    const times = this.renderTimes.get(componentName) || [];
-
-    const averageRenderTime =
-      times.length > 0
-        ? times.reduce((sum, time, index) => {
-            if (index === 0) return 0;
-            return sum + (time - times[index - 1]);
-          }, 0) /
-          (times.length - 1)
-        : 0;
-
-    const lastRenderTime = times.length > 0 ? times[times.length - 1] : 0;
-
-    return {
-      totalRenders,
-      averageRenderTime,
-      lastRenderTime,
-    };
-  }
-
-  // Track memory usage
-  trackMemoryUsage(): void {
-    if ('memory' in performance) {
-      const memInfo = (performance as any).memory;
-      this.memoryUsage.push(memInfo.usedJSHeapSize);
-
-      // Keep only last 100 measurements
-      if (this.memoryUsage.length > 100) {
-        this.memoryUsage.shift();
+      // Limit stored metrics to prevent memory issues
+      if (this.metrics.length > this.MAX_METRICS) {
+        this.metrics = this.metrics.slice(-this.MAX_METRICS / 2);
       }
     }
+
+    return measureId;
   }
 
-  // Get memory statistics
-  getMemoryStats(): {
-    currentUsage: number;
-    averageUsage: number;
-    peakUsage: number;
-    isIncreasing: boolean;
+  /**
+   * End measuring a performance metric
+   */
+  endMeasure(name: string): number | null {
+    if (!__DEV__) return null;
+
+    const metric = this.metrics.find((m) => m.name === name && !m.endTime);
+
+    if (metric) {
+      metric.endTime = performance.now();
+      metric.duration = metric.endTime - metric.startTime;
+
+      // Log slow operations
+      if (metric.duration > 100) {
+        console.warn(
+          `Slow operation detected: ${name} took ${metric.duration.toFixed(
+            2
+          )}ms`,
+          metric.metadata
+        );
+      }
+
+      return metric.duration;
+    }
+
+    return null;
+  }
+
+  /**
+   * Measure a function execution time
+   */
+  async measureAsync<T>(
+    name: string,
+    fn: () => Promise<T>,
+    metadata?: Record<string, any>
+  ): Promise<T> {
+    const measureId = this.startMeasure(name, metadata);
+    try {
+      const result = await fn();
+      this.endMeasure(name);
+      return result;
+    } catch (error) {
+      this.endMeasure(name);
+      throw error;
+    }
+  }
+
+  /**
+   * Measure a synchronous function execution time
+   */
+  measureSync<T>(name: string, fn: () => T, metadata?: Record<string, any>): T {
+    const measureId = this.startMeasure(name, metadata);
+    try {
+      const result = fn();
+      this.endMeasure(name);
+      return result;
+    } catch (error) {
+      this.endMeasure(name);
+      throw error;
+    }
+  }
+
+  /**
+   * Record component render metrics
+   */
+  recordComponentRender(componentName: string, renderTime: number) {
+    if (!__DEV__) return;
+
+    const existing = this.componentMetrics.get(componentName);
+
+    if (existing) {
+      existing.renderCount++;
+      existing.lastRenderTime = renderTime;
+      existing.averageRenderTime =
+        (existing.averageRenderTime + renderTime) / 2;
+
+      if (renderTime > this.SLOW_RENDER_THRESHOLD) {
+        existing.slowRenders++;
+      }
+    } else {
+      this.componentMetrics.set(componentName, {
+        componentName,
+        renderCount: 1,
+        averageRenderTime: renderTime,
+        lastRenderTime: renderTime,
+        slowRenders: renderTime > this.SLOW_RENDER_THRESHOLD ? 1 : 0,
+      });
+    }
+
+    // Warn about consistently slow renders
+    const metric = this.componentMetrics.get(componentName)!;
+    if (
+      metric.slowRenders > 5 &&
+      metric.slowRenders / metric.renderCount > 0.5
+    ) {
+      console.warn(
+        `Component ${componentName} has frequent slow renders: ${metric.slowRenders}/${metric.renderCount}`
+      );
+    }
+  }
+
+  /**
+   * Get performance summary
+   */
+  getPerformanceSummary(): {
+    totalMetrics: number;
+    slowOperations: PerformanceMetric[];
+    componentSummary: ComponentRenderMetric[];
+    memoryUsage?: any;
   } {
-    if (this.memoryUsage.length === 0) {
-      return {
-        currentUsage: 0,
-        averageUsage: 0,
-        peakUsage: 0,
-        isIncreasing: false,
+    const slowOperations = this.metrics.filter(
+      (m) => m.duration && m.duration > 100
+    );
+
+    const componentSummary = Array.from(this.componentMetrics.values()).sort(
+      (a, b) => b.slowRenders - a.slowRenders
+    );
+
+    let memoryUsage;
+    if (typeof performance !== 'undefined' && (performance as any).memory) {
+      const memory = (performance as any).memory;
+      memoryUsage = {
+        used: Math.round(memory.usedJSHeapSize / 1024 / 1024),
+        total: Math.round(memory.totalJSHeapSize / 1024 / 1024),
+        limit: Math.round(memory.jsHeapSizeLimit / 1024 / 1024),
       };
     }
 
-    const currentUsage = this.memoryUsage[this.memoryUsage.length - 1];
-    const averageUsage =
-      this.memoryUsage.reduce((sum, usage) => sum + usage, 0) /
-      this.memoryUsage.length;
-    const peakUsage = Math.max(...this.memoryUsage);
-
-    // Check if memory is consistently increasing (potential leak)
-    const recentUsage = this.memoryUsage.slice(-10);
-    const isIncreasing =
-      recentUsage.length >= 10 &&
-      recentUsage.every(
-        (usage, index) => index === 0 || usage >= recentUsage[index - 1]
-      );
-
     return {
-      currentUsage,
-      averageUsage,
-      peakUsage,
-      isIncreasing,
+      totalMetrics: this.metrics.length,
+      slowOperations,
+      componentSummary,
+      memoryUsage,
     };
   }
 
-  // Clear all statistics
-  clearStats(): void {
-    this.renderCounts.clear();
-    this.renderTimes.clear();
-    this.memoryUsage = [];
-    this.infiniteLoopDetector.clear();
+  /**
+   * Clear all metrics
+   */
+  clearMetrics() {
+    this.metrics = [];
+    this.componentMetrics.clear();
   }
 
-  // Get all component statistics
-  getAllStats(): Record<string, any> {
-    const stats: Record<string, any> = {};
+  /**
+   * Log performance summary to console
+   */
+  logSummary() {
+    if (!__DEV__) return;
 
-    for (const [componentName] of this.renderCounts) {
-      stats[componentName] = this.getRenderStats(componentName);
+    const summary = this.getPerformanceSummary();
+
+    console.group('Performance Summary');
+    console.log(`Total metrics recorded: ${summary.totalMetrics}`);
+    console.log(`Slow operations: ${summary.slowOperations.length}`);
+
+    if (summary.memoryUsage) {
+      console.log(
+        `Memory usage: ${summary.memoryUsage.used}MB / ${summary.memoryUsage.total}MB`
+      );
     }
 
-    stats.memory = this.getMemoryStats();
+    if (summary.slowOperations.length > 0) {
+      console.group('Slow Operations');
+      summary.slowOperations.forEach((op) => {
+        console.log(`${op.name}: ${op.duration?.toFixed(2)}ms`, op.metadata);
+      });
+      console.groupEnd();
+    }
 
-    return stats;
+    if (summary.componentSummary.length > 0) {
+      console.group('Component Render Performance');
+      summary.componentSummary.slice(0, 10).forEach((comp) => {
+        console.log(
+          `${comp.componentName}: ${
+            comp.renderCount
+          } renders, avg ${comp.averageRenderTime.toFixed(2)}ms, ${
+            comp.slowRenders
+          } slow`
+        );
+      });
+      console.groupEnd();
+    }
+
+    console.groupEnd();
   }
 }
 
-// React hook for performance monitoring
+/**
+ * Hook for measuring component render performance
+ */
 export const usePerformanceMonitor = (componentName: string) => {
+  const renderStartTime = useRef<number>(0);
   const monitor = PerformanceMonitor.getInstance();
-  const renderCountRef = useRef(0);
 
   useEffect(() => {
-    renderCountRef.current++;
-    monitor.trackRender(componentName);
-    monitor.trackMemoryUsage();
+    if (__DEV__) {
+      renderStartTime.current = performance.now();
+    }
   });
 
-  const getStats = useCallback(() => {
-    return monitor.getRenderStats(componentName);
-  }, [componentName, monitor]);
+  useEffect(() => {
+    if (__DEV__ && renderStartTime.current > 0) {
+      const renderTime = performance.now() - renderStartTime.current;
+      monitor.recordComponentRender(componentName, renderTime);
+    }
+  });
 
-  const clearStats = useCallback(() => {
-    monitor.clearStats();
-  }, [monitor]);
-
-  return {
-    renderCount: renderCountRef.current,
-    getStats,
-    clearStats,
-  };
-};
-
-// Hook for detecting infinite loops in price inputs
-export const usePriceInputPerformanceMonitor = (inputName: string) => {
-  const monitor = PerformanceMonitor.getInstance();
-  const lastValueRef = useRef<string>('');
-  const changeCountRef = useRef(0);
-  const lastChangeTimeRef = useRef(Date.now());
-
-  const trackValueChange = useCallback(
-    (newValue: string) => {
-      const now = Date.now();
-
-      // Only count as a change if value actually changed
-      if (newValue !== lastValueRef.current) {
-        lastValueRef.current = newValue;
-        changeCountRef.current++;
-
-        // Reset counter every second
-        if (now - lastChangeTimeRef.current > 1000) {
-          changeCountRef.current = 1;
-          lastChangeTimeRef.current = now;
-        }
-
-        // Warn if too many changes per second
-        if (changeCountRef.current > 20) {
-          console.warn(
-            `High frequency value changes detected in ${inputName}: ${changeCountRef.current} changes per second`
-          );
-        }
-
-        monitor.trackRender(`${inputName}_value_change`);
-      }
+  const measureOperation = useCallback(
+    async <T>(
+      operationName: string,
+      operation: () => Promise<T>,
+      metadata?: Record<string, any>
+    ): Promise<T> => {
+      return monitor.measureAsync(
+        `${componentName}.${operationName}`,
+        operation,
+        metadata
+      );
     },
-    [inputName, monitor]
+    [componentName, monitor]
+  );
+
+  const measureSync = useCallback(
+    <T>(
+      operationName: string,
+      operation: () => T,
+      metadata?: Record<string, any>
+    ): T => {
+      return monitor.measureSync(
+        `${componentName}.${operationName}`,
+        operation,
+        metadata
+      );
+    },
+    [componentName, monitor]
   );
 
   return {
-    trackValueChange,
-    getChangeCount: () => changeCountRef.current,
+    measureOperation,
+    measureSync,
+    logSummary: monitor.logSummary.bind(monitor),
   };
 };
 
-// Performance validation utilities
-export const validatePerformance = {
-  // Check if component renders are within acceptable limits
-  checkRenderCount: (
-    componentName: string,
-    maxRenders: number = 100
-  ): boolean => {
-    const monitor = PerformanceMonitor.getInstance();
-    const stats = monitor.getRenderStats(componentName);
-    return stats.totalRenders <= maxRenders;
-  },
+/**
+ * Hook for measuring database operations
+ */
+export const useDatabasePerformanceMonitor = () => {
+  const monitor = PerformanceMonitor.getInstance();
 
-  // Check if memory usage is stable
-  checkMemoryStability: (): boolean => {
-    const monitor = PerformanceMonitor.getInstance();
-    const memStats = monitor.getMemoryStats();
-    return !memStats.isIncreasing;
-  },
+  const measureQuery = useCallback(
+    async <T>(
+      queryName: string,
+      queryFn: () => Promise<T>,
+      metadata?: Record<string, any>
+    ): Promise<T> => {
+      return monitor.measureAsync(`db.${queryName}`, queryFn, {
+        type: 'database',
+        ...metadata,
+      });
+    },
+    [monitor]
+  );
 
-  // Check if render times are reasonable
-  checkRenderPerformance: (
-    componentName: string,
-    maxRenderTime: number = 16
-  ): boolean => {
-    const monitor = PerformanceMonitor.getInstance();
-    const stats = monitor.getRenderStats(componentName);
-    return stats.averageRenderTime <= maxRenderTime;
-  },
-
-  // Run all performance checks
-  runAllChecks: (
-    componentName: string
-  ): {
-    renderCount: boolean;
-    memoryStability: boolean;
-    renderPerformance: boolean;
-    overall: boolean;
-  } => {
-    const renderCount = validatePerformance.checkRenderCount(componentName);
-    const memoryStability = validatePerformance.checkMemoryStability();
-    const renderPerformance =
-      validatePerformance.checkRenderPerformance(componentName);
-
-    return {
-      renderCount,
-      memoryStability,
-      renderPerformance,
-      overall: renderCount && memoryStability && renderPerformance,
-    };
-  },
+  return { measureQuery };
 };
 
-// Error tracking for infinite loops
-export class InfiniteLoopTracker {
-  private static errors: Array<{
-    component: string;
-    timestamp: number;
-    error: string;
-    stackTrace?: string;
-  }> = [];
+/**
+ * Hook for measuring network operations
+ */
+export const useNetworkPerformanceMonitor = () => {
+  const monitor = PerformanceMonitor.getInstance();
 
-  static trackError(
-    component: string,
-    error: string,
-    stackTrace?: string
-  ): void {
-    this.errors.push({
-      component,
-      timestamp: Date.now(),
-      error,
-      stackTrace,
-    });
+  const measureRequest = useCallback(
+    async <T>(
+      requestName: string,
+      requestFn: () => Promise<T>,
+      metadata?: Record<string, any>
+    ): Promise<T> => {
+      return monitor.measureAsync(`network.${requestName}`, requestFn, {
+        type: 'network',
+        ...metadata,
+      });
+    },
+    [monitor]
+  );
 
-    // Keep only last 50 errors
-    if (this.errors.length > 50) {
-      this.errors.shift();
-    }
+  return { measureRequest };
+};
 
-    console.error(`Infinite loop error in ${component}:`, error);
+/**
+ * Global performance monitoring setup
+ */
+export const setupPerformanceMonitoring = () => {
+  if (__DEV__) {
+    const monitor = PerformanceMonitor.getInstance();
+
+    // Log performance summary every 30 seconds
+    setInterval(() => {
+      monitor.logSummary();
+    }, 30000);
+
+    // Clear metrics every 5 minutes to prevent memory buildup
+    setInterval(() => {
+      monitor.clearMetrics();
+    }, 5 * 60 * 1000);
+
+    console.log('Performance monitoring enabled');
   }
+};
 
-  static getErrors(): typeof InfiniteLoopTracker.errors {
-    return [...this.errors];
-  }
-
-  static clearErrors(): void {
-    this.errors = [];
-  }
-
-  static getErrorsForComponent(
-    component: string
-  ): typeof InfiniteLoopTracker.errors {
-    return this.errors.filter((error) => error.component === component);
-  }
-}
+export default PerformanceMonitor;

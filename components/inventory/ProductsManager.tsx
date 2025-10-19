@@ -13,6 +13,7 @@ import {
   RefreshControl,
   FlatList,
 } from 'react-native';
+import OptimizedImage from '../OptimizedImage';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -24,8 +25,17 @@ import {
   useProductMutations,
   useCategoryMutations,
   useBulkPricing,
+  useProductsInfinite,
+  useCategoriesWithCounts,
 } from '@/hooks/useQueries';
+import { useDebounce } from '@/hooks/useDebounce';
 import { Product, Category, Supplier } from '@/services/database';
+
+type CategoryWithCount = {
+  id: string;
+  name: string;
+  product_count: number;
+};
 import {
   Plus,
   Search,
@@ -55,8 +65,12 @@ import { useTranslation } from '@/context/LocalizationContext';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
+// import {
+//   useMemoryCleanup,
+//   useRenderPerformance,
+//   useQueryCacheManager,
+// } from '@/utils/memoryManager';
 
-import { useOptimizedList } from '@/hooks/useOptimizedList';
 import { BulkPricingTiers } from '@/components/BulkPricingTiers';
 import { ProductMovementHistory } from '@/components/ProductMovementHistory';
 import { QuickStockActions } from '@/components/QuickStockActions';
@@ -70,11 +84,15 @@ interface ProductsManagerProps {
 export default function Products({}: ProductsManagerProps) {
   const { showToast } = useToast();
   const { t } = useTranslation();
+
+  // Memory management hooks
+  // const { addCleanup } = useMemoryCleanup();
+  // useRenderPerformance('ProductsManager');
+  // useQueryCacheManager();
   const { formatPrice } = useCurrencyFormatter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | number>(
-    'All'
-  );
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showAddForm, setShowAddForm] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
@@ -108,16 +126,31 @@ export default function Products({}: ProductsManagerProps) {
   const [showProductDetail, setShowProductDetail] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  // Use React Query for optimized data fetching
+  // Use infinite scroll for products
   const {
-    data: products = [],
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
     isLoading: productsLoading,
-    isRefetching: productsRefetching,
+    isError: productsError,
     refetch: refetchProducts,
-  } = useProducts(true); // Include bulk pricing data
+    isRefetching: productsRefetching,
+  } = useProductsInfinite(
+    debouncedSearchQuery || undefined,
+    selectedCategory !== 'All' ? selectedCategory : undefined,
+    sortBy,
+    sortOrder
+  );
+
+  // Flatten all pages into a single array
+  const products = useMemo(() => {
+    return data?.pages.flatMap((page: any) => page.data) ?? [];
+  }, [data]);
 
   const { data: categories = [], isLoading: categoriesLoading } =
     useCategories();
+  const { data: categoriesWithCounts = [] } = useCategoriesWithCounts();
 
   const { data: suppliers = [], isLoading: suppliersLoading } =
     useBasicSuppliers();
@@ -131,7 +164,7 @@ export default function Products({}: ProductsManagerProps) {
   const { addCategory, updateCategory, deleteCategory } =
     useCategoryMutations();
 
-  const isLoading = productsLoading || categoriesLoading || suppliersLoading;
+  const isLoading = categoriesLoading || suppliersLoading; // Only essential data, not products
   const isRefreshing = productsRefetching;
 
   const [formData, setFormData] = useState({
@@ -181,49 +214,37 @@ export default function Products({}: ProductsManagerProps) {
 
   // Removed formatMMK function - now using standardized currency formatting
 
-  // Use optimized list hook for better performance with large datasets
-  const {
-    filteredData: filteredProducts,
-    keyExtractor,
-    getItemLayout,
-  } = useOptimizedList({
-    data: products,
-    searchQuery,
-    selectedCategory,
-    sortBy,
-    sortOrder,
-  });
+  // Simple key extractor for FlatList
+  const keyExtractor = useCallback((item: Product) => item.id, []);
 
   // Function to toggle sort order or change sort field
-  const handleSort = (field: 'name' | 'updated_at') => {
-    // TEMPORARILY DISABLE NAME SORTING - too slow for large datasets
-    if (field === 'name') {
-      // Show toast or do nothing for name sorting
-      showToast('Name sorting temporarily disabled for performance', 'info');
-      return;
-    }
-
-    if (sortBy === field) {
-      // Toggle sort order if clicking the same field
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      // Change sort field and reset to ascending order
-      setSortBy(field);
-      setSortOrder('asc');
-    }
-  };
+  // const handleSort = (field: 'name' | 'updated_at') => {
+  //   if (sortBy === field) {
+  //     // Toggle sort order if clicking the same field
+  //     setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+  //   } else {
+  //     // Change sort field and reset to ascending order
+  //     setSortBy(field);
+  //     setSortOrder('asc');
+  //   }
+  // };
 
   // Get selected category name for display
   const getSelectedCategoryName = () => {
     if (selectedCategory === 'All') {
-      return `${t('common.all')} (${products.length})`;
+      const totalProducts = categoriesWithCounts.reduce(
+        (sum: number, cat: any) => sum + (cat.product_count || 0),
+        0
+      );
+      return `${t('common.all')} (${products.length}/${totalProducts})`;
     }
-    const category = categories.find((c) => c.id === selectedCategory);
+    const category = categoriesWithCounts.find(
+      (c: any) => c.id === selectedCategory
+    );
     if (category) {
-      const categoryCount = products.filter(
-        (p) => p.category_id === category.id
-      ).length;
-      return `${category.name} (${categoryCount})`;
+      return `${category.name} (${products.length}/${
+        category.product_count || 0
+      })`;
     }
     return t('common.all');
   };
@@ -664,24 +685,51 @@ export default function Products({}: ProductsManagerProps) {
   //   handleDelete(product);
   // }, []);
 
-  // Simplified Product Card - only basic info
+  // Optimized Product Card with memoization
   const ProductCard = React.memo(
     ({ product }: { product: Product }) => {
+      // Memoized calculations for better performance
+      const profit = useMemo(
+        () => product.price - product.cost,
+        [product.price, product.cost]
+      );
+      const isLowStock = useMemo(
+        () => product.quantity <= product.min_stock,
+        [product.quantity, product.min_stock]
+      );
+      const hasBulkPricing = useMemo(
+        () =>
+          Boolean(product.has_bulk_pricing) ||
+          (product.bulk_pricing && product.bulk_pricing.length > 0),
+        [product.has_bulk_pricing, product.bulk_pricing]
+      );
+
+      // Stable callbacks
+      const handlePress = useCallback(() => {
+        setSelectedProduct(product);
+        setShowProductDetail(true);
+      }, [product.id]);
+
+      const handleEditPress = useCallback(
+        (e: any) => {
+          e.stopPropagation();
+          handleEdit(product);
+        },
+        [product.id]
+      );
+
       return (
-        <TouchableOpacity
-          onPress={() => {
-            setSelectedProduct(product);
-            setShowProductDetail(true);
-          }}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity onPress={handlePress} activeOpacity={0.7}>
           <Card style={styles.productCard}>
             <View style={styles.productHeader}>
               {product.imageUrl ? (
                 <Image
+                  // <OptimizedImage
                   source={{ uri: product.imageUrl }}
                   style={styles.productImage}
                   resizeMode="cover"
+                  // lazy={true}
+                  // priority="normal"
                 />
               ) : (
                 <View style={styles.productImagePlaceholder}>
@@ -704,10 +752,7 @@ export default function Products({}: ProductsManagerProps) {
               <View style={styles.productQuickActions}>
                 <TouchableOpacity
                   style={styles.quickActionButton}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleEdit(product);
-                  }}
+                  onPress={handleEditPress}
                 >
                   <Edit size={16} color="#6B7280" />
                 </TouchableOpacity>
@@ -730,8 +775,7 @@ export default function Products({}: ProductsManagerProps) {
                 <Text
                   style={[
                     styles.productDetailValue,
-                    product.quantity <= product.min_stock &&
-                      styles.lowStockText,
+                    isLowStock && styles.lowStockText,
                   ]}
                 >
                   {product.quantity}
@@ -742,20 +786,20 @@ export default function Products({}: ProductsManagerProps) {
                   {t('products.profit')}
                 </Text>
                 <Text style={[styles.productDetailValue, styles.profitText]}>
-                  {formatPrice(product.price - product.cost)}
+                  {formatPrice(profit)}
                 </Text>
               </View>
             </View>
 
-            {/* Indicators for additional features */}
+            {/* Simplified indicators for better performance */}
             <View style={styles.productIndicators}>
-              {product.bulk_pricing && product.bulk_pricing.length > 0 && (
+              {hasBulkPricing && (
                 <View style={styles.indicator}>
                   <TrendingDown size={12} color="#059669" />
                   <Text style={styles.indicatorText}>Bulk</Text>
                 </View>
               )}
-              {product.quantity <= product.min_stock && (
+              {isLowStock && (
                 <View style={[styles.indicator, styles.lowStockIndicator]}>
                   <Text style={styles.lowStockIndicatorText}>Low Stock</Text>
                 </View>
@@ -766,13 +810,22 @@ export default function Products({}: ProductsManagerProps) {
       );
     },
     (prevProps, nextProps) => {
-      // Optimized comparison for basic fields only
+      // Enhanced comparison for better memoization
+      const prev = prevProps.product;
+      const next = nextProps.product;
+
       return (
-        prevProps.product.id === nextProps.product.id &&
-        prevProps.product.name === nextProps.product.name &&
-        prevProps.product.price === nextProps.product.price &&
-        prevProps.product.quantity === nextProps.product.quantity &&
-        prevProps.product.category === nextProps.product.category
+        prev.id === next.id &&
+        prev.name === next.name &&
+        prev.price === next.price &&
+        prev.cost === next.cost &&
+        prev.quantity === next.quantity &&
+        prev.min_stock === next.min_stock &&
+        prev.category === next.category &&
+        prev.barcode === next.barcode &&
+        prev.imageUrl === next.imageUrl &&
+        prev.has_bulk_pricing === next.has_bulk_pricing &&
+        prev.updated_at === next.updated_at
       );
     }
   );
@@ -823,10 +876,12 @@ export default function Products({}: ProductsManagerProps) {
           {/* Image */}
           <View style={[styles.tableCell, { width: 80 }]}>
             {product.imageUrl ? (
-              <Image
+              <OptimizedImage
                 source={{ uri: product.imageUrl }}
                 style={styles.tableProductImage}
                 resizeMode="cover"
+                lazy={true}
+                priority="low"
               />
             ) : (
               <View style={styles.tableProductImagePlaceholder}>
@@ -919,9 +974,26 @@ export default function Products({}: ProductsManagerProps) {
           <View style={styles.tableContent}>
             <TableHeader />
             <FlatList
-              data={filteredProducts}
+              data={products}
               renderItem={({ item }) => <ProductTableRow product={item} />}
               keyExtractor={keyExtractor}
+              onEndReached={() => {
+                if (hasNextPage && !isFetchingNextPage) {
+                  fetchNextPage();
+                }
+              }}
+              onEndReachedThreshold={0.5}
+              ListFooterComponent={() => {
+                if (!isFetchingNextPage) return null;
+                return (
+                  <View style={styles.loadingFooter}>
+                    <LoadingSpinner />
+                    <Text style={styles.loadingText}>
+                      Loading more products...
+                    </Text>
+                  </View>
+                );
+              }}
               refreshControl={
                 <RefreshControl
                   refreshing={isRefreshing}
@@ -933,7 +1005,6 @@ export default function Products({}: ProductsManagerProps) {
               maxToRenderPerBatch={25}
               windowSize={15}
               initialNumToRender={25}
-              getItemLayout={getItemLayout}
             />
           </View>
         </ScrollView>
@@ -1247,11 +1318,85 @@ export default function Products({}: ProductsManagerProps) {
                 Oldest First
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.sortOption,
+                sortBy === 'name' &&
+                  sortOrder === 'asc' &&
+                  styles.sortOptionActive,
+              ]}
+              onPress={() => {
+                setSortBy('name');
+                setSortOrder('asc');
+                setShowSortOptions(false);
+              }}
+            >
+              <Text
+                style={[
+                  styles.sortOptionText,
+                  sortBy === 'name' &&
+                    sortOrder === 'asc' &&
+                    styles.sortOptionTextActive,
+                ]}
+              >
+                Name A-Z
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.sortOption,
+                sortBy === 'name' &&
+                  sortOrder === 'desc' &&
+                  styles.sortOptionActive,
+              ]}
+              onPress={() => {
+                setSortBy('name');
+                setSortOrder('desc');
+                setShowSortOptions(false);
+              }}
+            >
+              <Text
+                style={[
+                  styles.sortOptionText,
+                  sortBy === 'name' &&
+                    sortOrder === 'desc' &&
+                    styles.sortOptionTextActive,
+                ]}
+              >
+                Name Z-A
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
       </>
 
       <View>
+        {/* Products Count Display */}
+        <View style={styles.productsCountContainer}>
+          <Text style={styles.productsCountText}>
+            {productsLoading
+              ? 'Loading products...'
+              : selectedCategory === 'All'
+              ? `Showing ${products.length} of ${categoriesWithCounts.reduce(
+                  (sum: number, cat: any) => sum + (cat.product_count || 0),
+                  0
+                )} products`
+              : (() => {
+                  const category = categoriesWithCounts.find(
+                    (c: any) => c.id === selectedCategory
+                  );
+                  return `Showing ${products.length} of ${
+                    category?.product_count || 0
+                  } products in ${category?.name || 'category'}`;
+                })()}
+          </Text>
+          {!productsLoading && hasNextPage && (
+            <Text style={styles.loadMoreHint}>Scroll down to load more</Text>
+          )}
+        </View>
+
         <View style={styles.compactCategoryContainer}>
           <TouchableOpacity
             style={styles.compactCategoryDropdown}
@@ -1307,7 +1452,13 @@ export default function Products({}: ProductsManagerProps) {
                           styles.categoryPickerItemTextActive,
                       ]}
                     >
-                      {t('common.all')} ({products.length})
+                      {t('common.all')} (
+                      {categoriesWithCounts.reduce(
+                        (sum: number, cat: any) =>
+                          sum + (cat.product_count || 0),
+                        0
+                      )}
+                      )
                     </Text>
                     {selectedCategory === 'All' && (
                       <View style={styles.selectedIndicator} />
@@ -1315,10 +1466,7 @@ export default function Products({}: ProductsManagerProps) {
                   </TouchableOpacity>
 
                   {/* Individual Categories */}
-                  {categories.map((category) => {
-                    const categoryCount = products.filter(
-                      (p) => p.category_id === category.id
-                    ).length;
+                  {categoriesWithCounts.map((category: any) => {
                     const isSelected = selectedCategory === category.id;
 
                     return (
@@ -1339,7 +1487,7 @@ export default function Products({}: ProductsManagerProps) {
                             isSelected && styles.categoryPickerItemTextActive,
                           ]}
                         >
-                          {category.name} ({categoryCount})
+                          {category.name} ({category.product_count || 0})
                         </Text>
                         {isSelected && (
                           <View style={styles.selectedIndicator} />
@@ -1356,25 +1504,56 @@ export default function Products({}: ProductsManagerProps) {
 
       {viewMode === 'card' ? (
         <FlatList
-          data={filteredProducts}
+          data={products}
           keyExtractor={keyExtractor}
-          getItemLayout={getItemLayout}
           renderItem={({ item }) => <ProductCard product={item} />}
-          ListEmptyComponent={() => (
-            <View style={styles.emptyState}>
-              <Package size={48} color="#9CA3AF" />
-              <Text style={styles.emptyStateText}>
-                {t('products.noProductsFound')}
-              </Text>
-              <Text style={styles.emptyStateSubtext}>
-                {searchQuery
-                  ? t('products.tryAdjustingSearch')
-                  : t('products.addFirstProductToStart')}
-              </Text>
-            </View>
-          )}
+          onEndReached={() => {
+            if (hasNextPage && !isFetchingNextPage) {
+              fetchNextPage();
+            }
+          }}
+          onEndReachedThreshold={0.5}
+          ListHeaderComponent={
+            productsRefetching && products.length > 0 ? (
+              <View style={styles.refetchingIndicator}>
+                <LoadingSpinner />
+                <Text style={styles.refetchingText}>Updating products...</Text>
+              </View>
+            ) : null
+          }
+          ListFooterComponent={() => {
+            if (!isFetchingNextPage) return null;
+            return (
+              <View style={styles.loadingFooter}>
+                <LoadingSpinner />
+                <Text style={styles.loadingText}>Loading more products...</Text>
+              </View>
+            );
+          }}
+          ListEmptyComponent={() =>
+            productsLoading ? (
+              <View style={styles.loadingProductsState}>
+                <LoadingSpinner />
+                <Text style={styles.loadingProductsText}>
+                  Loading products...
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.emptyState}>
+                <Package size={48} color="#9CA3AF" />
+                <Text style={styles.emptyStateText}>
+                  {t('products.noProductsFound')}
+                </Text>
+                <Text style={styles.emptyStateSubtext}>
+                  {searchQuery
+                    ? t('products.tryAdjustingSearch')
+                    : t('products.addFirstProductToStart')}
+                </Text>
+              </View>
+            )
+          }
           contentContainerStyle={
-            filteredProducts.length === 0
+            products.length === 0
               ? styles.productsListEmptyContent
               : styles.productsListContent
           }
@@ -1430,9 +1609,11 @@ export default function Products({}: ProductsManagerProps) {
             {/* Image Picker Section */}
             <View style={styles.imagePickerContainer}>
               {formData.imageUrl ? (
-                <Image
+                <OptimizedImage
                   source={{ uri: formData.imageUrl }}
                   style={styles.productFormImage}
+                  lazy={false}
+                  priority="high"
                 />
               ) : (
                 <View style={styles.imagePlaceholder}>
@@ -2800,5 +2981,63 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingFooter: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: 'Inter-Regular',
+  },
+  productsCountContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#F8FAFC',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  productsCountText: {
+    fontSize: 14,
+    color: '#374151',
+    fontFamily: 'Inter-Medium',
+    textAlign: 'center',
+  },
+  loadMoreHint: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'Inter-Regular',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  loadingProductsState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+  },
+  loadingProductsText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 16,
+    textAlign: 'center',
+    fontFamily: 'Inter-Regular',
+  },
+  refetchingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    backgroundColor: '#F0F9FF',
+    marginBottom: 8,
+    borderRadius: 8,
+  },
+  refetchingText: {
+    fontSize: 12,
+    color: '#2196F3',
+    marginLeft: 8,
+    fontFamily: 'Inter-Regular',
   },
 });

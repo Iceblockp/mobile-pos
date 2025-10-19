@@ -11,6 +11,7 @@ import {
   Image,
   FlatList,
   Modal,
+  Platform,
 } from 'react-native';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Card } from '@/components/Card';
@@ -35,6 +36,8 @@ import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
 import { usePerformanceOptimization } from '@/hooks/usePerformanceOptimization';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
+import { useDatabase } from '@/context/DatabaseContext';
+import { useBarcodeActions } from '@/hooks/useBarcodeActions';
 
 // Import the ProductsManager component
 import ProductsManager from '@/components/inventory/ProductsManager';
@@ -57,6 +60,17 @@ export default function Inventory() {
   const { formatPrice } = useCurrencyFormatter();
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<InventoryTab>('products');
+
+  // Unified barcode handling
+  const { handleBarcodeScanned: handleBarcodeAction } = useBarcodeActions({
+    context: 'inventory',
+    onProductFound: (product) => {
+      setSearchQuery(product.name);
+    },
+    onProductNotFound: (barcode) => {
+      setSearchQuery(barcode);
+    },
+  });
   const [showTabPicker, setShowTabPicker] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [adjustmentQuantity, setAdjustmentQuantity] = useState('');
@@ -145,17 +159,11 @@ export default function Inventory() {
 
   const handleBarcodeScanned = async (barcode: string) => {
     try {
-      const product = products.find((p) => p.barcode === barcode);
-      if (product) {
-        setSearchQuery(product.name);
-        setShowScanner(false);
-        showToast(`Found: ${product.name}`, 'success');
-      } else {
-        Alert.alert('Product Not Found', 'No product found with this barcode');
-      }
+      await handleBarcodeAction(barcode);
+      setShowScanner(false);
     } catch (error) {
-      console.error('Error finding product:', error);
-      Alert.alert('Error', 'Failed to find product');
+      console.error('Error in barcode scanning:', error);
+      setShowScanner(false);
     }
   };
 

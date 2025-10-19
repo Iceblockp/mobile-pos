@@ -1,4 +1,9 @@
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import {
+  useQuery,
+  useQueryClient,
+  useMutation,
+  useInfiniteQuery,
+} from '@tanstack/react-query';
 import { useDatabase } from '@/context/DatabaseContext';
 import {
   Product,
@@ -232,6 +237,63 @@ export const useProducts = (includeBulkPricing: boolean = false) => {
   });
 };
 
+// New infinite query for paginated products
+export const useProductsInfinite = (
+  searchQuery?: string,
+  categoryId?: string,
+  sortBy?: 'name' | 'updated_at' | 'none',
+  sortOrder?: 'asc' | 'desc'
+) => {
+  const { db, isReady } = useDatabase();
+
+  return useInfiniteQuery({
+    queryKey: [
+      'products',
+      'infinite',
+      searchQuery,
+      categoryId,
+      sortBy,
+      sortOrder,
+    ],
+    queryFn: ({ pageParam = 1 }) =>
+      db!.getProductsPaginated({
+        searchQuery,
+        categoryId,
+        sortBy,
+        sortOrder,
+        page: pageParam as number,
+        limit: 50,
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage: any) =>
+      lastPage.hasMore ? lastPage.page + 1 : undefined,
+    enabled: isReady && !!db,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    retry: (failureCount, error) => {
+      // Don't retry on client errors, only on network/server errors
+      if (failureCount >= 3) return false;
+      return true;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+};
+
+// Specialized search for sales screen
+export const useProductSearchForSales = (query: string) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: ['products', 'sales-search', query],
+    queryFn: () => db!.searchProductsForSale(query, 20),
+    enabled: isReady && !!db && query.length > 0,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: false,
+  });
+};
+
 // Note: getProduct method doesn't exist in database service
 // If needed, implement getProduct in database service or use getProducts and filter
 // export const useProduct = (id: string) => { ... }
@@ -246,6 +308,16 @@ export const useCategories = () => {
     enabled: isReady && !!db,
     staleTime: 15 * 60 * 1000, // 15 minutes - categories rarely change
     gcTime: 30 * 60 * 1000,
+  });
+};
+
+export const useCategoriesWithCounts = () => {
+  const { db, isReady } = useDatabase();
+  return useQuery({
+    queryKey: ['categories', 'with-counts'],
+    queryFn: () => db!.getCategoriesWithProductCounts(),
+    enabled: isReady && !!db,
+    staleTime: 2 * 60 * 1000, // 2 minutes
   });
 };
 
