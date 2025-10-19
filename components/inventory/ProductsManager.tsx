@@ -146,6 +146,12 @@ export default function Products({}: ProductsManagerProps) {
     imageUrl: '',
   });
 
+  // Store numeric values separately for proper decimal handling
+  const [numericValues, setNumericValues] = useState({
+    price: 0,
+    cost: 0,
+  });
+
   const [categoryFormData, setCategoryFormData] = useState({
     name: '',
     description: '',
@@ -233,6 +239,10 @@ export default function Products({}: ProductsManagerProps) {
       min_stock: '10', // Default to 10
       supplier_id: '',
       imageUrl: '',
+    });
+    setNumericValues({
+      price: 0,
+      cost: 0,
     });
     setBulkPricingTiers([]);
     setEditingProduct(null);
@@ -380,19 +390,19 @@ export default function Products({}: ProductsManagerProps) {
       return;
     }
 
-    if (!formData.price || parseInt(formData.price) <= 0) {
+    if (!formData.price || numericValues.price <= 0) {
       Alert.alert(t('common.error'), t('products.priceRequired'));
       return;
     }
 
-    if (!formData.cost || parseInt(formData.cost) <= 0) {
+    if (!formData.cost || numericValues.cost <= 0) {
       Alert.alert(t('common.error'), t('products.costRequired'));
       return;
     }
 
     try {
-      const price = parseInt(formData.price);
-      const cost = parseInt(formData.cost);
+      const price = numericValues.price;
+      const cost = numericValues.cost;
 
       const productData = {
         name: formData.name,
@@ -495,12 +505,18 @@ export default function Products({}: ProductsManagerProps) {
       name: product.name,
       barcode: product.barcode || '',
       category_id: product.category_id,
-      price: product.price.toString(),
-      cost: product.cost.toString(),
+      price: formatPrice(product.price), // Use formatted price for display
+      cost: formatPrice(product.cost), // Use formatted cost for display
       quantity: product.quantity.toString(),
       min_stock: product.min_stock?.toString() || '10',
       supplier_id: product.supplier_id || '', // Handle optional supplier
       imageUrl: product.imageUrl || '',
+    });
+
+    // Set numeric values for calculations
+    setNumericValues({
+      price: product.price,
+      cost: product.cost,
     });
 
     // Load existing bulk pricing if available
@@ -1530,18 +1546,20 @@ export default function Products({}: ProductsManagerProps) {
             <PriceInput
               label={t('common.price')}
               value={formData.price}
-              onValueChange={(text, numericValue) =>
-                setFormData({ ...formData, price: text })
-              }
+              onValueChange={(text, numericValue) => {
+                setFormData({ ...formData, price: text });
+                setNumericValues({ ...numericValues, price: numericValue });
+              }}
               required
             />
 
             <PriceInput
               label={t('products.cost')}
               value={formData.cost}
-              onValueChange={(text, numericValue) =>
-                setFormData({ ...formData, cost: text })
-              }
+              onValueChange={(text, numericValue) => {
+                setFormData({ ...formData, cost: text });
+                setNumericValues({ ...numericValues, cost: numericValue });
+              }}
               required
             />
 
@@ -1581,23 +1599,21 @@ export default function Products({}: ProductsManagerProps) {
 
             {formData.price &&
               formData.cost &&
-              parseInt(formData.price) > 0 &&
-              parseInt(formData.cost) > 0 && (
+              numericValues.price > 0 &&
+              numericValues.cost > 0 && (
                 <View style={styles.profitPreview}>
                   <Text style={styles.profitLabel}>
                     {t('products.profitPreview')}:
                   </Text>
                   <Text style={styles.profitValue}>
-                    {formatPrice(
-                      parseInt(formData.price) - parseInt(formData.cost)
-                    )}{' '}
+                    {formatPrice(numericValues.price - numericValues.cost)}{' '}
                     {t('products.perUnit')}
                   </Text>
                   <Text style={styles.marginValue}>
                     {t('products.margin')}:{' '}
                     {(
-                      ((parseInt(formData.price) - parseInt(formData.cost)) /
-                        parseInt(formData.price)) *
+                      ((numericValues.price - numericValues.cost) /
+                        numericValues.price) *
                       100
                     ).toFixed(1)}
                     %
@@ -1606,9 +1622,9 @@ export default function Products({}: ProductsManagerProps) {
               )}
 
             {/* Bulk Pricing Configuration */}
-            {formData.price && parseInt(formData.price) > 0 && (
+            {formData.price && numericValues.price > 0 && (
               <BulkPricingTiers
-                productPrice={parseInt(formData.price)}
+                productPrice={numericValues.price}
                 initialTiers={bulkPricingTiers}
                 onTiersChange={handleBulkPricingTiersChange}
               />
