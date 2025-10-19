@@ -104,7 +104,7 @@ export class TemplateEngine {
       shopSettings,
       receiptData,
       formatters: {
-        formatMMK: this.formatMMK,
+        formatMMK: this.formatCurrency, // Keep the same interface name for backward compatibility
         formatDate: this.formatDate,
       },
       translations,
@@ -379,14 +379,25 @@ export class TemplateEngine {
     `;
   }
 
-  // Utility formatters
-  private formatMMK = (amount: number): string => {
-    return (
-      new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount) + ' MMK'
-    );
+  // Utility formatters - use currency-aware formatting
+  private formatCurrency = (amount: number): string => {
+    // Import currency formatter dynamically to avoid circular dependencies
+    try {
+      const { currencySettingsService } = require('./currencySettingsService');
+      return currencySettingsService.formatPrice(amount);
+    } catch (error) {
+      console.warn(
+        'Failed to use currency formatter, falling back to MMK:',
+        error
+      );
+      // Fallback to MMK formatting
+      return (
+        new Intl.NumberFormat('en-US', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }).format(amount) + ' MMK'
+      );
+    }
   };
 
   private formatDate = (date: Date): string => {

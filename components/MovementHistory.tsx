@@ -20,6 +20,7 @@ import {
   FileText,
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
+import { useCurrencyFormatter } from '@/context/CurrencyContext';
 
 interface MovementHistoryProps {
   productId?: string;
@@ -70,9 +71,7 @@ export const MovementHistory: React.FC<MovementHistoryProps> = ({
     });
   };
 
-  const formatMMK = (amount: number) => {
-    return new Intl.NumberFormat('en-US').format(amount) + ' MMK';
-  };
+  const { formatPrice } = useCurrencyFormatter();
 
   const getMovementIcon = (type: 'stock_in' | 'stock_out') => {
     return type === 'stock_in' ? (
@@ -171,7 +170,7 @@ export const MovementHistory: React.FC<MovementHistoryProps> = ({
               {t('stockMovement.unitCost')}:
             </Text>
             <Text style={styles.movementCost} weight="medium">
-              {formatMMK(item.unit_cost)}
+              {formatPrice(item.unit_cost)}
             </Text>
           </View>
         )}

@@ -25,6 +25,7 @@ import { CustomerForm } from '@/components/CustomerForm';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useCustomer, useCustomerMutations } from '@/hooks/useQueries';
 import { useTranslation } from '@/context/LocalizationContext';
+import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import { useToast } from '@/context/ToastContext';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 
@@ -38,15 +39,7 @@ export default function CustomerDetail() {
   const [showEditForm, setShowEditForm] = useState(false);
 
   const { data: customer, isLoading, error, refetch } = useCustomer(id!);
-
-  const formatMMK = (amount: number) => {
-    return (
-      new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount) + ' MMK'
-    );
-  };
+  const { formatPrice } = useCurrencyFormatter();
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -202,7 +195,7 @@ export default function CustomerDetail() {
               <ShoppingBag size={24} color="#059669" />
             </View>
             <Text style={styles.statValue} weight="bold">
-              {formatMMK(customer.total_spent)}
+              {formatPrice(customer.total_spent)}
             </Text>
             <Text style={styles.statLabel} weight="medium">
               {t('customers.totalSpent')}
@@ -227,10 +220,10 @@ export default function CustomerDetail() {
             </View>
             <Text style={styles.statValue} weight="bold">
               {customer.visit_count > 0
-                ? formatMMK(
+                ? formatPrice(
                     Math.round(customer.total_spent / customer.visit_count)
                   )
-                : formatMMK(0)}
+                : formatPrice(0)}
             </Text>
             <Text style={styles.statLabel} weight="medium">
               {t('customers.avgOrder')}
@@ -248,7 +241,7 @@ export default function CustomerDetail() {
               <Text style={styles.historyText}>
                 This customer has made {customer.visit_count} purchase
                 {customer.visit_count !== 1 ? 's' : ''}
-                with a total value of {formatMMK(customer.total_spent)}.
+                with a total value of {formatPrice(customer.total_spent)}.
               </Text>
               <TouchableOpacity style={styles.viewHistoryButton}>
                 <Text style={styles.viewHistoryButtonText} weight="medium">

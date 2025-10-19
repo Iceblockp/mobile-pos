@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { TrendingDown, Gift, ArrowUp } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
+import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import {
   calculateBulkPrice,
   getNextBulkTier,
@@ -37,9 +38,7 @@ export const BulkPricingIndicator: React.FC<BulkPricingIndicatorProps> = ({
   const hasActiveBulkPricing = pricing.appliedTier !== undefined;
   const hasSavings = pricing.totalSavings > 0;
 
-  const formatMMK = (amount: number) => {
-    return new Intl.NumberFormat('en-US').format(amount) + ' MMK';
-  };
+  const { formatPrice } = useCurrencyFormatter();
 
   const handleUpsellClick = () => {
     if (nextTier && onQuantityChange) {
@@ -66,7 +65,7 @@ export const BulkPricingIndicator: React.FC<BulkPricingIndicatorProps> = ({
           >
             <ArrowUp size={10} color="#059669" />
             <Text style={styles.compactUpsellText} weight="medium">
-              {nextTier.min_quantity}+ for {formatMMK(nextTier.bulk_price)}
+              {nextTier.min_quantity}+ for {formatPrice(nextTier.bulk_price)}
             </Text>
           </TouchableOpacity>
         )}
@@ -95,7 +94,7 @@ export const BulkPricingIndicator: React.FC<BulkPricingIndicatorProps> = ({
                 style={[styles.priceValue, styles.originalPrice]}
                 weight="medium"
               >
-                {formatMMK(pricing.originalPrice)}
+                {formatPrice(pricing.originalPrice)}
               </Text>
             </View>
 
@@ -107,15 +106,15 @@ export const BulkPricingIndicator: React.FC<BulkPricingIndicatorProps> = ({
                 style={[styles.priceValue, styles.bulkPrice]}
                 weight="medium"
               >
-                {formatMMK(pricing.bulkPrice)}
+                {formatPrice(pricing.bulkPrice)}
               </Text>
             </View>
 
             <View style={styles.savingsRow}>
               <Gift size={14} color="#DC2626" />
               <Text style={styles.savingsText} weight="medium">
-                {t('bulkPricing.youSave')}: {formatMMK(pricing.totalSavings)} (
-                {pricing.discountPercentage.toFixed(1)}%)
+                {t('bulkPricing.youSave')}: {formatPrice(pricing.totalSavings)}{' '}
+                ({pricing.discountPercentage.toFixed(1)}%)
               </Text>
             </View>
           </View>
@@ -136,12 +135,12 @@ export const BulkPricingIndicator: React.FC<BulkPricingIndicatorProps> = ({
               </Text>
               <Text style={styles.upsellDetails}>
                 {t('bulkPricing.buy')} {nextTier.min_quantity}+{' '}
-                {t('bulkPricing.for')} {formatMMK(nextTier.bulk_price)}{' '}
+                {t('bulkPricing.for')} {formatPrice(nextTier.bulk_price)}{' '}
                 {t('bulkPricing.each')}
               </Text>
               <Text style={styles.upsellSavings} weight="medium">
                 {t('bulkPricing.additionalSavings')}:{' '}
-                {formatMMK(
+                {formatPrice(
                   (product.price - nextTier.bulk_price) *
                     nextTier.min_quantity -
                     pricing.totalSavings
@@ -170,7 +169,7 @@ export const BulkPricingIndicator: React.FC<BulkPricingIndicatorProps> = ({
                       {tier.min_quantity}+
                     </Text>
                     <Text style={styles.tierPrice} weight="medium">
-                      {formatMMK(tier.bulk_price)}
+                      {formatPrice(tier.bulk_price)}
                     </Text>
                     <Text style={styles.tierDiscount}>
                       ({tierDiscount.toFixed(0)}% {t('bulkPricing.off')})

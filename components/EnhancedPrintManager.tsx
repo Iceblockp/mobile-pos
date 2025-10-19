@@ -12,6 +12,7 @@ import {
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { X, Printer, Share, ExternalLink } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
+import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { ShopSettingsService } from '@/services/shopSettingsService';
@@ -54,6 +55,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
   receiptData,
 }) => {
   const { t } = useTranslation();
+  const { formatPrice } = useCurrencyFormatter();
   const [isPrinting, setIsPrinting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [isBluetoothPrinting, setIsBluetoothPrinting] = useState(false);
@@ -99,13 +101,9 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
     }
   }, [visible]);
 
-  const formatMMK = (amount: number) => {
-    return (
-      new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount) + ' MMK'
-    );
+  // Use currency-aware formatting instead of hardcoded MMK
+  const formatCurrency = (amount: number) => {
+    return formatPrice(amount);
   };
 
   const formatDate = (date: Date) => {
@@ -410,17 +408,19 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
                 <div class="item">
                   <div class="item-name">${item.product.name}</div>
                   <div class="item-details">
-                    <span class="item-qty-price">${item.quantity} x ${formatMMK(
-                    item.product.price
-                  )}</span>
-                    <span class="item-total">${formatMMK(item.subtotal)}</span>
+                    <span class="item-qty-price">${
+                      item.quantity
+                    } x ${formatCurrency(item.product.price)}</span>
+                    <span class="item-total">${formatCurrency(
+                      item.subtotal
+                    )}</span>
                   </div>
                   ${
                     item.discount > 0
                       ? `
                     <div class="item-details discount-line">
                       <span>${t('sales.discount')}</span>
-                      <span>-${formatMMK(item.discount)}</span>
+                      <span>-${formatCurrency(item.discount)}</span>
                     </div>
                   `
                       : ''
@@ -434,7 +434,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
             <div class="total-section">
               <div class="total-line">
                 <span>${t('common.total').toUpperCase()}</span>
-                <span>${formatMMK(total)}</span>
+                <span>${formatCurrency(total)}</span>
               </div>
             </div>
             

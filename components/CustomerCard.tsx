@@ -14,6 +14,7 @@ import {
 } from 'lucide-react-native';
 import { Customer } from '@/services/database';
 import { useTranslation } from '@/context/LocalizationContext';
+import { useCurrencyFormatter } from '@/context/CurrencyContext';
 
 interface CustomerCardProps {
   customer: Customer;
@@ -33,16 +34,8 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
   showNavigation = false,
 }) => {
   const { t } = useTranslation();
+  const { formatPrice } = useCurrencyFormatter();
   const router = useRouter();
-
-  const formatMMK = (amount: number) => {
-    return (
-      new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount) + ' MMK'
-    );
-  };
 
   const handlePress = () => {
     if (onPress) {
@@ -124,7 +117,7 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
             {t('customers.totalSpent')}
           </Text>
           <Text style={styles.statValue} weight="medium">
-            {formatMMK(customer.total_spent)}
+            {formatPrice(customer.total_spent)}
           </Text>
         </View>
         <View style={styles.statItem}>
@@ -141,7 +134,7 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
               {t('customers.avgOrder')}
             </Text>
             <Text style={styles.statValue} weight="medium">
-              {formatMMK(
+              {formatPrice(
                 Math.round(customer.total_spent / customer.visit_count)
               )}
             </Text>

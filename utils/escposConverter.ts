@@ -142,15 +142,28 @@ export class ESCPOSConverter {
   }
 
   /**
-   * Format currency amount
+   * Format currency amount using currency-aware formatting
    */
   private static formatMMK(amount: number): string {
-    return (
-      new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount) + ' MMK'
-    );
+    // Import currency formatter dynamically to avoid circular dependencies
+    try {
+      const {
+        currencySettingsService,
+      } = require('@/services/currencySettingsService');
+      return currencySettingsService.formatPrice(amount);
+    } catch (error) {
+      console.warn(
+        'Failed to use currency formatter in thermal printing, falling back to MMK:',
+        error
+      );
+      // Fallback to MMK formatting
+      return (
+        new Intl.NumberFormat('en-US', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }).format(amount) + ' MMK'
+      );
+    }
   }
 
   /**
