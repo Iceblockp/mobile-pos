@@ -7,6 +7,7 @@ import {
   TextInput,
   ActivityIndicator,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import {
@@ -364,7 +365,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 5,
   },
   title: {
     fontSize: 20,
@@ -374,11 +375,13 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   totalSection: {
-    backgroundColor: '#F0FDF4',
-    borderRadius: 12,
-    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 5,
+    padding: 5,
+    marginBottom: 5,
   },
   totalLabel: {
     fontSize: 14,
@@ -386,7 +389,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   totalAmount: {
-    fontSize: 24,
+    fontSize: 20,
     color: '#059669',
   },
   section: {

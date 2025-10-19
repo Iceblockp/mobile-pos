@@ -95,8 +95,8 @@ export const my: TranslationKeys = {
     selectDateTime: 'ရက်စွဲနှင့်အချိန်ရွေးပါ',
     cartEmpty: 'ဈေးခြင်းထဲမှာ ဘာမှမရှိပါ',
     addProducts: 'ရောင်းချရန် ကုန်ပစ္စည်းများထည့်ပါ',
-    addProduct: 'ကုန်ပစ္စည်းထည့်မည်',
-    processSale: 'ရောင်းချမှုလုပ်ဆောင်မည်',
+    addProduct: 'ပစ္စည်းထည့်မည်',
+    processSale: 'ရောင်းချမည်',
     selectPaymentMethod:
       'ရောင်းချမှုပြီးမြောက်စေရန် ငွေပေးချေမှုနည်းလမ်းရွေးပါ:',
     cash: 'လက်ငင်း',
@@ -198,7 +198,7 @@ export const my: TranslationKeys = {
     discountTooHigh: 'လျှော့စျေးသည် ပစ္စည်းစုစုပေါင်းထက် မပိုနိုင်ပါ',
     discountCannotBeNegative: 'လျှော့စျေးသည် အနုတ်လက္ခဏာမဖြစ်နိုင်ပါ',
     discount: 'လျှော့စျေး',
-    manualDiscount: 'လက်ဖြင့်လျှော့စျေး',
+    manualDiscount: 'အပိုလျှော့စျေး',
     saleNote: 'ရောင်းချမှုမှတ်စု',
     addNote: 'မှတ်စုထည့်မည် (ရွေးချယ်ခွင့်)',
   },
@@ -258,7 +258,7 @@ export const my: TranslationKeys = {
     printReceiptDesc:
       'PDF ဘောက်ချာထုတ်လုပ်ပြီး ပုံနှိပ်ရွေးချယ်စရာများဖွင့်မည်',
     cancel: 'ပယ်ဖျက်မည်',
-    makeSale: 'ရောင်းချမှုလုပ်မည်',
+    makeSale: 'ရောင်းချမည်',
     processing: 'လုပ်ဆောင်နေသည်...',
     cash: 'လက်ငင်း',
     card: 'ကတ်',

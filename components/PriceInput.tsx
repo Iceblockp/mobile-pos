@@ -27,6 +27,7 @@ interface PriceInputProps extends StandardPriceInputProps {
   label: string;
   required?: boolean;
   showCurrencyHint?: boolean;
+  isSmall?: boolean;
 }
 
 // Custom hook for price input with validation - Fixed to prevent infinite loops
@@ -80,6 +81,7 @@ export const PriceInput: React.FC<PriceInputProps> = ({
   value,
   onValueChange,
   error,
+  isSmall = false,
   required = false,
   showCurrencyHint = true,
   showCurrencySymbol = true,
@@ -121,14 +123,20 @@ export const PriceInput: React.FC<PriceInputProps> = ({
   return (
     <PriceInputErrorBoundary>
       <View style={styles.container}>
-        <Text style={styles.label} weight="medium">
+        <Text
+          style={[
+            styles.label,
+            { fontSize: isSmall ? 12 : 16, marginBottom: isSmall ? 4 : 8 },
+          ]}
+          weight="medium"
+        >
           {label}
           {required && <Text style={styles.required}> *</Text>}
         </Text>
 
         <View
           style={[
-            styles.inputContainer,
+            isSmall ? styles.smallInputContainer : styles.inputContainer,
             displayError && styles.inputContainerError,
           ]}
         >
@@ -140,7 +148,7 @@ export const PriceInput: React.FC<PriceInputProps> = ({
             )}
 
           <TextInput
-            style={[styles.input, style]}
+            style={[isSmall ? styles.smallInput : styles.input, style]}
             value={value}
             onChangeText={handleTextChange}
             placeholder={placeholder}
@@ -371,9 +379,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    fontSize: 16,
     color: '#374151',
-    marginBottom: 8,
   },
   required: {
     color: '#EF4444',
@@ -395,6 +401,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6B7280',
     marginHorizontal: 4,
+  },
+  smallInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 2,
+  },
+  smallInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#111827',
+    paddingVertical: 0,
+  },
+  tierInput: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: '#111827',
   },
   input: {
     flex: 1,

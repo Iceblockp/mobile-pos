@@ -155,6 +155,14 @@ export default function Products({}: ProductsManagerProps) {
     Array<{ min_quantity: number; bulk_price: number }>
   >([]);
 
+  // Memoize the bulk pricing tiers change handler to prevent infinite re-renders
+  const handleBulkPricingTiersChange = useCallback(
+    (newTiers: Array<{ min_quantity: number; bulk_price: number }>) => {
+      setBulkPricingTiers(newTiers);
+    },
+    []
+  );
+
   const onRefresh = () => {
     refetchProducts();
   };
@@ -1602,7 +1610,7 @@ export default function Products({}: ProductsManagerProps) {
               <BulkPricingTiers
                 productPrice={parseInt(formData.price)}
                 initialTiers={bulkPricingTiers}
-                onTiersChange={setBulkPricingTiers}
+                onTiersChange={handleBulkPricingTiersChange}
               />
             )}
 

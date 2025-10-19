@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -14,13 +14,127 @@ import { PriceInput } from '@/components/PriceInput';
 import { Plus, Trash2, Package, TrendingDown } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useCurrencyFormatter } from '@/hooks/useCurrency';
-// import { useCurrencyFormatter } from '@/context/CurrencyContext';
 
 interface BulkPricingTier {
   id?: string;
   min_quantity: number;
   bulk_price: number;
 }
+
+interface TierCardProps {
+  tier: BulkPricingTier;
+  index: number;
+  productPrice: number;
+  onUpdate: (index: number, updatedTier: BulkPricingTier) => void;
+  onRemove: (index: number) => void;
+}
+
+const TierCard: React.FC<TierCardProps> = ({
+  tier,
+  index,
+  productPrice,
+  onUpdate,
+  onRemove,
+}) => {
+  const { t } = useTranslation();
+  const { formatPrice } = useCurrencyFormatter();
+  const [localTier, setLocalTier] = useState<BulkPricingTier>(tier);
+
+  // Update local state when prop changes
+  useEffect(() => {
+    setLocalTier(tier);
+  }, [tier]);
+
+  // Debounced update to parent
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      onUpdate(index, localTier);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [localTier, index, onUpdate]);
+
+  const handleQuantityChange = useCallback((text: string) => {
+    const numValue = parseInt(text) || 0;
+    setLocalTier((prev) => ({ ...prev, min_quantity: numValue }));
+  }, []);
+
+  const handlePriceChange = useCallback((text: string) => {
+    const numValue = Number(text) || 0;
+    setLocalTier((prev) => ({ ...prev, bulk_price: text }));
+  }, []);
+
+  const handleRemove = useCallback(() => {
+    Alert.alert(t('common.confirm'), t('bulkPricing.confirmDeleteTier'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: () => onRemove(index),
+      },
+    ]);
+  }, [index, onRemove, t]);
+
+  const getDiscountPercentage = (bulkPrice: number) => {
+    if (productPrice <= 0) return 0;
+    return ((productPrice - bulkPrice) / productPrice) * 100;
+  };
+
+  return (
+    <Card style={styles.tierCard}>
+      <View style={styles.tierHeader}>
+        <View style={styles.tierInfo}>
+          <Package size={16} color="#059669" />
+          <Text style={styles.tierTitle} weight="medium">
+            {t('bulkPricing.tier')} {index + 1}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.deleteTierButton}
+          onPress={handleRemove}
+        >
+          <Trash2 size={16} color="#EF4444" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.tierInputs}>
+        <View style={styles.tierInputGroup}>
+          <Text style={styles.tierInputLabel} weight="medium">
+            {t('bulkPricing.minQuantity')}
+          </Text>
+          <TextInput
+            style={styles.tierInput}
+            value={localTier.min_quantity.toString()}
+            onChangeText={handleQuantityChange}
+            keyboardType="numeric"
+            placeholder="1"
+          />
+        </View>
+
+        <View style={styles.tierInputGroup}>
+          <PriceInput
+            label={t('bulkPricing.bulkPrice')}
+            value={localTier.bulk_price.toString()}
+            onValueChange={(text, numericValue) => handlePriceChange(text)}
+            showCurrencyHint={false}
+            isSmall={true}
+          />
+        </View>
+      </View>
+
+      <View style={styles.tierPreview}>
+        <Text style={styles.tierPreviewText} weight="medium">
+          {t('bulkPricing.preview')}: {formatPrice(localTier.bulk_price)}
+          <Text style={styles.discountText}>
+            {' '}
+            ({getDiscountPercentage(localTier.bulk_price).toFixed(1)}%{' '}
+            {t('bulkPricing.off')})
+          </Text>
+        </Text>
+      </View>
+    </Card>
+  );
+};
 
 interface BulkPricingTiersProps {
   productPrice: number;
@@ -48,45 +162,29 @@ export const BulkPricingTiers: React.FC<BulkPricingTiersProps> = ({
     onTiersChange(tiers);
   }, [tiers, onTiersChange]);
 
-  const addTier = () => {
+  const addTier = useCallback(() => {
     const newTier: BulkPricingTier = {
       min_quantity: 1,
       bulk_price: productPrice,
     };
-    setTiers([...tiers, newTier]);
+    setTiers((prev) => [...prev, newTier]);
     setShowForm(true);
-  };
+  }, [productPrice]);
 
-  const updateTier = (
-    index: number,
-    field: keyof BulkPricingTier,
-    value: string
-  ) => {
-    const updatedTiers = [...tiers];
-    const numValue = parseInt(value) || 0;
+  const updateTier = useCallback(
+    (index: number, updatedTier: BulkPricingTier) => {
+      setTiers((prev) => {
+        const newTiers = [...prev];
+        newTiers[index] = updatedTier;
+        return newTiers;
+      });
+    },
+    []
+  );
 
-    if (field === 'min_quantity') {
-      updatedTiers[index].min_quantity = numValue;
-    } else if (field === 'bulk_price') {
-      updatedTiers[index].bulk_price = numValue;
-    }
-
-    setTiers(updatedTiers);
-  };
-
-  const removeTier = (index: number) => {
-    Alert.alert(t('common.confirm'), t('bulkPricing.confirmDeleteTier'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: () => {
-          const updatedTiers = tiers.filter((_, i) => i !== index);
-          setTiers(updatedTiers);
-        },
-      },
-    ]);
-  };
+  const removeTier = useCallback((index: number) => {
+    setTiers((prev) => prev.filter((_, i) => i !== index));
+  }, []);
 
   const validateTiers = (): string[] => {
     const errors: string[] = [];
@@ -121,64 +219,6 @@ export const BulkPricingTiers: React.FC<BulkPricingTiersProps> = ({
   const getSortedTiers = () => {
     return [...tiers].sort((a, b) => a.min_quantity - b.min_quantity);
   };
-
-  const renderTierCard = (tier: BulkPricingTier, index: number) => (
-    <Card key={index} style={styles.tierCard}>
-      <View style={styles.tierHeader}>
-        <View style={styles.tierInfo}>
-          <Package size={16} color="#059669" />
-          <Text style={styles.tierTitle} weight="medium">
-            {t('bulkPricing.tier')} {index + 1}
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.deleteTierButton}
-          onPress={() => removeTier(tiers.indexOf(tier))}
-        >
-          <Trash2 size={16} color="#EF4444" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.tierInputs}>
-        <View style={styles.tierInputGroup}>
-          <Text style={styles.tierInputLabel} weight="medium">
-            {t('bulkPricing.minQuantity')}
-          </Text>
-          <TextInput
-            style={styles.tierInput}
-            value={tier.min_quantity.toString()}
-            onChangeText={(text) =>
-              updateTier(tiers.indexOf(tier), 'min_quantity', text)
-            }
-            keyboardType="numeric"
-            placeholder="1"
-          />
-        </View>
-
-        <View style={styles.tierInputGroup}>
-          <PriceInput
-            label={t('bulkPricing.bulkPrice')}
-            value={tier.bulk_price.toString()}
-            onChangeText={(text) =>
-              updateTier(tiers.indexOf(tier), 'bulk_price', text)
-            }
-            showCurrencyHint={false}
-          />
-        </View>
-      </View>
-
-      <View style={styles.tierPreview}>
-        <Text style={styles.tierPreviewText} weight="medium">
-          {t('bulkPricing.preview')}: {formatPrice(tier.bulk_price)}
-          <Text style={styles.discountText}>
-            {' '}
-            ({getDiscountPercentage(tier.bulk_price).toFixed(1)}%{' '}
-            {t('bulkPricing.off')})
-          </Text>
-        </Text>
-      </View>
-    </Card>
-  );
 
   const renderCompactView = () => {
     // If no tiers, don't render anything in compact mode
@@ -256,7 +296,20 @@ export const BulkPricingTiers: React.FC<BulkPricingTiersProps> = ({
           style={styles.tiersContainer}
           showsVerticalScrollIndicator={false}
         >
-          {getSortedTiers().map((tier, index) => renderTierCard(tier, index))}
+          {getSortedTiers().map((tier, index) => {
+            // Find the original index in the unsorted array
+            const originalIndex = tiers.findIndex((t) => t === tier);
+            return (
+              <TierCard
+                key={originalIndex}
+                tier={tier}
+                index={index}
+                productPrice={productPrice}
+                onUpdate={updateTier}
+                onRemove={removeTier}
+              />
+            );
+          })}
         </ScrollView>
       )}
 
