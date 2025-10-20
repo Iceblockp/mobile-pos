@@ -560,6 +560,7 @@ import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import { BulkPricingTiers } from '@/components/BulkPricingTiers';
 import { ProductMovementHistory } from '@/components/ProductMovementHistory';
 import { QuickStockActions } from '@/components/QuickStockActions';
+import { useBulkPricing } from '@/hooks/useQueries';
 
 interface ProductDetailModalProps {
   visible: boolean;
@@ -580,6 +581,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const { formatPrice } = useCurrencyFormatter();
+
+  // Load bulk pricing data for the product
+  const { data: bulkPricingData = [] } = useBulkPricing(product?.id || '');
 
   if (!product) return null;
 
@@ -722,14 +726,14 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           </Card>
 
           {/* Bulk Pricing */}
-          {product.bulk_pricing && product.bulk_pricing.length > 0 && (
+          {bulkPricingData && bulkPricingData.length > 0 && (
             <Card style={styles.section}>
               <Text style={styles.sectionTitle}>
                 {t('products.bulkPricing')}
               </Text>
               <BulkPricingTiers
                 productPrice={product.price}
-                initialTiers={product.bulk_pricing}
+                initialTiers={bulkPricingData}
                 onTiersChange={() => {}} // Read-only in detail view
                 compact={false}
               />

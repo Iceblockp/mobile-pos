@@ -429,6 +429,8 @@ export const my: TranslationKeys = {
     for: 'အတွက်',
     each: 'တစ်ခုချင်း',
     additionalSavings: 'ထပ်ဆောင်းချွေတာမှု',
+    bulkAvailable: 'လက်ကား',
+    bulkPricingAvailable: 'လက်ကားစျေးနှုန်းရရှိနိုင်သည်',
   },
   products: {
     title: 'ကုန်ပစ္စည်းများ',

@@ -102,8 +102,8 @@ export default function Sales() {
   // Unified barcode handling
   const { handleBarcodeScanned: handleBarcodeAction } = useBarcodeActions({
     context: 'sales',
-    onProductFound: (product) => {
-      addToCart(product);
+    onProductFound: async (product) => {
+      await addToCart(product);
       setShowScanner(false);
     },
     onProductNotFound: (barcode) => {
@@ -254,10 +254,25 @@ export default function Sales() {
     }
   };
 
-  const addToCart = (product: Product) => {
+  const addToCart = async (product: Product) => {
     if (product.quantity <= 0) {
       Alert.alert(t('common.error'), t('sales.outOfStock'));
       return;
+    }
+
+    // Load bulk pricing data for this product if not already loaded
+    let productWithBulkPricing = product;
+    if (!product.bulk_pricing && db) {
+      try {
+        const bulkPricingData = await db.getBulkPricingForProduct(product.id);
+        productWithBulkPricing = {
+          ...product,
+          bulk_pricing: bulkPricingData,
+        };
+      } catch (error) {
+        console.error('Error loading bulk pricing:', error);
+        // Continue with original product if bulk pricing fails to load
+      }
     }
 
     const existingItem = cart.find((item) => item.product.id === product.id);
@@ -270,10 +285,16 @@ export default function Sales() {
 
       const newQuantity = existingItem.quantity + 1;
 
+      // Update the existing item's product with bulk pricing data
+      const updatedProduct = {
+        ...existingItem.product,
+        bulk_pricing: productWithBulkPricing.bulk_pricing,
+      };
+
       // Calculate bulk price for new quantity
       const cartForBulkPricing = [
         {
-          ...product,
+          ...updatedProduct,
           quantity: newQuantity,
         },
       ];
@@ -286,6 +307,7 @@ export default function Sales() {
           item.product.id === product.id
             ? {
                 ...item,
+                product: updatedProduct, // Update product with bulk pricing data
                 quantity: newQuantity,
                 subtotal: bulkTotalPrice - item.discount, // bulk_total - manual_discount
               }
@@ -296,7 +318,7 @@ export default function Sales() {
       // For new items, start with bulk price for quantity 1
       const cartForBulkPricing = [
         {
-          ...product,
+          ...productWithBulkPricing,
           quantity: 1,
         },
       ];
@@ -307,7 +329,7 @@ export default function Sales() {
       setCart([
         ...cart,
         {
-          product,
+          product: productWithBulkPricing, // Use product with bulk pricing data
           quantity: 1,
           discount: 0, // Default discount is 0
           subtotal: bulkTotalPrice, // Start with bulk price
@@ -318,7 +340,7 @@ export default function Sales() {
     setShowProductDialog(false);
   };
 
-  const updateQuantity = (productId: string, newQuantity: number) => {
+  const updateQuantity = async (productId: string, newQuantity: number) => {
     const item = cart.find((item) => item.product.id === productId);
     if (!item) return;
 
@@ -332,10 +354,24 @@ export default function Sales() {
       return;
     }
 
+    // Ensure bulk pricing data is loaded
+    let productWithBulkPricing = item.product;
+    if (!item.product.bulk_pricing && db) {
+      try {
+        const bulkPricingData = await db.getBulkPricingForProduct(productId);
+        productWithBulkPricing = {
+          ...item.product,
+          bulk_pricing: bulkPricingData,
+        };
+      } catch (error) {
+        console.error('Error loading bulk pricing:', error);
+      }
+    }
+
     // Calculate bulk price for new quantity
     const cartForBulkPricing = [
       {
-        ...item.product,
+        ...productWithBulkPricing,
         quantity: newQuantity,
       },
     ];
@@ -348,6 +384,7 @@ export default function Sales() {
         item.product.id === productId
           ? {
               ...item,
+              product: productWithBulkPricing, // Update product with bulk pricing data
               quantity: newQuantity,
               subtotal: bulkTotalPrice - item.discount, // bulk_total - manual_discount
             }
@@ -356,14 +393,28 @@ export default function Sales() {
     );
   };
 
-  const updateDiscount = (productId: string, newDiscount: number) => {
+  const updateDiscount = async (productId: string, newDiscount: number) => {
     const item = cart.find((item) => item.product.id === productId);
     if (!item) return;
+
+    // Ensure bulk pricing data is loaded
+    let productWithBulkPricing = item.product;
+    if (!item.product.bulk_pricing && db) {
+      try {
+        const bulkPricingData = await db.getBulkPricingForProduct(productId);
+        productWithBulkPricing = {
+          ...item.product,
+          bulk_pricing: bulkPricingData,
+        };
+      } catch (error) {
+        console.error('Error loading bulk pricing:', error);
+      }
+    }
 
     // Calculate bulk price for this item first
     const cartForBulkPricing = [
       {
-        ...item.product,
+        ...productWithBulkPricing,
         quantity: item.quantity,
       },
     ];
@@ -387,6 +438,7 @@ export default function Sales() {
         item.product.id === productId
           ? {
               ...item,
+              product: productWithBulkPricing, // Update product with bulk pricing data
               discount: newDiscount,
               // Note: subtotal will be recalculated in getCartTotals with stacked discounts
               subtotal: bulkPrice - newDiscount, // Apply manual discount to bulk price
@@ -921,7 +973,10 @@ export default function Sales() {
                     <Image
                       // <OptimizedImage
                       source={{ uri: product.imageUrl }}
-                      style={styles.dialogProductImage}
+                      style={[
+                        styles.dialogProductImage,
+                        { alignSelf: 'flex-start' },
+                      ]}
                       resizeMode="cover"
                       // lazy={true}
                       // priority="normal"
@@ -3170,7 +3225,7 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
   },
   dialogProductCategory: {
-    fontSize: 14,
+    fontSize: 11,
     color: '#6B7280',
     marginTop: 2,
   },

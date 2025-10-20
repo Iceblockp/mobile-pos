@@ -164,8 +164,25 @@ export default function Products({}: ProductsManagerProps) {
   const { addCategory, updateCategory, deleteCategory } =
     useCategoryMutations();
 
+  // Load bulk pricing for the product being edited
+  const { data: editingProductBulkPricing = [] } = useBulkPricing(
+    editingProduct?.id || ''
+  );
+
   const isLoading = categoriesLoading || suppliersLoading; // Only essential data, not products
   const isRefreshing = productsRefetching;
+
+  // Update bulk pricing tiers when editing product bulk pricing data is loaded
+  useEffect(() => {
+    if (editingProduct && editingProductBulkPricing.length > 0) {
+      setBulkPricingTiers(
+        editingProductBulkPricing.map((bp) => ({
+          min_quantity: bp.min_quantity,
+          bulk_price: bp.bulk_price,
+        }))
+      );
+    }
+  }, [editingProduct, editingProductBulkPricing]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -268,6 +285,27 @@ export default function Products({}: ProductsManagerProps) {
     setBulkPricingTiers([]);
     setEditingProduct(null);
     setShowAddForm(false);
+  };
+
+  const handleAddNew = () => {
+    setFormData({
+      name: '',
+      barcode: '',
+      category_id: lastSelectedCategoryId || '', // Use remembered category
+      price: '',
+      cost: '',
+      quantity: '0', // Default to 0
+      min_stock: '10', // Default to 10
+      supplier_id: '',
+      imageUrl: '',
+    });
+    setNumericValues({
+      price: 0,
+      cost: 0,
+    });
+    setBulkPricingTiers([]);
+    setEditingProduct(null); // Clear editing state so bulk pricing won't load
+    setShowAddForm(true);
   };
 
   const resetCategoryForm = () => {
@@ -540,17 +578,8 @@ export default function Products({}: ProductsManagerProps) {
       cost: product.cost,
     });
 
-    // Load existing bulk pricing if available
-    if (product.bulk_pricing) {
-      setBulkPricingTiers(
-        product.bulk_pricing.map((bp) => ({
-          min_quantity: bp.min_quantity,
-          bulk_price: bp.bulk_price,
-        }))
-      );
-    } else {
-      setBulkPricingTiers([]);
-    }
+    // Clear bulk pricing tiers - they will be loaded by useEffect when editingProductBulkPricing is fetched
+    setBulkPricingTiers([]);
 
     setEditingProduct(product);
     setShowAddForm(true);
@@ -1181,7 +1210,7 @@ export default function Products({}: ProductsManagerProps) {
           </View>
           <TouchableOpacity
             style={styles.compactAddButton}
-            onPress={() => setShowAddForm(true)}
+            onPress={handleAddNew}
           >
             <Plus size={16} color="#FFFFFF" />
           </TouchableOpacity>

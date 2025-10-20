@@ -59,7 +59,7 @@ const TierCard: React.FC<TierCardProps> = ({
     setLocalTier((prev) => ({ ...prev, min_quantity: numValue }));
   }, []);
 
-  const handlePriceChange = useCallback((text: string) => {
+  const handlePriceChange = useCallback((text: number) => {
     const numValue = Number(text) || 0;
     setLocalTier((prev) => ({ ...prev, bulk_price: text }));
   }, []);
@@ -115,7 +115,9 @@ const TierCard: React.FC<TierCardProps> = ({
           <PriceInput
             label={t('bulkPricing.bulkPrice')}
             value={localTier.bulk_price.toString()}
-            onValueChange={(text, numericValue) => handlePriceChange(text)}
+            onValueChange={(text, numericValue) =>
+              handlePriceChange(numericValue)
+            }
             showCurrencyHint={false}
             isSmall={true}
           />

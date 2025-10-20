@@ -421,6 +421,8 @@ export const en = {
     for: 'for',
     each: 'each',
     additionalSavings: 'Additional savings',
+    bulkAvailable: 'Bulk',
+    bulkPricingAvailable: 'Bulk Pricing Available',
   },
   products: {
     title: 'Products',

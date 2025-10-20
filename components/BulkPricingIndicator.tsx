@@ -7,7 +7,6 @@ import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import {
   calculateBulkPrice,
   getNextBulkTier,
-  formatBulkSavings,
   hasBulkPricing,
 } from '@/utils/bulkPricingUtils';
 import { Product } from '@/services/database';
@@ -29,8 +28,38 @@ export const BulkPricingIndicator: React.FC<BulkPricingIndicatorProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  if (!hasBulkPricing(product)) {
+  // Check if product has bulk pricing data loaded or has the flag indicating bulk pricing exists
+  const hasFullBulkPricingData = hasBulkPricing(product);
+  const hasBulkPricingFlag = (product as any).has_bulk_pricing === 1;
+
+  // If no bulk pricing at all, return null
+  if (!hasFullBulkPricingData && !hasBulkPricingFlag) {
     return null;
+  }
+
+  // If we only have the flag but not the full data, show a simple badge
+  if (!hasFullBulkPricingData && hasBulkPricingFlag) {
+    if (compact) {
+      return (
+        <View style={styles.compactContainer}>
+          <View style={styles.compactBulkBadge}>
+            <TrendingDown size={10} color="#059669" />
+            <Text style={styles.compactBulkBadgeText} weight="medium">
+              {t('bulkPricing.bulkAvailable')}
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.simpleBulkBadge}>
+        <TrendingDown size={14} color="#059669" />
+        <Text style={styles.simpleBulkBadgeText} weight="medium">
+          {t('bulkPricing.bulkPricingAvailable')}
+        </Text>
+      </View>
+    );
   }
 
   const pricing = calculateBulkPrice(product, quantity);
@@ -53,7 +82,7 @@ export const BulkPricingIndicator: React.FC<BulkPricingIndicatorProps> = ({
           <View style={styles.compactSavings}>
             <Gift size={12} color="#DC2626" />
             <Text style={styles.compactSavingsText} weight="medium">
-              {formatBulkSavings(pricing.totalSavings, t('common.locale'))}
+              {formatPrice(pricing.totalSavings)}
             </Text>
           </View>
         )}
@@ -313,12 +342,43 @@ const styles = StyleSheet.create({
     color: '#DC2626',
   },
 
+  // Simple bulk badge styles (when only flag is available)
+  simpleBulkBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginTop: 4,
+  },
+  simpleBulkBadgeText: {
+    fontSize: 11,
+    color: '#059669',
+    marginLeft: 4,
+  },
+
   // Compact styles
   compactContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     marginTop: 4,
+  },
+  compactBulkBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  compactBulkBadgeText: {
+    fontSize: 9,
+    color: '#059669',
+    marginLeft: 2,
   },
   compactSavings: {
     flexDirection: 'row',
