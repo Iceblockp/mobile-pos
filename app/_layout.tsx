@@ -1,3 +1,8 @@
+import { enableScreens } from 'react-native-screens';
+
+// Enable screens before any other imports
+enableScreens();
+
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -18,10 +23,6 @@ import { CurrencyProvider } from '@/context/CurrencyContext';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
-import { enableScreens, enableFreeze } from 'react-native-screens';
-
-// enableScreens(); // Enables native screens (required)
-// enableFreeze(); // Enables auto freeze on blur
 
 SplashScreen.preventAutoHideAsync();
 
@@ -102,8 +103,6 @@ export default function RootLayout() {
                           name="(tabs)"
                           options={{
                             headerShown: false,
-                            statusBarStyle: 'dark',
-                            statusBarBackgroundColor: 'white',
                           }}
                         />
                         <Stack.Screen name="+not-found" />

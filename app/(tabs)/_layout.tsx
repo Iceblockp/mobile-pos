@@ -28,7 +28,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarActiveTintColor: '#059669',
         tabBarInactiveTintColor: '#6B7280',
-        lazy: false,
+        lazy: true,
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,

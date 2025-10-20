@@ -8,7 +8,11 @@
     "icon": "./assets/images/pos.png",
     "scheme": "pos",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
+    "statusBar": {
+      "style": "auto",
+      "backgroundColor": "#ffffff"
+    },
     "ios": {
       "supportsTablet": true,
       "icon": "./assets/images/pos.png",
@@ -19,7 +23,8 @@
         "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to connect to thermal printers for receipt printing.",
         "NSBluetoothPeripheralUsageDescription": "This app uses Bluetooth to connect to thermal printers for receipt printing.",
         "NSCameraUsageDescription": "This app uses the camera to take photos of products for inventory management.",
-        "NSPhotoLibraryUsageDescription": "This app accesses the photo library to select product images."
+        "NSPhotoLibraryUsageDescription": "This app accesses the photo library to select product images.",
+        "UIViewControllerBasedStatusBarAppearance": true
       }
     },
     "web": {
