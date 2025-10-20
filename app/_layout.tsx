@@ -1,8 +1,3 @@
-import { enableScreens } from 'react-native-screens';
-
-// Enable screens before any other imports
-enableScreens();
-
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -23,6 +18,7 @@ import { CurrencyProvider } from '@/context/CurrencyContext';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -35,51 +31,51 @@ export default function RootLayout() {
     'NotoSansMyanmar-Bold': require('../assets/fonts/NotoSansMyanmar-Bold.ttf'),
   });
 
-  // useEffect(() => {
-  //   if (fontsLoaded || fontError) {
-  //     SplashScreen.hideAsync();
-  //   }
-  // }, [fontsLoaded, fontError]);
-
   useEffect(() => {
     if (fontsLoaded) {
-      const defaultMyanmarStyle = {
-        fontFamily: Platform.select({
-          ios: 'NotoSansMyanmar-Regular',
-          android: 'NotoSansMyanmar-Regular',
-          default: 'NotoSansMyanmar-Regular',
-        }),
-        // Fix font padding and line height for Myanmar text
-        includeFontPadding: Platform.OS === 'android' ? true : false,
-        lineHeight: Platform.select({
-          ios: undefined, // Let iOS handle it naturally
-          android: undefined, // Let Android handle it naturally
-          default: undefined,
-        }),
-        // Add text alignment baseline for better Myanmar rendering
-        textAlignVertical: Platform.OS === 'android' ? 'center' : undefined,
-      };
+      try {
+        const defaultMyanmarStyle = {
+          fontFamily: Platform.select({
+            ios: 'NotoSansMyanmar-Regular',
+            android: 'NotoSansMyanmar-Regular',
+            default: 'NotoSansMyanmar-Regular',
+          }),
+          includeFontPadding: Platform.OS === 'android' ? true : false,
+          lineHeight: Platform.select({
+            ios: undefined,
+            android: undefined,
+            default: undefined,
+          }),
+          textAlignVertical: Platform.OS === 'android' ? 'center' : undefined,
+        };
 
-      // Override Text component globally
-      (RNText as any).defaultProps = {
-        ...(RNText as any).defaultProps,
-        style: [defaultMyanmarStyle, (RNText as any).defaultProps?.style],
-        // Add allowFontScaling for consistent sizing
-        allowFontScaling: false,
-      };
+        // Safer global override with error handling
+        if (RNText && typeof RNText === 'object') {
+          (RNText as any).defaultProps = {
+            ...(RNText as any).defaultProps,
+            style: [defaultMyanmarStyle, (RNText as any).defaultProps?.style],
+            allowFontScaling: false,
+          };
+        }
 
-      // Override TextInput component globally
-      (RNTextInput as any).defaultProps = {
-        ...(RNTextInput as any).defaultProps,
-        style: [defaultMyanmarStyle, (RNTextInput as any).defaultProps?.style],
-        allowFontScaling: false,
-        // Fix text input specific issues
-        textAlignVertical: Platform.OS === 'android' ? 'center' : 'auto',
-      };
-      SplashScreen.hideAsync();
-      // setTimeout(() => {
-      //   setIsLoading(false);
-      // }, 2000);
+        if (RNTextInput && typeof RNTextInput === 'object') {
+          (RNTextInput as any).defaultProps = {
+            ...(RNTextInput as any).defaultProps,
+            style: [
+              defaultMyanmarStyle,
+              (RNTextInput as any).defaultProps?.style,
+            ],
+            allowFontScaling: false,
+            textAlignVertical: Platform.OS === 'android' ? 'center' : 'auto',
+          };
+        }
+
+        SplashScreen.hideAsync();
+      } catch (fontError) {
+        console.error('Font setup error:', fontError);
+        // Hide splash screen even if font setup fails
+        SplashScreen.hideAsync();
+      }
     }
   }, [fontsLoaded]);
 
@@ -88,6 +84,7 @@ export default function RootLayout() {
   }
 
   return (
+    // <ErrorBoundary>
     <MigrationProvider>
       <DatabaseProvider>
         <QueryClientProvider client={queryClient}>
@@ -117,5 +114,6 @@ export default function RootLayout() {
         </QueryClientProvider>
       </DatabaseProvider>
     </MigrationProvider>
+    // </ErrorBoundary>
   );
 }

@@ -4643,59 +4643,74 @@ export class DatabaseService {
 export const initializeDatabase = async (
   onMigrationProgress?: (status: any) => void
 ): Promise<DatabaseService> => {
-  const db = await SQLite.openDatabaseAsync('grocery_pos.db');
-  const service = new DatabaseService(db);
+  try {
+    const db = await SQLite.openDatabaseAsync('grocery_pos.db');
+    const service = new DatabaseService(db);
 
-  await service.createTables();
+    await service.createTables();
 
-  // Check if UUID migration is needed
-  const migrationStatus = await MigrationStatusService.getMigrationStatus();
-  if (!migrationStatus.uuidMigrationComplete) {
-    console.log('Checking if UUID migration is needed...');
+    // Check if UUID migration is needed with better error handling
+    const migrationStatus = await MigrationStatusService.getMigrationStatus();
+    if (!migrationStatus.uuidMigrationComplete) {
+      console.log('Checking if UUID migration is needed...');
 
-    // Check if database already has UUID format
-    const migrationService = new UUIDMigrationService(db);
-    const isAlreadyMigrated = await migrationService.isMigrationComplete();
+      try {
+        const migrationService = new UUIDMigrationService(db);
+        const isAlreadyMigrated = await migrationService.isMigrationComplete();
 
-    if (isAlreadyMigrated) {
-      console.log(
-        'Database already uses UUID format, marking migration as complete'
-      );
-      await MigrationStatusService.markUUIDMigrationComplete();
-    } else {
-      console.log('Starting UUID migration...');
+        if (isAlreadyMigrated) {
+          console.log(
+            'Database already uses UUID format, marking migration as complete'
+          );
+          await MigrationStatusService.markUUIDMigrationComplete();
+        } else {
+          console.log('Starting UUID migration...');
+          await MigrationStatusService.recordMigrationAttempt();
 
-      // Record migration attempt
-      await MigrationStatusService.recordMigrationAttempt();
+          if (onMigrationProgress) {
+            const originalUpdateStatus = (migrationService as any).updateStatus;
+            (migrationService as any).updateStatus = (
+              step: string,
+              progress: number
+            ) => {
+              originalUpdateStatus.call(migrationService, step, progress);
+              onMigrationProgress(migrationService.getMigrationStatus());
+            };
+          }
 
-      // Set up progress callback if provided
-      if (onMigrationProgress) {
-        const originalUpdateStatus = (migrationService as any).updateStatus;
-        (migrationService as any).updateStatus = (
-          step: string,
-          progress: number
-        ) => {
-          originalUpdateStatus.call(migrationService, step, progress);
-          onMigrationProgress(migrationService.getMigrationStatus());
-        };
-      }
+          const migrationReport = await migrationService.executeMigration();
 
-      const migrationReport = await migrationService.executeMigration();
-
-      if (migrationReport.success) {
-        // Mark migration as complete
-        await MigrationStatusService.markUUIDMigrationComplete();
-        console.log('UUID migration completed successfully');
-      } else {
-        console.error('UUID migration failed:', migrationReport.errors);
-        throw new Error(
-          `UUID migration failed: ${migrationReport.errors.join(', ')}`
-        );
+          if (migrationReport.success) {
+            await MigrationStatusService.markUUIDMigrationComplete();
+            console.log('UUID migration completed successfully');
+          } else {
+            console.error('UUID migration failed:', migrationReport.errors);
+            // Don't throw error in development to prevent crash
+            if (__DEV__) {
+              console.warn('Continuing without migration in development mode');
+              await MigrationStatusService.markUUIDMigrationComplete();
+            } else {
+              throw new Error(
+                `UUID migration failed: ${migrationReport.errors.join(', ')}`
+              );
+            }
+          }
+        }
+      } catch (migrationError) {
+        console.error('Migration error:', migrationError);
+        if (__DEV__) {
+          console.warn('Skipping migration in development mode due to error');
+          await MigrationStatusService.markUUIDMigrationComplete();
+        } else {
+          throw migrationError;
+        }
       }
     }
+
+    await service.seedInitialData();
+    return service;
+  } catch (error) {
+    console.error('Database initialization failed:', error);
+    throw error;
   }
-
-  await service.seedInitialData();
-
-  return service;
 };

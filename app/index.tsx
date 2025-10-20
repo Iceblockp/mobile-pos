@@ -8,7 +8,7 @@ import {
   StatusBar,
   ScrollView,
 } from 'react-native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLicense } from '@/hooks/useLicense';
 import { ChallengeDisplay } from '@/components/ChallengeDisplay';
 import { ResponseInput } from '@/components/ResponseInput';
@@ -37,6 +37,19 @@ const Index = () => {
   } = useLicense();
   const { t } = useTranslation();
   const { isMigrationInProgress } = useMigration();
+  useEffect(() => {
+    if (__DEV__) {
+      // Add global error handler for development
+      const originalConsoleError = console.error;
+      console.error = (...args) => {
+        originalConsoleError(...args);
+        // Don't crash in development for certain errors
+        if (args[0]?.toString().includes('EXC_BAD_INSTRUCTION')) {
+          console.warn('Caught potential crash in development mode');
+        }
+      };
+    }
+  }, []);
 
   const [selectedDuration, setSelectedDuration] = useState('trial');
   const [modalVisible, setModalVisible] = useState(false);

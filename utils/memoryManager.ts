@@ -20,10 +20,18 @@ class MemoryMonitor {
 
   startMonitoring() {
     if (__DEV__) {
-      this.checkMemoryUsage();
-      setInterval(() => {
+      try {
         this.checkMemoryUsage();
-      }, this.CHECK_INTERVAL);
+        setInterval(() => {
+          try {
+            this.checkMemoryUsage();
+          } catch (error) {
+            console.error('Memory check error:', error);
+          }
+        }, this.CHECK_INTERVAL);
+      } catch (error) {
+        console.error('Memory monitoring setup error:', error);
+      }
     }
   }
 

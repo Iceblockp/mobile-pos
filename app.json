@@ -4,28 +4,14 @@
     "slug": "pos",
     "version": "4.2.2",
     "orientation": "portrait",
-    "jsEngine": "hermes",
     "icon": "./assets/images/pos.png",
     "scheme": "pos",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
-    "statusBar": {
-      "style": "auto",
-      "backgroundColor": "#ffffff"
-    },
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "icon": "./assets/images/pos.png",
       "bundleIdentifier": "com.pyaephyonyo.pos",
-      "buildNumber": "7",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false,
-        "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to connect to thermal printers for receipt printing.",
-        "NSBluetoothPeripheralUsageDescription": "This app uses Bluetooth to connect to thermal printers for receipt printing.",
-        "NSCameraUsageDescription": "This app uses the camera to take photos of products for inventory management.",
-        "NSPhotoLibraryUsageDescription": "This app accesses the photo library to select product images.",
-        "UIViewControllerBasedStatusBarAppearance": true
-      }
+      "buildNumber": "7"
     },
     "web": {
       "bundler": "metro",
@@ -93,20 +79,6 @@
         }
       ],
       [
-        "expo-build-properties",
-        {
-          "ios": {
-            "useFrameworks": "static"
-          },
-          "android": {
-            "minSdkVersion": 24,
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35,
-            "buildToolsVersion": "35.0.0"
-          }
-        }
-      ],
-      [
         "expo-splash-screen",
         {
           "image": "./assets/images/pos.png",
@@ -114,7 +86,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true

@@ -11,7 +11,7 @@ import {
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { X, Camera, Flashlight } from 'lucide-react-native';
-import { Audio } from 'expo-av'; // Import Audio from expo-av
+import { createAudioPlayer, AudioPlayer } from 'expo-audio';
 import { useTranslation } from '@/context/LocalizationContext';
 
 interface BarcodeScannerProps {
@@ -27,16 +27,16 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [audioPlayer, setAudioPlayer] = useState<AudioPlayer | null>(null);
 
   // Load sound when component mounts
   useEffect(() => {
     const loadSound = async () => {
       try {
-        const { sound } = await Audio.Sound.createAsync(
+        const player = createAudioPlayer(
           require('../assets/audios/barcode-scan.mp3')
         );
-        setSound(sound);
+        setAudioPlayer(player);
       } catch (error) {
         console.error('Failed to load sound', error);
       }
@@ -44,10 +44,10 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
     loadSound();
 
-    // Cleanup function to unload sound when component unmounts
+    // Cleanup function to release audio player when component unmounts
     return () => {
-      if (sound) {
-        sound.unloadAsync();
+      if (audioPlayer) {
+        audioPlayer.release();
       }
     };
   }, []);
@@ -130,9 +130,8 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
     // Play the sound when barcode is scanned
     try {
-      if (sound) {
-        await sound.setPositionAsync(0); // Reset to beginning in case it was played before
-        await sound.playAsync();
+      if (audioPlayer) {
+        await audioPlayer.play();
       }
     } catch (error) {
       console.error('Failed to play sound', error);
