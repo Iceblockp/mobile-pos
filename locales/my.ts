@@ -961,6 +961,7 @@ export const my: TranslationKeys = {
     licenseManagement: 'လိုင်စင်စီမံခန့်ခွဲမှု',
     licenseManagementSubtitle: 'သင့်လိုင်စင်ကြည့်ရှုပြီး သက်တမ်းတိုးမည်',
     expenses: 'ကုန်ကျစရိတ်များ',
+    suppliers: 'ဖြန့်ဝေသူများ',
     expensesSubtitle: 'လုပ်ငန်းကုန်ကျစရိတ်များခြေရာခံမည်',
     help: 'အကူအညီနှင့် ပံ့ပိုးမှု',
     helpSubtitle: 'အသုံးပြုသူလမ်းညွှန်နှင့် ဆက်သွယ်ရန်အချက်အလက်',
@@ -1329,7 +1330,8 @@ export const my: TranslationKeys = {
     analysisPeriod: 'ခွဲခြမ်းစိတ်ဖြာမှုကာလ',
     currentPeriod: 'လက်ရှိကာလ',
     cogs: 'COGS',
-
+    dailySales: 'နေ့စဉ်ရောင်းချမှုများ',
+    dailyExpenses: 'နေ့စဉ်ကုန်ကျစရိတ်များ',
     totalProfit: 'စုစုပေါင်းအမြတ်အစွန်း',
     avgSaleValue: 'ပျမ်းမျှရောင်းချမှုတန်ဖိုး',
     businessInsights: 'လုပ်ငန်းသုံးသပ်မှုများ',

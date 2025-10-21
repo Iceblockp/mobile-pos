@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mini POS",
     "slug": "pos",
-    "version": "4.2.2",
+    "version": "4.2.5",
     "orientation": "portrait",
     "icon": "./assets/images/pos.png",
     "scheme": "pos",
@@ -10,13 +10,40 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "icon": "./assets/images/pos.png",
       "bundleIdentifier": "com.pyaephyonyo.pos",
-      "buildNumber": "7"
+      "buildNumber": "9",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to connect to thermal printers for receipt printing.",
+        "NSBluetoothPeripheralUsageDescription": "This app uses Bluetooth to connect to thermal printers for receipt printing.",
+        "NSCameraUsageDescription": "This app uses the camera to take photos of products for inventory management.",
+        "NSPhotoLibraryUsageDescription": "This app accesses the photo library to select product images."
+      }
     },
     "web": {
       "bundler": "metro",
       "output": "single",
       "favicon": "./assets/images/pos.png"
+    },
+    "android": {
+      "package": "com.pyaephyonyo.pos",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/pos.png",
+        "backgroundColor": "#ffffff"
+      },
+      "versionCode": 4,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.CAMERA"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -58,15 +85,27 @@
                 ]
               }
             ]
-          },
-          "ios": {
-            "fonts": [
-              "./assets/fonts/NotoSansMyanmar-Regular.ttf",
-              "./assets/fonts/NotoSansMyanmar-Medium.ttf",
-              "./assets/fonts/NotoSansMyanmar-Bold.ttf",
-              "./assets/fonts/Padauk-Regular.ttf"
-            ]
           }
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          },
+          "android": {
+            "minSdkVersion": 24,
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
+          }
+        }
+      ],
+      [
+        "expo-system-ui",
+        {
+          "edgeToEdgeEnabled": true
         }
       ],
       "expo-web-browser",
@@ -97,23 +136,6 @@
       "eas": {
         "projectId": "74480d35-2bb3-4772-bf62-dfed94231f6c"
       }
-    },
-    "android": {
-      "package": "com.pyaephyonyo.pos",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/pos.png",
-        "backgroundColor": "#ffffff"
-      },
-      "versionCode": 4,
-      "permissions": [
-        "android.permission.BLUETOOTH",
-        "android.permission.BLUETOOTH_ADMIN",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.BLUETOOTH_CONNECT",
-        "android.permission.BLUETOOTH_SCAN",
-        "android.permission.CAMERA"
-      ]
     }
   }
 }

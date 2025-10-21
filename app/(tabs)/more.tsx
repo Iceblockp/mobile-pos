@@ -37,7 +37,7 @@ export default function More() {
     },
     {
       id: 'suppliers',
-      title: 'Suppliers',
+      title: t('more.suppliers'),
       icon: Truck,
       color: '#7C3AED',
       backgroundColor: '#F5F3FF',
