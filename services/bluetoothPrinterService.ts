@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { ESCPOSConverter, ReceiptData } from '@/utils/escposConverter';
 import { ShopSettings } from '@/services/shopSettingsStorage';
 
@@ -7,7 +8,8 @@ let BluetoothClassic: any;
 try {
   BluetoothClassic = require('react-native-bluetooth-classic').default;
 } catch (error) {
-  console.warn('Bluetooth Classic not available in Expo Go');
+  console.warn('Bluetooth Classic not available:', error);
+  BluetoothClassic = null;
 }
 
 export interface BluetoothDevice {
@@ -26,10 +28,21 @@ export class BluetoothPrinterService {
    */
   static async isBluetoothAvailable(): Promise<boolean> {
     if (!BluetoothClassic) {
+      console.warn('BluetoothClassic not available');
       return false;
     }
 
     try {
+      // iOS-specific check
+      if (Platform.OS === 'ios') {
+        // On iOS, we need to handle Bluetooth differently
+        // Check if the module is properly loaded
+        if (typeof BluetoothClassic.isBluetoothEnabled !== 'function') {
+          console.warn('BluetoothClassic methods not available on iOS');
+          return false;
+        }
+      }
+
       const isEnabled = await BluetoothClassic.isBluetoothEnabled();
       return isEnabled;
     } catch (error) {
@@ -64,12 +77,24 @@ export class BluetoothPrinterService {
     }
 
     try {
+      // iOS-specific handling
+      if (Platform.OS === 'ios') {
+        // On iOS, Bluetooth Classic is more limited
+        // We can only get paired devices, not scan for new ones
+        console.log('iOS: Getting paired devices only');
+      }
+
       // Check if Bluetooth is enabled
       const isEnabled = await this.isBluetoothAvailable();
       if (!isEnabled) {
-        const granted = await this.requestPermissions();
-        if (!granted) {
-          throw new Error('Bluetooth permission denied');
+        if (Platform.OS === 'android') {
+          const granted = await this.requestPermissions();
+          if (!granted) {
+            throw new Error('Bluetooth permission denied');
+          }
+        } else {
+          // On iOS, we can't programmatically enable Bluetooth
+          throw new Error('Please enable Bluetooth in Settings');
         }
       }
 
@@ -83,10 +108,11 @@ export class BluetoothPrinterService {
             device.name &&
             (device.name.toLowerCase().includes('printer') ||
               device.name.toLowerCase().includes('p300') ||
-              device.name.toLowerCase().includes('xprinter'))
+              device.name.toLowerCase().includes('xprinter') ||
+              device.name.toLowerCase().includes('thermal'))
         )
         .map((device: any) => ({
-          id: device.id,
+          id: device.id || device.address,
           name: device.name,
           address: device.address,
           isConnected: false,
@@ -95,7 +121,9 @@ export class BluetoothPrinterService {
       return printers;
     } catch (error) {
       console.error('Error scanning for printers:', error);
-      throw new Error('Failed to scan for printers');
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error(`Failed to scan for printers: ${errorMessage}`);
     }
   }
 
@@ -128,7 +156,9 @@ export class BluetoothPrinterService {
       return false;
     } catch (error) {
       console.error('Error connecting to printer:', error);
-      throw new Error('Failed to connect to printer');
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error(`Failed to connect to printer: ${errorMessage}`);
     }
   }
 
@@ -192,7 +222,9 @@ export class BluetoothPrinterService {
       return true;
     } catch (error) {
       console.error('Error printing receipt:', error);
-      throw new Error('Failed to print receipt');
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error(`Failed to print receipt: ${errorMessage}`);
     }
   }
 

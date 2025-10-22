@@ -1,5 +1,5 @@
 {
-  "name": "bolt-expo-starter",
+  "name": "mini-pos",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "private": true,

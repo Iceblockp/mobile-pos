@@ -87,8 +87,17 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
 
     const checkBluetoothAvailability = async () => {
       try {
-        const available = await BluetoothPrinterService.isBluetoothAvailable();
-        setBluetoothAvailable(available);
+        // Add iOS-specific handling
+        if (Platform.OS === 'ios') {
+          // On iOS, we need to be more careful with Bluetooth checks
+          const available =
+            await BluetoothPrinterService.isBluetoothAvailable();
+          setBluetoothAvailable(available);
+        } else {
+          const available =
+            await BluetoothPrinterService.isBluetoothAvailable();
+          setBluetoothAvailable(available);
+        }
       } catch (error) {
         console.error('Error checking Bluetooth availability:', error);
         setBluetoothAvailable(false);
@@ -97,7 +106,15 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
 
     if (visible) {
       loadShopSettings();
-      checkBluetoothAvailability();
+      // Only check Bluetooth if not on iOS or if we're sure it's safe
+      if (Platform.OS !== 'ios') {
+        checkBluetoothAvailability();
+      } else {
+        // On iOS, be more conservative
+        setTimeout(() => {
+          checkBluetoothAvailability();
+        }, 100);
+      }
     }
   }, [visible]);
 

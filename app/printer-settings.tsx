@@ -7,6 +7,7 @@ import {
   Alert,
   ActivityIndicator,
   SafeAreaView,
+  Platform,
 } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { Printer, Bluetooth, Check, X, RefreshCw } from 'lucide-react-native';
@@ -17,8 +18,9 @@ import {
 import { useTranslation } from '@/context/LocalizationContext';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Ionicons } from '@expo/vector-icons';
+import { PrinterErrorBoundary } from '@/components/PrinterErrorBoundary';
 
-export default function PrinterSettingsScreen() {
+function PrinterSettingsContent() {
   const { t } = useTranslation();
   const [isScanning, setIsScanning] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -61,7 +63,9 @@ export default function PrinterSettingsScreen() {
       if (!isAvailable) {
         Alert.alert(
           t('printerSettings.bluetoothRequired'),
-          t('printerSettings.enableBluetooth'),
+          Platform.OS === 'ios'
+            ? 'Please enable Bluetooth in Settings and pair your printer first.'
+            : t('printerSettings.enableBluetooth'),
           [{ text: t('common.confirm') }]
         );
         return;
@@ -73,15 +77,19 @@ export default function PrinterSettingsScreen() {
       if (printers.length === 0) {
         Alert.alert(
           t('printerSettings.noPrintersFound'),
-          t('printerSettings.noPrintersFoundMessage'),
+          Platform.OS === 'ios'
+            ? 'No paired printers found. Please pair your thermal printer in iOS Settings > Bluetooth first.'
+            : t('printerSettings.noPrintersFoundMessage'),
           [{ text: t('common.confirm') }]
         );
       }
     } catch (error) {
       console.error('Error scanning for printers:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
       Alert.alert(
         t('printerSettings.scanFailed'),
-        t('printerSettings.scanFailedMessage'),
+        `${t('printerSettings.scanFailedMessage')}\n\nError: ${errorMessage}`,
         [{ text: t('common.confirm') }]
       );
     } finally {
@@ -110,9 +118,13 @@ export default function PrinterSettingsScreen() {
       }
     } catch (error) {
       console.error('Error connecting to printer:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
       Alert.alert(
         t('printerSettings.connectionError'),
-        t('printerSettings.connectionErrorMessage'),
+        `${t(
+          'printerSettings.connectionErrorMessage'
+        )}\n\nError: ${errorMessage}`,
         [{ text: t('common.confirm') }]
       );
     } finally {
@@ -557,3 +569,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 });
+
+export default function PrinterSettingsScreen() {
+  return (
+    <PrinterErrorBoundary>
+      <PrinterSettingsContent />
+    </PrinterErrorBoundary>
+  );
+}

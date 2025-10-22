@@ -77,6 +77,7 @@ import { convertISOToDBFormat } from '@/utils/dateUtils';
 import { MyanmarTextInput as TextInput } from '@/components/MyanmarTextInput';
 import { useMemoryCleanup, useRenderPerformance } from '@/utils/memoryManager';
 import { useBarcodeActions } from '@/hooks/useBarcodeActions';
+import { PrinterErrorBoundary } from '@/components/PrinterErrorBoundary';
 
 interface CartItem {
   product: Product;
@@ -1086,14 +1087,16 @@ export default function Sales() {
       />
 
       {receiptData && (
-        <EnhancedPrintManager
-          visible={showPrintManager}
-          onClose={() => {
-            setShowPrintManager(false);
-            setReceiptData(null);
-          }}
-          receiptData={receiptData}
-        />
+        <PrinterErrorBoundary>
+          <EnhancedPrintManager
+            visible={showPrintManager}
+            onClose={() => {
+              setShowPrintManager(false);
+              setReceiptData(null);
+            }}
+            receiptData={receiptData}
+          />
+        </PrinterErrorBoundary>
       )}
     </SafeAreaView>
   );

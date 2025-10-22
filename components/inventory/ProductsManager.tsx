@@ -355,15 +355,15 @@ export default function Products({}: ProductsManagerProps) {
   // Add image picker functions
   const pickImage = async () => {
     // Request permissions
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    // const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-    if (status !== 'granted') {
-      Alert.alert(
-        t('products.permissionRequired'),
-        t('products.galleryPermissionNeeded')
-      );
-      return;
-    }
+    // if (status !== 'granted') {
+    //   Alert.alert(
+    //     t('products.permissionRequired'),
+    //     t('products.galleryPermissionNeeded')
+    //   );
+    //   return;
+    // }
 
     // Launch image picker
     let result = await ImagePicker.launchImageLibraryAsync({

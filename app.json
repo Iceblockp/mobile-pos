@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mini POS",
     "slug": "pos",
-    "version": "4.2.5",
+    "version": "4.3.5",
     "orientation": "portrait",
     "icon": "./assets/images/pos.png",
     "scheme": "pos",
@@ -17,6 +17,7 @@
         "ITSAppUsesNonExemptEncryption": false,
         "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to connect to thermal printers for receipt printing.",
         "NSBluetoothPeripheralUsageDescription": "This app uses Bluetooth to connect to thermal printers for receipt printing.",
+        "NSBluetoothWhileUsingAppUsageDescription": "This app uses Bluetooth to connect to thermal printers for receipt printing.",
         "NSCameraUsageDescription": "This app uses the camera to take photos of products for inventory management.",
         "NSPhotoLibraryUsageDescription": "This app accesses the photo library to select product images."
       }
@@ -32,7 +33,7 @@
         "foregroundImage": "./assets/images/pos.png",
         "backgroundColor": "#ffffff"
       },
-      "versionCode": 4,
+      "versionCode": 6,
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
@@ -43,6 +44,13 @@
         "android.permission.BLUETOOTH_CONNECT",
         "android.permission.BLUETOOTH_SCAN",
         "android.permission.CAMERA"
+      ],
+      "blockedPermissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "plugins": [
