@@ -2054,7 +2054,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           <View style={styles.exportModalOverlay}>
             <View style={styles.exportModalContainer}>
               <View style={styles.exportModalHeader}>
-                <Text style={styles.exportModalTitle}>
+                <Text style={styles.exportModalTitle} weight="bold">
                   {t('sales.exportOptions')}
                 </Text>
                 <TouchableOpacity
@@ -2079,7 +2079,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     <FileText size={24} color="#059669" />
                   </View>
                   <View style={styles.exportOptionContent}>
-                    <Text style={styles.exportOptionTitle}>
+                    <Text style={styles.exportOptionTitle} weight="bold">
                       {t('sales.salesList')}
                     </Text>
                     <Text style={styles.exportOptionDescription}>
@@ -2097,7 +2097,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     <FileSpreadsheet size={24} color="#0284C7" />
                   </View>
                   <View style={styles.exportOptionContent}>
-                    <Text style={styles.exportOptionTitle}>
+                    <Text style={styles.exportOptionTitle} weight="bold">
                       {t('sales.salesItemsData')}
                     </Text>
                     <Text style={styles.exportOptionDescription}>
@@ -2722,7 +2722,6 @@ const styles = StyleSheet.create({
   },
   exportModalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
     color: '#111827',
   },
   exportModalCloseButton: {
@@ -2754,7 +2753,6 @@ const styles = StyleSheet.create({
   },
   exportOptionTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
     color: '#111827',
     marginBottom: 4,
   },

@@ -1,12 +1,10 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  TextInput,
   Modal,
   ScrollView,
 } from 'react-native';
@@ -19,6 +17,8 @@ import {
   useBasicSuppliers,
 } from '@/hooks/useQueries';
 import { StockMovement } from '@/services/database';
+import { MyanmarText as Text } from '../MyanmarText';
+import { MyanmarTextInput as TextInput } from '../MyanmarTextInput';
 import {
   TrendingUp,
   TrendingDown,
@@ -39,7 +39,7 @@ interface EnhancedMovementHistoryProps {
   showProductName?: boolean;
   compact?: boolean;
   showFilters?: boolean;
-  headerComponent?: React.ReactNode;
+  headerComponent?: React.ReactComponentElement<any, any>;
 }
 
 interface MovementFilters {
@@ -206,6 +206,7 @@ export const EnhancedMovementHistory: React.FC<EnhancedMovementHistoryProps> =
       const renderMovementItem = useCallback(
         ({ item }: { item: StockMovement }) => (
           <Card
+            //@ts-ignore
             style={
               compact
                 ? [styles.movementItem, styles.movementItemCompact]
@@ -580,7 +581,6 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
   },
   filterButton: {
@@ -604,7 +604,6 @@ const styles = StyleSheet.create({
   },
   filterBadgeText: {
     fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
   movementItem: {
@@ -628,11 +627,9 @@ const styles = StyleSheet.create({
   },
   movementTypeText: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
   },
   movementDate: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
   },
   movementContent: {
@@ -645,39 +642,32 @@ const styles = StyleSheet.create({
   },
   movementLabel: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   movementQuantity: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
   },
   movementProductName: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#111827',
     flex: 1,
   },
   movementReason: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     flex: 1,
   },
   movementSupplier: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     flex: 1,
   },
   movementReference: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
   },
   movementCost: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#059669',
   },
   emptyState: {
@@ -691,14 +681,12 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#6B7280',
     marginTop: 16,
     textAlign: 'center',
   },
   emptyStateSubtext: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#9CA3AF',
     marginTop: 8,
     textAlign: 'center',
@@ -720,7 +708,6 @@ const styles = StyleSheet.create({
   },
   filterTitle: {
     fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   filterCloseButton: {
@@ -735,7 +722,6 @@ const styles = StyleSheet.create({
   },
   filterSectionTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 12,
   },
@@ -757,7 +743,6 @@ const styles = StyleSheet.create({
   },
   filterOptionText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   filterOptionTextActive: {
@@ -776,7 +761,6 @@ const styles = StyleSheet.create({
   },
   dropdownButtonText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
   },
   dateRangeContainer: {
@@ -797,7 +781,6 @@ const styles = StyleSheet.create({
   },
   dateButtonText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
   },
   filterActions: {

@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   SafeAreaView,
-  TextInput,
   TouchableOpacity,
   Alert,
   Modal,
@@ -18,6 +16,7 @@ import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { PriceInput } from '@/components/PriceInput';
+import { MyanmarTextInput as TextInput } from '../MyanmarTextInput';
 import {
   useProducts,
   useCategories,
@@ -30,6 +29,7 @@ import {
 } from '@/hooks/useQueries';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Product, Category, Supplier } from '@/services/database';
+import { MyanmarText as Text } from '../MyanmarText';
 
 type CategoryWithCount = {
   id: string;
@@ -864,28 +864,44 @@ export default function Products({}: ProductsManagerProps) {
     return (
       <View style={styles.tableHeader}>
         <View style={[styles.tableHeaderCell, { width: 80 }]}>
-          <Text style={styles.tableHeaderText}>{t('products.image')}</Text>
+          <Text style={styles.tableHeaderText} weight="medium">
+            {t('products.image')}
+          </Text>
         </View>
         <View style={[styles.tableHeaderCell, { width: 150 }]}>
-          <Text style={styles.tableHeaderText}>{t('products.name')}</Text>
+          <Text style={styles.tableHeaderText} weight="medium">
+            {t('products.name')}
+          </Text>
         </View>
         <View style={[styles.tableHeaderCell, { width: 100 }]}>
-          <Text style={styles.tableHeaderText}>{t('products.category')}</Text>
+          <Text style={styles.tableHeaderText} weight="medium">
+            {t('products.category')}
+          </Text>
         </View>
         <View style={[styles.tableHeaderCell, { width: 100 }]}>
-          <Text style={styles.tableHeaderText}>{t('products.price')}</Text>
+          <Text style={styles.tableHeaderText} weight="medium">
+            {t('products.price')}
+          </Text>
         </View>
         <View style={[styles.tableHeaderCell, { width: 80 }]}>
-          <Text style={styles.tableHeaderText}>{t('products.stock')}</Text>
+          <Text style={styles.tableHeaderText} weight="medium">
+            {t('products.stock')}
+          </Text>
         </View>
         <View style={[styles.tableHeaderCell, { width: 100 }]}>
-          <Text style={styles.tableHeaderText}>{t('products.profit')}</Text>
+          <Text style={styles.tableHeaderText} weight="medium">
+            {t('products.profit')}
+          </Text>
         </View>
         <View style={[styles.tableHeaderCell, { width: 100 }]}>
-          <Text style={styles.tableHeaderText}>{t('products.status')}</Text>
+          <Text style={styles.tableHeaderText} weight="medium">
+            {t('products.status')}
+          </Text>
         </View>
         <View style={[styles.tableHeaderCell, { width: 80 }]}>
-          <Text style={styles.tableHeaderText}>{t('products.actions')}</Text>
+          <Text style={styles.tableHeaderText} weight="medium">
+            {t('products.actions')}
+          </Text>
         </View>
       </View>
     );
@@ -1051,7 +1067,7 @@ export default function Products({}: ProductsManagerProps) {
         <View style={styles.modalOverlay}>
           <View style={styles.categoryPickerContainer}>
             <View style={styles.categoryPickerHeader}>
-              <Text style={styles.categoryPickerTitle}>
+              <Text style={styles.categoryPickerTitle} weight="medium">
                 {t('products.selectCategory')}
               </Text>
               <TouchableOpacity
@@ -2046,7 +2062,6 @@ const styles = StyleSheet.create({
   },
   tableBulkPricingQuantity: {
     fontSize: 9,
-    fontWeight: '600',
     color: '#059669',
   },
   tableBulkPricingPrice: {
@@ -2233,7 +2248,6 @@ const styles = StyleSheet.create({
   compactSearchInput: {
     flex: 1,
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
     marginLeft: 8,
   },
@@ -2278,12 +2292,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontFamily: 'Inter-Bold',
     color: '#111827',
   },
   dataHint: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
@@ -2302,7 +2314,6 @@ const styles = StyleSheet.create({
 
   sortDropdownText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     alignItems: 'center',
     color: '#fff',
   },
@@ -2333,12 +2344,10 @@ const styles = StyleSheet.create({
   },
   sortOptionText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
   },
   sortOptionTextActive: {
     color: '#059669',
-    fontFamily: 'Inter-Medium',
   },
   categoryButton: {
     backgroundColor: '#6B7280',
@@ -2387,7 +2396,6 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 16,
     fontSize: 15,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
   },
   searchScanButton: {
@@ -2418,7 +2426,6 @@ const styles = StyleSheet.create({
   },
   categoryChipText: {
     fontSize: 13,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   categoryChipTextActive: {
@@ -2452,18 +2459,15 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   productCategory: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
   productSupplier: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
@@ -2486,12 +2490,10 @@ const styles = StyleSheet.create({
   },
   productDetailLabel: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
   },
   productDetailValue: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginTop: 2,
   },
@@ -2509,7 +2511,6 @@ const styles = StyleSheet.create({
   },
   barcodeLabel: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#9CA3AF',
   },
   bulkPricingDisplay: {
@@ -2531,13 +2532,11 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
     color: '#6B7280',
     marginTop: 16,
   },
   emptyStateSubtext: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#9CA3AF',
     marginTop: 8,
     textAlign: 'center',
@@ -2564,12 +2563,10 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   modalClose: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#10B981',
   },
   stickyFormContainer: {
@@ -2598,7 +2595,6 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 12,
   },
@@ -2610,7 +2606,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    fontFamily: 'Inter-Regular',
     color: '#111827',
     marginBottom: 8,
   },
@@ -2648,13 +2643,11 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#374151',
     marginBottom: 6,
   },
   pickerLabel: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
     color: '#374151',
     marginBottom: 8,
   },
@@ -2673,7 +2666,6 @@ const styles = StyleSheet.create({
   },
   categoryPickerText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
   categoryPickerTextActive: {
@@ -2689,18 +2681,15 @@ const styles = StyleSheet.create({
   },
   profitLabel: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
     color: '#166534',
   },
   profitValue: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#15803D',
     marginTop: 2,
   },
   marginValue: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
     color: '#16A34A',
     marginTop: 2,
   },
@@ -2723,7 +2712,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
     marginBottom: 0,
   },
@@ -2740,12 +2728,10 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   categoryDescription: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginTop: 2,
   },
@@ -2772,7 +2758,6 @@ const styles = StyleSheet.create({
   },
   categoryDropdownText: {
     fontSize: 15,
-    fontFamily: 'Inter-Medium',
     color: '#111827',
   },
   modalOverlay: {
@@ -2804,7 +2789,6 @@ const styles = StyleSheet.create({
   },
   categoryPickerTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
   closeButton: {
@@ -2827,12 +2811,10 @@ const styles = StyleSheet.create({
   },
   categoryPickerItemText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     color: '#374151',
   },
   categoryPickerItemTextActive: {
     color: '#059669',
-    fontFamily: 'Inter-Medium',
   },
   selectedIndicator: {
     width: 8,
@@ -2861,7 +2843,6 @@ const styles = StyleSheet.create({
   },
   tableHeaderText: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#374151',
     textAlign: 'center',
   },
@@ -2934,7 +2915,6 @@ const styles = StyleSheet.create({
   },
   productBarcode: {
     fontSize: 11,
-    fontFamily: 'Inter-Regular',
     color: '#9CA3AF',
     marginTop: 2,
   },
@@ -2965,7 +2945,6 @@ const styles = StyleSheet.create({
   },
   indicatorText: {
     fontSize: 10,
-    fontFamily: 'Inter-Medium',
     color: '#059669',
   },
   lowStockIndicator: {
@@ -2973,7 +2952,6 @@ const styles = StyleSheet.create({
   },
   lowStockIndicatorText: {
     fontSize: 10,
-    fontFamily: 'Inter-Medium',
     color: '#DC2626',
   },
   // Table indicator styles
@@ -2992,7 +2970,6 @@ const styles = StyleSheet.create({
   },
   tableIndicatorText: {
     fontSize: 8,
-    fontFamily: 'Inter-Medium',
     color: '#059669',
   },
   tableLowStockIndicator: {
@@ -3000,7 +2977,6 @@ const styles = StyleSheet.create({
   },
   tableLowStockIndicatorText: {
     fontSize: 8,
-    fontFamily: 'Inter-Medium',
     color: '#DC2626',
   },
   tableQuickAction: {
@@ -3020,7 +2996,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
     color: '#6B7280',
-    fontFamily: 'Inter-Regular',
   },
   productsCountContainer: {
     paddingHorizontal: 16,
@@ -3032,13 +3007,11 @@ const styles = StyleSheet.create({
   productsCountText: {
     fontSize: 14,
     color: '#374151',
-    fontFamily: 'Inter-Medium',
     textAlign: 'center',
   },
   loadMoreHint: {
     fontSize: 12,
     color: '#6B7280',
-    fontFamily: 'Inter-Regular',
     textAlign: 'center',
     marginTop: 4,
   },
@@ -3052,7 +3025,6 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 16,
     textAlign: 'center',
-    fontFamily: 'Inter-Regular',
   },
   refetchingIndicator: {
     flexDirection: 'row',
@@ -3067,6 +3039,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#2196F3',
     marginLeft: 8,
-    fontFamily: 'Inter-Regular',
   },
 });
