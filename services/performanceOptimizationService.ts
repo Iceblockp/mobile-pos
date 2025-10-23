@@ -30,7 +30,7 @@ export class PerformanceOptimizationService {
   private config: OptimizationConfig;
   private metrics: PerformanceMetrics;
   private batchTimes: number[] = [];
-  private memoryCheckInterval?: NodeJS.Timeout;
+  private memoryCheckInterval?: ReturnType<typeof setInterval>;
 
   constructor(config?: Partial<OptimizationConfig>) {
     this.config = {

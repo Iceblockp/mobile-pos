@@ -153,7 +153,7 @@ export default function More() {
         </View>
 
         {/* App Info Section */}
-        <View style={styles.appInfoSection}>
+        {/* <View style={styles.appInfoSection}>
           <Text style={styles.appInfoTitle} weight="medium">
             {t('more.appInfo')}
           </Text>
@@ -168,7 +168,7 @@ export default function More() {
               {t('more.appDescription')}
             </Text>
           </View>
-        </View>
+        </View> */}
       </ScrollView>
     </SafeAreaView>
   );

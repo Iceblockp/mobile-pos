@@ -5,6 +5,7 @@ export const en = {
     delete: 'Delete',
     edit: 'Edit',
     add: 'Add',
+    update: 'Update',
     search: 'Search',
     filter: 'Filter',
     all: 'All',

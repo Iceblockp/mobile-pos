@@ -13,6 +13,7 @@ export const my: TranslationKeys = {
     ok: 'ဟုတ်ပြီ',
     searchManually: 'စာဖြင့်ရှာမည်',
     all: 'အားလုံး',
+    update: 'ပြင်ဆင်မည်',
     today: 'ယနေ့',
     thisWeek: 'ဒီအပတ်',
     thisMonth: 'ဒီလ',
