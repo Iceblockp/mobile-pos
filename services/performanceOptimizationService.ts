@@ -338,7 +338,8 @@ export class PerformanceOptimizationService {
       // For React Native, we'll write the entire file at once
       // In a real implementation with Node.js, you would use streams
       const FileSystem = require('expo-file-system');
-      await FileSystem.writeAsStringAsync(filePath, data);
+      const outputFile = new FileSystem.File(filePath);
+      await outputFile.write(data);
 
       console.log(`File written successfully: ${filePath}`);
     } catch (error) {
@@ -353,8 +354,8 @@ export class PerformanceOptimizationService {
     chunkSize: number = 1000
   ): AsyncGenerator<any[], void, unknown> {
     try {
-      const FileSystem = require('expo-file-system');
-      const fileContent = await FileSystem.readAsStringAsync(fileUri);
+      const { readAsStringAsync } = require('expo-file-system/legacy');
+      const fileContent = await readAsStringAsync(fileUri);
       const data = JSON.parse(fileContent);
 
       // If data is an array, yield in chunks

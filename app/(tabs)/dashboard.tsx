@@ -2,7 +2,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   RefreshControl,
   TouchableOpacity,
   Image,
@@ -27,6 +26,7 @@ import { useTranslation } from '@/context/LocalizationContext';
 import { LanguageIconButton } from '@/components/LanguageIconButton';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import { MyanmarText as Text } from '@/components/MyanmarText';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Dashboard() {
   const { t } = useTranslation();

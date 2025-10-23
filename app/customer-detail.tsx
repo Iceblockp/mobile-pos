@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   Alert,
@@ -28,6 +27,7 @@ import { useTranslation } from '@/context/LocalizationContext';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import { useToast } from '@/context/ToastContext';
 import { MyanmarText as Text } from '@/components/MyanmarText';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CustomerDetail() {
   const router = useRouter();

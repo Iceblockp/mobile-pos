@@ -1,4 +1,5 @@
 import * as FileSystem from 'expo-file-system';
+import { readAsStringAsync } from 'expo-file-system/legacy';
 import * as DocumentPicker from 'expo-document-picker';
 import { DatabaseService } from './database';
 import {
@@ -127,7 +128,7 @@ export class DataImportService {
   // Validate import file
   async validateImportFile(fileUri: string): Promise<ValidationResult> {
     try {
-      const fileContent = await FileSystem.readAsStringAsync(fileUri);
+      const fileContent = await readAsStringAsync(fileUri);
 
       // First validate file format
       const formatValidation =
@@ -505,7 +506,7 @@ export class DataImportService {
   // Preview import data
   async previewImportData(fileUri: string): Promise<ImportPreview> {
     try {
-      const fileContent = await FileSystem.readAsStringAsync(fileUri);
+      const fileContent = await readAsStringAsync(fileUri);
       const importData = JSON.parse(fileContent);
 
       const dataType = importData.dataType || 'unknown';
@@ -1059,7 +1060,7 @@ export class DataImportService {
     try {
       this.updateProgress('Reading import file...', 0, 1);
 
-      const fileContent = await FileSystem.readAsStringAsync(fileUri);
+      const fileContent = await readAsStringAsync(fileUri);
       const importData = JSON.parse(fileContent);
 
       // Validate import file for all data
@@ -1875,7 +1876,7 @@ export class DataImportService {
     canProceed: boolean;
   }> {
     try {
-      const fileContent = await FileSystem.readAsStringAsync(fileUri);
+      const fileContent = await readAsStringAsync(fileUri);
       const importData = JSON.parse(fileContent);
 
       const validation = this.validateDataTypeAvailability(importData);

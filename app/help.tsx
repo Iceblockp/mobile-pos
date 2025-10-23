@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   Linking,
 } from 'react-native';
@@ -29,6 +28,7 @@ import { LanguageIconButton } from '@/components/LanguageIconButton';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Help() {
   const { t } = useTranslation();

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   Switch,
@@ -23,6 +22,7 @@ import {
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useToast } from '@/context/ToastContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Settings() {
   const router = useRouter();

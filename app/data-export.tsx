@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   Alert,
@@ -27,6 +26,7 @@ import {
   ExportPreview,
 } from '@/services/dataExportService';
 import { MyanmarText as Text } from '@/components/MyanmarText';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface ExportOption {
   id: string;

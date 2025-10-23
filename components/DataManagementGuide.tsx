@@ -5,7 +5,6 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
 } from 'react-native';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import {
@@ -19,6 +18,7 @@ import {
   ArrowRight,
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface DataManagementGuideProps {
   visible: boolean;

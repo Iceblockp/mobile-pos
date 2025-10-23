@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   Alert,
   TextInput,
@@ -46,6 +45,7 @@ import { EnhancedMovementHistory } from '@/components/inventory/EnhancedMovement
 import { MovementSummary } from '@/components/MovementSummary';
 import { QuickStockActions } from '@/components/QuickStockActions';
 import { useDashboardAnalytics } from '@/hooks/useDashboard';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type InventoryTab = 'overview' | 'products' | 'movements';
 

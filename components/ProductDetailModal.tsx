@@ -535,11 +535,11 @@ import {
   StyleSheet,
   ScrollView,
   Modal,
-  SafeAreaView,
   TouchableOpacity,
   Image,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';

@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   Alert,
   Modal,
@@ -61,6 +60,7 @@ import { BarcodeScanner } from '@/components/BarcodeScanner';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as XLSX from 'xlsx';
 import * as FileSystem from 'expo-file-system';
+import { cacheDirectory } from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { captureRef } from 'react-native-view-shot';
 import { useToast } from '@/context/ToastContext';
@@ -78,6 +78,7 @@ import { MyanmarTextInput as TextInput } from '@/components/MyanmarTextInput';
 import { useMemoryCleanup, useRenderPerformance } from '@/utils/memoryManager';
 import { useBarcodeActions } from '@/hooks/useBarcodeActions';
 import { PrinterErrorBoundary } from '@/components/PrinterErrorBoundary';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface CartItem {
   product: Product;
@@ -1556,10 +1557,9 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
 
         // Save file to device's cache directory
-        const filePath = `${FileSystem.cacheDirectory}${filename}`;
-        await FileSystem.writeAsStringAsync(filePath, wbout, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
+        const filePath = `${cacheDirectory}${filename}`;
+        const exportFile = new FileSystem.File(filePath);
+        await exportFile.write(wbout, { encoding: 'base64' });
 
         // Share the file
         if (await Sharing.isAvailableAsync()) {
@@ -1830,10 +1830,9 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
 
         // Save file to device's cache directory
-        const filePath = `${FileSystem.cacheDirectory}${filename}`;
-        await FileSystem.writeAsStringAsync(filePath, wbout, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
+        const filePath = `${cacheDirectory}${filename}`;
+        const exportFile = new FileSystem.File(filePath);
+        await exportFile.write(wbout, { encoding: 'base64' });
 
         // Share the file
         if (await Sharing.isAvailableAsync()) {

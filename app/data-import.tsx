@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft,
@@ -29,6 +29,7 @@ import {
 } from '@/services/dataImportService';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
+import { readAsStringAsync } from 'expo-file-system/legacy';
 import { ConflictResolutionModal } from '@/components/ConflictResolutionModal';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 
@@ -120,9 +121,7 @@ export default function DataImport() {
       }
 
       // Check if the file contains the selected data type
-      const fileContent = await FileSystem.readAsStringAsync(
-        result.assets[0].uri
-      );
+      const fileContent = await readAsStringAsync(result.assets[0].uri);
       const importData = JSON.parse(fileContent);
       const dataTypeValidation =
         importService.validateDataTypeAvailability(importData);

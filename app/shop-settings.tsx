@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
@@ -19,6 +18,7 @@ import { CurrencySelector } from '@/components/CurrencySelector';
 import { useShopSettings } from '@/context/ShopSettingsContext';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { MyanmarTextInput as TextInput } from '@/components/MyanmarTextInput';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ShopSettingsPage() {
   const router = useRouter();

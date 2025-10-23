@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   Alert,
   Modal,
@@ -11,6 +10,7 @@ import {
   RefreshControl,
   FlatList,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import OptimizedImage from '../OptimizedImage';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -65,6 +65,7 @@ import { useTranslation } from '@/context/LocalizationContext';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
+import { documentDirectory } from 'expo-file-system/legacy';
 // import {
 //   useMemoryCleanup,
 //   useRenderPerformance,
@@ -377,15 +378,14 @@ export default function Products({}: ProductsManagerProps) {
       const selectedAsset = result.assets[0];
       const fileName = selectedAsset.uri.split('/').pop();
       //@ts-ignore
-      const newPath = FileSystem.documentDirectory + fileName;
+      const newPath = documentDirectory + fileName;
 
       try {
         // Copy the image to app's document directory for persistence
         //@ts-ignore
-        await FileSystem.copyAsync({
-          from: selectedAsset.uri,
-          to: newPath,
-        });
+        const sourceFile = new FileSystem.File(selectedAsset.uri);
+        const destFile = new FileSystem.File(newPath);
+        await sourceFile.copy(destFile);
 
         setFormData({ ...formData, imageUrl: newPath });
         showToast(t('products.imageSelected'), 'success');
@@ -419,15 +419,14 @@ export default function Products({}: ProductsManagerProps) {
       const selectedAsset = result.assets[0];
       const fileName = selectedAsset.uri.split('/').pop();
       //@ts-ignore
-      const newPath = FileSystem.documentDirectory + fileName;
+      const newPath = documentDirectory + fileName;
 
       try {
         // Copy the image to app's document directory for persistence
         //@ts-ignore
-        await FileSystem.copyAsync({
-          from: selectedAsset.uri,
-          to: newPath,
-        });
+        const sourceFile = new FileSystem.File(selectedAsset.uri);
+        const destFile = new FileSystem.File(newPath);
+        await sourceFile.copy(destFile);
 
         setFormData({ ...formData, imageUrl: newPath });
         showToast(t('products.photoTaken'), 'success');

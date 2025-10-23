@@ -1,10 +1,4 @@
-import {
-  View,
-  StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
-  ScrollView,
-} from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   DollarSign,
@@ -21,6 +15,7 @@ import {
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import { MyanmarText as Text } from '@/components/MyanmarText';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function More() {
   const router = useRouter();

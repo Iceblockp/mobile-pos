@@ -1,11 +1,5 @@
 import React, { useState } from 'react';
-import {
-  StyleSheet,
-  View,
-  SafeAreaView,
-  TouchableOpacity,
-  ScrollView,
-} from 'react-native';
+import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ShieldCheck, ArrowLeft, Clock, Calendar } from 'lucide-react-native';
@@ -13,6 +7,7 @@ import { useLicense } from '@/hooks/useLicense';
 import { useTranslation } from '@/context/LocalizationContext';
 import { LicenseExtensionModal } from '@/components/LicenseExtensionModal';
 import { MyanmarText as Text } from '@/components/MyanmarText';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LicenseManagement() {
   const router = useRouter();

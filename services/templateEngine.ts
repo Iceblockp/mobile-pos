@@ -1,5 +1,6 @@
 import { ShopSettings } from './shopSettingsStorage';
 import * as FileSystem from 'expo-file-system';
+import { readAsStringAsync } from 'expo-file-system/legacy';
 
 export interface ReceiptTemplate {
   id: string;
@@ -115,16 +116,14 @@ export class TemplateEngine {
   private async convertImageToBase64(imagePath: string): Promise<string> {
     try {
       // Check if file exists
-      const fileInfo = await FileSystem.getInfoAsync(imagePath);
-      if (!fileInfo.exists) {
+      const logoFile = new FileSystem.File(imagePath);
+      if (!(await logoFile.exists)) {
         console.warn('Logo file does not exist:', imagePath);
         return '';
       }
 
       // Read file as base64
-      const base64 = await FileSystem.readAsStringAsync(imagePath, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      const base64 = await readAsStringAsync(imagePath, { encoding: 'base64' });
 
       // Determine MIME type from file extension
       const extension = imagePath.split('.').pop()?.toLowerCase();

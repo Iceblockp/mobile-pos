@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  SafeAreaView,
   Platform,
 } from 'react-native';
 import { router, Stack } from 'expo-router';
@@ -19,6 +18,7 @@ import { useTranslation } from '@/context/LocalizationContext';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Ionicons } from '@expo/vector-icons';
 import { PrinterErrorBoundary } from '@/components/PrinterErrorBoundary';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 function PrinterSettingsContent() {
   const { t } = useTranslation();

@@ -1,4 +1,5 @@
 import * as FileSystem from 'expo-file-system';
+import { documentDirectory } from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { DatabaseService } from './database';
@@ -783,7 +784,7 @@ export class DataExportService {
 
     console.log('DataExportService: Converting to JSON');
     const jsonString = JSON.stringify(data, null, 2);
-    const fileUri = FileSystem.documentDirectory + filename;
+    const fileUri = documentDirectory + filename;
     console.log('DataExportService: File URI:', fileUri);
 
     // Calculate file size and checksum
@@ -797,7 +798,8 @@ export class DataExportService {
     // Write the updated data to file
     console.log('DataExportService: Writing file to disk');
     const finalJsonString = JSON.stringify(data, null, 2);
-    await FileSystem.writeAsStringAsync(fileUri, finalJsonString);
+    const exportFile = new FileSystem.File(fileUri);
+    await exportFile.write(finalJsonString);
     console.log('DataExportService: File written successfully');
 
     return { fileUri, filename };
@@ -865,9 +867,10 @@ export class DataExportService {
       console.log('DataExportService: Starting shareExportFile');
 
       // Check if file exists first
-      const fileInfo = await FileSystem.getInfoAsync(fileUri);
-      console.log('DataExportService: File info:', fileInfo);
-      if (!fileInfo.exists) {
+      const exportFile = new FileSystem.File(fileUri);
+      const exists = await exportFile.exists;
+      console.log('DataExportService: File exists:', exists);
+      if (!exists) {
         throw new Error('Export file not found');
       }
 

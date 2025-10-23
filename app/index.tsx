@@ -1,7 +1,6 @@
 import {
   StyleSheet,
   View,
-  SafeAreaView,
   ActivityIndicator,
   Image,
   TouchableOpacity,
@@ -24,6 +23,7 @@ import { MigrationProgress } from '@/components/MigrationProgress';
 import { useMigration } from '@/context/MigrationContext';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Index = () => {
   const {

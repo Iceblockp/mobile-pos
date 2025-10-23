@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   Alert,
-  SafeAreaView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +18,7 @@ import { SupplierWithStats } from '@/services/database';
 import { useDebounce } from '@/hooks/useDebounce';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { useTranslation } from '@/context/LocalizationContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SupplierManagement() {
   const { t } = useTranslation();

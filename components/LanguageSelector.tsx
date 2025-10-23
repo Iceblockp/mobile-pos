@@ -1,11 +1,6 @@
 import React, { useState } from 'react';
-import {
-  View,
-  TouchableOpacity,
-  Modal,
-  StyleSheet,
-  SafeAreaView,
-} from 'react-native';
+import { View, TouchableOpacity, Modal, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import {
   useLocalization,

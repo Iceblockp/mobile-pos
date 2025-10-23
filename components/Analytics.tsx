@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   Modal,
   Platform,
@@ -275,7 +274,7 @@ export default function Analytics() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Dynamic Header with Tab Picker */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
@@ -633,7 +632,7 @@ export default function Analytics() {
 
       {/* AI Analytics Tab */}
       {activeTab === 'ai-analytics' && <AIAnalyticsTab />}
-    </SafeAreaView>
+    </View>
   );
 }
 

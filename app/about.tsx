@@ -2,7 +2,6 @@ import React from 'react';
 import {
   View,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   Linking,
@@ -19,6 +18,7 @@ import {
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import { MyanmarText as Text } from '@/components/MyanmarText';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function About() {
   const router = useRouter();

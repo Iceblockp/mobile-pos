@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import {
   View,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   FlatList,
   Alert,
@@ -26,6 +25,7 @@ import { useTranslation } from '@/context/LocalizationContext';
 import { useToast } from '@/context/ToastContext';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { MyanmarTextInput as TextInput } from '@/components/MyanmarTextInput';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type SortOption = 'name' | 'totalSpent' | 'visitCount' | 'recent';
 type FilterOption = 'all' | 'active' | 'inactive';

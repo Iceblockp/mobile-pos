@@ -4,10 +4,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   Modal,
-  SafeAreaView,
   Alert,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { X, Camera, Flashlight } from 'lucide-react-native';

@@ -1,4 +1,6 @@
 import * as FileSystem from 'expo-file-system';
+import { Directory } from 'expo-file-system';
+import { documentDirectory } from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { TemplateEngine, ReceiptTemplate } from './templateEngine';
 import {
@@ -23,18 +25,16 @@ export class ShopSettingsService {
 
   constructor() {
     this.storage = shopSettingsStorage;
-    this.logoDirectory = `${FileSystem.documentDirectory}shop_logos/`;
+    this.logoDirectory = `${documentDirectory}shop_logos/`;
     this.templateEngine = new TemplateEngine();
   }
 
   // Initialize logo directory
   async initialize(): Promise<void> {
     try {
-      const dirInfo = await FileSystem.getInfoAsync(this.logoDirectory);
-      if (!dirInfo.exists) {
-        await FileSystem.makeDirectoryAsync(this.logoDirectory, {
-          intermediates: true,
-        });
+      const logoDir = new Directory(this.logoDirectory);
+      if (!(await logoDir.exists)) {
+        await logoDir.create();
       }
     } catch (error) {
       console.error('Failed to initialize logo directory:', error);
@@ -132,10 +132,9 @@ export class ShopSettingsService {
       const destinationPath = `${this.logoDirectory}${filename}`;
 
       // Copy image to app directory
-      await FileSystem.copyAsync({
-        from: imageUri,
-        to: destinationPath,
-      });
+      const sourceFile = new FileSystem.File(imageUri);
+      const destinationFile = new FileSystem.File(destinationPath);
+      await sourceFile.copy(destinationFile);
 
       return destinationPath;
     } catch (error) {
@@ -148,9 +147,9 @@ export class ShopSettingsService {
     if (!logoPath) return;
 
     try {
-      const fileInfo = await FileSystem.getInfoAsync(logoPath);
-      if (fileInfo.exists) {
-        await FileSystem.deleteAsync(logoPath);
+      const logoFile = new FileSystem.File(logoPath);
+      if (await logoFile.exists) {
+        await logoFile.delete();
       }
     } catch (error) {
       console.error('Failed to delete logo:', error);
@@ -239,15 +238,16 @@ export class ShopSettingsService {
 
     try {
       // Check if file exists
-      const fileInfo = await FileSystem.getInfoAsync(imageUri);
-      if (!fileInfo.exists) {
+      const imageFile = new FileSystem.File(imageUri);
+      if (!(await imageFile.exists)) {
         errors.image = 'Image file does not exist';
         return { isValid: false, errors };
       }
 
       // Check file size (max 2MB)
       const maxSize = 2 * 1024 * 1024; // 2MB in bytes
-      if (fileInfo.size && fileInfo.size > maxSize) {
+      const size = await imageFile.size;
+      if (size && size > maxSize) {
         errors.image = 'Image file is too large (max 2MB)';
       }
 
@@ -279,7 +279,7 @@ export class ShopSettingsService {
 
       // Launch image picker
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: true,
         aspect: [1, 1], // Square aspect ratio for logo
         quality: 0.8,

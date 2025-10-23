@@ -15,7 +15,7 @@ import { ToastProvider } from '@/context/ToastContext';
 import { LocalizationProvider } from '@/context/LocalizationContext';
 import { ShopSettingsProvider } from '@/context/ShopSettingsContext';
 import { CurrencyProvider } from '@/context/CurrencyContext';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -93,19 +93,17 @@ export default function RootLayout() {
               <CurrencyProvider>
                 <ToastProvider>
                   <SafeAreaProvider>
-                    <SafeAreaView style={{ flex: 1 }}>
-                      <Stack screenOptions={{ headerShown: false }}>
-                        <Stack.Screen name="index" />
-                        <Stack.Screen
-                          name="(tabs)"
-                          options={{
-                            headerShown: false,
-                          }}
-                        />
-                        <Stack.Screen name="+not-found" />
-                      </Stack>
-                      <StatusBar style="auto" />
-                    </SafeAreaView>
+                    <Stack screenOptions={{ headerShown: false }}>
+                      <Stack.Screen name="index" />
+                      <Stack.Screen
+                        name="(tabs)"
+                        options={{
+                          headerShown: false,
+                        }}
+                      />
+                      <Stack.Screen name="+not-found" />
+                    </Stack>
+                    <StatusBar style="auto" />
                   </SafeAreaProvider>
                 </ToastProvider>
               </CurrencyProvider>
