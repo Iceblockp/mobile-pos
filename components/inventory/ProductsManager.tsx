@@ -59,7 +59,7 @@ import {
   TrendingDown,
 } from 'lucide-react-native';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
-import TextScanner from '@/components/TextScanner';
+// import TextScanner from '@/components/TextScanner';
 import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
@@ -97,7 +97,7 @@ export default function Products({}: ProductsManagerProps) {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [showSearchScanner, setShowSearchScanner] = useState(false);
-  const [showTextScanner, setShowTextScanner] = useState(false);
+  // const [showTextScanner, setShowTextScanner] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [sortBy, setSortBy] = useState<'name' | 'updated_at' | 'none'>('none');
@@ -336,21 +336,21 @@ export default function Products({}: ProductsManagerProps) {
     }
   };
 
-  const handleTextScanned = (text: string) => {
-    // Clean up the scanned text - remove extra whitespace, newlines, and special characters
-    let cleanedText = text
-      .trim()
-      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-      .replace(/[^\w\s\-\.]/g, '') // Keep only letters, numbers, spaces, hyphens, and dots
-      .substring(0, 100); // Limit length to 100 characters
+  // const handleTextScanned = (text: string) => {
+  //   // Clean up the scanned text - remove extra whitespace, newlines, and special characters
+  //   let cleanedText = text
+  //     .trim()
+  //     .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+  //     .replace(/[^\w\s\-\.]/g, '') // Keep only letters, numbers, spaces, hyphens, and dots
+  //     .substring(0, 100); // Limit length to 100 characters
 
-    // Capitalize first letter of each word for better presentation
-    cleanedText = cleanedText.replace(/\b\w/g, (l) => l.toUpperCase());
+  //   // Capitalize first letter of each word for better presentation
+  //   cleanedText = cleanedText.replace(/\b\w/g, (l) => l.toUpperCase());
 
-    setFormData({ ...formData, name: cleanedText });
-    setShowTextScanner(false);
-    showToast(`Product name scanned: ${cleanedText}`, 'success');
-  };
+  //   setFormData({ ...formData, name: cleanedText });
+  //   setShowTextScanner(false);
+  //   showToast(`Product name scanned: ${cleanedText}`, 'success');
+  // };
 
   // Add image picker functions
   const pickImage = async () => {
@@ -1707,12 +1707,6 @@ export default function Products({}: ProductsManagerProps) {
                   multiline={true}
                   numberOfLines={4}
                 />
-                <TouchableOpacity
-                  style={styles.scanTextButton}
-                  onPress={() => setShowTextScanner(true)}
-                >
-                  <Camera size={20} color="#FFFFFF" />
-                </TouchableOpacity>
               </View>
             </View>
 
@@ -1876,15 +1870,6 @@ export default function Products({}: ProductsManagerProps) {
             <BarcodeScanner
               onBarcodeScanned={handleBarcodeScanned}
               onClose={() => setShowBarcodeScanner(false)}
-            />
-          )}
-
-          {/* Text Scanner inside the form modal */}
-          {showTextScanner && (
-            <TextScanner
-              visible={showTextScanner}
-              onTextDetected={handleTextScanned}
-              onClose={() => setShowTextScanner(false)}
             />
           )}
         </SafeAreaView>
