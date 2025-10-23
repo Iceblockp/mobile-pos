@@ -7,6 +7,7 @@ import {
   Modal,
   FlatList,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import {
@@ -48,7 +49,7 @@ export const CustomerSelector: React.FC<CustomerSelectorProps> = ({
   } = useCustomers(searchQuery, 1, 50);
 
   const filteredCustomers = useMemo(() => {
-    if (!searchQuery.trim()) return customers.slice(0, 10); // Show only first 10 when no search
+    if (!searchQuery.trim()) return customers; // Show all customers when no search
 
     const query = searchQuery.toLowerCase();
     return customers.filter(
@@ -228,10 +229,25 @@ export const CustomerSelector: React.FC<CustomerSelectorProps> = ({
                 <FlatList
                   data={filteredCustomers}
                   renderItem={renderCustomerItem}
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={isLoading}
+                      onRefresh={refetch}
+                    />
+                  }
                   keyExtractor={(item) => item.id}
                   ListEmptyComponent={renderEmptyState}
-                  showsVerticalScrollIndicator={false}
+                  showsVerticalScrollIndicator={true}
                   style={styles.customerList}
+                  initialNumToRender={15}
+                  maxToRenderPerBatch={10}
+                  windowSize={10}
+                  removeClippedSubviews={true}
+                  getItemLayout={(data, index) => ({
+                    length: 60,
+                    offset: 60 * index,
+                    index,
+                  })}
                 />
               )}
             </View>
@@ -318,8 +334,9 @@ const styles = StyleSheet.create({
     padding: 20,
     width: '100%',
     maxWidth: 400,
-    maxHeight: '80%',
-    minHeight: 700,
+    maxHeight: '85%',
+    minHeight: 500,
+    flex: 1,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -369,7 +386,8 @@ const styles = StyleSheet.create({
   },
   customerListContainer: {
     flex: 1,
-    minHeight: 200,
+    minHeight: 300,
+    maxHeight: 400,
   },
   customerList: {
     flex: 1,

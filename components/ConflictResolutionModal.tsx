@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import {
   X,
@@ -555,337 +556,322 @@ export const ConflictResolutionModal: React.FC<
     <Modal
       visible={visible}
       animationType="slide"
-      transparent={true}
+      presentationStyle="pageSheet"
       onRequestClose={onCancel}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerContent}>
-              <AlertTriangle size={24} color="#F59E0B" />
-              <Text style={styles.title} weight="medium">
-                {t('dataImport.conflictsDetected')}
-              </Text>
-            </View>
-            <TouchableOpacity style={styles.closeButton} onPress={onCancel}>
-              <X size={24} color="#6B7280" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Conflicts Summary */}
-          <View style={styles.summaryContainer}>
-            <Text style={styles.summaryText} weight="medium">
-              {conflicts.length} {t('dataImport.conflictsFound')}
+      <SafeAreaView style={styles.modalContainer}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <AlertTriangle size={24} color="#F59E0B" />
+            <Text style={styles.title} weight="medium">
+              {t('dataImport.conflictsDetected')}
             </Text>
-            {conflictSummary && (
-              <View style={styles.viewToggleContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.viewToggle,
-                    showGroupedView && styles.viewToggleActive,
-                  ]}
-                  onPress={() => setShowGroupedView(true)}
-                >
-                  <Text
-                    style={[
-                      styles.viewToggleText,
-                      showGroupedView && styles.viewToggleTextActive,
-                    ]}
-                    weight="medium"
-                  >
-                    {t('dataImport.groupedView')}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.viewToggle,
-                    !showGroupedView && styles.viewToggleActive,
-                  ]}
-                  onPress={() => setShowGroupedView(false)}
-                >
-                  <Text
-                    style={[
-                      styles.viewToggleText,
-                      !showGroupedView && styles.viewToggleTextActive,
-                    ]}
-                    weight="medium"
-                  >
-                    {t('dataImport.listView')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
           </View>
+          <TouchableOpacity style={styles.closeButton} onPress={onCancel}>
+            <X size={24} color="#6B7280" />
+          </TouchableOpacity>
+        </View>
 
-          {/* Conflict Statistics */}
+        {/* Conflicts Summary */}
+        <View style={styles.summaryContainer}>
+          <Text style={styles.summaryText} weight="medium">
+            {conflicts.length} {t('dataImport.conflictsFound')}
+          </Text>
+          {conflictSummary && (
+            <View style={styles.viewToggleContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.viewToggle,
+                  showGroupedView && styles.viewToggleActive,
+                ]}
+                onPress={() => setShowGroupedView(true)}
+              >
+                <Text
+                  style={[
+                    styles.viewToggleText,
+                    showGroupedView && styles.viewToggleTextActive,
+                  ]}
+                  weight="medium"
+                >
+                  {t('dataImport.groupedView')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.viewToggle,
+                  !showGroupedView && styles.viewToggleActive,
+                ]}
+                onPress={() => setShowGroupedView(false)}
+              >
+                <Text
+                  style={[
+                    styles.viewToggleText,
+                    !showGroupedView && styles.viewToggleTextActive,
+                  ]}
+                  weight="medium"
+                >
+                  {t('dataImport.listView')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* Conflict Statistics */}
+
+        {/* Conflicts List */}
+        <ScrollView
+          style={styles.conflictsList}
+          showsVerticalScrollIndicator={false}
+        >
           {conflictSummary && showGroupedView && renderConflictStatistics()}
+          {showGroupedView ? (
+            renderGroupedConflicts()
+          ) : (
+            <>
+              {(showAllConflicts ? conflicts : conflicts.slice(0, 5)).map(
+                (conflict, index) => {
+                  const IconComponent = getConflictTypeIcon(conflict.type);
+                  const color = getConflictTypeColor(conflict.type);
 
-          {/* Conflicts List */}
-          <ScrollView
-            style={styles.conflictsList}
-            showsVerticalScrollIndicator={false}
-          >
-            {showGroupedView ? (
-              renderGroupedConflicts()
-            ) : (
-              <>
-                {(showAllConflicts ? conflicts : conflicts.slice(0, 5)).map(
-                  (conflict, index) => {
-                    const IconComponent = getConflictTypeIcon(conflict.type);
-                    const color = getConflictTypeColor(conflict.type);
-
-                    return (
-                      <View key={index} style={styles.conflictItem}>
-                        <View style={styles.conflictHeader}>
-                          <View style={styles.conflictTypeIndicator}>
-                            <IconComponent size={16} color={color} />
-                          </View>
-                          <Text style={[styles.conflictType, { color }]}>
-                            {conflict.type.replace('_', ' ').toUpperCase()}
-                          </Text>
-                          <Text style={styles.conflictDataType}>
-                            ({conflict.recordType})
-                          </Text>
+                  return (
+                    <View key={index} style={styles.conflictItem}>
+                      <View style={styles.conflictHeader}>
+                        <View style={styles.conflictTypeIndicator}>
+                          <IconComponent size={16} color={color} />
                         </View>
-
-                        <Text style={styles.conflictMessage}>
-                          {conflict.message}
+                        <Text style={[styles.conflictType, { color }]}>
+                          {conflict.type.replace('_', ' ').toUpperCase()}
                         </Text>
-
-                        {renderConflictComparison(conflict)}
+                        <Text style={styles.conflictDataType}>
+                          ({conflict.recordType})
+                        </Text>
                       </View>
-                    );
-                  }
-                )}
 
-                {conflicts.length > 5 && (
-                  <View style={styles.seeMoreContainer}>
-                    {!showAllConflicts && (
-                      <Text style={styles.moreConflictsText}>
-                        {t('dataImport.andMoreConflicts', {
-                          count: conflicts.length - 5,
-                        })}
+                      <Text style={styles.conflictMessage}>
+                        {conflict.message}
                       </Text>
-                    )}
-                    <TouchableOpacity
-                      style={styles.seeMoreButton}
-                      onPress={() => setShowAllConflicts(!showAllConflicts)}
-                    >
-                      <Text style={styles.seeMoreButtonText} weight="medium">
-                        {showAllConflicts
-                          ? t('dataImport.seeLess')
-                          : t('dataImport.seeMore')}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </>
-            )}
-          </ScrollView>
 
-          {/* Resolution Options */}
-          <View style={styles.resolutionContainer}>
-            <Text style={styles.resolutionTitle} weight="medium">
-              {t('dataImport.chooseResolution')}
-            </Text>
+                      {renderConflictComparison(conflict)}
+                    </View>
+                  );
+                }
+              )}
 
-            <View style={styles.resolutionOptions}>
-              <TouchableOpacity
-                style={[
-                  styles.resolutionOption,
-                  selectedResolution === 'update' &&
-                    styles.resolutionOptionSelected,
-                  { borderColor: '#3B82F6' },
-                ]}
-                onPress={() => setSelectedResolution('update')}
-              >
-                <Check
-                  size={16}
-                  color={
-                    selectedResolution === 'update' ? '#FFFFFF' : '#3B82F6'
-                  }
-                />
-                <View style={styles.resolutionContent}>
-                  <Text
-                    style={[
-                      styles.resolutionOptionTitle,
-                      selectedResolution === 'update' &&
-                        styles.resolutionOptionTitleSelected,
-                    ]}
-                    weight="medium"
+              {conflicts.length > 5 && (
+                <View style={styles.seeMoreContainer}>
+                  {!showAllConflicts && (
+                    <Text style={styles.moreConflictsText}>
+                      {t('dataImport.andMoreConflicts', {
+                        count: conflicts.length - 5,
+                      })}
+                    </Text>
+                  )}
+                  <TouchableOpacity
+                    style={styles.seeMoreButton}
+                    onPress={() => setShowAllConflicts(!showAllConflicts)}
                   >
-                    Use Import Data
-                  </Text>
-                  <Text
-                    style={[
-                      styles.resolutionOptionDesc,
-                      selectedResolution === 'update' &&
-                        styles.resolutionOptionDescSelected,
-                    ]}
-                  >
-                    Replace existing records
-                  </Text>
+                    <Text style={styles.seeMoreButtonText} weight="medium">
+                      {showAllConflicts
+                        ? t('dataImport.seeLess')
+                        : t('dataImport.seeMore')}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-              </TouchableOpacity>
+              )}
+            </>
+          )}
+        </ScrollView>
 
-              <TouchableOpacity
-                style={[
-                  styles.resolutionOption,
-                  selectedResolution === 'skip' &&
-                    styles.resolutionOptionSelected,
-                  { borderColor: '#F59E0B' },
-                ]}
-                onPress={() => setSelectedResolution('skip')}
-              >
-                <SkipForward
-                  size={16}
-                  color={selectedResolution === 'skip' ? '#FFFFFF' : '#F59E0B'}
-                />
-                <View style={styles.resolutionContent}>
-                  <Text
-                    style={[
-                      styles.resolutionOptionTitle,
-                      selectedResolution === 'skip' &&
-                        styles.resolutionOptionTitleSelected,
-                    ]}
-                    weight="medium"
-                  >
-                    Keep Existing
-                  </Text>
-                  <Text
-                    style={[
-                      styles.resolutionOptionDesc,
-                      selectedResolution === 'skip' &&
-                        styles.resolutionOptionDescSelected,
-                    ]}
-                  >
-                    Keep existing records
-                  </Text>
-                </View>
-              </TouchableOpacity>
+        {/* Resolution Options */}
+        <View style={styles.resolutionContainer}>
+          <Text style={styles.resolutionTitle} weight="medium">
+            {t('dataImport.chooseResolution')}
+          </Text>
 
-              <TouchableOpacity
-                style={[
-                  styles.resolutionOption,
-                  selectedResolution === 'create_new' &&
-                    styles.resolutionOptionSelected,
-                  { borderColor: '#10B981' },
-                ]}
-                onPress={() => setSelectedResolution('create_new')}
-              >
-                <Plus
-                  size={16}
-                  color={
-                    selectedResolution === 'create_new' ? '#FFFFFF' : '#10B981'
-                  }
-                />
-                <View style={styles.resolutionContent}>
-                  <Text
-                    style={[
-                      styles.resolutionOptionTitle,
-                      selectedResolution === 'create_new' &&
-                        styles.resolutionOptionTitleSelected,
-                    ]}
-                    weight="medium"
-                  >
-                    Skip
-                  </Text>
-                  <Text
-                    style={[
-                      styles.resolutionOptionDesc,
-                      selectedResolution === 'create_new' &&
-                        styles.resolutionOptionDescSelected,
-                    ]}
-                  >
-                    Skip these conflicts
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            {/* Apply to All Option */}
+          <View style={styles.resolutionOptions}>
             <TouchableOpacity
-              style={styles.applyToAllContainer}
-              onPress={() => setApplyToAll(!applyToAll)}
+              style={[
+                styles.resolutionOption,
+                selectedResolution === 'update' &&
+                  styles.resolutionOptionSelected,
+                { borderColor: '#3B82F6' },
+              ]}
+              onPress={() => setSelectedResolution('update')}
             >
-              <View
-                style={[styles.checkbox, applyToAll && styles.checkboxSelected]}
-              >
-                {applyToAll && <Check size={16} color="#FFFFFF" />}
+              {/* <Check
+                size={16}
+                color={selectedResolution === 'update' ? '#FFFFFF' : '#3B82F6'}
+              /> */}
+              <View style={styles.resolutionContent}>
+                <Text
+                  style={[
+                    styles.resolutionOptionTitle,
+                    selectedResolution === 'update' &&
+                      styles.resolutionOptionTitleSelected,
+                  ]}
+                  weight="medium"
+                >
+                  Use Import Data
+                </Text>
+                {/* <Text
+                  style={[
+                    styles.resolutionOptionDesc,
+                    selectedResolution === 'update' &&
+                      styles.resolutionOptionDescSelected,
+                  ]}
+                >
+                  Replace existing records
+                </Text> */}
               </View>
-              <Text style={styles.applyToAllText}>
-                {t('dataImport.applyToAllConflicts')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Action Buttons */}
-          <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-              <X size={16} color="#6B7280" />
-              <Text style={styles.cancelButtonText} weight="medium">
-                Cancel
-              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[
-                styles.resolveButton,
-                selectedResolution === 'update' && {
-                  backgroundColor: '#3B82F6',
-                },
-                selectedResolution === 'skip' && { backgroundColor: '#F59E0B' },
-                selectedResolution === 'create_new' && {
-                  backgroundColor: '#10B981',
-                },
+                styles.resolutionOption,
+                selectedResolution === 'skip' &&
+                  styles.resolutionOptionSelected,
+                { borderColor: '#F59E0B' },
               ]}
-              onPress={handleResolve}
+              onPress={() => setSelectedResolution('skip')}
             >
-              {selectedResolution === 'update' && (
-                <Check size={16} color="#FFFFFF" />
-              )}
-              {selectedResolution === 'skip' && (
-                <SkipForward size={16} color="#FFFFFF" />
-              )}
-              {selectedResolution === 'create_new' && (
-                <Plus size={16} color="#FFFFFF" />
-              )}
-              <Text style={styles.resolveButtonText} weight="medium">
-                {selectedResolution === 'update' && 'Use Import Data'}
-                {selectedResolution === 'skip' && 'Keep Existing'}
-                {selectedResolution === 'create_new' && 'Skip Conflicts'}
-              </Text>
+              {/* <SkipForward
+                size={16}
+                color={selectedResolution === 'skip' ? '#FFFFFF' : '#F59E0B'}
+              /> */}
+              <View style={styles.resolutionContent}>
+                <Text
+                  style={[
+                    styles.resolutionOptionTitle,
+                    selectedResolution === 'skip' &&
+                      styles.resolutionOptionTitleSelected,
+                  ]}
+                  weight="medium"
+                >
+                  Keep Existing
+                </Text>
+                {/* <Text
+                  style={[
+                    styles.resolutionOptionDesc,
+                    selectedResolution === 'skip' &&
+                      styles.resolutionOptionDescSelected,
+                  ]}
+                >
+                  Keep existing records
+                </Text> */}
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.resolutionOption,
+                selectedResolution === 'create_new' &&
+                  styles.resolutionOptionSelected,
+                { borderColor: '#10B981' },
+              ]}
+              onPress={() => setSelectedResolution('create_new')}
+            >
+              {/* <Plus
+                size={16}
+                color={
+                  selectedResolution === 'create_new' ? '#FFFFFF' : '#10B981'
+                }
+              /> */}
+              <View style={styles.resolutionContent}>
+                <Text
+                  style={[
+                    styles.resolutionOptionTitle,
+                    selectedResolution === 'create_new' &&
+                      styles.resolutionOptionTitleSelected,
+                  ]}
+                  weight="medium"
+                >
+                  Skip
+                </Text>
+                {/* <Text
+                  style={[
+                    styles.resolutionOptionDesc,
+                    selectedResolution === 'create_new' &&
+                      styles.resolutionOptionDescSelected,
+                  ]}
+                >
+                  Skip these conflicts
+                </Text> */}
+              </View>
             </TouchableOpacity>
           </View>
+
+          {/* Apply to All Option */}
+          <TouchableOpacity
+            style={styles.applyToAllContainer}
+            onPress={() => setApplyToAll(!applyToAll)}
+          >
+            <View
+              style={[styles.checkbox, applyToAll && styles.checkboxSelected]}
+            >
+              {applyToAll && <Check size={16} color="#FFFFFF" />}
+            </View>
+            <Text style={styles.applyToAllText}>
+              {t('dataImport.applyToAllConflicts')}
+            </Text>
+          </TouchableOpacity>
         </View>
-      </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+            <X size={16} color="#6B7280" />
+            <Text style={styles.cancelButtonText} weight="medium">
+              Cancel
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.resolveButton,
+              selectedResolution === 'update' && {
+                backgroundColor: '#3B82F6',
+              },
+              selectedResolution === 'skip' && { backgroundColor: '#F59E0B' },
+              selectedResolution === 'create_new' && {
+                backgroundColor: '#10B981',
+              },
+            ]}
+            onPress={handleResolve}
+          >
+            {selectedResolution === 'update' && (
+              <Check size={16} color="#FFFFFF" />
+            )}
+            {selectedResolution === 'skip' && (
+              <SkipForward size={16} color="#FFFFFF" />
+            )}
+            {selectedResolution === 'create_new' && (
+              <Plus size={16} color="#FFFFFF" />
+            )}
+            <Text style={styles.resolveButtonText} weight="medium">
+              {selectedResolution === 'update' && 'Use Import Data'}
+              {selectedResolution === 'skip' && 'Keep Existing'}
+              {selectedResolution === 'create_new' && 'Skip Conflicts'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   modalContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    margin: 20,
-    maxWidth: '95%',
-    maxHeight: '90%',
-    width: 400,
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
-    paddingBottom: 16,
+    padding: 16,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
@@ -902,9 +888,9 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   summaryContainer: {
-    padding: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
+    padding: 12,
+    paddingTop: 10,
+    paddingBottom: 10,
     backgroundColor: '#FEF2F2',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
@@ -916,15 +902,15 @@ const styles = StyleSheet.create({
   },
   conflictsList: {
     flex: 1,
-    padding: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
+    padding: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   conflictItem: {
     backgroundColor: '#F9FAFB',
     borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
+    padding: 10,
+    marginBottom: 8,
     borderLeftWidth: 4,
     borderLeftColor: '#F59E0B',
   },
@@ -1031,8 +1017,8 @@ const styles = StyleSheet.create({
     color: '#3B82F6',
   },
   resolutionContainer: {
-    padding: 16,
-    paddingTop: 12,
+    padding: 12,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
   },
@@ -1043,18 +1029,20 @@ const styles = StyleSheet.create({
   },
   resolutionOptions: {
     flexDirection: 'row',
-    gap: 6,
-    marginBottom: 12,
+    gap: 4,
+    marginBottom: 10,
   },
   resolutionOption: {
     flex: 1,
     flexDirection: 'column',
     alignItems: 'center',
-    padding: 8,
+    padding: 6,
     borderRadius: 6,
     borderWidth: 1.5,
     borderColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
+    minHeight: 60,
+    justifyContent: 'center',
   },
   resolutionOptionSelected: {
     borderColor: '#3B82F6',
@@ -1106,9 +1094,9 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     flexDirection: 'row',
-    padding: 16,
-    paddingTop: 12,
-    gap: 12,
+    padding: 12,
+    paddingTop: 10,
+    gap: 10,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
   },
@@ -1180,7 +1168,7 @@ const styles = StyleSheet.create({
     color: '#374151',
   },
   statisticsContainer: {
-    padding: 16,
+    padding: 10,
     backgroundColor: '#F9FAFB',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',

@@ -1482,6 +1482,10 @@ export class DataImportService {
         if (record.id && isValidUUID(record.id)) {
           saleData.id = record.id;
         }
+        // Preserve original created_at timestamp if available
+        if (record.created_at) {
+          saleData.created_at = record.created_at;
+        }
         await this.db.addSale(saleData, saleItems);
         break;
 
@@ -1489,6 +1493,7 @@ export class DataImportService {
         const categoryId2 = await this.findOrCreateExpenseCategoryId(
           record.category
         );
+
         await this.db.addExpense(
           categoryId2,
           record.amount,
