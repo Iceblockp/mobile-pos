@@ -184,8 +184,6 @@ export function CustomBarChart({
     spacing: 2,
   }));
 
-  console.log('bardata is', giftedData);
-
   const allValues = data.datasets[0].data;
   const minValue = Math.min(...allValues);
   const maxValue = Math.max(...allValues);

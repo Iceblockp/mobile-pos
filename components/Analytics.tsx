@@ -437,7 +437,10 @@ export default function Analytics() {
                     ]}
                     weight="bold"
                   >
-                    {formatPrice(analytics?.netProfit || 0)}
+                    {formatPrice(
+                      (analytics?.totalRevenue || 0) -
+                        (analytics?.totalExpenses || 0)
+                    )}
                   </Text>
                   <Text style={styles.metricLabel} weight="medium">
                     {t('analytics.totalBalance')}
