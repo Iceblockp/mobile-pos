@@ -275,12 +275,12 @@ export const BulkPricingTiers: React.FC<BulkPricingTiersProps> = ({
             {t('bulkPricing.bulkPricing')}
           </Text>
         </View>
-        <TouchableOpacity style={styles.addTierButton} onPress={addTier}>
+        {/* <TouchableOpacity style={styles.addTierButton} onPress={addTier}>
           <Plus size={16} color="#FFFFFF" />
           <Text style={styles.addTierButtonText} weight="medium">
             {t('bulkPricing.addTier')}
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       {tiers.length === 0 ? (

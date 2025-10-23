@@ -188,6 +188,7 @@ export function CustomBarChart({
           yAxisOffset={minValue < 0 ? minValue - padding : 0}
           // Styling - NO GRADIENT
           frontColor="#2563eb"
+          maxValue={maxValue + padding}
           // CORRECT: Show values as top labels
           showValuesAsTopLabel={true}
           topLabelTextStyle={{

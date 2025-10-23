@@ -8,6 +8,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -116,255 +117,243 @@ export const StockMovementForm: React.FC<StockMovementFormProps> = ({
   // Removed formatMMK function - now using standardized currency formatting
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.overlay}>
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Package size={24} color="#059669" />
-              <Text style={styles.title} weight="medium">
-                {t('stockMovement.title')}
-              </Text>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Package size={24} color="#059669" />
+            <Text style={styles.title} weight="medium">
+              {t('stockMovement.title')}
+            </Text>
+          </View>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <X size={24} color="#6B7280" />
+          </TouchableOpacity>
+        </View>
+
+        {product && (
+          <View style={styles.productInfo}>
+            <Text style={styles.productName} weight="medium">
+              {product.name}
+            </Text>
+            <Text style={styles.currentStock} weight="medium">
+              {t('stockMovement.currentStock')}: {product.quantity}
+            </Text>
+          </View>
+        )}
+
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Movement Type Selection */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle} weight="medium">
+              {t('stockMovement.type')}
+            </Text>
+            <View style={styles.typeSelector}>
+              <TouchableOpacity
+                style={[
+                  styles.typeButton,
+                  type === 'stock_in' && styles.typeButtonActive,
+                ]}
+                onPress={() => setType('stock_in')}
+              >
+                <TrendingUp
+                  size={20}
+                  color={type === 'stock_in' ? '#FFFFFF' : '#059669'}
+                />
+                <Text
+                  style={[
+                    styles.typeButtonText,
+                    type === 'stock_in' && styles.typeButtonTextActive,
+                  ]}
+                  weight="medium"
+                >
+                  {t('stockMovement.stockIn')}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.typeButton,
+                  type === 'stock_out' && styles.typeButtonActive,
+                ]}
+                onPress={() => setType('stock_out')}
+              >
+                <TrendingDown
+                  size={20}
+                  color={type === 'stock_out' ? '#FFFFFF' : '#EF4444'}
+                />
+                <Text
+                  style={[
+                    styles.typeButtonText,
+                    type === 'stock_out' && styles.typeButtonTextActive,
+                  ]}
+                  weight="medium"
+                >
+                  {t('stockMovement.stockOut')}
+                </Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <X size={24} color="#6B7280" />
-            </TouchableOpacity>
           </View>
 
-          {product && (
-            <View style={styles.productInfo}>
-              <Text style={styles.productName} weight="medium">
-                {product.name}
-              </Text>
-              <Text style={styles.currentStock} weight="medium">
-                {t('stockMovement.currentStock')}: {product.quantity}
-              </Text>
-            </View>
-          )}
+          {/* Quantity Input */}
+          <View style={styles.section}>
+            <Text style={styles.label} weight="medium">
+              {t('stockMovement.quantity')}
+            </Text>
+            <TextInput
+              style={styles.input}
+              value={quantity}
+              onChangeText={setQuantity}
+              placeholder={t('stockMovement.enterQuantity')}
+              keyboardType="numeric"
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
 
-          <ScrollView
-            style={styles.content}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Movement Type Selection */}
+          {/* Reason Input (required for stock_out) */}
+          <View style={styles.section}>
+            <Text style={styles.label} weight="medium">
+              {t('stockMovement.reason')}
+              {type === 'stock_out' && <Text style={styles.required}> *</Text>}
+            </Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={reason}
+              onChangeText={setReason}
+              placeholder={
+                type === 'stock_in'
+                  ? t('stockMovement.reasonPlaceholderIn')
+                  : t('stockMovement.reasonPlaceholderOut')
+              }
+              multiline
+              numberOfLines={3}
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+
+          {/* Supplier Selection (for stock_in) */}
+          {type === 'stock_in' && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle} weight="medium">
-                {t('stockMovement.type')}
+              <Text style={styles.label} weight="medium">
+                {t('stockMovement.supplier')} ({t('common.optional')})
               </Text>
-              <View style={styles.typeSelector}>
+              <View style={styles.supplierSelector}>
                 <TouchableOpacity
                   style={[
-                    styles.typeButton,
-                    type === 'stock_in' && styles.typeButtonActive,
+                    styles.supplierOption,
+                    !supplierId && styles.supplierOptionActive,
                   ]}
-                  onPress={() => setType('stock_in')}
+                  onPress={() => setSupplierId(undefined)}
                 >
-                  <TrendingUp
-                    size={20}
-                    color={type === 'stock_in' ? '#FFFFFF' : '#059669'}
-                  />
                   <Text
                     style={[
-                      styles.typeButtonText,
-                      type === 'stock_in' && styles.typeButtonTextActive,
+                      styles.supplierOptionText,
+                      !supplierId && styles.supplierOptionTextActive,
                     ]}
                     weight="medium"
                   >
-                    {t('stockMovement.stockIn')}
+                    {t('stockMovement.noSupplier')}
                   </Text>
                 </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.typeButton,
-                    type === 'stock_out' && styles.typeButtonActive,
-                  ]}
-                  onPress={() => setType('stock_out')}
-                >
-                  <TrendingDown
-                    size={20}
-                    color={type === 'stock_out' ? '#FFFFFF' : '#EF4444'}
-                  />
-                  <Text
-                    style={[
-                      styles.typeButtonText,
-                      type === 'stock_out' && styles.typeButtonTextActive,
-                    ]}
-                    weight="medium"
-                  >
-                    {t('stockMovement.stockOut')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Quantity Input */}
-            <View style={styles.section}>
-              <Text style={styles.label} weight="medium">
-                {t('stockMovement.quantity')}
-              </Text>
-              <TextInput
-                style={styles.input}
-                value={quantity}
-                onChangeText={setQuantity}
-                placeholder={t('stockMovement.enterQuantity')}
-                keyboardType="numeric"
-                placeholderTextColor="#9CA3AF"
-              />
-            </View>
-
-            {/* Reason Input (required for stock_out) */}
-            <View style={styles.section}>
-              <Text style={styles.label} weight="medium">
-                {t('stockMovement.reason')}
-                {type === 'stock_out' && (
-                  <Text style={styles.required}> *</Text>
-                )}
-              </Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={reason}
-                onChangeText={setReason}
-                placeholder={
-                  type === 'stock_in'
-                    ? t('stockMovement.reasonPlaceholderIn')
-                    : t('stockMovement.reasonPlaceholderOut')
-                }
-                multiline
-                numberOfLines={3}
-                placeholderTextColor="#9CA3AF"
-              />
-            </View>
-
-            {/* Supplier Selection (for stock_in) */}
-            {type === 'stock_in' && (
-              <View style={styles.section}>
-                <Text style={styles.label} weight="medium">
-                  {t('stockMovement.supplier')} ({t('common.optional')})
-                </Text>
-                <View style={styles.supplierSelector}>
+                {suppliers.map((supplier) => (
                   <TouchableOpacity
+                    key={supplier.id}
                     style={[
                       styles.supplierOption,
-                      !supplierId && styles.supplierOptionActive,
+                      supplierId === supplier.id && styles.supplierOptionActive,
                     ]}
-                    onPress={() => setSupplierId(undefined)}
+                    onPress={() => setSupplierId(supplier.id)}
                   >
                     <Text
                       style={[
                         styles.supplierOptionText,
-                        !supplierId && styles.supplierOptionTextActive,
+                        supplierId === supplier.id &&
+                          styles.supplierOptionTextActive,
                       ]}
                       weight="medium"
                     >
-                      {t('stockMovement.noSupplier')}
+                      {supplier.name}
                     </Text>
                   </TouchableOpacity>
-                  {suppliers.map((supplier) => (
-                    <TouchableOpacity
-                      key={supplier.id}
-                      style={[
-                        styles.supplierOption,
-                        supplierId === supplier.id &&
-                          styles.supplierOptionActive,
-                      ]}
-                      onPress={() => setSupplierId(supplier.id)}
-                    >
-                      <Text
-                        style={[
-                          styles.supplierOptionText,
-                          supplierId === supplier.id &&
-                            styles.supplierOptionTextActive,
-                        ]}
-                        weight="medium"
-                      >
-                        {supplier.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                ))}
               </View>
-            )}
-
-            {/* Reference Number (for stock_in) */}
-            {type === 'stock_in' && (
-              <View style={styles.section}>
-                <Text style={styles.label} weight="medium">
-                  {t('stockMovement.referenceNumber')} ({t('common.optional')})
-                </Text>
-                <TextInput
-                  style={styles.input}
-                  value={referenceNumber}
-                  onChangeText={setReferenceNumber}
-                  placeholder={t('stockMovement.referenceNumberPlaceholder')}
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
-            )}
-
-            {/* Unit Cost (for stock_in) */}
-            {type === 'stock_in' && (
-              <View style={styles.section}>
-                <Text style={styles.label} weight="medium">
-                  {t('stockMovement.unitCost')} ({t('common.optional')})
-                </Text>
-                <SimplePriceInput
-                  value={unitCost}
-                  onValueChange={(text, numericValue) => {
-                    setUnitCost(text);
-                    setUnitCostNumeric(numericValue);
-                  }}
-                  placeholder={t('stockMovement.unitCostPlaceholder')}
-                  style={styles.input}
-                />
-              </View>
-            )}
-          </ScrollView>
-
-          <View style={styles.footer}>
-            <Button
-              title={t('common.cancel')}
-              onPress={onClose}
-              variant="secondary"
-              style={styles.footerButton}
-            />
-            <Button
-              title={
-                updateProductQuantityWithMovement.isPending
-                  ? t('common.processing')
-                  : type === 'stock_in'
-                  ? t('stockMovement.addStock')
-                  : t('stockMovement.removeStock')
-              }
-              onPress={handleSubmit}
-              disabled={updateProductQuantityWithMovement.isPending}
-              style={styles.footerButton}
-            />
-          </View>
-
-          {updateProductQuantityWithMovement.isPending && (
-            <View style={styles.loadingOverlay}>
-              <LoadingSpinner />
             </View>
           )}
+
+          {/* Reference Number (for stock_in) */}
+          {type === 'stock_in' && (
+            <View style={styles.section}>
+              <Text style={styles.label} weight="medium">
+                {t('stockMovement.referenceNumber')} ({t('common.optional')})
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={referenceNumber}
+                onChangeText={setReferenceNumber}
+                placeholder={t('stockMovement.referenceNumberPlaceholder')}
+                placeholderTextColor="#9CA3AF"
+              />
+            </View>
+          )}
+
+          {/* Unit Cost (for stock_in) */}
+          {type === 'stock_in' && (
+            <View style={styles.section}>
+              <Text style={styles.label} weight="medium">
+                {t('stockMovement.unitCost')} ({t('common.optional')})
+              </Text>
+              <SimplePriceInput
+                value={unitCost}
+                onValueChange={(text, numericValue) => {
+                  setUnitCost(text);
+                  setUnitCostNumeric(numericValue);
+                }}
+                placeholder={t('stockMovement.unitCostPlaceholder')}
+                style={styles.input}
+              />
+            </View>
+          )}
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <Button
+            title={t('common.cancel')}
+            onPress={onClose}
+            variant="secondary"
+            style={styles.footerButton}
+          />
+          <Button
+            title={
+              updateProductQuantityWithMovement.isPending
+                ? t('common.processing')
+                : type === 'stock_in'
+                ? t('stockMovement.addStock')
+                : t('stockMovement.removeStock')
+            }
+            onPress={handleSubmit}
+            disabled={updateProductQuantityWithMovement.isPending}
+            style={styles.footerButton}
+          />
         </View>
-      </View>
+
+        {updateProductQuantityWithMovement.isPending && (
+          <View style={styles.loadingOverlay}>
+            <LoadingSpinner />
+          </View>
+        )}
+      </SafeAreaView>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
   container: {
+    flex: 1,
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '90%',
-    minHeight: '60%',
   },
   header: {
     flexDirection: 'row',
@@ -387,7 +376,8 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   productInfo: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 5,
     backgroundColor: '#F9FAFB',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
@@ -397,9 +387,8 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   currentStock: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#059669',
-    marginTop: 4,
   },
   content: {
     flex: 1,

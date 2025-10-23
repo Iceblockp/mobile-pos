@@ -178,6 +178,7 @@ export const LicenseExtensionModal: React.FC<LicenseExtensionModalProps> = ({
             : t('license.generateExtensionChallenge')}
         </Text>
       </TouchableOpacity>
+      <View style={{ height: 100 }}></View>
     </ScrollView>
   );
 
@@ -207,6 +208,7 @@ export const LicenseExtensionModal: React.FC<LicenseExtensionModalProps> = ({
           {t('common.back')}
         </Text>
       </TouchableOpacity>
+      <View style={{ height: 50 }}></View>
     </ScrollView>
   );
 
