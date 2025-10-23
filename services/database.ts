@@ -3737,6 +3737,12 @@ export class DatabaseService {
       avg_order_value: number;
     }[];
   }> {
+    // Use timezone-aware date ranges
+    const startRange = getTimezoneAwareDateRangeForDB(startDate, -390);
+    const endRange = getTimezoneAwareDateRangeForDB(endDate, -390);
+    const startDateStr = startRange.start;
+    const endDateStr = endRange.end;
+
     // Get customers with their spending in the date range
     const topCustomers = (await this.db.getAllAsync(
       `
@@ -3752,12 +3758,12 @@ export class DatabaseService {
         END as avg_order_value
       FROM customers c
       LEFT JOIN sales s ON c.id = s.customer_id 
-        AND s.created_at BETWEEN ? AND ?
+        AND s.created_at >= ? AND s.created_at <= ?
       GROUP BY c.id, c.name, c.visit_count
       ORDER BY total_spent DESC
       LIMIT 50
     `,
-      [startDate.toISOString(), endDate.toISOString()]
+      [startDateStr, endDateStr]
     )) as {
       id: string;
       name: string;
@@ -3772,9 +3778,9 @@ export class DatabaseService {
       `
       SELECT COALESCE(SUM(total), 0) as totalRevenue
       FROM sales 
-      WHERE created_at BETWEEN ? AND ?
+      WHERE created_at >= ? AND created_at <= ?
     `,
-      [startDate.toISOString(), endDate.toISOString()]
+      [startDateStr, endDateStr]
     )) as { totalRevenue: number };
 
     // Get total unique customers who made purchases in the date range
@@ -3782,9 +3788,9 @@ export class DatabaseService {
       `
       SELECT COUNT(DISTINCT customer_id) as totalCustomers
       FROM sales 
-      WHERE created_at BETWEEN ? AND ? AND customer_id IS NOT NULL
+      WHERE created_at >= ? AND created_at <= ? AND customer_id IS NOT NULL
     `,
-      [startDate.toISOString(), endDate.toISOString()]
+      [startDateStr, endDateStr]
     )) as { totalCustomers: number };
 
     return {
