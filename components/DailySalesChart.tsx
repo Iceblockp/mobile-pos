@@ -218,12 +218,10 @@ export default function DailySalesChart({
       <CustomBarChart
         data={barChartData}
         title=""
-        formatYLabel={formatMMK}
+        // formatYLabel={formatMMK}
         footer={{
-          label: `${totalSales} ${t('dashboard.totalSales')} • ${t(
-            'analytics.averageDaily'
-          )}`,
-          value: `${formatPrice(totalRevenue)} • ${formatPrice(averageDaily)}`,
+          label: `${t('dashboard.totalSales')}`,
+          value: `${formatPrice(totalRevenue)}`,
         }}
       />
     </Card>

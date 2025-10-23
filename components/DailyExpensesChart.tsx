@@ -218,10 +218,8 @@ export default function DailyExpensesChart({
         title=""
         formatYLabel={formatMMK}
         footer={{
-          label: `${expenseCount} ${t('analytics.expenseDays')} • ${t(
-            'analytics.averageDaily'
-          )}`,
-          value: `${formatPrice(totalExpenses)} • ${formatPrice(averageDaily)}`,
+          label: `${t('analytics.totalExpenses')}`,
+          value: `${formatPrice(totalExpenses)}`,
         }}
       />
     </Card>

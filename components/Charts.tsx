@@ -100,15 +100,35 @@ export function CustomLineChart({
             color: '#64748b',
             fontSize: 10,
           }}
+          yAxisLabelWidth={60}
           // Y-axis formatting
           formatYLabel={(value) => {
             if (formatYLabel) return formatYLabel(value);
             const num = parseFloat(value);
             if (num === 0) return '0';
-            if (Math.abs(num) >= 1000) {
+
+            const absNum = Math.abs(num);
+
+            // Handle billions (1,000,000,000+)
+            if (absNum >= 1000000000) {
+              return `${(num / 1000000000).toFixed(1)}B`;
+            }
+            // Handle millions (1,000,000+)
+            if (absNum >= 1000000) {
+              return `${(num / 1000000).toFixed(1)}M`;
+            }
+            // Handle thousands (1,000+)
+            if (absNum >= 1000) {
               return `${(num / 1000).toFixed(0)}K`;
             }
-            return num.toString();
+            // Handle smaller numbers
+            if (absNum >= 100) {
+              return num.toFixed(0);
+            }
+            if (absNum >= 1) {
+              return num.toFixed(1);
+            }
+            return num.toFixed(2);
           }}
           // Animation
           animateOnDataChange
@@ -212,15 +232,37 @@ export function CustomBarChart({
             color: '#64748b',
             fontSize: 10,
           }}
+          yAxisLabelWidth={
+            formatYLabel ? maxValue.toLocaleString().length * 10 + 20 : 60
+          }
           // Y-axis formatting
           formatYLabel={(value) => {
             if (formatYLabel) return formatYLabel(value);
             const num = parseFloat(value);
             if (num === 0) return '0';
-            if (Math.abs(num) >= 1000) {
+
+            const absNum = Math.abs(num);
+
+            // Handle billions (1,000,000,000+)
+            if (absNum >= 1000000000) {
+              return `${(num / 1000000000).toFixed(1)}B`;
+            }
+            // Handle millions (1,000,000+)
+            if (absNum >= 1000000) {
+              return `${(num / 1000000).toFixed(1)}M`;
+            }
+            // Handle thousands (1,000+)
+            if (absNum >= 1000) {
               return `${(num / 1000).toFixed(0)}K`;
             }
-            return num.toString();
+            // Handle smaller numbers
+            if (absNum >= 100) {
+              return num.toFixed(0);
+            }
+            if (absNum >= 1) {
+              return num.toFixed(1);
+            }
+            return num.toFixed(2);
           }}
           // Zero line for negative values
           showReferenceLine1
