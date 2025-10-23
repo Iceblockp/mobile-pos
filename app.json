@@ -3,7 +3,7 @@
     "name": "Mini POS",
     "slug": "pos",
     "version": "4.4.1",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/pos.png",
     "scheme": "pos",
     "userInterfaceStyle": "automatic",
@@ -118,7 +118,9 @@
       [
         "expo-system-ui",
         {
-          "edgeToEdgeEnabled": true
+          "userInterfaceStyle": "automatic",
+          "statusBarStyle": "auto",
+          "statusBarBackgroundColor": "#ffffff"
         }
       ],
       "expo-web-browser",

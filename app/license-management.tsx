@@ -5,9 +5,9 @@ import {
   SafeAreaView,
   TouchableOpacity,
   ScrollView,
-  StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { ShieldCheck, ArrowLeft, Clock, Calendar } from 'lucide-react-native';
 import { useLicense } from '@/hooks/useLicense';
 import { useTranslation } from '@/context/LocalizationContext';
@@ -64,7 +64,7 @@ export default function LicenseManagement() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+        <StatusBar style="dark" backgroundColor="#F8FAFC" />
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>
             {t('license.initializingLicense')}
@@ -76,7 +76,7 @@ export default function LicenseManagement() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+      <StatusBar style="dark" backgroundColor="#F8FAFC" />
 
       {/* Header */}
       <View style={styles.header}>

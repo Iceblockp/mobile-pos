@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Dimensions, StatusBar } from 'react-native';
+import { View, StyleSheet, Dimensions } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import LottieView from 'lottie-react-native';
 import helloAnimation from '@/assets/animations/Hello.json';
 
@@ -27,7 +28,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#2563EB" />
+      <StatusBar style="light" backgroundColor="#2563EB" />
       <LottieView
         ref={animationRef}
         source={helloAnimation}

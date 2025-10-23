@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   Image,
   TouchableOpacity,
-  StatusBar,
   ScrollView,
 } from 'react-native';
 import React, { useEffect, useState } from 'react';
@@ -24,6 +23,7 @@ import { useTranslation } from '@/context/LocalizationContext';
 import { MigrationProgress } from '@/components/MigrationProgress';
 import { useMigration } from '@/context/MigrationContext';
 import { MyanmarText as Text } from '@/components/MyanmarText';
+import { StatusBar } from 'expo-status-bar';
 
 const Index = () => {
   const {
@@ -81,7 +81,7 @@ const Index = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+        <StatusBar style="dark" backgroundColor="#F8FAFC" />
         <ActivityIndicator size="large" color="#3B82F6" />
         <Text style={styles.loadingText}>
           {t('license.initializingLicense')}
@@ -115,7 +115,7 @@ const Index = () => {
   if (!isValid) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+        <StatusBar style="dark" backgroundColor="#F8FAFC" />
         <View style={styles.verificationHeader}>
           <Image
             source={require('@/assets/images/pos.png')}
@@ -209,7 +209,7 @@ const Index = () => {
   // If license is valid, show the simplified welcome page
   return (
     <SafeAreaView style={styles.welcomeContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#2563EB" />
+      <StatusBar style="light" backgroundColor="#2563EB" />
       <View style={styles.welcomeHeader}>
         <Image
           source={require('@/assets/images/pos.png')}
