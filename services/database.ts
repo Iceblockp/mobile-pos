@@ -6,7 +6,18 @@ import {
 import { generateUUID } from '../utils/uuid';
 import { UUIDMigrationService, MigrationReport } from './uuidMigrationService';
 import { MigrationStatusService } from './migrationStatusService';
-import { formatTimestampForDatabase } from '@/utils/dateUtils';
+import {
+  formatTimestampForDatabase,
+  getStartOfDayForDB,
+  getEndOfDayForDB,
+  getStartOfMonthForDB,
+  getEndOfMonthForDB,
+  getTimezoneAwareDateRangeForDB,
+  getTimezoneAwareTodayRangeForDB,
+  getTimezoneAwareCurrentMonthRangeForDB,
+  getTimezoneAwareCurrentYearRangeForDB,
+  getTimezoneAwareMonthRangeForDB,
+} from '@/utils/dateUtils';
 
 export interface Product {
   id: string;
@@ -1834,8 +1845,9 @@ export class DatabaseService {
     page: number = 1,
     pageSize: number = 50
   ): Promise<Sale[]> {
-    const startDateStr = startDate.toISOString();
-    const endDateStr = endDate.toISOString();
+    // Use local time ranges to match stored timestamps
+    const startDateStr = getStartOfDayForDB(startDate);
+    const endDateStr = getEndOfDayForDB(endDate);
     const offset = (page - 1) * pageSize;
 
     const result = await this.db.getAllAsync(
@@ -1871,8 +1883,9 @@ export class DatabaseService {
     endDate: Date,
     limit: number = 100
   ): Promise<Sale[]> {
-    const startDateStr = startDate.toISOString();
-    const endDateStr = endDate.toISOString();
+    // Use local time ranges to match stored timestamps
+    const startDateStr = getStartOfDayForDB(startDate);
+    const endDateStr = getEndOfDayForDB(endDate);
 
     const result = await this.db.getAllAsync(
       `SELECT s.*, c.name as customer_name 
@@ -1881,6 +1894,120 @@ export class DatabaseService {
        WHERE s.created_at >= ? AND s.created_at <= ? 
        ORDER BY s.created_at DESC LIMIT ?`,
       [startDateStr, endDateStr, limit]
+    );
+    return result as Sale[];
+  }
+
+  // TIMEZONE-AWARE METHODS
+  // These methods account for timezone offset where sales created at local time
+  // are stored with UTC offset in the database
+
+  /**
+   * Get today's sales accounting for timezone offset
+   * For -6:30 timezone: includes sales from yesterday 17:30 to today 17:30
+   */
+  async getTodaysSalesTimezoneAware(
+    timezoneOffsetMinutes: number = -390
+  ): Promise<Sale[]> {
+    const { start, end } = getTimezoneAwareTodayRangeForDB(
+      timezoneOffsetMinutes
+    );
+
+    const result = await this.db.getAllAsync(
+      `SELECT s.*, c.name as customer_name 
+       FROM sales s 
+       LEFT JOIN customers c ON s.customer_id = c.id 
+       WHERE s.created_at >= ? AND s.created_at <= ? 
+       ORDER BY s.created_at DESC`,
+      [start, end]
+    );
+    return result as Sale[];
+  }
+
+  /**
+   * Get sales for a specific date accounting for timezone offset
+   */
+  async getSalesForDateTimezoneAware(
+    date: Date,
+    timezoneOffsetMinutes: number = -390
+  ): Promise<Sale[]> {
+    const { start, end } = getTimezoneAwareDateRangeForDB(
+      date,
+      timezoneOffsetMinutes
+    );
+
+    const result = await this.db.getAllAsync(
+      `SELECT s.*, c.name as customer_name 
+       FROM sales s 
+       LEFT JOIN customers c ON s.customer_id = c.id 
+       WHERE s.created_at >= ? AND s.created_at <= ? 
+       ORDER BY s.created_at DESC`,
+      [start, end]
+    );
+    return result as Sale[];
+  }
+
+  /**
+   * Get sales for a date range accounting for timezone offset
+   * This replaces getSalesByDateRange for timezone-aware queries
+   */
+  async getSalesByDateRangeTimezoneAware(
+    startDate: Date,
+    endDate: Date,
+    timezoneOffsetMinutes: number = -390,
+    limit: number = 100
+  ): Promise<Sale[]> {
+    // Get timezone-aware range for start date
+    const startRange = getTimezoneAwareDateRangeForDB(
+      startDate,
+      timezoneOffsetMinutes
+    );
+    // Get timezone-aware range for end date
+    const endRange = getTimezoneAwareDateRangeForDB(
+      endDate,
+      timezoneOffsetMinutes
+    );
+
+    const result = await this.db.getAllAsync(
+      `SELECT s.*, c.name as customer_name 
+       FROM sales s 
+       LEFT JOIN customers c ON s.customer_id = c.id 
+       WHERE s.created_at >= ? AND s.created_at <= ? 
+       ORDER BY s.created_at DESC LIMIT ?`,
+      [startRange.start, endRange.end, limit]
+    );
+    return result as Sale[];
+  }
+
+  /**
+   * Get paginated sales for a date range accounting for timezone offset
+   */
+  async getSalesByDateRangePaginatedTimezoneAware(
+    startDate: Date,
+    endDate: Date,
+    timezoneOffsetMinutes: number = -390,
+    page: number = 1,
+    pageSize: number = 50
+  ): Promise<Sale[]> {
+    // Get timezone-aware range for start date
+    const startRange = getTimezoneAwareDateRangeForDB(
+      startDate,
+      timezoneOffsetMinutes
+    );
+    // Get timezone-aware range for end date
+    const endRange = getTimezoneAwareDateRangeForDB(
+      endDate,
+      timezoneOffsetMinutes
+    );
+    const offset = (page - 1) * pageSize;
+
+    const result = await this.db.getAllAsync(
+      `SELECT s.*, c.name as customer_name 
+       FROM sales s 
+       LEFT JOIN customers c ON s.customer_id = c.id 
+       WHERE s.created_at >= ? AND s.created_at <= ? 
+       ORDER BY s.created_at DESC LIMIT ? OFFSET ?`,
+      [startRange.start, endRange.end, pageSize, offset]
     );
     return result as Sale[];
   }
@@ -1946,11 +2073,15 @@ export class DatabaseService {
     }[];
     revenueGrowth?: { percentage: number; isPositive: boolean };
   }> {
-    // Add these two lines to define the date range
+    // Calculate timezone-aware date range
     const endDate = new Date();
     const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
-    const startDateStr = startDate.toISOString().split('T')[0];
-    const endDateStr = startDate.toISOString().split('T')[0];
+
+    // Use timezone-aware ranges for consistent querying
+    const startRange = getTimezoneAwareDateRangeForDB(startDate, -390);
+    const endRange = getTimezoneAwareDateRangeForDB(endDate, -390);
+    const startDateStr = startRange.start;
+    const endDateStr = endRange.end;
 
     const salesResult = (await this.db.getFirstAsync(
       `SELECT 
@@ -1958,7 +2089,8 @@ export class DatabaseService {
         SUM(total) as total_revenue, 
         AVG(total) as avg_sale 
        FROM sales 
-       WHERE created_at >= datetime("now", "-${days} days")`
+       WHERE created_at >= ? AND created_at <= ?`,
+      [startDateStr, endDateStr]
     )) as { total_sales: number; total_revenue: number; avg_sale: number };
 
     // Calculate cost and profit
@@ -1969,7 +2101,7 @@ export class DatabaseService {
        FROM sale_items si 
        LEFT JOIN products p ON si.product_id = p.id 
        JOIN sales s ON si.sale_id = s.id 
-       WHERE date(s.created_at) >= ? AND date(s.created_at) <= ?`,
+       WHERE s.created_at >= ? AND s.created_at <= ?`,
       [startDateStr, endDateStr]
     )) as { total_cost: number; total_items: number };
 
@@ -1991,10 +2123,11 @@ export class DatabaseService {
        FROM sale_items si 
        JOIN products p ON si.product_id = p.id 
        JOIN sales s ON si.sale_id = s.id 
-       WHERE s.created_at >= datetime("now", "-${days} days") 
+       WHERE s.created_at >= ? AND s.created_at <= ?
        GROUP BY p.id 
        ORDER BY revenue DESC 
-       LIMIT 5`
+       LIMIT 5`,
+      [startDateStr, endDateStr]
     )) as {
       name: string;
       quantity: number;
@@ -2010,12 +2143,27 @@ export class DatabaseService {
         product.revenue > 0 ? (product.profit / product.revenue) * 100 : 0,
     }));
 
-    // Calculate growth compared to previous period
+    // Calculate growth compared to previous period using timezone-aware ranges
+    const prevPeriodEndDate = new Date(startDate.getTime() - 1);
+    const prevPeriodStartDate = new Date(
+      prevPeriodEndDate.getTime() - days * 24 * 60 * 60 * 1000
+    );
+    const prevStartRange = getTimezoneAwareDateRangeForDB(
+      prevPeriodStartDate,
+      -390
+    );
+    const prevEndRange = getTimezoneAwareDateRangeForDB(
+      prevPeriodEndDate,
+      -390
+    );
+    const prevStartDateStr = prevStartRange.start;
+    const prevEndDateStr = prevEndRange.end;
+
     const previousPeriodResult = (await this.db.getFirstAsync(
       `SELECT SUM(total) as previous_revenue 
        FROM sales 
-       WHERE created_at >= datetime("now", "-${days * 2} days") 
-       AND created_at < datetime("now", "-${days} days")`
+       WHERE created_at >= ? AND created_at <= ?`,
+      [prevStartDateStr, prevEndDateStr]
     )) as { previous_revenue: number };
 
     let revenueGrowth;
@@ -2064,13 +2212,9 @@ export class DatabaseService {
     }[];
     revenueGrowth?: { percentage: number; isPositive: boolean };
   }> {
-    // Get current month date range
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-    const startDateStr = startOfMonth.toISOString().split('T')[0];
-    const endDateStr = endOfMonth.toISOString().split('T')[0];
+    // Get current month date range accounting for timezone offset
+    const { start: startDateStr, end: endDateStr } =
+      getTimezoneAwareCurrentMonthRangeForDB(-390); // -6:30 timezone offset
 
     const salesResult = (await this.db.getFirstAsync(
       `SELECT 
@@ -2078,7 +2222,7 @@ export class DatabaseService {
         SUM(total) as total_revenue, 
         AVG(total) as avg_sale 
        FROM sales 
-       WHERE date(created_at) >= ? AND date(created_at) <= ?`,
+       WHERE created_at >= ? AND created_at <= ?`,
       [startDateStr, endDateStr]
     )) as { total_sales: number; total_revenue: number; avg_sale: number };
 
@@ -2090,7 +2234,7 @@ export class DatabaseService {
        FROM sale_items si 
        LEFT JOIN products p ON si.product_id = p.id 
        JOIN sales s ON si.sale_id = s.id 
-       WHERE date(s.created_at) >= ? AND date(s.created_at) <= ?`,
+       WHERE s.created_at >= ? AND s.created_at <= ?`,
       [startDateStr, endDateStr]
     )) as { total_cost: number; total_items: number };
 
@@ -2112,7 +2256,7 @@ export class DatabaseService {
        FROM sale_items si 
        JOIN products p ON si.product_id = p.id 
        JOIN sales s ON si.sale_id = s.id 
-       WHERE date(s.created_at) >= ? AND date(s.created_at) <= ?
+       WHERE s.created_at >= ? AND s.created_at <= ?
        GROUP BY p.id 
        ORDER BY revenue DESC 
        LIMIT 5`,
@@ -2134,15 +2278,16 @@ export class DatabaseService {
     }));
 
     // Calculate growth compared to previous month
+    const now = new Date();
     const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-    const prevStartDateStr = prevMonthStart.toISOString().split('T')[0];
-    const prevEndDateStr = prevMonthEnd.toISOString().split('T')[0];
+    const prevStartDateStr = getStartOfMonthForDB(prevMonthStart);
+    const prevEndDateStr = getEndOfMonthForDB(prevMonthEnd);
 
     const previousMonthResult = (await this.db.getFirstAsync(
       `SELECT SUM(total) as previous_revenue 
        FROM sales 
-       WHERE date(created_at) >= ? AND date(created_at) <= ?`,
+       WHERE created_at >= ? AND created_at <= ?`,
       [prevStartDateStr, prevEndDateStr]
     )) as { previous_revenue: number };
 
@@ -2162,7 +2307,7 @@ export class DatabaseService {
     const expenseResult = (await this.db.getFirstAsync(
       `SELECT SUM(amount) as total_expenses 
        FROM expenses 
-       WHERE date(created_at) >= ? AND date(created_at) <= ?`,
+       WHERE created_at >= ? AND created_at <= ?`,
       [startDateStr, endDateStr]
     )) as { total_expenses: number };
 
@@ -2206,8 +2351,11 @@ export class DatabaseService {
       margin: number;
     }[];
   }> {
-    const startDateStr = startDate.toISOString();
-    const endDateStr = endDate.toISOString();
+    // Use timezone-aware date ranges
+    const startRange = getTimezoneAwareDateRangeForDB(startDate, -390);
+    const endRange = getTimezoneAwareDateRangeForDB(endDate, -390);
+    const startDateStr = startRange.start;
+    const endDateStr = endRange.end;
 
     const salesResult = (await this.db.getFirstAsync(
       `SELECT 
@@ -2357,6 +2505,36 @@ export class DatabaseService {
     )) as (Expense & { category_name: string })[];
   }
 
+  /**
+   * Get expenses for a date range accounting for timezone offset
+   */
+  async getExpensesByDateRangeTimezoneAware(
+    startDate: Date,
+    endDate: Date,
+    timezoneOffsetMinutes: number = -390,
+    limit: number = 100
+  ): Promise<Expense[]> {
+    // Get timezone-aware range for start date
+    const startRange = getTimezoneAwareDateRangeForDB(
+      startDate,
+      timezoneOffsetMinutes
+    );
+    // Get timezone-aware range for end date
+    const endRange = getTimezoneAwareDateRangeForDB(
+      endDate,
+      timezoneOffsetMinutes
+    );
+
+    return (await this.db.getAllAsync(
+      `SELECT e.*, ec.name as category_name 
+     FROM expenses e
+     JOIN expense_categories ec ON e.category_id = ec.id
+     WHERE e.created_at >= ? AND e.created_at <= ?
+     ORDER BY e.created_at DESC LIMIT ?`,
+      [startRange.start, endRange.end, limit]
+    )) as (Expense & { category_name: string })[];
+  }
+
   async getExpensesPaginated(
     page: number = 1,
     pageSize: number = 20
@@ -2440,8 +2618,11 @@ export class DatabaseService {
       salesCount: number;
     }[]
   > {
-    const startDateStr = startDate.toISOString().split('T')[0];
-    const endDateStr = endDate.toISOString().split('T')[0];
+    // Use timezone-aware date ranges
+    const startRange = getTimezoneAwareDateRangeForDB(startDate, -390);
+    const endRange = getTimezoneAwareDateRangeForDB(endDate, -390);
+    const startDateStr = startRange.start;
+    const endDateStr = endRange.end;
 
     // Determine granularity based on date range
     const days = Math.ceil(
@@ -2542,8 +2723,11 @@ export class DatabaseService {
       profit: number;
     }[]
   > {
-    const startDateStr = startDate.toISOString().split('T')[0];
-    const endDateStr = endDate.toISOString().split('T')[0];
+    // Use timezone-aware date ranges
+    const startRange = getTimezoneAwareDateRangeForDB(startDate, -390);
+    const endRange = getTimezoneAwareDateRangeForDB(endDate, -390);
+    const startDateStr = startRange.start;
+    const endDateStr = endRange.end;
 
     const days = Math.ceil(
       (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
@@ -2616,14 +2800,16 @@ export class DatabaseService {
     // Get existing analytics data
     const analytics = await this.getCustomAnalytics(startDate, endDate);
 
-    // Get expenses for the period
-    const startDateStr = startDate.toISOString();
-    const endDateStr = endDate.toISOString();
+    // Get expenses for the period using timezone-aware ranges
+    const startRange = getTimezoneAwareDateRangeForDB(startDate, -390);
+    const endRange = getTimezoneAwareDateRangeForDB(endDate, -390);
+    const startDateStr = startRange.start;
+    const endDateStr = endRange.end;
 
     const expensesResult = (await this.db.getFirstAsync(
       `SELECT SUM(amount) as total_expenses
      FROM expenses
-     WHERE date >= ? AND date <= ?`,
+     WHERE created_at >= ? AND created_at <= ?`,
       [startDateStr, endDateStr]
     )) as { total_expenses: number };
 
@@ -2635,7 +2821,7 @@ export class DatabaseService {
       `SELECT ec.name as category_name, SUM(e.amount) as amount
      FROM expenses e
      JOIN expense_categories ec ON e.category_id = ec.id
-     WHERE e.date >= ? AND e.date <= ?
+     WHERE e.created_at >= ? AND e.created_at <= ?
      GROUP BY e.category_id
      ORDER BY amount DESC`,
       [startDateStr, endDateStr]
@@ -4561,25 +4747,30 @@ export class DatabaseService {
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    // Get sales data grouped by day
+    // Use timezone-aware ranges for consistent querying
+    const { start: startDateStr, end: endDateStr } =
+      getTimezoneAwareCurrentMonthRangeForDB(-390);
+
+    // Get sales data grouped by business day, but only include days within current month
     const salesData = (await this.db.getAllAsync(
       `SELECT 
-        strftime('%d', s.created_at, 'localtime') as day,
+        CASE 
+          WHEN strftime('%H:%M', s.created_at) >= '17:30' 
+          THEN CAST(strftime('%d', date(s.created_at, '+1 day')) AS INTEGER)
+          ELSE CAST(strftime('%d', s.created_at) AS INTEGER)
+        END as business_day,
         COALESCE(SUM(s.total), 0) as total_sales
       FROM sales s
-      WHERE date(s.created_at, 'localtime') >= date(?) 
-        AND date(s.created_at, 'localtime') <= date(?)
-      GROUP BY strftime('%d', s.created_at, 'localtime')
-      ORDER BY day`,
-      [
-        startOfMonth.toISOString().split('T')[0],
-        endOfMonth.toISOString().split('T')[0],
-      ]
-    )) as { day: string; total_sales: number }[];
+      WHERE s.created_at >= ? AND s.created_at <= ?
+      GROUP BY business_day
+      HAVING business_day >= 1 AND business_day <= ?
+      ORDER BY business_day`,
+      [startDateStr, endDateStr, endOfMonth.getDate()]
+    )) as { business_day: number; total_sales: number }[];
 
-    // Create a map for quick lookup
+    // Create a map for quick lookup (convert day numbers to strings for matching)
     const salesMap = new Map(
-      salesData.map((item) => [item.day, item.total_sales])
+      salesData.map((item) => [item.business_day.toString(), item.total_sales])
     );
 
     // Fill in missing days with 0
@@ -4607,25 +4798,33 @@ export class DatabaseService {
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    // Get expense data grouped by day
+    // Use timezone-aware ranges for consistent querying
+    const { start: startDateStr, end: endDateStr } =
+      getTimezoneAwareCurrentMonthRangeForDB(-390);
+
+    // Get expense data grouped by business day, but only include days within current month
     const expenseData = (await this.db.getAllAsync(
       `SELECT 
-        strftime('%d', e.created_at, 'localtime') as day,
+        CASE 
+          WHEN strftime('%H:%M', e.created_at) >= '17:30' 
+          THEN CAST(strftime('%d', date(e.created_at, '+1 day')) AS INTEGER)
+          ELSE CAST(strftime('%d', e.created_at) AS INTEGER)
+        END as business_day,
         COALESCE(SUM(e.amount), 0) as total_expenses
       FROM expenses e
-      WHERE date(e.created_at, 'localtime') >= date(?) 
-        AND date(e.created_at, 'localtime') <= date(?)
-      GROUP BY strftime('%d', e.created_at, 'localtime')
-      ORDER BY day`,
-      [
-        startOfMonth.toISOString().split('T')[0],
-        endOfMonth.toISOString().split('T')[0],
-      ]
-    )) as { day: string; total_expenses: number }[];
+      WHERE e.created_at >= ? AND e.created_at <= ?
+      GROUP BY business_day
+      HAVING business_day >= 1 AND business_day <= ?
+      ORDER BY business_day`,
+      [startDateStr, endDateStr, endOfMonth.getDate()]
+    )) as { business_day: number; total_expenses: number }[];
 
-    // Create a map for quick lookup
+    // Create a map for quick lookup (convert day numbers to strings for matching)
     const expenseMap = new Map(
-      expenseData.map((item) => [item.day, item.total_expenses])
+      expenseData.map((item) => [
+        item.business_day.toString(),
+        item.total_expenses,
+      ])
     );
 
     // Fill in missing days with 0

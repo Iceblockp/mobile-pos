@@ -162,9 +162,10 @@ export const useInfiniteSalesByDateRange = (startDate: Date, endDate: Date) => {
       if (!db) return { data: [], hasMore: false };
 
       const PAGE_SIZE = 50;
-      const sales = await db.getSalesByDateRangePaginated(
+      const sales = await db.getSalesByDateRangePaginatedTimezoneAware(
         startDate,
         endDate,
+        -390, // timezone offset
         pageParam,
         PAGE_SIZE
       );

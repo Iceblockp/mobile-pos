@@ -140,7 +140,12 @@ export class AIAnalyticsService {
       startDate.setMonth(startDate.getMonth() - 3); // Last 3 months
       const endDate = new Date();
 
-      const sales = await db.getSalesByDateRange(startDate, endDate, 200); // Limit to 200 recent sales
+      const sales = await db.getSalesByDateRangeTimezoneAware(
+        startDate,
+        endDate,
+        -390,
+        200
+      ); // Limit to 200 recent sales
 
       // Get sales with items for recent sales only
       const salesWithItems = await Promise.all(

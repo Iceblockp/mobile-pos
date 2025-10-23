@@ -422,7 +422,8 @@ export const useSalesByDateRange = (
 
   return useQuery({
     queryKey: queryKeys.sales.byDateRange(startDate, endDate, limit),
-    queryFn: () => db!.getSalesByDateRange(startDate, endDate, limit),
+    queryFn: () =>
+      db!.getSalesByDateRangeTimezoneAware(startDate, endDate, -390, limit),
     enabled: isReady && !!db,
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 10 * 60 * 1000,
@@ -457,7 +458,13 @@ export const useSalesByDateRangePaginated = (
       pageSize
     ),
     queryFn: () =>
-      db!.getSalesByDateRangePaginated(startDate, endDate, page, pageSize),
+      db!.getSalesByDateRangePaginatedTimezoneAware(
+        startDate,
+        endDate,
+        -390,
+        page,
+        pageSize
+      ),
     enabled: isReady && !!db,
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 10 * 60 * 1000,

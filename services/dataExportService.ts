@@ -475,11 +475,17 @@ export class DataExportService {
         this.db.getProducts(),
         this.db.getCategories(),
         this.db.getSuppliers(),
-        this.db.getSalesByDateRange(new Date('2020-01-01'), new Date(), 10000),
-        this.db.getCustomers(),
-        this.db.getExpensesByDateRange(
+        this.db.getSalesByDateRangeTimezoneAware(
           new Date('2020-01-01'),
           new Date(),
+          -390,
+          10000
+        ),
+        this.db.getCustomers(),
+        this.db.getExpensesByDateRangeTimezoneAware(
+          new Date('2020-01-01'),
+          new Date(),
+          -390, // timezone offset
           10000
         ),
         this.db.getExpenseCategories(),
@@ -625,9 +631,10 @@ export class DataExportService {
 
       const startDate = new Date('2020-01-01');
       const endDate = new Date();
-      const sales = await this.db.getSalesByDateRange(
+      const sales = await this.db.getSalesByDateRangeTimezoneAware(
         startDate,
         endDate,
+        -390, // timezone offset
         10000
       );
 

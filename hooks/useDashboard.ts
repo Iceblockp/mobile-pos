@@ -17,7 +17,7 @@ export const useDashboardAnalytics = () => {
         dailySales,
         dailyExpenses,
       ] = await Promise.all([
-        db.getCurrentMonthSalesAnalytics(),
+        db.getCurrentMonthSalesAnalytics(), // Already uses timezone-aware ranges internally
         db.getLowStockProducts(),
         db.getProducts(),
         db.getDailySalesForCurrentMonth(),
