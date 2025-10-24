@@ -2303,12 +2303,19 @@ export class DatabaseService {
       };
     }
 
-    // Get total expenses for the current month
+    // Get total expenses for the current month (expenses use date field, not created_at)
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+      .toISOString()
+      .split('T')[0];
+    const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      .toISOString()
+      .split('T')[0];
+
     const expenseResult = (await this.db.getFirstAsync(
       `SELECT SUM(amount) as total_expenses 
        FROM expenses 
-       WHERE created_at >= ? AND created_at <= ?`,
-      [startDateStr, endDateStr]
+       WHERE date >= ? AND date <= ?`,
+      [currentMonthStart, currentMonthEnd]
     )) as { total_expenses: number };
 
     const totalExpenses = expenseResult.total_expenses || 0;
@@ -2618,66 +2625,96 @@ export class DatabaseService {
       salesCount: number;
     }[]
   > {
-    // Use timezone-aware date ranges
+    // Use timezone-aware date ranges for sales only
     const startRange = getTimezoneAwareDateRangeForDB(startDate, -390);
     const endRange = getTimezoneAwareDateRangeForDB(endDate, -390);
-    const startDateStr = startRange.start;
-    const endDateStr = endRange.end;
+    const salesStartDateStr = startRange.start;
+    const salesEndDateStr = endRange.end;
+
+    // Use regular date ranges for expenses (they use date field, not created_at)
+    const expenseStartDateStr = startDate.toISOString().split('T')[0];
+    const expenseEndDateStr = endDate.toISOString().split('T')[0];
 
     // Determine granularity based on date range
     const days = Math.ceil(
       (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
     );
-    let dateFormat: string;
-    let groupBy: string;
+    let salesGroupBy: string;
+    let expenseGroupBy: string;
 
     if (days <= 1) {
       // Hourly for single day
-      dateFormat = '%Y-%m-%d %H:00:00';
-      groupBy = "strftime('%Y-%m-%d %H:00:00', s.created_at, 'localtime')";
+      salesGroupBy = "strftime('%Y-%m-%d %H:00:00', s.created_at, 'localtime')";
+      // For expenses in single day mode, we can't group by hour since date field has no time
+      // We'll handle this differently in the expense query
+      expenseGroupBy = 'date(e.date)';
     } else if (days <= 31) {
       // Daily for up to a month
-      dateFormat = '%Y-%m-%d';
-      groupBy = "date(s.created_at, 'localtime')";
+      salesGroupBy = "date(s.created_at, 'localtime')";
+      expenseGroupBy = 'date(e.date)';
     } else if (days > 300) {
       // Monthly for year view
-      dateFormat = '%Y-%m';
-      groupBy = "strftime('%Y-%m', s.created_at, 'localtime')";
+      salesGroupBy = "strftime('%Y-%m', s.created_at, 'localtime')";
+      expenseGroupBy = "strftime('%Y-%m', e.date)";
     } else {
       // Weekly for longer periods
-      dateFormat = '%Y-W%W';
-      groupBy = "strftime('%Y-W%W', s.created_at, 'localtime')";
+      salesGroupBy = "strftime('%Y-W%W', s.created_at, 'localtime')";
+      expenseGroupBy = "strftime('%Y-W%W', e.date)";
     }
 
-    // Get revenue data
+    // Get revenue data (using timezone-aware ranges)
     const revenueData = (await this.db.getAllAsync(
       `SELECT 
-        ${groupBy} as date,
+        ${salesGroupBy} as date,
         SUM(s.total) as revenue,
         COUNT(s.id) as sales_count
        FROM sales s
        WHERE date(s.created_at, 'localtime') >= ? AND date(s.created_at, 'localtime') <= ?
-       GROUP BY ${groupBy}
+       GROUP BY ${salesGroupBy}
        ORDER BY date`,
-      [startDateStr, endDateStr]
+      [salesStartDateStr, salesEndDateStr]
     )) as { date: string; revenue: number; sales_count: number }[];
 
-    // Get expense data - use created_at with localtime for proper timezone handling
-    const expenseData = (await this.db.getAllAsync(
-      `SELECT 
-        ${groupBy.replace('s.created_at', 'e.created_at')} as date,
-        SUM(e.amount) as expenses
-       FROM expenses e
-       WHERE date(e.created_at, 'localtime') >= ? AND date(e.created_at, 'localtime') <= ?
-       GROUP BY ${groupBy.replace('s.created_at', 'e.created_at')}
-       ORDER BY date`,
-      [startDateStr, endDateStr]
-    )) as { date: string; expenses: number }[];
+    // Handle expense data differently for single day mode
+    let expenseMap: Map<string, number>;
 
-    // Merge revenue and expense data
-    const expenseMap = new Map(
-      expenseData.map((item) => [item.date, item.expenses])
-    );
+    if (days <= 1) {
+      // For single day mode, get total expenses for the day and show at first hour
+      const expenseData = (await this.db.getAllAsync(
+        `SELECT SUM(e.amount) as expenses
+         FROM expenses e
+         WHERE e.date >= ? AND e.date <= ?`,
+        [expenseStartDateStr, expenseEndDateStr]
+      )) as { expenses: number }[];
+
+      const totalExpenses = expenseData[0]?.expenses || 0;
+
+      // Create expense map - show all expenses at the first hour of the day
+      expenseMap = new Map();
+      if (totalExpenses > 0 && revenueData.length > 0) {
+        // Show expenses at the first hour that has data, or at 00:00:00
+        const firstHour =
+          revenueData[0]?.date || `${expenseStartDateStr} 00:00:00`;
+        expenseMap.set(firstHour, totalExpenses);
+      }
+    } else {
+      // For multi-day mode, use regular grouping
+      const expenseData = (await this.db.getAllAsync(
+        `SELECT 
+          ${expenseGroupBy} as date,
+          SUM(e.amount) as expenses
+         FROM expenses e
+         WHERE e.date >= ? AND e.date <= ?
+         GROUP BY ${expenseGroupBy}
+         ORDER BY date`,
+        [expenseStartDateStr, expenseEndDateStr]
+      )) as { date: string; expenses: number }[];
+
+      expenseMap = new Map(
+        expenseData.map((item) => [item.date, item.expenses])
+      );
+    }
+
     const revenueMap = new Map(
       revenueData.map((item) => [
         item.date,
@@ -2800,31 +2837,29 @@ export class DatabaseService {
     // Get existing analytics data
     const analytics = await this.getCustomAnalytics(startDate, endDate);
 
-    // Get expenses for the period using timezone-aware ranges
-    const startRange = getTimezoneAwareDateRangeForDB(startDate, -390);
-    const endRange = getTimezoneAwareDateRangeForDB(endDate, -390);
-    const startDateStr = startRange.start;
-    const endDateStr = endRange.end;
+    // Get expenses for the period using date field (expenses don't need timezone conversion)
+    const expenseStartDateStr = startDate.toISOString().split('T')[0]; // YYYY-MM-DD
+    const expenseEndDateStr = endDate.toISOString().split('T')[0]; // YYYY-MM-DD
 
     const expensesResult = (await this.db.getFirstAsync(
       `SELECT SUM(amount) as total_expenses
      FROM expenses
-     WHERE created_at >= ? AND created_at <= ?`,
-      [startDateStr, endDateStr]
+     WHERE date >= ? AND date <= ?`,
+      [expenseStartDateStr, expenseEndDateStr]
     )) as { total_expenses: number };
 
     const totalExpenses = expensesResult.total_expenses || 0;
     const netProfit = analytics.totalProfit - totalExpenses;
 
-    // Get expenses by category
+    // Get expenses by category (using date field)
     const expensesByCategory = (await this.db.getAllAsync(
       `SELECT ec.name as category_name, SUM(e.amount) as amount
      FROM expenses e
      JOIN expense_categories ec ON e.category_id = ec.id
-     WHERE e.created_at >= ? AND e.created_at <= ?
+     WHERE e.date >= ? AND e.date <= ?
      GROUP BY e.category_id
      ORDER BY amount DESC`,
-      [startDateStr, endDateStr]
+      [expenseStartDateStr, expenseEndDateStr]
     )) as { category_name: string; amount: number }[];
 
     // Calculate percentage for each category
@@ -4804,33 +4839,25 @@ export class DatabaseService {
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    // Use timezone-aware ranges for consistent querying
-    const { start: startDateStr, end: endDateStr } =
-      getTimezoneAwareCurrentMonthRangeForDB(-390);
+    // Format dates for expense filtering (expenses use date field, not created_at)
+    const startDateStr = startOfMonth.toISOString().split('T')[0]; // YYYY-MM-DD
+    const endDateStr = endOfMonth.toISOString().split('T')[0]; // YYYY-MM-DD
 
-    // Get expense data grouped by business day, but only include days within current month
+    // Get expense data grouped by day (expenses use date field directly)
     const expenseData = (await this.db.getAllAsync(
       `SELECT 
-        CASE 
-          WHEN strftime('%H:%M', e.created_at) >= '17:30' 
-          THEN CAST(strftime('%d', date(e.created_at, '+1 day')) AS INTEGER)
-          ELSE CAST(strftime('%d', e.created_at) AS INTEGER)
-        END as business_day,
+        CAST(strftime('%d', e.date) AS INTEGER) as day,
         COALESCE(SUM(e.amount), 0) as total_expenses
       FROM expenses e
-      WHERE e.created_at >= ? AND e.created_at <= ?
-      GROUP BY business_day
-      HAVING business_day >= 1 AND business_day <= ?
-      ORDER BY business_day`,
-      [startDateStr, endDateStr, endOfMonth.getDate()]
-    )) as { business_day: number; total_expenses: number }[];
+      WHERE e.date >= ? AND e.date <= ?
+      GROUP BY day
+      ORDER BY day`,
+      [startDateStr, endDateStr]
+    )) as { day: number; total_expenses: number }[];
 
     // Create a map for quick lookup (convert day numbers to strings for matching)
     const expenseMap = new Map(
-      expenseData.map((item) => [
-        item.business_day.toString(),
-        item.total_expenses,
-      ])
+      expenseData.map((item) => [item.day.toString(), item.total_expenses])
     );
 
     // Fill in missing days with 0

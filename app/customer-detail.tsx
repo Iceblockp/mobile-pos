@@ -243,11 +243,11 @@ export default function CustomerDetail() {
                 {customer.visit_count !== 1 ? 's' : ''}
                 with a total value of {formatPrice(customer.total_spent)}.
               </Text>
-              <TouchableOpacity style={styles.viewHistoryButton}>
+              {/* <TouchableOpacity style={styles.viewHistoryButton}>
                 <Text style={styles.viewHistoryButtonText} weight="medium">
                   View Full History
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
           ) : (
             <View style={styles.noHistoryContent}>

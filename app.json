@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mini POS",
     "slug": "pos",
-    "version": "4.5.1",
+    "version": "4.5.4",
     "orientation": "default",
     "icon": "./assets/images/pos.png",
     "scheme": "pos",
@@ -33,7 +33,7 @@
         "foregroundImage": "./assets/images/pos.png",
         "backgroundColor": "#ffffff"
       },
-      "versionCode": 10,
+      "versionCode": 11,
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
