@@ -10,11 +10,14 @@ import {
 import { useEffect } from 'react';
 import { useLicense } from '@/hooks/useLicense';
 import { useTranslation } from '@/context/LocalizationContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Platform } from 'react-native';
 
 export default function TabLayout() {
   const { isLicenseValid, loading } = useLicense();
   const router = useRouter();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!loading && !isLicenseValid()) {
@@ -29,26 +32,35 @@ export default function TabLayout() {
         tabBarActiveTintColor: '#059669',
         tabBarInactiveTintColor: '#6B7280',
         lazy: true,
+        // tabBarStyle: Platform.select({
+        //   ios: {
+        //     // Use a transparent background on iOS to show the blur effect
+        //     position: 'absolute',
+        //   },
+        //   default: {},
+        //   android: {
+        //     paddingBottom: insets.bottom + 20,
+        //   },
+        // }),
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
-          borderTopWidth: 1,
+          // borderTopWidth: 1,
           borderTopColor: '#F3F4F6',
-          height: 70,
-          paddingBottom: 10,
-          paddingTop: 10,
+          // height: 70, // Add safe area bottom inset
+          paddingBottom: insets.bottom + 10, // Add safe area bottom inset plus padding
           shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          elevation: 8,
+          // shadowOffset: { width: 0, height: -2 },
+          // shadowOpacity: 0.1,
+          // shadowRadius: 8,
+          // elevation: 8,
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontFamily: 'NotoSansMyanmar-Bold',
-          marginTop: 4,
+          fontFamily: 'NotoSansMyanmar-Medium',
+          // marginTop: 4,
         },
         tabBarIconStyle: {
-          marginTop: 2,
+          // marginTop: 2,
         },
       }}
     >

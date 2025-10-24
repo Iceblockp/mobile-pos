@@ -28,7 +28,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      <StatusBar style="light" backgroundColor="#2563EB" />
+      <StatusBar style="dark" backgroundColor="#2563EB" />
       <LottieView
         ref={animationRef}
         source={helloAnimation}

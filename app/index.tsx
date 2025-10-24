@@ -209,7 +209,7 @@ const Index = () => {
   // If license is valid, show the simplified welcome page
   return (
     <SafeAreaView style={styles.welcomeContainer}>
-      <StatusBar style="light" backgroundColor="#2563EB" />
+      <StatusBar style="dark" backgroundColor="#2563EB" />
       <View style={styles.welcomeHeader}>
         <Image
           source={require('@/assets/images/pos.png')}

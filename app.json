@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mini POS",
     "slug": "pos",
-    "version": "4.5.4",
+    "version": "4.5.6",
     "orientation": "default",
     "icon": "./assets/images/pos.png",
     "scheme": "pos",
@@ -33,7 +33,7 @@
         "foregroundImage": "./assets/images/pos.png",
         "backgroundColor": "#ffffff"
       },
-      "versionCode": 11,
+      "versionCode": 12,
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
@@ -119,7 +119,7 @@
         "expo-system-ui",
         {
           "userInterfaceStyle": "automatic",
-          "statusBarStyle": "auto",
+          "statusBarStyle": "dark",
           "statusBarBackgroundColor": "#ffffff"
         }
       ],

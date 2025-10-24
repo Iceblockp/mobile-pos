@@ -571,7 +571,7 @@ export default function Sales() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title} weight="bold">
           {t('sales.title')}

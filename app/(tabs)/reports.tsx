@@ -10,7 +10,7 @@ export default function Reports() {
   const { t } = useTranslation();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Analytics Content */}
       <View style={styles.content}>
         <AnalyticsScreen />

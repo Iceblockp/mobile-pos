@@ -396,7 +396,7 @@ export default function Inventory() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Dynamic Header with Tab Picker */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
