@@ -143,6 +143,7 @@ interface BulkPricingTiersProps {
   initialTiers?: BulkPricingTier[];
   onTiersChange: (tiers: BulkPricingTier[]) => void;
   compact?: boolean;
+  readonly?: boolean;
 }
 
 export const BulkPricingTiers: React.FC<BulkPricingTiersProps> = ({
@@ -150,6 +151,7 @@ export const BulkPricingTiers: React.FC<BulkPricingTiersProps> = ({
   initialTiers = [],
   onTiersChange,
   compact = false,
+  readonly = false,
 }) => {
   const { t } = useTranslation();
   const { formatPrice } = useCurrencyFormatter();
@@ -275,12 +277,14 @@ export const BulkPricingTiers: React.FC<BulkPricingTiersProps> = ({
             {t('bulkPricing.bulkPricing')}
           </Text>
         </View>
-        {/* <TouchableOpacity style={styles.addTierButton} onPress={addTier}>
-          <Plus size={16} color="#FFFFFF" />
-          <Text style={styles.addTierButtonText} weight="medium">
-            {t('bulkPricing.addTier')}
-          </Text>
-        </TouchableOpacity> */}
+        {!readonly && (
+          <TouchableOpacity style={styles.addTierButton} onPress={addTier}>
+            <Plus size={16} color="#FFFFFF" />
+            <Text style={styles.addTierButtonText} weight="medium">
+              {t('bulkPricing.addTier')}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {tiers.length === 0 ? (

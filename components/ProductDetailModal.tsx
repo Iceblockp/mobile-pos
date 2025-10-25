@@ -736,6 +736,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 initialTiers={bulkPricingData}
                 onTiersChange={() => {}} // Read-only in detail view
                 compact={false}
+                readonly
               />
             </Card>
           )}
