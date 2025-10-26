@@ -71,13 +71,13 @@ export class TemplateEngine {
         htmlTemplate: this.getMinimalTemplate(),
         cssStyles: this.getMinimalStyles(),
       },
-      {
-        id: 'elegant',
-        name: 'Elegant',
-        description: 'Professional, stylish appearance',
-        htmlTemplate: this.getElegantTemplate(),
-        cssStyles: this.getElegantStyles(),
-      },
+      // {
+      //   id: 'elegant',
+      //   name: 'Elegant',
+      //   description: 'Professional, stylish appearance',
+      //   htmlTemplate: this.getElegantTemplate(),
+      //   cssStyles: this.getElegantStyles(),
+      // },
     ];
 
     defaultTemplates.forEach((template) => {
@@ -259,8 +259,20 @@ export class TemplateEngine {
 
       html = html.replace(/{{items}}/g, itemsHtml);
 
+      // Calculate dynamic page height based on number of items
+      const itemCount = context.receiptData.items.length;
+      const dynamicHeight = 9 + itemCount * 1.5; // 8in default + 2in per item
+
       // Combine with CSS - add responsive styles for preview
       const responsiveCSS = isPreview ? this.getResponsivePreviewCSS() : '';
+      let cssStyles = template.cssStyles;
+
+      // Replace the static page size with dynamic calculation
+      cssStyles = cssStyles.replace(
+        /@page\s*{[^}]*}/,
+        `@page { margin: 0.5in 0; size: 8.5in ${dynamicHeight}in; }`
+      );
+
       const fullHtml = `
         <!DOCTYPE html>
         <html>
@@ -268,7 +280,7 @@ export class TemplateEngine {
             <meta charset="utf-8">
             <title>Receipt #${context.receiptData.saleId}</title>
             <style>
-              ${template.cssStyles}
+              ${cssStyles}
               ${responsiveCSS}
             </style>
           </head>
@@ -471,7 +483,7 @@ export class TemplateEngine {
     return `
       @page {
         margin: 0.5in;
-        size: A4;
+        size: 8.5in 8in;
       }
       * {
         box-sizing: border-box;
@@ -483,7 +495,7 @@ export class TemplateEngine {
       body {
         font-family: 'Courier New', monospace;
         margin: 0;
-        padding: 0px;
+        padding: 0;
         font-size: 36px;
         line-height: 1.5;
         background: white;
@@ -499,6 +511,7 @@ export class TemplateEngine {
         background: white;
         display: block;
       }
+     
       
       /* Force content to expand using table layout */
       .full-width-table {
@@ -549,9 +562,9 @@ export class TemplateEngine {
       }
       .header {
         text-align: center;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
         border-bottom: 2px solid #000;
-        padding-bottom: 15px;
+        padding-bottom: 10px;
       }
       .logo {
         display: block;
@@ -722,8 +735,8 @@ export class TemplateEngine {
   private getModernStyles(): string {
     return `
       @page {
-        margin: 0.5in;
-        size: A4;
+        margin: 0;
+        size: 8.5in 8in;
       }
       * {
         box-sizing: border-box;
@@ -735,9 +748,9 @@ export class TemplateEngine {
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         margin: 0;
-        padding: 20px;
+        padding: 0;
         font-size: 36px;
-        line-height: 1.6;
+        line-height: 1.5;
         background: white;
         color: #333;
         width: 100%;
@@ -831,8 +844,14 @@ export class TemplateEngine {
       @media print and (max-width: 3.5in) {
         .header { padding: 10px; }
         .logo { max-width: 60px; max-height: 60px; margin-bottom: 8px; }
-        .shop-name { font-size: 16px; margin-bottom: 6px; }
+        .shop-name { font-size: 14px; margin-bottom: 6px; }
         .shop-address, .shop-phone { font-size: 10px; margin: 2px 0; }
+        .items-section h3 { font-size: 12px; }
+        .item-name { font-size: 12px; }
+        .item-details { font-size: 10px; }
+        .total-label, .total-amount { font-size: 14px; }
+        .thank-you { font-size: 10px; }
+        .footer-message { font-size: 9px; }
       }
       .receipt-info {
         padding: 20px;
@@ -860,7 +879,7 @@ export class TemplateEngine {
       }
       .items-section h3 {
         margin: 0 0 15px 0;
-        font-size: 16px;
+        font-size: 40px;
         font-weight: 600;
         color: #212529;
       }
@@ -876,11 +895,12 @@ export class TemplateEngine {
         font-weight: 600;
         margin-bottom: 5px;
         color: #212529;
+        font-size: 40px;
       }
       .item-details {
         display: flex;
         justify-content: space-between;
-        font-size: 13px;
+        font-size: 36px;
         color: #6c757d;
       }
       .item-details.discount {
@@ -898,12 +918,12 @@ export class TemplateEngine {
         align-items: center;
       }
       .total-label {
-        font-size: 18px;
+        font-size: 48px;
         font-weight: 700;
         color: #212529;
       }
       .total-amount {
-        font-size: 20px;
+        font-size: 48px;
         font-weight: 700;
         color: #28a745;
       }
@@ -916,10 +936,11 @@ export class TemplateEngine {
         margin: 0 0 10px 0;
         font-weight: 600;
         color: #212529;
+        font-size: 36px;
       }
       .footer-message {
         margin: 0;
-        font-size: 13px;
+        font-size: 32px;
         color: #6c757d;
       }
     `;
@@ -962,8 +983,8 @@ export class TemplateEngine {
   private getMinimalStyles(): string {
     return `
       @page {
-        margin: 0.5in;
-        size: A4;
+        margin: 0 0.5in;
+        size: 8.5in 8in;
       }
       * {
         box-sizing: border-box;
@@ -975,9 +996,9 @@ export class TemplateEngine {
       body {
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
         margin: 0;
-        padding: 15px;
-        font-size: 34px;
-        line-height: 1.4;
+        padding: 0;
+        font-size: 36px;
+        line-height: 1.5;
         background: white;
         color: #333;
         width: 100%;
@@ -1041,66 +1062,74 @@ export class TemplateEngine {
         text-align: center;
         margin-bottom: 15px;
         padding-bottom: 10px;
-        border-bottom: 1px solid #eee;
+        border-bottom: 2px solid #eee;
       }
       .logo {
         display: block;
-        max-width: 60px;
-        max-height: 60px;
-        margin: 0 auto 8px auto;
+        max-width: 80px;
+        max-height: 80px;
+        margin: 0 auto 10px auto;
         object-fit: contain;
         border-radius: 4px;
       }
       .shop-name {
-        font-size: 16px;
-        font-weight: 600;
-        margin-bottom: 5px;
+        font-size: 48px;
+        font-weight: bold;
+        margin-bottom: 8px;
+        word-wrap: break-word;
       }
       .contact {
-        font-size: 11px;
+        font-size: 36px;
         color: #666;
       }
       .meta {
         text-align: center;
-        font-size: 11px;
+        font-size: 36px;
         color: #666;
         margin-bottom: 15px;
         padding-bottom: 10px;
         border-bottom: 1px solid #eee;
       }
       .items {
-        margin-bottom: 15px;
+        margin-bottom: 20px;
       }
       .item {
-        margin-bottom: 8px;
+        margin-bottom: 12px;
+        border-bottom: 1px dashed #ccc;
+        padding-bottom: 8px;
       }
       .item-name {
-        font-weight: 500;
-        margin-bottom: 2px;
+        font-weight: bold;
+        margin-bottom: 4px;
+        font-size: 40px;
       }
       .item-details {
         display: flex;
         justify-content: space-between;
-        font-size: 11px;
+        font-size: 36px;
         color: #666;
       }
       .item-details.discount {
         color: #999;
+         font-size: 32px;
+        margin-top: 2px;
       }
       .total {
         text-align: center;
-        font-size: 18px;
+        font-size: 48px;
         font-weight: 700;
         margin: 15px 0;
-        padding: 10px 0;
+        padding: 15px 0;
         border-top: 2px solid #333;
         border-bottom: 1px solid #eee;
       }
       .footer {
         text-align: center;
-        font-size: 11px;
+        font-size: 32px;
         color: #666;
         line-height: 1.6;
+         padding-top: 15px;
+        margin-top: 25px;
       }
       .footer div {
         margin-bottom: 3px;
@@ -1161,7 +1190,7 @@ export class TemplateEngine {
   private getElegantStyles(): string {
     return `
       @page {
-        margin: 0.5in;
+        margin: 0;
         size: A4;
       }
       * {
@@ -1174,9 +1203,9 @@ export class TemplateEngine {
       body {
         font-family: 'Georgia', 'Times New Roman', serif;
         margin: 0;
-        padding: 25px;
+        padding: 0;
         font-size: 36px;
-        line-height: 1.6;
+        line-height: 1.5;
         background: white;
         color: #2c3e50;
         width: 100%;
@@ -1187,8 +1216,6 @@ export class TemplateEngine {
         min-width: 100%;
         margin: 0;
         background: white;
-        border: 2px solid #34495e;
-        border-radius: 0;
         display: block;
       }
       
@@ -1241,36 +1268,36 @@ export class TemplateEngine {
       }
       .header {
         text-align: center;
-        padding: 25px 20px;
+        padding: 15px 20px;
         background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
         color: white;
       }
       .logo {
         display: block;
-        max-width: 120px;
-        max-height: 120px;
-        margin: 0 auto 15px auto;
+        max-width: 80px;
+        max-height: 80px;
+        margin: 0 auto 10px auto;
         border: 3px solid white;
         border-radius: 50%;
         object-fit: cover;
         background: white;
       }
       .shop-name {
-        font-size: 22px;
+        font-size: 48px;
         font-weight: 700;
-        margin-bottom: 15px;
+        margin-bottom: 8px;
         letter-spacing: 1px;
         text-transform: uppercase;
       }
       .shop-details {
-        font-size: 13px;
+        font-size: 36px;
         opacity: 0.9;
       }
       .address, .phone {
         margin: 3px 0;
       }
       .receipt-details {
-        padding: 20px;
+        padding: 15px;
         background: #ecf0f1;
       }
       .info-table {
@@ -1278,8 +1305,9 @@ export class TemplateEngine {
         border-collapse: collapse;
       }
       .info-table td {
-        padding: 8px 0;
+        padding: 4px 0;
         border-bottom: 1px dotted #bdc3c7;
+        font-size: 36px;
       }
       .info-table td:first-child {
         font-weight: 600;
@@ -1290,20 +1318,20 @@ export class TemplateEngine {
         font-weight: 500;
       }
       .items-section {
-        padding: 20px;
+        padding: 15px;
       }
       .section-title {
-        font-size: 16px;
+        font-size: 40px;
         font-weight: 700;
-        margin-bottom: 15px;
+        margin-bottom: 10px;
         color: #34495e;
         text-align: center;
         border-bottom: 2px solid #34495e;
-        padding-bottom: 8px;
+        padding-bottom: 5px;
       }
       .item {
-        margin-bottom: 15px;
-        padding: 10px 0;
+        margin-bottom: 12px;
+        padding: 8px 0;
         border-bottom: 1px solid #ecf0f1;
       }
       .item:last-child {
@@ -1313,12 +1341,12 @@ export class TemplateEngine {
         font-weight: 600;
         margin-bottom: 5px;
         color: #2c3e50;
-        font-size: 15px;
+        font-size: 40px;
       }
       .item-details {
         display: flex;
         justify-content: space-between;
-        font-size: 13px;
+        font-size: 36px;
         color: #7f8c8d;
         font-style: italic;
       }
@@ -1327,7 +1355,7 @@ export class TemplateEngine {
         font-weight: 500;
       }
       .total-section {
-        padding: 20px;
+        padding: 15px;
         background: #34495e;
         color: white;
       }
@@ -1337,37 +1365,37 @@ export class TemplateEngine {
         align-items: center;
       }
       .total-label {
-        font-size: 18px;
+        font-size: 48px;
         font-weight: 700;
         letter-spacing: 1px;
       }
       .total-value {
-        font-size: 24px;
+        font-size: 48px;
         font-weight: 700;
       }
       .footer {
-        padding: 25px 20px;
+        padding: 15px 20px;
         text-align: center;
         background: #ecf0f1;
       }
       .thank-you {
-        font-size: 16px;
+        font-size: 40px;
         font-weight: 600;
-        margin-bottom: 10px;
+        margin-bottom: 5px;
         color: #34495e;
       }
       .footer-note {
-        font-size: 13px;
-        margin-bottom: 15px;
+        font-size: 36px;
+        margin-bottom: 8px;
         color: #7f8c8d;
         font-style: italic;
       }
       .signature {
-        font-size: 12px;
+        font-size: 32px;
         color: #95a5a6;
         border-top: 1px solid #bdc3c7;
-        padding-top: 10px;
-        margin-top: 15px;
+        padding-top: 8px;
+        margin-top: 10px;
       }
     `;
   }

@@ -12,7 +12,7 @@
       "supportsTablet": true,
       "icon": "./assets/images/pos.png",
       "bundleIdentifier": "com.pyaephyonyo.pos",
-      "buildNumber": "9",
+      "buildNumber": "10",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to connect to thermal printers for receipt printing.",
@@ -110,7 +110,10 @@
             "enableProguardInReleaseBuilds": true,
             "enableShrinkResourcesInReleaseBuilds": true,
             "packagingOptions": {
-              "pickFirst": ["**/libc++_shared.so", "**/libjsc.so"]
+              "pickFirst": [
+                "**/libc++_shared.so",
+                "**/libjsc.so"
+              ]
             }
           }
         }
@@ -125,13 +128,6 @@
       ],
       "expo-web-browser",
       "expo-sqlite",
-      [
-        "./plugins/react-native-bluetooth-classic.js",
-        {
-          "peripheralUsageDescription": "This app uses Bluetooth to connect to thermal printers for receipt printing.",
-          "alwaysUsageDescription": "This app uses Bluetooth to connect to thermal printers for receipt printing."
-        }
-      ],
       [
         "expo-splash-screen",
         {

@@ -62,14 +62,14 @@ export default function More() {
       backgroundColor: '#ECFDF5',
       route: '/shop-settings',
     },
-    {
-      id: 'printerSettings',
-      title: t('more.printerSettings'),
-      icon: Printer,
-      color: '#8B5CF6',
-      backgroundColor: '#F5F3FF',
-      route: '/printer-settings',
-    },
+    // {
+    //   id: 'printerSettings',
+    //   title: t('more.printerSettings'),
+    //   icon: Printer,
+    //   color: '#8B5CF6',
+    //   backgroundColor: '#F5F3FF',
+    //   route: '/printer-settings',
+    // },
     {
       id: 'licenseManagement',
       title: t('more.licenseManagement'),
