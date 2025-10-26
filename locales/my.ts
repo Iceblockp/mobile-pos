@@ -151,6 +151,7 @@ export const my: TranslationKeys = {
     month: 'လ',
     salesTotal: 'ရောင်းချမှုများ • စုစုပေါင်း:',
     saleNumber: 'ရောင်းချမှု #',
+    addedToCart: 'ထည့်ပြီး',
     payment: 'ငွေပေးချေမှု:',
     noSalesFound: 'ရောင်းချမှုများမတွေ့ပါ',
     tryAdjustingFilters: 'သင့်စစ်ထုတ်မှုများကို ပြင်ဆင်ကြည့်ပါ',
@@ -281,6 +282,8 @@ export const my: TranslationKeys = {
     grantPermission: 'ခွင့်ပြုချက်ပေးမည်',
     positionBarcode: 'စကင်ရန် ဘားကုဒ်ကို ဘောင်အတွင်းတွင် နေရာချပါ',
     scanAnother: 'နောက်တစ်ခုစကင်မည်',
+    continuousScanning: 'ဆက်တိုက်စကင်ခြင်း',
+    scanningNext: 'နောက်ထပ်ပစ္စည်းစကင်ရန်အသင့်...',
   },
   scanner: {
     scanProductName: 'ကုန်ပစ္စည်းအမည်စကင်မည်',

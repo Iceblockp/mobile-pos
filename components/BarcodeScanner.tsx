@@ -9,19 +9,23 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MyanmarText as Text } from '@/components/MyanmarText';
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { X, Camera, Flashlight } from 'lucide-react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { X, Camera, Flashlight, RotateCcw } from 'lucide-react-native';
 import { createAudioPlayer, AudioPlayer } from 'expo-audio';
 import { useTranslation } from '@/context/LocalizationContext';
 
 interface BarcodeScannerProps {
   onBarcodeScanned: (barcode: string) => void;
   onClose: () => void;
+  continuousScanning?: boolean;
+  onContinuousScanningChange?: (enabled: boolean) => void;
 }
 
 export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   onBarcodeScanned,
   onClose,
+  continuousScanning = false,
+  onContinuousScanningChange,
 }) => {
   const { t } = useTranslation();
   const [permission, requestPermission] = useCameraPermissions();
@@ -29,28 +33,14 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const [flashOn, setFlashOn] = useState(false);
   const [audioPlayer, setAudioPlayer] = useState<AudioPlayer | null>(null);
 
-  // Load sound when component mounts
+  // Cleanup function to release audio player when component unmounts
   useEffect(() => {
-    const loadSound = async () => {
-      try {
-        const player = createAudioPlayer(
-          require('../assets/audios/barcode-scan.mp3')
-        );
-        setAudioPlayer(player);
-      } catch (error) {
-        console.error('Failed to load sound', error);
-      }
-    };
-
-    loadSound();
-
-    // Cleanup function to release audio player when component unmounts
     return () => {
       if (audioPlayer) {
         audioPlayer.release();
       }
     };
-  }, []);
+  }, [audioPlayer]);
 
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -118,26 +108,41 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   }
 
   const handleBarcodeScanned = async ({
-    type,
     data,
   }: {
     type: string;
     data: string;
   }) => {
+    // Prevent rapid duplicate scans
     if (scanned) return;
 
     setScanned(true);
 
     // Play the sound when barcode is scanned
+    // For continuous scanning, create a new audio player instance each time
+    // This ensures reliable playback without conflicts
     try {
-      if (audioPlayer) {
-        await audioPlayer.play();
-      }
-    } catch (error) {
-      console.error('Failed to play sound', error);
-    }
+      const scanAudioPlayer = createAudioPlayer(
+        require('../assets/audios/barcode-scan.mp3')
+      );
+      await scanAudioPlayer.play();
 
+      // Clean up the audio player after a short delay
+      setTimeout(() => {
+        scanAudioPlayer.release();
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to play scan sound', error);
+    }
+    console.log('scan again');
     onBarcodeScanned(data);
+
+    // Auto-reset scanner if continuous scanning is enabled
+    if (continuousScanning) {
+      setTimeout(() => {
+        setScanned(false);
+      }, 1500); // Reset after 1.5 seconds to allow for feedback
+    }
   };
 
   const resetScanner = () => {
@@ -156,7 +161,10 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           </Text>
           <TouchableOpacity
             style={styles.flashButton}
-            onPress={() => setFlashOn(!flashOn)}
+            onPress={() => {
+              console.log('Flash button pressed, current state:', flashOn);
+              setFlashOn(!flashOn);
+            }}
           >
             <Flashlight size={24} color={flashOn ? '#FCD34D' : '#FFFFFF'} />
           </TouchableOpacity>
@@ -166,8 +174,10 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           <CameraView
             style={styles.camera}
             facing="back"
-            onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
-            flash={flashOn ? 'on' : 'off'}
+            onBarcodeScanned={
+              continuousScanning || !scanned ? handleBarcodeScanned : undefined
+            }
+            enableTorch={flashOn}
           >
             <View style={styles.overlay}>
               <View style={styles.scanArea}>
@@ -182,15 +192,42 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             {t('barcodeScanner.positionBarcode')}
           </Text>
 
-          {scanned && (
+          {/* Continuous Scanning Toggle */}
+          <TouchableOpacity
+            style={styles.continuousScanToggle}
+            onPress={() => onContinuousScanningChange?.(!continuousScanning)}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                continuousScanning && styles.checkboxActive,
+              ]}
+            >
+              {continuousScanning && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+            <Text style={styles.continuousScanText}>
+              {t('barcodeScanner.continuousScanning')}
+            </Text>
+          </TouchableOpacity>
+
+          {scanned && !continuousScanning && (
             <TouchableOpacity
               style={styles.rescanButton}
               onPress={resetScanner}
             >
+              <RotateCcw size={16} color="#FFFFFF" />
               <Text style={styles.rescanButtonText} weight="medium">
                 {t('barcodeScanner.scanAnother')}
               </Text>
             </TouchableOpacity>
+          )}
+
+          {scanned && continuousScanning && (
+            <View style={styles.continuousScanFeedback}>
+              <Text style={styles.continuousScanFeedbackText}>
+                {t('barcodeScanner.scanningNext')}
+              </Text>
+            </View>
           )}
         </View>
       </SafeAreaView>
@@ -277,6 +314,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   rescanButtonText: {
     fontSize: 16,
@@ -319,5 +359,48 @@ const styles = StyleSheet.create({
   permissionButtonText: {
     fontSize: 18,
     color: '#FFFFFF',
+  },
+  continuousScanToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    borderRadius: 4,
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxActive: {
+    backgroundColor: '#10B981',
+    borderColor: '#10B981',
+  },
+  checkmark: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  continuousScanText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+  continuousScanFeedback: {
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  continuousScanFeedbackText: {
+    fontSize: 14,
+    color: '#10B981',
+    textAlign: 'center',
   },
 });

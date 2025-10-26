@@ -106,17 +106,23 @@ export default function Sales() {
     context: 'sales',
     onProductFound: async (product) => {
       await addToCart(product);
-      setShowScanner(false);
+      // Only close scanner if continuous scanning is disabled
+      if (!continuousScanning) {
+        setShowScanner(false);
+      }
     },
     onProductNotFound: (barcode) => {
       setSearchQuery(barcode);
       setShowProductDialog(true);
+      // Close scanner when product not found to show search dialog
+      setShowScanner(false);
     },
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showProductDialog, setShowProductDialog] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [continuousScanning, setContinuousScanning] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPrintManager, setShowPrintManager] = useState(false);
@@ -176,6 +182,11 @@ export default function Sales() {
       calculateCartTotalWithBulkPricing(cartForBulkPricing);
     const bulkTotalPrice = bulkPricingResult.bulkTotal;
     return bulkTotalPrice / item.quantity;
+  };
+
+  // Helper function to check if a product is in the cart
+  const isProductInCart = (productId: string) => {
+    return cart.some((item) => item.product.id === productId);
   };
 
   const getCartTotals = () => {
@@ -339,7 +350,7 @@ export default function Sales() {
       ]);
     }
 
-    setShowProductDialog(false);
+    // Don't close the dialog anymore - let user continue adding products
   };
 
   const updateQuantity = async (productId: string, newQuantity: number) => {
@@ -967,6 +978,8 @@ export default function Sales() {
                   style={[
                     styles.dialogProductItem,
                     product.quantity <= 0 && styles.dialogProductItemDisabled,
+                    isProductInCart(product.id) &&
+                      styles.dialogProductItemAdded,
                   ]}
                   onPress={() => addToCart(product)}
                   disabled={product.quantity <= 0}
@@ -1030,9 +1043,17 @@ export default function Sales() {
                     >
                       {formatPrice(product.price)}
                     </Text>
-                    {product.quantity > 0 && (
+                    {product.quantity > 0 && !isProductInCart(product.id) && (
                       <View style={styles.addToCartIndicator}>
                         <Plus size={16} color="#10B981" />
+                      </View>
+                    )}
+                    {isProductInCart(product.id) && (
+                      <View style={styles.addedToCartIndicator}>
+                        <Text style={styles.addedToCartText}>✓</Text>
+                        <Text style={styles.addedToCartLabel}>
+                          {t('sales.addedToCart')}
+                        </Text>
                       </View>
                     )}
                   </View>
@@ -1074,6 +1095,8 @@ export default function Sales() {
         <BarcodeScanner
           onBarcodeScanned={handleBarcodeScanned}
           onClose={() => setShowScanner(false)}
+          continuousScanning={continuousScanning}
+          onContinuousScanningChange={setContinuousScanning}
         />
       )}
 
@@ -3258,6 +3281,32 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0FDF4',
     borderRadius: 12,
   },
+  dialogProductItemAdded: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#10B981',
+    borderWidth: 2,
+  },
+  addedToCartIndicator: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+    padding: 8,
+    backgroundColor: '#10B981',
+    borderRadius: 12,
+    minWidth: 60,
+  },
+  addedToCartText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  addedToCartLabel: {
+    fontSize: 10,
+    color: '#FFFFFF',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+
   emptyProductsState: {
     alignItems: 'center',
     justifyContent: 'center',

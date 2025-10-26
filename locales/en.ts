@@ -148,6 +148,7 @@ export const en = {
     month: 'Month',
     salesTotal: 'sales • Total:',
     saleNumber: 'Sale #',
+    addedToCart: 'Added',
     payment: 'Payment:',
     noSalesFound: 'No sales found',
     tryAdjustingFilters: 'Try adjusting your filters',
@@ -274,6 +275,8 @@ export const en = {
     grantPermission: 'Grant Permission',
     positionBarcode: 'Position the barcode within the frame to scan',
     scanAnother: 'Scan Another',
+    continuousScanning: 'Continuous Scanning',
+    scanningNext: 'Ready to scan next item...',
   },
   scanner: {
     scanProductName: 'Scan Product Name',
