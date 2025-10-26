@@ -405,6 +405,26 @@ export class TemplateEngine {
 
     let scaledCSS = css;
 
+    // Add CSS custom properties for preview scaling
+    const cssVariables = `
+      :root {
+        --shop-name-size: ${Math.round(baseSizes.shopName * multiplier)}px;
+        --shop-details-size: ${Math.round(
+          baseSizes.shopDetails * multiplier
+        )}px;
+        --item-name-size: ${Math.round(baseSizes.itemName * multiplier)}px;
+        --item-details-size: ${Math.round(
+          baseSizes.itemDetails * multiplier
+        )}px;
+        --item-discount-size: ${Math.round(
+          baseSizes.itemDiscount * multiplier
+        )}px;
+        --total-size: ${Math.round(baseSizes.total * multiplier)}px;
+        --footer-size: ${Math.round(baseSizes.footer * multiplier)}px;
+        --info-size: ${Math.round(baseSizes.receiptInfo * multiplier)}px;
+      }
+    `;
+
     // Scale all font sizes
     Object.entries(baseSizes).forEach(([key, baseSize]) => {
       const scaledSize = Math.round(baseSize * multiplier);
@@ -414,53 +434,108 @@ export class TemplateEngine {
       );
     });
 
-    return scaledCSS;
+    return cssVariables + scaledCSS;
   }
 
-  // Get responsive CSS for preview mode
+  // Get responsive CSS for preview mode that maintains template accuracy
   private getResponsivePreviewCSS(): string {
     return `
-      /* Responsive styles for preview mode */
+      /* Preview mode adjustments - maintain template accuracy */
       @media screen {
+        /* Container adjustments for mobile preview */
         .receipt {
-          max-width: 100% !important;
-          width: 100% !important;
-          margin: 0 !important;
-          padding: 10px !important;
+          max-width: 100%;
+          width: 100%;
+          margin: 0 auto;
+          padding: 8px;
           box-sizing: border-box;
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 4px;
         }
         
         body {
-          padding: 10px !important;
-          margin: 0 !important;
+          padding: 8px;
+          margin: 0;
+          background: #f9fafb;
         }
         
-        /* Ensure text scales appropriately */
+        /* Scale down fonts proportionally for mobile preview while maintaining ratios */
         .shop-name, h1 {
-          font-size: clamp(16px, 4vw, 24px) !important;
+          font-size: calc(var(--shop-name-size, 48px) * 0.4);
+        }
+        
+        .shop-address, .shop-phone {
+          font-size: calc(var(--shop-details-size, 36px) * 0.4);
         }
         
         .item-name {
-          font-size: clamp(14px, 3.5vw, 16px) !important;
+          font-size: calc(var(--item-name-size, 40px) * 0.4);
+        }
+        
+        .item-details {
+          font-size: calc(var(--item-details-size, 36px) * 0.4);
+        }
+        
+        .item-details.discount {
+          font-size: calc(var(--item-discount-size, 32px) * 0.4);
         }
         
         .total-line, .total-row {
-          font-size: clamp(16px, 4vw, 20px) !important;
+          font-size: calc(var(--total-size, 48px) * 0.4);
         }
         
-        /* Improve spacing for wider screens */
+        .total-label, .total-amount {
+          font-size: calc(var(--total-size, 48px) * 0.4);
+        }
+        
+        .info-line {
+          font-size: calc(var(--info-size, 36px) * 0.4);
+        }
+        
+        .footer, .thank-you, .footer-message {
+          font-size: calc(var(--footer-size, 32px) * 0.4);
+        }
+        
+        /* Maintain spacing proportions */
         .header {
-          padding: 15px !important;
+          margin-bottom: 8px;
+          padding-bottom: 6px;
         }
         
-        .items-section, .receipt-info, .receipt-details {
-          padding: 15px !important;
+        .divider {
+          margin: 8px 0;
+        }
+        
+        .item {
+          margin-bottom: 6px;
+          padding-bottom: 4px;
+        }
+        
+        .total {
+          margin-bottom: 8px;
+          padding-top: 8px;
+        }
+        
+        .footer {
+          padding-top: 8px;
+          margin-top: 12px;
         }
         
         /* Logo sizing for preview */
         .logo {
-          max-width: min(100px, 25vw) !important;
-          max-height: min(100px, 25vw) !important;
+          max-width: 40px;
+          max-height: 40px;
+          margin-bottom: 6px;
+        }
+        
+        /* Ensure proper layout */
+        .full-width-table {
+          width: 100%;
+        }
+        
+        .full-width-cell {
+          width: 100%;
         }
       }
     `;

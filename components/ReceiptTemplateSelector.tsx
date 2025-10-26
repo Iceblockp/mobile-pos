@@ -260,6 +260,11 @@ export const ReceiptTemplateSelector: React.FC<
             {/* Preview Section */}
             {expandedPreview === template.id && (
               <View style={styles.previewContainer}>
+                <View style={styles.previewHeader}>
+                  <Text style={styles.previewHeaderText} weight="medium">
+                    Preview - {template.name} ({selectedFontSize} font)
+                  </Text>
+                </View>
                 {previewLoading[template.id] ? (
                   <View style={styles.previewLoading}>
                     <ActivityIndicator size="small" color="#059669" />
@@ -277,8 +282,17 @@ export const ReceiptTemplateSelector: React.FC<
                       scrollEnabled={true}
                       showsVerticalScrollIndicator={false}
                       showsHorizontalScrollIndicator={false}
+                      scalesPageToFit={false}
+                      startInLoadingState={true}
+                      javaScriptEnabled={false}
+                      domStorageEnabled={false}
+                      allowsInlineMediaPlayback={false}
+                      mediaPlaybackRequiresUserAction={true}
                       onError={(error) => {
                         console.error('WebView error:', error);
+                      }}
+                      onLoadEnd={() => {
+                        console.log(`Preview loaded for ${template.id}`);
                       }}
                     />
                   </View>
@@ -395,6 +409,17 @@ const styles = StyleSheet.create({
   previewContainer: {
     backgroundColor: '#F9FAFB',
   },
+  previewHeader: {
+    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    alignItems: 'center',
+  },
+  previewHeaderText: {
+    fontSize: 14,
+    color: '#374151',
+  },
   previewLoading: {
     padding: 40,
     alignItems: 'center',
@@ -405,18 +430,26 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   previewWrapper: {
-    height: 400,
+    height: 500,
     margin: 16,
     alignSelf: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F9FAFB',
     borderRadius: 8,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   previewWebView: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F9FAFB',
   },
   previewError: {
     padding: 40,
