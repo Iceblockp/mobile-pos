@@ -40,6 +40,7 @@ export default function ShopSettingsPage() {
     receiptFooter: '',
     thankYouMessage: '',
     receiptTemplate: 'classic', // Default fallback
+    receiptFontSize: 'medium', // Default font size
   });
 
   // Track if form has been initialized to prevent overwriting user changes
@@ -60,6 +61,7 @@ export default function ShopSettingsPage() {
         receiptFooter: shopSettings.receiptFooter || '',
         thankYouMessage: shopSettings.thankYouMessage || '',
         receiptTemplate: shopSettings.receiptTemplate,
+        receiptFontSize: shopSettings.receiptFontSize || 'medium',
       });
       setFormInitialized(true);
     } else if (!shopSettings && !contextLoading && !formInitialized) {
@@ -72,6 +74,7 @@ export default function ShopSettingsPage() {
         receiptFooter: '',
         thankYouMessage: '',
         receiptTemplate: 'classic',
+        receiptFontSize: 'medium',
       });
       setFormInitialized(true);
     }
@@ -338,6 +341,10 @@ export default function ShopSettingsPage() {
               selectedTemplate={formData.receiptTemplate || ''}
               onTemplateChange={(templateId) =>
                 handleFieldChange('receiptTemplate', templateId)
+              }
+              selectedFontSize={formData.receiptFontSize || 'medium'}
+              onFontSizeChange={(fontSize) =>
+                handleFieldChange('receiptFontSize', fontSize)
               }
               shopSettingsService={shopSettingsService}
               shopSettings={shopSettings}

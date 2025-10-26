@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { WebView } from 'react-native-webview';
-import { Check, Eye } from 'lucide-react-native';
+import { Check, Eye, Type } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useToast } from '@/context/ToastContext';
 import { ShopSettingsService } from '@/services/shopSettingsService';
@@ -19,6 +19,10 @@ import { ShopSettings } from '@/services/shopSettingsStorage';
 interface ReceiptTemplateSelectorProps {
   selectedTemplate: string;
   onTemplateChange: (templateId: string) => void;
+  selectedFontSize: 'small' | 'medium' | 'large' | 'extra-large';
+  onFontSizeChange: (
+    fontSize: 'small' | 'medium' | 'large' | 'extra-large'
+  ) => void;
   shopSettingsService: ShopSettingsService;
   shopSettings?: ShopSettings | null;
 }
@@ -31,6 +35,8 @@ export const ReceiptTemplateSelector: React.FC<
 > = ({
   selectedTemplate,
   onTemplateChange,
+  selectedFontSize,
+  onFontSizeChange,
   shopSettingsService,
   shopSettings,
 }) => {
@@ -66,7 +72,8 @@ export const ReceiptTemplateSelector: React.FC<
           try {
             const html = await shopSettingsService.previewTemplate(
               template.id,
-              shopSettings || undefined
+              shopSettings || undefined,
+              selectedFontSize
             );
             previews[template.id] = html;
             setPreviewHtml((prev) => ({ ...prev, [template.id]: html }));
@@ -88,7 +95,7 @@ export const ReceiptTemplateSelector: React.FC<
     };
 
     loadTemplates();
-  }, [shopSettingsService, shopSettings, showToast]);
+  }, [shopSettingsService, shopSettings, selectedFontSize, showToast]);
 
   const handleTemplateSelect = (templateId: string) => {
     onTemplateChange(templateId);
@@ -97,6 +104,33 @@ export const ReceiptTemplateSelector: React.FC<
   const togglePreview = (templateId: string) => {
     setExpandedPreview(expandedPreview === templateId ? null : templateId);
   };
+
+  // Regenerate preview when font size changes for expanded template
+  const regeneratePreview = async (templateId: string) => {
+    if (!shopSettingsService) return;
+
+    setPreviewLoading((prev) => ({ ...prev, [templateId]: true }));
+
+    try {
+      const html = await shopSettingsService.previewTemplate(
+        templateId,
+        shopSettings || undefined,
+        selectedFontSize
+      );
+      setPreviewHtml((prev) => ({ ...prev, [templateId]: html }));
+    } catch (error) {
+      console.error(`Failed to regenerate preview for ${templateId}:`, error);
+    } finally {
+      setPreviewLoading((prev) => ({ ...prev, [templateId]: false }));
+    }
+  };
+
+  // Regenerate preview for expanded template when font size changes
+  useEffect(() => {
+    if (expandedPreview && shopSettingsService) {
+      regeneratePreview(expandedPreview);
+    }
+  }, [selectedFontSize, expandedPreview]);
 
   if (loading) {
     return (
@@ -107,6 +141,13 @@ export const ReceiptTemplateSelector: React.FC<
     );
   }
 
+  const fontSizeOptions = [
+    { value: 'small', label: 'Small', description: 'Compact text' },
+    { value: 'medium', label: 'Medium', description: 'Standard size' },
+    { value: 'large', label: 'Large', description: 'Bigger text' },
+    { value: 'extra-large', label: 'Extra Large', description: 'Maximum size' },
+  ] as const;
+
   return (
     <View style={styles.container}>
       <Text style={styles.sectionTitle} weight="medium">
@@ -115,6 +156,60 @@ export const ReceiptTemplateSelector: React.FC<
       <Text style={styles.sectionSubtitle}>
         Choose a receipt template that matches your business style
       </Text>
+
+      {/* Font Size Selector */}
+      <View style={styles.fontSizeSection}>
+        <View style={styles.fontSizeHeader}>
+          <Type size={18} color="#059669" />
+          <Text style={styles.fontSizeTitle} weight="medium">
+            Font Size
+          </Text>
+        </View>
+        <Text style={styles.fontSizeSubtitle}>
+          Select the text size for your printed receipts
+        </Text>
+
+        <View style={styles.fontSizeOptions}>
+          {fontSizeOptions.map((option) => (
+            <TouchableOpacity
+              key={option.value}
+              style={[
+                styles.fontSizeOption,
+                selectedFontSize === option.value &&
+                  styles.fontSizeOptionSelected,
+              ]}
+              onPress={() => onFontSizeChange(option.value)}
+            >
+              <View style={styles.fontSizeOptionContent}>
+                <Text
+                  style={[
+                    styles.fontSizeOptionLabel,
+                    selectedFontSize === option.value &&
+                      styles.fontSizeOptionLabelSelected,
+                  ]}
+                  weight="medium"
+                >
+                  {option.label}
+                </Text>
+                <Text
+                  style={[
+                    styles.fontSizeOptionDescription,
+                    selectedFontSize === option.value &&
+                      styles.fontSizeOptionDescriptionSelected,
+                  ]}
+                >
+                  {option.description}
+                </Text>
+              </View>
+              {selectedFontSize === option.value && (
+                <View style={styles.fontSizeSelectedBadge}>
+                  <Check size={14} color="#FFFFFF" />
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
 
       <ScrollView
         style={styles.templatesContainer}
@@ -341,5 +436,76 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#374151',
     textAlign: 'center',
+  },
+  fontSizeSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  fontSizeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  fontSizeTitle: {
+    fontSize: 16,
+    color: '#111827',
+    marginLeft: 8,
+  },
+  fontSizeSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 16,
+  },
+  fontSizeOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  fontSizeOption: {
+    flex: 1,
+    minWidth: '48%',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  fontSizeOptionSelected: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#059669',
+  },
+  fontSizeOptionContent: {
+    flex: 1,
+  },
+  fontSizeOptionLabel: {
+    fontSize: 14,
+    color: '#111827',
+    marginBottom: 2,
+  },
+  fontSizeOptionLabelSelected: {
+    color: '#059669',
+  },
+  fontSizeOptionDescription: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  fontSizeOptionDescriptionSelected: {
+    color: '#047857',
+  },
+  fontSizeSelectedBadge: {
+    backgroundColor: '#059669',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
   },
 });

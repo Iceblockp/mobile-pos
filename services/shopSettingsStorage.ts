@@ -10,6 +10,7 @@ export interface ShopSettings {
   receiptFooter?: string;
   thankYouMessage?: string;
   receiptTemplate?: string;
+  receiptFontSize?: 'small' | 'medium' | 'large' | 'extra-large'; // Font size for receipts
   currency?: CurrencySettings;
   customCurrencies?: CurrencySettings[]; // User-created custom currencies
   lastUpdated?: string;
@@ -23,6 +24,7 @@ export interface ShopSettingsInput {
   receiptFooter?: string;
   thankYouMessage?: string;
   receiptTemplate?: string;
+  receiptFontSize?: 'small' | 'medium' | 'large' | 'extra-large'; // Font size for receipts
   currency?: CurrencySettings;
   customCurrencies?: CurrencySettings[];
 }
@@ -77,6 +79,7 @@ export class ShopSettingsStorage {
         receiptFooter: settings.receiptFooter?.trim() || undefined,
         thankYouMessage: settings.thankYouMessage?.trim() || undefined,
         receiptTemplate: settings.receiptTemplate || 'classic',
+        receiptFontSize: settings.receiptFontSize || 'medium',
         currency: settings.currency || undefined,
         customCurrencies: settings.customCurrencies || [],
         lastUpdated: new Date().toISOString(),
@@ -131,6 +134,10 @@ export class ShopSettingsStorage {
           updates.receiptTemplate ||
           currentSettings?.receiptTemplate ||
           'classic',
+        receiptFontSize:
+          updates.receiptFontSize ||
+          currentSettings?.receiptFontSize ||
+          'medium',
         currency:
           updates.currency !== undefined
             ? updates.currency
@@ -154,6 +161,7 @@ export class ShopSettingsStorage {
       'currency',
       'customCurrencies',
       'receiptTemplate',
+      'receiptFontSize',
     ];
     const updateKeys = Object.keys(updates);
 
@@ -173,6 +181,7 @@ export class ShopSettingsStorage {
         currency: updates.currency,
         customCurrencies: updates.customCurrencies || [],
         receiptTemplate: updates.receiptTemplate || 'classic',
+        receiptFontSize: updates.receiptFontSize || 'medium',
         lastUpdated: new Date().toISOString(),
       };
 
@@ -233,6 +242,7 @@ export class ShopSettingsStorage {
       receiptFooter: 'Thank you for your business!',
       thankYouMessage: 'Come again soon!',
       receiptTemplate: 'classic',
+      receiptFontSize: 'medium',
       currency: undefined, // Will use default MMK from CurrencyManager
       customCurrencies: [],
       lastUpdated: new Date().toISOString(),
@@ -299,6 +309,14 @@ export class ShopSettingsStorage {
       const validTemplates = ['classic', 'modern', 'minimal', 'elegant'];
       if (!validTemplates.includes(settings.receiptTemplate)) {
         errors.push('Please select a valid receipt template');
+      }
+    }
+
+    // Receipt font size validation
+    if (settings.receiptFontSize !== undefined) {
+      const validFontSizes = ['small', 'medium', 'large', 'extra-large'];
+      if (!validFontSizes.includes(settings.receiptFontSize)) {
+        errors.push('Please select a valid font size');
       }
     }
 

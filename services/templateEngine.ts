@@ -38,6 +38,7 @@ export interface TemplateContext {
   translations: {
     [key: string]: string;
   };
+  fontSize?: 'small' | 'medium' | 'large' | 'extra-large';
 }
 
 export class TemplateEngine {
@@ -99,7 +100,8 @@ export class TemplateEngine {
   buildTemplateContext(
     shopSettings: ShopSettings | null,
     receiptData: ReceiptData,
-    translations: { [key: string]: string } = {}
+    translations: { [key: string]: string } = {},
+    fontSize?: 'small' | 'medium' | 'large' | 'extra-large'
   ): TemplateContext {
     return {
       shopSettings,
@@ -109,6 +111,7 @@ export class TemplateEngine {
         formatDate: this.formatDate,
       },
       translations,
+      fontSize: fontSize || shopSettings?.receiptFontSize || 'medium',
     };
   }
 
@@ -215,7 +218,10 @@ export class TemplateEngine {
       }
 
       // Replace receipt data
-      html = html.replace(/{{saleId}}/g, context.receiptData.saleId);
+      html = html.replace(
+        /{{saleId}}/g,
+        context.receiptData.saleId.slice(0, 8)
+      );
       html = html.replace(
         /{{date}}/g,
         context.formatters.formatDate(context.receiptData.date)
@@ -259,13 +265,22 @@ export class TemplateEngine {
 
       html = html.replace(/{{items}}/g, itemsHtml);
 
-      // Calculate dynamic page height based on number of items
+      // Calculate dynamic page height based on number of items and font size
       const itemCount = context.receiptData.items.length;
-      const dynamicHeight = 9 + itemCount * 1.5; // 8in default + 2in per item
+      const fontSize = context.fontSize || 'medium';
+      const fontSizeMultiplier = this.getFontSizeMultiplier(fontSize);
+
+      // Base height scaling: larger fonts need more space
+      const baseHeight = 9 * fontSizeMultiplier;
+      const itemHeightMultiplier = 1.5 * fontSizeMultiplier;
+      const dynamicHeight = baseHeight + itemCount * itemHeightMultiplier;
 
       // Combine with CSS - add responsive styles for preview
       const responsiveCSS = isPreview ? this.getResponsivePreviewCSS() : '';
       let cssStyles = template.cssStyles;
+
+      // Apply font size scaling
+      cssStyles = this.applyFontSizeScaling(cssStyles, fontSize);
 
       // Replace the static page size with dynamic calculation
       cssStyles = cssStyles.replace(
@@ -301,7 +316,8 @@ export class TemplateEngine {
   async previewTemplate(
     templateId: string,
     shopSettings: ShopSettings | null,
-    isPreview: boolean = true
+    isPreview: boolean = true,
+    fontSize?: 'small' | 'medium' | 'large' | 'extra-large'
   ): Promise<string> {
     const sampleData: ReceiptData = {
       saleId: '12345',
@@ -337,8 +353,68 @@ export class TemplateEngine {
       date: new Date(),
     };
 
-    const context = this.buildTemplateContext(shopSettings, sampleData);
+    const context = this.buildTemplateContext(
+      shopSettings,
+      sampleData,
+      {},
+      fontSize
+    );
     return this.renderReceipt(templateId, context, isPreview);
+  }
+
+  // Get font size multiplier based on setting
+  private getFontSizeMultiplier(
+    fontSize: 'small' | 'medium' | 'large' | 'extra-large'
+  ): number {
+    switch (fontSize) {
+      case 'small':
+        return 0.8;
+      case 'medium':
+        return 1.0;
+      case 'large':
+        return 1.3;
+      case 'extra-large':
+        return 1.6;
+      default:
+        return 1.0;
+    }
+  }
+
+  // Get base font sizes for different elements
+  private getBaseFontSizes() {
+    return {
+      body: 36,
+      shopName: 48,
+      shopDetails: 36,
+      receiptInfo: 36,
+      itemName: 40,
+      itemDetails: 36,
+      itemDiscount: 32,
+      total: 48,
+      footer: 32,
+    };
+  }
+
+  // Apply font size scaling to CSS
+  private applyFontSizeScaling(
+    css: string,
+    fontSize: 'small' | 'medium' | 'large' | 'extra-large'
+  ): string {
+    const multiplier = this.getFontSizeMultiplier(fontSize);
+    const baseSizes = this.getBaseFontSizes();
+
+    let scaledCSS = css;
+
+    // Scale all font sizes
+    Object.entries(baseSizes).forEach(([key, baseSize]) => {
+      const scaledSize = Math.round(baseSize * multiplier);
+      scaledCSS = scaledCSS.replace(
+        new RegExp(`font-size:\\s*${baseSize}px`, 'g'),
+        `font-size: ${scaledSize}px`
+      );
+    });
+
+    return scaledCSS;
   }
 
   // Get responsive CSS for preview mode
@@ -576,7 +652,7 @@ export class TemplateEngine {
       }
       .shop-name {
         font-size: 48px;
-        font-weight: bold;
+        font-weight: 900;
         margin-bottom: 8px;
         word-wrap: break-word;
       }
@@ -608,6 +684,7 @@ export class TemplateEngine {
         justify-content: space-between;
         margin-bottom: 4px;
         font-size: 36px;
+        font-weight: 600;
       }
       .items {
         margin-bottom: 20px;
@@ -618,7 +695,7 @@ export class TemplateEngine {
         padding-bottom: 8px;
       }
       .item-name {
-        font-weight: bold;
+        font-weight: 800;
         margin-bottom: 4px;
         font-size: 40px;
         word-wrap: break-word;
@@ -628,11 +705,13 @@ export class TemplateEngine {
         justify-content: space-between;
         font-size: 36px;
         align-items: center;
+        font-weight: 700;
       }
       .item-details.discount {
         color: #dc3545;
         font-size: 32px;
         margin-top: 2px;
+        font-weight: 700;
       }
       .total {
         margin-bottom: 15px;
@@ -642,7 +721,7 @@ export class TemplateEngine {
       .total-line {
         display: flex;
         justify-content: space-between;
-        font-weight: bold;
+        font-weight: 900;
         font-size: 48px;
         margin-bottom: 8px;
       }
@@ -668,7 +747,7 @@ export class TemplateEngine {
       }
       .thank-you {
         margin-bottom: 5px;
-        font-weight: bold;
+        font-weight: 800;
       }
       .footer-message {
         margin-bottom: 5px;
@@ -830,7 +909,7 @@ export class TemplateEngine {
       }
       .shop-name {
         font-size: 48px;
-        font-weight: 700;
+        font-weight: 900;
         margin: 0 0 10px 0;
         color: #212529;
       }
@@ -871,7 +950,7 @@ export class TemplateEngine {
         color: #6c757d;
       }
       .value {
-        font-weight: 600;
+        font-weight: 700;
         color: #212529;
       }
       .items-section {
@@ -892,7 +971,7 @@ export class TemplateEngine {
         border-bottom: none;
       }
       .item-name {
-        font-weight: 600;
+        font-weight: 800;
         margin-bottom: 5px;
         color: #212529;
         font-size: 40px;
@@ -902,10 +981,11 @@ export class TemplateEngine {
         justify-content: space-between;
         font-size: 36px;
         color: #6c757d;
+        font-weight: 700;
       }
       .item-details.discount {
         color: #dc3545;
-        font-weight: 500;
+        font-weight: 700;
       }
       .total-section {
         padding: 20px;
@@ -919,12 +999,12 @@ export class TemplateEngine {
       }
       .total-label {
         font-size: 48px;
-        font-weight: 700;
+        font-weight: 900;
         color: #212529;
       }
       .total-amount {
         font-size: 48px;
-        font-weight: 700;
+        font-weight: 900;
         color: #28a745;
       }
       .footer {
@@ -940,7 +1020,7 @@ export class TemplateEngine {
       }
       .footer-message {
         margin: 0;
-        font-size: 32px;
+        font-size: 36px;
         color: #6c757d;
       }
     `;
@@ -1074,7 +1154,7 @@ export class TemplateEngine {
       }
       .shop-name {
         font-size: 48px;
-        font-weight: bold;
+        font-weight: 900;
         margin-bottom: 8px;
         word-wrap: break-word;
       }
@@ -1099,7 +1179,7 @@ export class TemplateEngine {
         padding-bottom: 8px;
       }
       .item-name {
-        font-weight: bold;
+        font-weight: 800;
         margin-bottom: 4px;
         font-size: 40px;
       }
@@ -1108,16 +1188,18 @@ export class TemplateEngine {
         justify-content: space-between;
         font-size: 36px;
         color: #666;
+        font-weight: 700;
       }
       .item-details.discount {
         color: #999;
-         font-size: 32px;
+        font-size: 32px;
         margin-top: 2px;
+        font-weight: 700;
       }
       .total {
         text-align: center;
         font-size: 48px;
-        font-weight: 700;
+        font-weight: 900;
         margin: 15px 0;
         padding: 15px 0;
         border-top: 2px solid #333;
@@ -1349,10 +1431,11 @@ export class TemplateEngine {
         font-size: 36px;
         color: #7f8c8d;
         font-style: italic;
+        font-weight: 700;
       }
       .item-details.discount {
         color: #e74c3c;
-        font-weight: 500;
+        font-weight: 700;
       }
       .total-section {
         padding: 15px;

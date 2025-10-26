@@ -335,7 +335,8 @@ export class ShopSettingsService {
 
   async previewTemplate(
     templateId: string,
-    shopSettings?: ShopSettings
+    shopSettings?: ShopSettings,
+    fontSize?: 'small' | 'medium' | 'large' | 'extra-large'
   ): Promise<string> {
     try {
       let settings: ShopSettings | null | undefined = shopSettings;
@@ -355,7 +356,8 @@ export class ShopSettingsService {
       return await this.templateEngine.previewTemplate(
         templateId,
         settings,
-        true
+        true,
+        fontSize
       );
     } catch (error) {
       console.error('Failed to preview template:', error);
@@ -366,7 +368,8 @@ export class ShopSettingsService {
         return await this.templateEngine.previewTemplate(
           templateId,
           null,
-          true
+          true,
+          fontSize
         );
       } catch (fallbackError) {
         console.error(
