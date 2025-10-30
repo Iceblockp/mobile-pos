@@ -24,6 +24,7 @@ import { useMigration } from '@/context/MigrationContext';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNativeGoogleSignIn } from '@/hooks/useNativeGoogleSignIn';
 
 const Index = () => {
   const {
@@ -56,6 +57,8 @@ const Index = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [pendingValidityMonths, setPendingValidityMonths] = useState(30);
+
+  const { signIn } = useNativeGoogleSignIn();
 
   // Function to handle regenerate challenge with warning
   const handleRegenerateChallenge = (validityMonths: number) => {
@@ -229,6 +232,9 @@ const Index = () => {
       <ScrollView style={{ flex: 1 }}>
         <View style={styles.welcomeContent}>
           {/* License Expiration Warning */}
+          <TouchableOpacity onPress={signIn}>
+            <Text>google</Text>
+          </TouchableOpacity>
           {isAboutToExpire() && (
             <View style={styles.expirationWarning}>
               <View style={styles.warningHeader}>
