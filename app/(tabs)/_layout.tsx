@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Platform } from 'react-native';
 
 export default function TabLayout() {
-  const { isLicenseValid, loading } = useLicense();
+  const { isLicenseValid, loading, licenseStatus } = useLicense();
   const router = useRouter();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -23,7 +23,7 @@ export default function TabLayout() {
     if (!loading && !isLicenseValid()) {
       router.replace('/');
     }
-  }, [loading, isLicenseValid]);
+  }, [loading, licenseStatus, isLicenseValid]); // Add licenseStatus as dependency
 
   return (
     <Tabs

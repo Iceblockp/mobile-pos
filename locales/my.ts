@@ -152,6 +152,7 @@ export const my: TranslationKeys = {
     salesTotal: 'ရောင်းချမှုများ • စုစုပေါင်း:',
     saleNumber: 'ရောင်းချမှု #',
     addedToCart: 'ထည့်ပြီး',
+
     payment: 'ငွေပေးချေမှု:',
     noSalesFound: 'ရောင်းချမှုများမတွေ့ပါ',
     tryAdjustingFilters: 'သင့်စစ်ထုတ်မှုများကို ပြင်ဆင်ကြည့်ပါ',
@@ -684,6 +685,16 @@ export const my: TranslationKeys = {
     verifyLicense: 'သင့်လိုင်စင်ကိုအတည်ပြုပါ',
     accessAllFeatures:
       'မိုဘိုင်း POS ၏ လုပ်ဆောင်ချက်အားလုံးကို အသုံးပြုရန်၊ အောက်ပါအဆင့်များဖြင့် သင့်လိုင်စင်ကို အတည်ပြုပါ။',
+    challengeCode: 'စိန်ခေါ်မှုကုဒ်',
+    googleAccount: 'Google အကောင့်',
+    signInWithGoogle: 'Google ဖြင့်ဝင်ရောက်မည်',
+    googleSignInDescription:
+      'သင့် Google အကောင့်ဖြင့် ဝင်ရောက်၍ လိုင်စင်ကို အလိုအလျောက်အတည်ပြုပါ',
+    signingIn: 'ဝင်ရောက်နေသည်...',
+    extendLicenseWithGoogle:
+      'Google အကောင့်ဖြင့် ဝင်ရောက်၍ လိုင်စင်ကို တိုးချဲ့ပါ',
+    extendWithGoogle: 'Google ဖြင့်တိုးချဲ့မည်',
+    contactPhone: 'ဆက်သွယ်ရန်ဖုန်း',
     selectLicenseDuration: 'လိုင်စင်ကာလရွေးပါ',
     generateNewChallenge: 'လိုင်စင်အသစ်ဖန်တီးမည်',
     generating: 'ဖန်တီးနေသည်...',
@@ -704,7 +715,6 @@ export const my: TranslationKeys = {
       'လိုင်စင်အသစ်ဖန်တီးပြီးနောက်၊ အက်ဒမင်ထံမှ အတည်ပြုကုဒ်အသစ်ရရှိပြီး ထည့်သွင်းမှသာ POS လုပ်ဆောင်ချက်များကို ပြန်လည်အသုံးပြုနိုင်မည်ဖြစ်သည်။ ဆက်လက်လုပ်ဆောင်ခြင်းမပြုမီ အက်ဒမင်ကို ဦးစွာဆက်သွယ်ပါ။',
     contactAdmin: 'အက်ဒမင်ကို ဦးစွာဆက်သွယ်မည်',
     proceedAnyway: 'မည်သို့ပင်ဖြစ်စေ ဆက်လက်လုပ်ဆောင်မည်',
-    contactPhone: 'ဆက်သွယ်ရန်ဖုန်းနံပါတ်',
     // License Management
     licenseManagement: 'လိုင်စင်စီမံခန့်ခွဲမှု',
     currentLicenseStatus: 'လက်ရှိလိုင်စင်အခြေအနေ',

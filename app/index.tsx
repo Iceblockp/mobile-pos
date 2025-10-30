@@ -14,7 +14,7 @@ import { LicenseDurationModal } from '@/components/LicenseDurationModal';
 import { SplashScreen } from '@/components/SplashScreen';
 import { RegenerateWarningModal } from '@/components/RegenerateWarningModal';
 import { isLicenseExpired } from '@/utils/crypto';
-import { ShieldCheck, ArrowRight } from 'lucide-react-native';
+import { ShieldCheck, ArrowRight, Key, User } from 'lucide-react-native';
 import { LICENSE_PACKAGES } from '@/utils/admin';
 import { router } from 'expo-router';
 import { LanguageIconButton } from '@/components/LanguageIconButton';
@@ -58,7 +58,14 @@ const Index = () => {
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [pendingValidityMonths, setPendingValidityMonths] = useState(30);
 
-  const { signIn } = useNativeGoogleSignIn();
+  const {
+    signIn,
+    loading: googleLoading,
+    error: googleError,
+  } = useNativeGoogleSignIn();
+  const [verificationMethod, setVerificationMethod] = useState<
+    'challenge' | 'google'
+  >('challenge');
 
   // Function to handle regenerate challenge with warning
   const handleRegenerateChallenge = (validityMonths: number) => {
@@ -137,7 +144,8 @@ const Index = () => {
         </View>
 
         <ScrollView style={styles.contentContainer}>
-          <View style={styles.verificationCard}>
+          {/* License Verification Options */}
+          <View style={styles.verificationOptionsCard}>
             <View style={styles.verificationCardHeader}>
               <ShieldCheck size={24} color="#3B82F6" />
               <Text style={styles.verificationCardTitle} weight="medium">
@@ -149,43 +157,148 @@ const Index = () => {
               {t('license.accessAllFeatures')}
             </Text>
 
-            <TouchableOpacity
-              style={styles.durationButton}
-              onPress={() => setModalVisible(true)}
-            >
-              <Text style={styles.durationButtonText}>
-                {t('license.selectLicenseDuration')}:{' '}
-                {LICENSE_PACKAGES[selectedDuration]?.description}
-              </Text>
-            </TouchableOpacity>
-
-            {licenseStatus?.challenge && (
-              <View style={styles.verificationSteps}>
-                <ChallengeDisplay
-                  challenge={licenseStatus.challenge.fullChallenge}
+            {/* Verification Method Selector */}
+            <View style={styles.methodSelector}>
+              <TouchableOpacity
+                style={[
+                  styles.methodOption,
+                  verificationMethod === 'challenge' &&
+                    styles.methodOptionActive,
+                ]}
+                onPress={() => setVerificationMethod('challenge')}
+              >
+                <Key
+                  size={20}
+                  color={
+                    verificationMethod === 'challenge' ? '#FFFFFF' : '#3B82F6'
+                  }
                 />
-                <ResponseInput onVerify={verifyLicense} verifying={verifying} />
+                <Text
+                  style={[
+                    styles.methodOptionText,
+                    verificationMethod === 'challenge' &&
+                      styles.methodOptionTextActive,
+                  ]}
+                  weight="medium"
+                >
+                  {t('license.challengeCode')}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.methodOption,
+                  verificationMethod === 'google' && styles.methodOptionActive,
+                ]}
+                onPress={() => setVerificationMethod('google')}
+              >
+                <User
+                  size={20}
+                  color={
+                    verificationMethod === 'google' ? '#FFFFFF' : '#10B981'
+                  }
+                />
+                <Text
+                  style={[
+                    styles.methodOptionText,
+                    verificationMethod === 'google' &&
+                      styles.methodOptionTextActive,
+                  ]}
+                  weight="medium"
+                >
+                  {t('license.googleAccount')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Challenge Code Verification */}
+            {verificationMethod === 'challenge' && (
+              <View style={styles.challengeSection}>
+                <TouchableOpacity
+                  style={styles.durationButton}
+                  onPress={() => setModalVisible(true)}
+                >
+                  <Text style={styles.durationButtonText}>
+                    {t('license.selectLicenseDuration')}:{' '}
+                    {LICENSE_PACKAGES[selectedDuration]?.description}
+                  </Text>
+                </TouchableOpacity>
+
+                {licenseStatus?.challenge && (
+                  <View style={styles.verificationSteps}>
+                    <ChallengeDisplay
+                      challenge={licenseStatus.challenge.fullChallenge}
+                    />
+                    <ResponseInput
+                      onVerify={verifyLicense}
+                      verifying={verifying}
+                    />
+                  </View>
+                )}
+
+                <TouchableOpacity
+                  style={[
+                    styles.regenerateButton,
+                    loading && styles.disabledButton,
+                  ]}
+                  onPress={() =>
+                    regenerateChallenge(
+                      LICENSE_PACKAGES[selectedDuration]?.validityMonths || 1
+                    )
+                  }
+                  disabled={loading}
+                >
+                  <Text style={styles.regenerateButtonText} weight="medium">
+                    {loading
+                      ? t('license.generating')
+                      : t('license.generateNewChallenge')}
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
 
-            <TouchableOpacity
-              style={[
-                styles.regenerateButton,
-                loading && styles.disabledButton,
-              ]}
-              onPress={() =>
-                regenerateChallenge(
-                  LICENSE_PACKAGES[selectedDuration]?.validityMonths || 1
-                )
-              }
-              disabled={loading}
-            >
-              <Text style={styles.regenerateButtonText} weight="medium">
-                {loading
-                  ? t('license.generating')
-                  : t('license.generateNewChallenge')}
-              </Text>
-            </TouchableOpacity>
+            {/* Google Account Verification */}
+            {verificationMethod === 'google' && (
+              <View style={styles.googleSection}>
+                <View style={styles.googleInfo}>
+                  <Text style={styles.googleInfoTitle} weight="medium">
+                    {t('license.signInWithGoogle')}
+                  </Text>
+                  <Text style={styles.googleInfoText}>
+                    {t('license.googleSignInDescription')}
+                  </Text>
+                </View>
+
+                {googleError && (
+                  <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>{googleError}</Text>
+                  </View>
+                )}
+
+                <TouchableOpacity
+                  style={[
+                    styles.googleSignInButton,
+                    googleLoading && styles.disabledButton,
+                  ]}
+                  onPress={signIn}
+                  disabled={googleLoading}
+                >
+                  <View style={styles.googleButtonContent}>
+                    <Image
+                      source={{
+                        uri: 'https://developers.google.com/identity/images/g-logo.png',
+                      }}
+                      style={styles.googleIcon}
+                    />
+                    <Text style={styles.googleSignInText} weight="medium">
+                      {googleLoading
+                        ? t('license.signingIn')
+                        : t('license.signInWithGoogle')}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
 
           {/* Contact Phone Section */}
@@ -231,10 +344,38 @@ const Index = () => {
       </View>
       <ScrollView style={{ flex: 1 }}>
         <View style={styles.welcomeContent}>
-          {/* License Expiration Warning */}
-          <TouchableOpacity onPress={signIn}>
-            <Text>google</Text>
-          </TouchableOpacity>
+          {/* Google Account Section */}
+          <View style={styles.googleAccountSection}>
+            <View style={styles.googleAccountHeader}>
+              <User size={20} color="#10B981" />
+              <Text style={styles.googleAccountTitle} weight="medium">
+                {t('license.googleAccount')}
+              </Text>
+            </View>
+            <Text style={styles.googleAccountDescription}>
+              {t('license.extendLicenseWithGoogle')}
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.googleExtendButton,
+                googleLoading && styles.disabledButton,
+              ]}
+              onPress={signIn}
+              disabled={googleLoading}
+            >
+              <Image
+                source={{
+                  uri: 'https://developers.google.com/identity/images/g-logo.png',
+                }}
+                style={styles.googleIconSmall}
+              />
+              <Text style={styles.googleExtendText} weight="medium">
+                {googleLoading
+                  ? t('license.signingIn')
+                  : t('license.extendWithGoogle')}
+              </Text>
+            </TouchableOpacity>
+          </View>
           {isAboutToExpire() && (
             <View style={styles.expirationWarning}>
               <View style={styles.warningHeader}>
@@ -390,7 +531,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
   },
-  verificationCard: {
+  verificationOptionsCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 20,
@@ -444,6 +585,146 @@ const styles = StyleSheet.create({
   regenerateButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
+  },
+
+  // Method Selector Styles
+  methodSelector: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    padding: 4,
+  },
+  methodOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    backgroundColor: 'transparent',
+  },
+  methodOptionActive: {
+    backgroundColor: '#3B82F6',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  methodOptionText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginLeft: 8,
+  },
+  methodOptionTextActive: {
+    color: '#FFFFFF',
+  },
+
+  // Challenge Section Styles
+  challengeSection: {
+    marginTop: 10,
+  },
+
+  // Google Section Styles
+  googleSection: {
+    marginTop: 10,
+  },
+  googleInfo: {
+    marginBottom: 20,
+  },
+  googleInfoTitle: {
+    fontSize: 16,
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  googleInfoText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  googleSignInButton: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  googleButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 12,
+  },
+  googleIconSmall: {
+    width: 16,
+    height: 16,
+    marginRight: 8,
+  },
+  googleSignInText: {
+    fontSize: 16,
+    color: '#374151',
+  },
+  errorContainer: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#DC2626',
+    textAlign: 'center',
+  },
+
+  // Google Account Section (Valid License)
+  googleAccountSection: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  googleAccountHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  googleAccountTitle: {
+    fontSize: 16,
+    color: '#065F46',
+    marginLeft: 8,
+  },
+  googleAccountDescription: {
+    fontSize: 14,
+    color: '#047857',
+    marginBottom: 16,
+  },
+  googleExtendButton: {
+    backgroundColor: '#10B981',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  googleExtendText: {
+    fontSize: 14,
+    color: '#FFFFFF',
   },
 
   // Welcome screen styles (when license is valid)

@@ -296,6 +296,22 @@ export const useLicense = () => {
     return Math.max(0, daysDifference);
   };
 
+  // Force refresh license status from storage
+  const refreshLicenseStatus = async (): Promise<void> => {
+    try {
+      setLoading(true);
+      const currentStatus = await getLicenseStatus();
+      if (currentStatus) {
+        setLicenseStatus(currentStatus);
+        console.log('License status refreshed:', currentStatus);
+      }
+    } catch (error) {
+      console.error('Failed to refresh license status:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getExpiryDate = (): string | null => {
     if (!licenseStatus?.expiryDate) return null;
 
@@ -323,6 +339,61 @@ export const useLicense = () => {
     return new Date(year, month - 1, day).toLocaleDateString();
   };
 
+  // Set license from Google login response
+  const setLicenseFromGoogleLogin = async (
+    expireDate: string
+  ): Promise<void> => {
+    try {
+      setLoading(true);
+
+      // Parse the ISO date string from Google login response
+      const expiryDate = new Date(expireDate);
+
+      // Format to our internal format (YYYYMMDDHHMMSS)
+      const expiryString = expiryDate
+        .toISOString()
+        .replace(/[-:T]/g, '')
+        .substring(0, 14);
+
+      // Create a simple challenge for Google-authenticated license
+      const deviceId = `GOOGLE_${Date.now()}_${Math.random()
+        .toString(36)
+        .substring(2, 8)}`;
+      const random = Math.random().toString(36).substring(2, 10).toUpperCase();
+
+      const googleChallenge: Challenge = {
+        deviceId,
+        expiryDate: expiryString,
+        random,
+        fullChallenge: `${deviceId}|${expiryString}|${random}`,
+      };
+
+      await saveChallenge(googleChallenge);
+
+      const googleLicenseStatus: LicenseStatus = {
+        isLicensed: true,
+        challenge: googleChallenge,
+        expiryDate: expiryString,
+        lastVerified: new Date().toISOString(),
+      };
+
+      await saveLicenseStatus(googleLicenseStatus);
+
+      // Force state update to trigger UI re-renders
+      setLicenseStatus(googleLicenseStatus);
+
+      console.log(
+        'License status updated from Google login:',
+        googleLicenseStatus
+      );
+    } catch (error) {
+      console.error('Failed to set license from Google login:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     licenseStatus,
     loading,
@@ -334,5 +405,7 @@ export const useLicense = () => {
     isLicenseValid,
     getExpiryDate,
     getRemainingDays,
+    setLicenseFromGoogleLogin,
+    refreshLicenseStatus,
   };
 };

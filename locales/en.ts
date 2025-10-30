@@ -671,9 +671,19 @@ export const en = {
     verifyLicense: 'Verify Your License',
     accessAllFeatures:
       'To access all features of Mobile POS, please verify your license using the steps below.',
+    challengeCode: 'Challenge Code',
+    googleAccount: 'Google Account',
+    signInWithGoogle: 'Sign in with Google',
+    googleSignInDescription:
+      'Sign in with your Google account to automatically verify your license',
+    signingIn: 'Signing in...',
+    extendLicenseWithGoogle:
+      'Extend your license by signing in with your Google account',
+    extendWithGoogle: 'Extend with Google',
     selectLicenseDuration: 'Select License Duration',
     generateNewChallenge: 'Generate New Challenge',
     generating: 'Generating...',
+    contactPhone: 'Contact Phone',
     initializingLicense: 'Initializing license system...',
     welcome: 'Welcome to Mobile POS!',
     licenseValidUntil: 'License valid until',
@@ -690,7 +700,6 @@ export const en = {
       'After regenerating the challenge, POS features will be temporarily disabled until you receive and enter the new response code from the admin. Please contact the admin first before proceeding.',
     contactAdmin: 'Contact Admin First',
     proceedAnyway: 'Proceed Anyway',
-    contactPhone: 'Contact Phone',
     // License Management
     licenseManagement: 'License Management',
     currentLicenseStatus: 'Current License Status',

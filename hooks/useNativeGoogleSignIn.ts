@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { useApiGoogleLogin } from '@/api/auth/login-google';
+import {
+  useApiGoogleLogin,
+  GoogleLoginResponse,
+} from '@/api/auth/login-google';
 import { useRouter } from 'expo-router';
+import { useLicense } from '@/hooks/useLicense';
 
 // Configure Google Sign-In
 GoogleSignin.configure({
@@ -17,8 +21,9 @@ GoogleSignin.configure({
 export const useNativeGoogleSignIn = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { mutate, mutateAsync } = useApiGoogleLogin();
+  const { mutateAsync } = useApiGoogleLogin();
   const router = useRouter();
+  const { setLicenseFromGoogleLogin, refreshLicenseStatus } = useLicense();
 
   const signIn = async () => {
     console.log('start');
@@ -32,20 +37,27 @@ export const useNativeGoogleSignIn = () => {
       const idToken = userInfo.data?.idToken;
       console.log('idToken', idToken);
       if (idToken) {
-        // await handleSignInWithToken(idToken);
-        await mutateAsync(
-          { token: idToken },
-          {
-            onSuccess(data, variables, context) {
-              return;
-            },
-            onError(error) {
-              setError('Failed to sign in with Google');
-              console.error('Google Sign-In Error:');
-              return;
-            },
-          }
-        );
+        const response = await mutateAsync({ token: idToken });
+
+        if (response.success && response.user.expireDate) {
+          // Set license from Google login response
+          await setLicenseFromGoogleLogin(response.user.expireDate);
+
+          // Force refresh to ensure UI updates
+          await refreshLicenseStatus();
+
+          console.log(
+            'Google login successful, license set until:',
+            response.user.expireDate
+          );
+
+          // Navigate to main app with small delay to ensure state updates
+          setTimeout(() => {
+            router.replace('/');
+          }, 200);
+        } else {
+          setError('Invalid response from server');
+        }
       } else {
         setError('Failed to get ID token');
       }
@@ -56,19 +68,6 @@ export const useNativeGoogleSignIn = () => {
       setLoading(false);
     }
   };
-
-  //   const handleSignInWithToken = async (idToken: string) => {
-  //     mutate(
-  //       { token: idToken },
-  //       {
-  //         onSuccess(data) {
-  //           router.push("/(tabs)");
-  //           dispatch(setAccessToken(data.accessToken));
-  //           setData("sessionId", data.tokenSession.id);
-  //         },
-  //       }
-  //     );
-  //   };
 
   const signOut = async () => {
     try {
