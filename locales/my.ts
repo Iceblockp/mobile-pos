@@ -345,6 +345,7 @@ export const my: TranslationKeys = {
     enterValidQuantity: 'မှန်ကန်သောအရေအတွက်ထည့်ပါ',
     outOfStock: 'လက်ကျန်ကုန်နေသည်',
     lowStock: 'လက်ကျန်နည်းနေသည်',
+    stockLeft: 'ကုန်လက်ကျန်',
     inStock: 'လက်ကျန်ရှိသည်',
     supplier: 'ပေးသွင်းသူ',
     // Additional inventory translations

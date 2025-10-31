@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 
-const baseUrl = 'http://localhost:3000/api';
+const baseUrl = 'https://pos-account-api.vercel.app/api';
 
 // Define the response type based on your API response structure
 export interface GoogleLoginResponse {

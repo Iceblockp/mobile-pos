@@ -10,12 +10,12 @@ import { useLicense } from '@/hooks/useLicense';
 // Configure Google Sign-In
 GoogleSignin.configure({
   webClientId:
-    '90182123725-rgri2jgmt7k3eicg6j6u1uqce6rpkt5j.apps.googleusercontent.com',
+    '188930484209-8p4a85jd2icaqdhnpni44picnl4vs2go.apps.googleusercontent.com',
   scopes: ['profile', 'email'],
   offlineAccess: true,
   forceCodeForRefreshToken: false,
   iosClientId:
-    '90182123725-756vv1db2deesv0l23vhvmcdnbs1a9pq.apps.googleusercontent.com',
+    '188930484209-489r2d2jfr5fhfs5fedl4v0mbt8jp04g.apps.googleusercontent.com',
 });
 
 export const useNativeGoogleSignIn = () => {

@@ -337,11 +337,11 @@ export const en = {
     enterValidQuantity: 'Please enter a valid quantity',
     outOfStock: 'Out of Stock',
     lowStock: 'Low Stock',
+    stockLeft: 'Low Stock',
     inStock: 'In Stock',
     supplier: 'Supplier',
     // Additional inventory translations
     overview: 'Overview',
-
     products: 'Products',
     totalProducts: 'Total Products',
     stock: 'Stock',

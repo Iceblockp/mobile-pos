@@ -98,7 +98,7 @@ export default function Inventory() {
     },
     {
       key: 'overview',
-      label: t('inventory.overview'),
+      label: t('inventory.stockLeft'),
       icon: TrendingUp,
     },
   ];
