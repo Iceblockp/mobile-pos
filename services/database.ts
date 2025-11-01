@@ -2055,6 +2055,145 @@ export class DatabaseService {
     }
   }
 
+  // Get sales summary (count and total) without pagination
+  async getSalesSummary(
+    searchQuery?: string,
+    customerId?: string
+  ): Promise<{ count: number; total: number }> {
+    let query = `
+      SELECT 
+        COUNT(*) as count,
+        COALESCE(SUM(total), 0) as total
+      FROM sales 
+      WHERE 1=1
+    `;
+    const params: any[] = [];
+
+    if (customerId) {
+      query += ` AND customer_id = ?`;
+      params.push(customerId);
+    }
+
+    if (searchQuery) {
+      query += ` AND (
+        id LIKE ? OR 
+        payment_method LIKE ? OR
+        customer_name LIKE ?
+      )`;
+      const searchPattern = `%${searchQuery}%`;
+      params.push(searchPattern, searchPattern, searchPattern);
+    }
+
+    const result = await this.db.getFirstAsync<{
+      count: number;
+      total: number;
+    }>(query, params);
+
+    return result || { count: 0, total: 0 };
+  }
+
+  // Get sales summary for date range without pagination
+  async getSalesSummaryByDateRange(
+    startDate: Date,
+    endDate: Date,
+    searchQuery?: string,
+    customerId?: string,
+    timezoneOffsetMinutes: number = -390
+  ): Promise<{ count: number; total: number }> {
+    // Get timezone-aware range for start date
+    const startRange = getTimezoneAwareDateRangeForDB(
+      startDate,
+      timezoneOffsetMinutes
+    );
+    // Get timezone-aware range for end date
+    const endRange = getTimezoneAwareDateRangeForDB(
+      endDate,
+      timezoneOffsetMinutes
+    );
+
+    let query = `
+      SELECT 
+        COUNT(*) as count,
+        COALESCE(SUM(total), 0) as total
+      FROM sales 
+      WHERE created_at >= ? AND created_at <= ?
+    `;
+    const params: any[] = [startRange.start, endRange.end];
+
+    if (customerId) {
+      query += ` AND customer_id = ?`;
+      params.push(customerId);
+    }
+
+    if (searchQuery) {
+      query += ` AND (
+        id LIKE ? OR 
+        payment_method LIKE ? OR
+        customer_name LIKE ?
+      )`;
+      const searchPattern = `%${searchQuery}%`;
+      params.push(searchPattern, searchPattern, searchPattern);
+    }
+
+    const result = await this.db.getFirstAsync<{
+      count: number;
+      total: number;
+    }>(query, params);
+
+    return result || { count: 0, total: 0 };
+  }
+
+  // Get all sales for export (without pagination)
+  async getAllSalesForExport(
+    searchQuery?: string,
+    customerId?: string,
+    startDate?: Date,
+    endDate?: Date,
+    timezoneOffsetMinutes: number = -390
+  ): Promise<Sale[]> {
+    let query = `
+      SELECT s.*, c.name as customer_name 
+      FROM sales s 
+      LEFT JOIN customers c ON s.customer_id = c.id 
+      WHERE 1=1
+    `;
+    const params: any[] = [];
+
+    if (startDate && endDate) {
+      // Get timezone-aware range for start date
+      const startRange = getTimezoneAwareDateRangeForDB(
+        startDate,
+        timezoneOffsetMinutes
+      );
+      // Get timezone-aware range for end date
+      const endRange = getTimezoneAwareDateRangeForDB(
+        endDate,
+        timezoneOffsetMinutes
+      );
+      query += ` AND s.created_at >= ? AND s.created_at <= ?`;
+      params.push(startRange.start, endRange.end);
+    }
+
+    if (customerId) {
+      query += ` AND s.customer_id = ?`;
+      params.push(customerId);
+    }
+
+    if (searchQuery) {
+      query += ` AND (
+        s.id LIKE ? OR 
+        s.payment_method LIKE ? OR
+        c.name LIKE ?
+      )`;
+      const searchPattern = `%${searchQuery}%`;
+      params.push(searchPattern, searchPattern, searchPattern);
+    }
+
+    query += ` ORDER BY s.created_at DESC`;
+
+    return await this.db.getAllAsync<Sale>(query, params);
+  }
+
   async getSalesAnalytics(days: number = 30): Promise<{
     totalSales: number;
     totalRevenue: number;

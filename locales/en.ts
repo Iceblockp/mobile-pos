@@ -182,6 +182,8 @@ export const en = {
     failedToExportSalesItemsData: 'Failed to export sales items data',
     noDataToExport: 'No Data',
     noSalesItemsDataToExport: 'No sales items data to export',
+    loadingAllSalesData: 'Loading all sales data for export...',
+    exportingAllData: 'Exporting complete sales data...',
     sharingNotAvailable: 'Sharing not available',
     sharingNotAvailableOnDevice: 'Sharing is not available on this device',
     failedToExportSaleDetail: 'Failed to export sale detail',

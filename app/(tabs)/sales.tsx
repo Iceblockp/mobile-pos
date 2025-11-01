@@ -27,6 +27,9 @@ import {
   useProductSearchForSales,
   useProductsInfinite,
   useCategoriesWithCounts,
+  useSalesSummary,
+  useSalesSummaryByDateRange,
+  useAllSalesForExport,
 } from '@/hooks/useQueries';
 import { useDebounce } from '@/hooks/useDebounce';
 import {
@@ -1296,6 +1299,21 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     );
   });
 
+  // Get accurate sales summary (not limited by pagination)
+  const { data: salesSummary } =
+    dateFilter === 'all'
+      ? useSalesSummary(searchQuery)
+      : useSalesSummaryByDateRange(startDate, endDate, searchQuery);
+
+  // Get all sales for export (when needed)
+  const { data: allSalesForExport, refetch: refetchAllSales } =
+    useAllSalesForExport(
+      searchQuery,
+      undefined, // No customer filter in sales history
+      dateFilter === 'all' ? undefined : startDate,
+      dateFilter === 'all' ? undefined : endDate
+    );
+
   // Use React Query for sale items
   const { data: saleItems = [], isLoading: saleItemsLoading } = useSaleItems(
     selectedSale?.id || 0
@@ -1363,7 +1381,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   // Show export options modal
   const showExportOptions = async () => {
-    if (filteredSales.length === 0) {
+    if (!salesSummary || salesSummary.count === 0) {
       Alert.alert('No Data', 'No sales data to export');
       return;
     }
@@ -1482,6 +1500,15 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     try {
       setExporting(true);
 
+      // Get all sales data for export
+      const { data: allSales } = await refetchAllSales();
+      if (!allSales || allSales.length === 0) {
+        Alert.alert('No Data', 'No sales data to export');
+        setExporting(false);
+        setShowExportModal(false);
+        return;
+      }
+
       // Load all sale items if not already loaded to calculate cost and profit
       let items = allSaleItems;
       if (items.length === 0) {
@@ -1491,7 +1518,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       // For mobile platforms
       if (Platform.OS !== 'web') {
         // Prepare data for Excel export
-        const excelData = filteredSales.map((sale) => ({
+        const excelData = allSales.map((sale) => ({
           'Sale ID': sale.id,
           Date: formatDate(sale.created_at),
           'Payment Method': sale.payment_method.toUpperCase(),
@@ -1499,12 +1526,9 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           Note: sale.note || '',
         }));
 
-        // Calculate summary data using the same method as exportSalesItemsData
-        const totalSales = filteredSales.length;
-        const totalRevenue = items.reduce(
-          (sum, item) => sum + item.subtotal,
-          0
-        );
+        // Calculate summary data using the accurate totals
+        const totalSales = salesSummary?.count || 0;
+        const totalRevenue = salesSummary?.total || 0;
         const totalCost = items.reduce(
           (sum, item) => sum + (item.cost || 0) * item.quantity,
           0
@@ -1597,7 +1621,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       }
 
       // Web export functionality
-      const excelData = filteredSales.map((sale) => ({
+      const excelData = allSales.map((sale) => ({
         'Sale ID': sale.id,
         Date: formatDate(sale.created_at),
         'Total Amount': sale.total,
@@ -1607,9 +1631,9 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         Day: formatDateOnly(sale.created_at),
       }));
 
-      // Calculate summary data using the same method as exportSalesItemsData
-      const totalSales = filteredSales.length;
-      const totalRevenue = items.reduce((sum, item) => sum + item.subtotal, 0);
+      // Calculate summary data using the accurate totals
+      const totalSales = salesSummary?.count || 0;
+      const totalRevenue = salesSummary?.total || 0;
       const totalCost = items.reduce(
         (sum, item) => sum + (item.cost || 0) * item.quantity,
         0
@@ -2056,7 +2080,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             <TouchableOpacity
               style={styles.exportButton}
               onPress={exportToExcel}
-              disabled={exporting || filteredSales.length === 0}
+              disabled={exporting || !salesSummary || salesSummary.count === 0}
             >
               <Download size={20} color="#FFFFFF" />
             </TouchableOpacity>
@@ -2264,10 +2288,8 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
           <View style={styles.summaryContainer}>
             <Text style={styles.summaryText}>
-              {filteredSales.length} {t('sales.salesTotal')}{' '}
-              {formatPrice(
-                filteredSales.reduce((sum, sale) => sum + sale.total, 0)
-              )}
+              {salesSummary?.count || 0} {t('sales.salesTotal')}{' '}
+              {formatPrice(salesSummary?.total || 0)}
             </Text>
           </View>
         </View>

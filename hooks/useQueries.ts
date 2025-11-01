@@ -171,6 +171,40 @@ export const queryKeys = {
       ] as const,
     items: (saleId: string) =>
       [...queryKeys.sales.all, 'items', saleId] as const,
+    summary: (searchQuery?: string, customerId?: string) =>
+      [...queryKeys.sales.all, 'summary', searchQuery, customerId] as const,
+    summaryByDateRange: (
+      startDate: Date,
+      endDate: Date,
+      searchQuery?: string,
+      customerId?: string,
+      timezoneOffsetMinutes: number = -390
+    ) =>
+      [
+        ...queryKeys.sales.all,
+        'summaryByDateRange',
+        startDate.toISOString(),
+        endDate.toISOString(),
+        searchQuery,
+        customerId,
+        timezoneOffsetMinutes,
+      ] as const,
+    allForExport: (
+      searchQuery?: string,
+      customerId?: string,
+      startDate?: Date,
+      endDate?: Date,
+      timezoneOffsetMinutes: number = -390
+    ) =>
+      [
+        ...queryKeys.sales.all,
+        'allForExport',
+        searchQuery,
+        customerId,
+        startDate?.toISOString(),
+        endDate?.toISOString(),
+        timezoneOffsetMinutes,
+      ] as const,
   },
 
   // Analytics
@@ -480,6 +514,81 @@ export const useSaleItems = (saleId: string) => {
     enabled: isReady && !!db && saleId.length > 0,
     staleTime: 5 * 60 * 1000, // 5 minutes - sale items don't change
     gcTime: 15 * 60 * 1000,
+  });
+};
+
+// Sales summary hooks for accurate totals
+export const useSalesSummary = (searchQuery?: string, customerId?: string) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.sales.summary(searchQuery, customerId),
+    queryFn: () => db!.getSalesSummary(searchQuery, customerId),
+    enabled: isReady && !!db,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 2 * 60 * 1000, // 2 minutes
+  });
+};
+
+export const useSalesSummaryByDateRange = (
+  startDate: Date,
+  endDate: Date,
+  searchQuery?: string,
+  customerId?: string,
+  timezoneOffsetMinutes: number = -390
+) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.sales.summaryByDateRange(
+      startDate,
+      endDate,
+      searchQuery,
+      customerId,
+      timezoneOffsetMinutes
+    ),
+    queryFn: () =>
+      db!.getSalesSummaryByDateRange(
+        startDate,
+        endDate,
+        searchQuery,
+        customerId,
+        timezoneOffsetMinutes
+      ),
+    enabled: isReady && !!db,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 2 * 60 * 1000, // 2 minutes
+  });
+};
+
+export const useAllSalesForExport = (
+  searchQuery?: string,
+  customerId?: string,
+  startDate?: Date,
+  endDate?: Date,
+  timezoneOffsetMinutes: number = -390
+) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: queryKeys.sales.allForExport(
+      searchQuery,
+      customerId,
+      startDate,
+      endDate,
+      timezoneOffsetMinutes
+    ),
+    queryFn: () =>
+      db!.getAllSalesForExport(
+        searchQuery,
+        customerId,
+        startDate,
+        endDate,
+        timezoneOffsetMinutes
+      ),
+    enabled: false, // Only fetch when explicitly requested
+    staleTime: 0, // Always fresh for export
+    gcTime: 1000, // Clean up quickly
   });
 };
 

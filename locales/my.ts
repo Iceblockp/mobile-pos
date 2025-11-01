@@ -188,6 +188,8 @@ export const my: TranslationKeys = {
       'ရောင်းချမှုပစ္စည်းများအချက်အလက်တင်ပို့ရန်မအောင်မြင်ပါ',
     noDataToExport: 'တင်ပို့ရန်အချက်အလက်မရှိပါ',
     noSalesItemsDataToExport: 'တင်ပို့ရန်ရောင်းချမှုပစ္စည်းများအချက်အလက်မရှိပါ',
+    loadingAllSalesData: 'ထုတ်ယူရန်အတွက် ရောင်းချမှုဒေတာအားလုံး ဖွင့်နေသည်...',
+    exportingAllData: 'ရောင်းချမှုဒေတာအပြည့်အစုံ ထုတ်ယူနေသည်...',
     sharingNotAvailable: 'မျှဝေခြင်းမရရှိနိုင်ပါ',
     sharingNotAvailableOnDevice: 'ဒီစက်ပေါ်မှာ မျှဝေခြင်းမရရှိနိုင်ပါ',
     failedToExportSaleDetail: 'ရောင်းချမှုအသေးစိတ်တင်ပို့ရန်မအောင်မြင်ပါ',
