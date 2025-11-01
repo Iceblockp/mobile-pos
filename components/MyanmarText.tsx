@@ -19,6 +19,8 @@ export const MyanmarText: React.FC<MyanmarTextProps> = ({
     //   default: 'NotoSansMyanmar',
     // });
 
+    // return 'Padauk-Bold';
+
     switch (weight) {
       case 'bold':
         return 'NotoSansMyanmar-Bold';

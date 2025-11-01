@@ -14,7 +14,13 @@ import { LicenseDurationModal } from '@/components/LicenseDurationModal';
 import { SplashScreen } from '@/components/SplashScreen';
 import { RegenerateWarningModal } from '@/components/RegenerateWarningModal';
 import { isLicenseExpired } from '@/utils/crypto';
-import { ShieldCheck, ArrowRight, Key, User } from 'lucide-react-native';
+import {
+  ShieldCheck,
+  ArrowRight,
+  Key,
+  User,
+  DollarSign,
+} from 'lucide-react-native';
 import { LICENSE_PACKAGES } from '@/utils/admin';
 import { router } from 'expo-router';
 import { LanguageIconButton } from '@/components/LanguageIconButton';
@@ -65,7 +71,7 @@ const Index = () => {
   } = useNativeGoogleSignIn();
   const [verificationMethod, setVerificationMethod] = useState<
     'challenge' | 'google'
-  >('challenge');
+  >('google');
 
   // Function to handle regenerate challenge with warning
   const handleRegenerateChallenge = (validityMonths: number) => {
@@ -133,14 +139,14 @@ const Index = () => {
             resizeMode="cover"
           />
           <View style={styles.headerTextContainer}>
-            <Text style={styles.title} weight="bold">
+            <Text style={[styles.title]} weight="bold">
               {t('license.title')}
             </Text>
             <Text style={styles.subtitle}>
               {t('license.verificationRequired')}
             </Text>
           </View>
-          <LanguageIconButton />
+          <LanguageIconButton style={{ alignSelf: 'flex-start' }} />
         </View>
 
         <ScrollView style={styles.contentContainer}>
@@ -157,63 +163,89 @@ const Index = () => {
               {t('license.accessAllFeatures')}
             </Text>
 
-            {/* Verification Method Selector */}
-            <View style={styles.methodSelector}>
-              <TouchableOpacity
-                style={[
-                  styles.methodOption,
-                  verificationMethod === 'challenge' &&
-                    styles.methodOptionActive,
-                ]}
-                onPress={() => setVerificationMethod('challenge')}
-              >
-                <Key
-                  size={20}
-                  color={
-                    verificationMethod === 'challenge' ? '#FFFFFF' : '#3B82F6'
-                  }
-                />
-                <Text
-                  style={[
-                    styles.methodOptionText,
-                    verificationMethod === 'challenge' &&
-                      styles.methodOptionTextActive,
-                  ]}
-                  weight="medium"
-                >
-                  {t('license.challengeCode')}
-                </Text>
-              </TouchableOpacity>
+            {/* Google Account Verification - Default */}
+            {verificationMethod === 'google' && (
+              <View style={styles.googleSection}>
+                <View style={styles.googleInfo}>
+                  <Text style={styles.googleInfoTitle} weight="medium">
+                    {t('license.signInWithGoogle')}
+                  </Text>
+                  <Text style={styles.googleInfoText}>
+                    {t('license.googleSignInDescription')}
+                  </Text>
+                </View>
 
-              <TouchableOpacity
-                style={[
-                  styles.methodOption,
-                  verificationMethod === 'google' && styles.methodOptionActive,
-                ]}
-                onPress={() => setVerificationMethod('google')}
-              >
-                <User
-                  size={20}
-                  color={
-                    verificationMethod === 'google' ? '#FFFFFF' : '#10B981'
-                  }
-                />
-                <Text
-                  style={[
-                    styles.methodOptionText,
-                    verificationMethod === 'google' &&
-                      styles.methodOptionTextActive,
-                  ]}
-                  weight="medium"
-                >
-                  {t('license.googleAccount')}
-                </Text>
-              </TouchableOpacity>
-            </View>
+                {googleError && (
+                  <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>{googleError}</Text>
+                  </View>
+                )}
 
-            {/* Challenge Code Verification */}
+                <TouchableOpacity
+                  style={[
+                    styles.googleSignInButton,
+                    googleLoading && styles.disabledButton,
+                  ]}
+                  onPress={signIn}
+                  disabled={googleLoading}
+                >
+                  <View style={styles.googleButtonContent}>
+                    <Image
+                      source={{
+                        uri: 'https://developers.google.com/identity/images/g-logo.png',
+                      }}
+                      style={styles.googleIcon}
+                    />
+                    <Text style={styles.googleSignInText} weight="medium">
+                      {googleLoading
+                        ? t('license.signingIn')
+                        : t('license.signInWithGoogle')}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Secondary Actions */}
+                <View style={styles.secondaryActions}>
+                  {/* Alternative Option for No Internet */}
+                  <TouchableOpacity
+                    style={styles.alternativeOptionButton}
+                    onPress={() => setVerificationMethod('challenge')}
+                  >
+                    <Key size={14} color="#6B7280" />
+                    <Text style={styles.alternativeOptionText}>
+                      {t('license.noInternetUseChallengeCode')}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Pricing Button */}
+                  <TouchableOpacity
+                    style={styles.secondaryButton}
+                    onPress={() => router.push('/pricing')}
+                  >
+                    <DollarSign size={14} color="#6B7280" />
+                    <Text style={styles.secondaryButtonText}>
+                      {t('license.viewPricing')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* Challenge Code Verification - Alternative for No Internet */}
             {verificationMethod === 'challenge' && (
               <View style={styles.challengeSection}>
+                <View style={styles.challengeHeader}>
+                  <TouchableOpacity
+                    style={styles.backToGoogleButton}
+                    onPress={() => setVerificationMethod('google')}
+                  >
+                    <User size={16} color="#10B981" />
+                    <Text style={styles.backToGoogleText}>
+                      {t('license.backToGoogleSignIn')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
                 <TouchableOpacity
                   style={styles.durationButton}
                   onPress={() => setModalVisible(true)}
@@ -253,49 +285,6 @@ const Index = () => {
                       ? t('license.generating')
                       : t('license.generateNewChallenge')}
                   </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Google Account Verification */}
-            {verificationMethod === 'google' && (
-              <View style={styles.googleSection}>
-                <View style={styles.googleInfo}>
-                  <Text style={styles.googleInfoTitle} weight="medium">
-                    {t('license.signInWithGoogle')}
-                  </Text>
-                  <Text style={styles.googleInfoText}>
-                    {t('license.googleSignInDescription')}
-                  </Text>
-                </View>
-
-                {googleError && (
-                  <View style={styles.errorContainer}>
-                    <Text style={styles.errorText}>{googleError}</Text>
-                  </View>
-                )}
-
-                <TouchableOpacity
-                  style={[
-                    styles.googleSignInButton,
-                    googleLoading && styles.disabledButton,
-                  ]}
-                  onPress={signIn}
-                  disabled={googleLoading}
-                >
-                  <View style={styles.googleButtonContent}>
-                    <Image
-                      source={{
-                        uri: 'https://developers.google.com/identity/images/g-logo.png',
-                      }}
-                      style={styles.googleIcon}
-                    />
-                    <Text style={styles.googleSignInText} weight="medium">
-                      {googleLoading
-                        ? t('license.signingIn')
-                        : t('license.signInWithGoogle')}
-                    </Text>
-                  </View>
                 </TouchableOpacity>
               </View>
             )}
@@ -344,38 +333,6 @@ const Index = () => {
       </View>
       <ScrollView style={{ flex: 1 }}>
         <View style={styles.welcomeContent}>
-          {/* Google Account Section */}
-          <View style={styles.googleAccountSection}>
-            <View style={styles.googleAccountHeader}>
-              <User size={20} color="#10B981" />
-              <Text style={styles.googleAccountTitle} weight="medium">
-                {t('license.googleAccount')}
-              </Text>
-            </View>
-            <Text style={styles.googleAccountDescription}>
-              {t('license.extendLicenseWithGoogle')}
-            </Text>
-            <TouchableOpacity
-              style={[
-                styles.googleExtendButton,
-                googleLoading && styles.disabledButton,
-              ]}
-              onPress={signIn}
-              disabled={googleLoading}
-            >
-              <Image
-                source={{
-                  uri: 'https://developers.google.com/identity/images/g-logo.png',
-                }}
-                style={styles.googleIconSmall}
-              />
-              <Text style={styles.googleExtendText} weight="medium">
-                {googleLoading
-                  ? t('license.signingIn')
-                  : t('license.extendWithGoogle')}
-              </Text>
-            </TouchableOpacity>
-          </View>
           {isAboutToExpire() && (
             <View style={styles.expirationWarning}>
               <View style={styles.warningHeader}>
@@ -504,8 +461,7 @@ const styles = StyleSheet.create({
   verificationHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 40,
+    padding: 10,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
@@ -514,6 +470,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     marginRight: 12,
+    alignSelf: 'flex-start',
   },
   headerTextContainer: {
     flex: 1,
@@ -525,11 +482,10 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: '#6B7280',
-    marginTop: 2,
   },
   contentContainer: {
     flex: 1,
-    padding: 20,
+    padding: 10,
   },
   verificationOptionsCard: {
     backgroundColor: '#FFFFFF',
@@ -587,44 +543,65 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
-  // Method Selector Styles
-  methodSelector: {
-    flexDirection: 'row',
-    marginBottom: 20,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 4,
+  // Secondary Actions Styles
+  secondaryActions: {
+    gap: 8,
   },
-  methodOption: {
-    flex: 1,
+  alternativeOptionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     borderRadius: 6,
-    backgroundColor: 'transparent',
+    backgroundColor: '#F9FAFB',
   },
-  methodOptionActive: {
-    backgroundColor: '#3B82F6',
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  methodOptionText: {
-    fontSize: 14,
+  alternativeOptionText: {
+    fontSize: 12,
     color: '#6B7280',
-    marginLeft: 8,
+    marginLeft: 6,
   },
-  methodOptionTextActive: {
-    color: '#FFFFFF',
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
+    borderRadius: 6,
+    backgroundColor: '#F0FDF4',
+  },
+  secondaryButtonText: {
+    fontSize: 12,
+    color: '#059669',
+    marginLeft: 6,
   },
 
   // Challenge Section Styles
   challengeSection: {
     marginTop: 10,
+  },
+  challengeHeader: {
+    marginBottom: 16,
+  },
+  backToGoogleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
+    borderRadius: 6,
+    backgroundColor: '#F0FDF4',
+  },
+  backToGoogleText: {
+    fontSize: 14,
+    color: '#10B981',
+    marginLeft: 6,
   },
 
   // Google Section Styles
@@ -644,17 +621,17 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   googleSignInButton: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: '#4285F4',
+    borderWidth: 0,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    shadowColor: '#4285F4',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    marginBottom: 20,
   },
   googleButtonContent: {
     flexDirection: 'row',
@@ -673,7 +650,7 @@ const styles = StyleSheet.create({
   },
   googleSignInText: {
     fontSize: 16,
-    color: '#374151',
+    color: '#FFFFFF',
   },
   errorContainer: {
     backgroundColor: '#FEF2F2',
@@ -860,6 +837,32 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     marginLeft: 6,
+  },
+
+  // Pricing Section Styles
+  pricingSection: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  pricingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#10B981',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+    minWidth: 200,
+  },
+  pricingButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    marginLeft: 8,
   },
 
   // Contact Section Styles

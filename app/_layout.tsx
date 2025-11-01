@@ -29,6 +29,8 @@ export default function RootLayout() {
     'NotoSansMyanmar-Regular': require('../assets/fonts/NotoSansMyanmar-Regular.ttf'),
     'NotoSansMyanmar-Medium': require('../assets/fonts/NotoSansMyanmar-Medium.ttf'),
     'NotoSansMyanmar-Bold': require('../assets/fonts/NotoSansMyanmar-Bold.ttf'),
+    Padauk: require('../assets/fonts/Padauk-Regular.ttf'),
+    'Padauk-Bold': require('../assets/fonts/Padauk-Bold.ttf'),
   });
 
   useEffect(() => {

@@ -46,14 +46,14 @@ export default function More() {
       backgroundColor: '#FEF2F2',
       route: '/expenses',
     },
-    {
-      id: 'help',
-      title: t('more.help'),
-      icon: HelpCircle,
-      color: '#3B82F6',
-      backgroundColor: '#EFF6FF',
-      route: '/help',
-    },
+    // {
+    //   id: 'help',
+    //   title: t('more.help'),
+    //   icon: HelpCircle,
+    //   color: '#3B82F6',
+    //   backgroundColor: '#EFF6FF',
+    //   route: '/help',
+    // },
     {
       id: 'shopSettings',
       title: t('more.shopSettings'),
@@ -102,14 +102,14 @@ export default function More() {
       backgroundColor: '#ECFEFF',
       route: '/data-import',
     },
-    {
-      id: 'about',
-      title: t('more.about'),
-      icon: Info,
-      color: '#8B5CF6',
-      backgroundColor: '#F5F3FF',
-      route: '/about',
-    },
+    // {
+    //   id: 'about',
+    //   title: t('more.about'),
+    //   icon: Info,
+    //   color: '#8B5CF6',
+    //   backgroundColor: '#F5F3FF',
+    //   route: '/about',
+    // },
   ];
 
   const handleItemPress = (route: string) => {

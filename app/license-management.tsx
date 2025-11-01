@@ -1,9 +1,29 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ShieldCheck, ArrowLeft, Clock, Calendar } from 'lucide-react-native';
+import {
+  ShieldCheck,
+  ArrowLeft,
+  Clock,
+  Calendar,
+  User,
+  Key,
+  DollarSign,
+  RefreshCw,
+  Info,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+} from 'lucide-react-native';
 import { useLicense } from '@/hooks/useLicense';
+import { useNativeGoogleSignIn } from '@/hooks/useNativeGoogleSignIn';
 import { useTranslation } from '@/context/LocalizationContext';
 import { LicenseExtensionModal } from '@/components/LicenseExtensionModal';
 import { MyanmarText as Text } from '@/components/MyanmarText';
@@ -19,6 +39,12 @@ export default function LicenseManagement() {
     getExpiryDate,
     getRemainingDays,
   } = useLicense();
+
+  const {
+    signIn,
+    loading: googleLoading,
+    error: googleError,
+  } = useNativeGoogleSignIn();
 
   const [extensionModalVisible, setExtensionModalVisible] = useState(false);
 
@@ -88,102 +114,182 @@ export default function LicenseManagement() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Current License Status Card */}
-        <View style={styles.statusCard}>
-          <View style={styles.statusHeader}>
-            <ShieldCheck size={24} color={statusInfo.color} />
-            <Text style={styles.statusTitle} weight="medium">
-              {t('license.currentLicenseStatus')}
+        {/* License Overview Section */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <Info size={20} color="#3B82F6" />
+            <Text style={styles.sectionTitle} weight="medium">
+              {t('license.licenseOverview')}
             </Text>
           </View>
 
-          <View
-            style={[
-              styles.statusBadge,
-              {
-                backgroundColor: statusInfo.backgroundColor,
-                borderColor: statusInfo.borderColor,
-              },
-            ]}
-          >
-            <Text
-              style={[styles.statusText, { color: statusInfo.color }]}
-              weight="medium"
-            >
-              {statusInfo.status}
-            </Text>
-          </View>
-
-          {expiryDate && (
-            <View style={styles.statusDetails}>
-              <View style={styles.statusRow}>
-                <Calendar size={16} color="#6B7280" />
-                <Text style={styles.statusLabel}>
-                  {t('license.licenseValidUntil')}:
+          {/* Current License Status Card */}
+          <View style={styles.statusCard}>
+            <View style={styles.statusHeader}>
+              {isValid ? (
+                <CheckCircle size={24} color={statusInfo.color} />
+              ) : (
+                <XCircle size={24} color={statusInfo.color} />
+              )}
+              <View style={styles.statusInfo}>
+                <Text style={styles.statusTitle} weight="medium">
+                  {statusInfo.status}
                 </Text>
-                <Text style={styles.statusValue} weight="medium">
-                  {expiryDate}
+                {expiryDate && (
+                  <Text style={styles.statusSubtitle}>
+                    {t('license.licenseValidUntil')}: {expiryDate}
+                  </Text>
+                )}
+              </View>
+            </View>
+
+            {isValid && remainingDays !== null && (
+              <View style={styles.remainingDaysContainer}>
+                <Clock size={16} color="#6B7280" />
+                <Text style={styles.remainingDaysText}>
+                  {remainingDays} {t('license.daysRemaining')}
                 </Text>
               </View>
+            )}
 
-              {isValid && (
-                <View style={styles.statusRow}>
-                  <Clock size={16} color="#6B7280" />
-                  <Text style={styles.statusLabel}>
-                    {remainingDays} {t('license.daysRemaining')}
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
+            {isAboutToExpire && (
+              <View style={styles.warningBanner}>
+                <AlertTriangle size={16} color="#F59E0B" />
+                <Text style={styles.warningBannerText}>
+                  {t('license.licenseExpiringSoon')}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
 
-        {/* License Extension Section */}
-        <View style={styles.extensionCard}>
-          <View style={styles.extensionHeader}>
-            <Text style={styles.extensionTitle} weight="medium">
-              {t('license.extendLicense')}
-            </Text>
-            <Text style={styles.extensionDescription}>
-              {t('license.extendLicenseDescription')}
+        {/* License Management Actions */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <RefreshCw size={20} color="#10B981" />
+            <Text style={styles.sectionTitle} weight="medium">
+              {t('license.licenseActions')}
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={styles.extendButton}
-            onPress={() => setExtensionModalVisible(true)}
-          >
-            <ShieldCheck size={20} color="#FFFFFF" />
-            <Text style={styles.extendButtonText} weight="medium">
-              {t('license.extendLicense')}
-            </Text>
-          </TouchableOpacity>
+          {/* Google Account Extension */}
+          <View style={styles.actionCard}>
+            <View style={styles.actionHeader}>
+              <User size={20} color="#4285F4" />
+              <View style={styles.actionInfo}>
+                <Text style={styles.actionTitle} weight="medium">
+                  {t('license.googleAccountExtension')}
+                </Text>
+                <Text style={styles.actionDescription}>
+                  {t('license.extendLicenseWithGoogle')}
+                </Text>
+              </View>
+            </View>
+
+            {googleError && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{googleError}</Text>
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={[
+                styles.googleSignInButton,
+                googleLoading && styles.disabledButton,
+              ]}
+              onPress={signIn}
+              disabled={googleLoading}
+            >
+              <Image
+                source={{
+                  uri: 'https://developers.google.com/identity/images/g-logo.png',
+                }}
+                style={styles.googleIcon}
+              />
+              <Text style={styles.googleSignInText} weight="medium">
+                {googleLoading
+                  ? t('license.signingIn')
+                  : t('license.extendWithGoogle')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Challenge Code Extension */}
+          <View style={styles.actionCard}>
+            <View style={styles.actionHeader}>
+              <Key size={20} color="#8B5CF6" />
+              <View style={styles.actionInfo}>
+                <Text style={styles.actionTitle} weight="medium">
+                  {t('license.challengeCodeExtension')}
+                </Text>
+                <Text style={styles.actionDescription}>
+                  {t('license.extendLicenseDescription')}
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.challengeButton}
+              onPress={() => setExtensionModalVisible(true)}
+            >
+              <Key size={16} color="#FFFFFF" />
+              <Text style={styles.challengeButtonText} weight="medium">
+                {t('license.generateExtensionChallenge')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* View Pricing */}
+          <View style={styles.actionCard}>
+            <View style={styles.actionHeader}>
+              <DollarSign size={20} color="#10B981" />
+              <View style={styles.actionInfo}>
+                <Text style={styles.actionTitle} weight="medium">
+                  {t('license.viewPricingPlans')}
+                </Text>
+                <Text style={styles.actionDescription}>
+                  {t('license.comparePlansAndPricing')}
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.pricingButton}
+              onPress={() => router.push('/pricing')}
+            >
+              <DollarSign size={16} color="#FFFFFF" />
+              <Text style={styles.pricingButtonText} weight="medium">
+                {t('license.viewPricing')}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Warning for expiring license */}
-        {isAboutToExpire && (
-          <View style={styles.warningCard}>
-            <View style={styles.warningHeader}>
-              <ShieldCheck size={20} color="#F59E0B" />
-              <Text style={styles.warningTitle} weight="medium">
-                {t('license.licenseExpiringSoon')}
+        {/* Support Section */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <ShieldCheck size={20} color="#6B7280" />
+            <Text style={styles.sectionTitle} weight="medium">
+              {t('license.support')}
+            </Text>
+          </View>
+
+          <View style={styles.contactCard}>
+            <Text style={styles.contactTitle} weight="medium">
+              {t('license.needHelp')}
+            </Text>
+            <Text style={styles.contactDescription}>
+              {t('license.contactForSupport')}
+            </Text>
+            <View style={styles.contactInfo}>
+              <Text style={styles.contactLabel}>
+                {t('license.contactPhone')}:
+              </Text>
+              <Text style={styles.contactPhone} weight="bold">
+                +959425743536
               </Text>
             </View>
-            <Text style={styles.warningMessage}>
-              {t('license.licenseWillExpire')} {remainingDays}{' '}
-              {t('analytics.days')}. {t('license.regenerateChallenge')}
-            </Text>
           </View>
-        )}
-
-        {/* Contact Information */}
-        <View style={styles.contactCard}>
-          <Text style={styles.contactTitle} weight="medium">
-            {t('license.contactPhone')}
-          </Text>
-          <Text style={styles.contactPhone} weight="bold">
-            +959425743536
-          </Text>
         </View>
       </ScrollView>
 
@@ -232,13 +338,30 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 16,
   },
+
+  // Section Styles
+  sectionContainer: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    color: '#374151',
+    marginLeft: 8,
+  },
+
+  // Status Card Styles
   statusCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 20,
-    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -248,117 +371,179 @@ const styles = StyleSheet.create({
   statusHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+  },
+  statusInfo: {
+    marginLeft: 12,
+    flex: 1,
   },
   statusTitle: {
     fontSize: 18,
     color: '#111827',
-    marginLeft: 10,
+    marginBottom: 4,
   },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginBottom: 16,
-  },
-  statusText: {
+  statusSubtitle: {
     fontSize: 14,
+    color: '#6B7280',
   },
-  statusDetails: {
-    gap: 8,
-  },
-  statusRow: {
+  remainingDaysContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
   },
-  statusLabel: {
+  remainingDaysText: {
     fontSize: 14,
     color: '#6B7280',
+    marginLeft: 8,
   },
-  statusValue: {
+  warningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 16,
+  },
+  warningBannerText: {
     fontSize: 14,
-    color: '#111827',
+    color: '#92400E',
+    marginLeft: 8,
   },
-  extensionCard: {
+
+  // Action Card Styles
+  actionCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
+    padding: 16,
+    marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  extensionHeader: {
+  actionHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     marginBottom: 16,
   },
-  extensionTitle: {
-    fontSize: 18,
-    color: '#111827',
-    marginBottom: 8,
+  actionInfo: {
+    marginLeft: 12,
+    flex: 1,
   },
-  extensionDescription: {
+  actionTitle: {
+    fontSize: 16,
+    color: '#111827',
+    marginBottom: 4,
+  },
+  actionDescription: {
     fontSize: 14,
     color: '#6B7280',
   },
-  extendButton: {
-    backgroundColor: '#2563EB',
+
+  // Google Sign-in Styles
+  googleSignInButton: {
+    backgroundColor: '#4285F4',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     borderRadius: 8,
-    gap: 8,
   },
-  extendButtonText: {
+  googleIcon: {
+    width: 18,
+    height: 18,
+    marginRight: 12,
+  },
+  googleSignInText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 14,
   },
-  warningCard: {
-    backgroundColor: '#FFFBEB',
+  disabledButton: {
+    backgroundColor: '#9CA3AF',
+  },
+  errorContainer: {
+    backgroundColor: '#FEF2F2',
     borderWidth: 1,
-    borderColor: '#FED7AA',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    borderColor: '#FECACA',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
   },
-  warningHeader: {
+  errorText: {
+    fontSize: 14,
+    color: '#DC2626',
+    textAlign: 'center',
+  },
+
+  // Challenge Button Styles
+  challengeButton: {
+    backgroundColor: '#8B5CF6',
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
   },
-  warningTitle: {
-    fontSize: 16,
-    color: '#92400E',
+  challengeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     marginLeft: 8,
   },
-  warningMessage: {
-    fontSize: 14,
-    color: '#A16207',
+
+  // Pricing Button Styles
+  pricingButton: {
+    backgroundColor: '#10B981',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
   },
+  pricingButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    marginLeft: 8,
+  },
+
+  // Contact Card Styles
   contactCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 20,
-    alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   contactTitle: {
     fontSize: 16,
-    color: '#374151',
+    color: '#111827',
     marginBottom: 8,
   },
+  contactDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 16,
+  },
+  contactInfo: {
+    alignItems: 'center',
+  },
+  contactLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
   contactPhone: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#2563EB',
     letterSpacing: 0.5,
   },
