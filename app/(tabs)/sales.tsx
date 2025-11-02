@@ -1303,7 +1303,13 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { data: salesSummary } =
     dateFilter === 'all'
       ? useSalesSummary(searchQuery)
-      : useSalesSummaryByDateRange(startDate, endDate, searchQuery);
+      : useSalesSummaryByDateRange(
+          startDate,
+          endDate,
+          searchQuery,
+          undefined,
+          -390
+        );
 
   // Get all sales for export (when needed)
   const { data: allSalesForExport, refetch: refetchAllSales } =
@@ -1311,7 +1317,8 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       searchQuery,
       undefined, // No customer filter in sales history
       dateFilter === 'all' ? undefined : startDate,
-      dateFilter === 'all' ? undefined : endDate
+      dateFilter === 'all' ? undefined : endDate,
+      -390 // Same timezone offset as the working queries
     );
 
   // Use React Query for sale items
