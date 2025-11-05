@@ -1531,6 +1531,38 @@ export const useSupplierMutations = () => {
   };
 };
 
+// ============ PAYMENT METHOD ANALYTICS QUERIES ============
+export const usePaymentMethodAnalytics = (startDate: Date, endDate: Date) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: [
+      'paymentMethodAnalytics',
+      startDate.toISOString(),
+      endDate.toISOString(),
+    ],
+    queryFn: () => db!.getPaymentMethodAnalytics(startDate, endDate),
+    enabled: isReady && !!db,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+};
+
+// ============ TOTAL INVENTORY VALUE HOOK ============
+export const useTotalInventoryValue = (categoryFilter?: string) => {
+  const { db, isReady } = useDatabase();
+
+  return useQuery({
+    queryKey: ['totalInventoryValue', categoryFilter || 'all'],
+    queryFn: () => db!.getTotalInventoryValue(categoryFilter),
+    enabled: isReady && !!db,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+};
+
 // ============ UTILITY HOOKS ============
 export const useInvalidateQueries = () => {
   const queryClient = useQueryClient();

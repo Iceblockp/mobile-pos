@@ -8,6 +8,7 @@ import {
 import { PieChart as ChartKitPieChart } from 'react-native-chart-kit';
 import PieChart from 'react-native-pie-chart';
 import { formatCurrency, formatLargeNumber } from '@/utils/formatters';
+import { useTranslation } from '@/context/LocalizationContext';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -206,7 +207,7 @@ export function CustomBarChart({
           yAxisOffset={minValue < 0 ? minValue - padding : 0}
           // Styling - NO GRADIENT
           frontColor="#2563eb"
-          maxValue={maxValue + padding}
+          maxValue={maxValue * 1.2 + padding}
           // CORRECT: Show values as top labels
           showValuesAsTopLabel={true}
           topLabelTextStyle={{

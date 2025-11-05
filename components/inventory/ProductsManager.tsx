@@ -77,6 +77,8 @@ import { ProductMovementHistory } from '@/components/ProductMovementHistory';
 import { QuickStockActions } from '@/components/QuickStockActions';
 import { StockMovementForm } from '@/components/StockMovementForm';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
+import { CompactInventoryValue } from '@/components/CompactInventoryValue';
+import { InventoryDetailsModal } from '@/components/InventoryDetailsModal';
 
 interface ProductsManagerProps {
   compact?: boolean;
@@ -127,6 +129,9 @@ export default function Products({}: ProductsManagerProps) {
   const [showProductDetail, setShowProductDetail] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
+  // Add state for inventory details modal
+  const [showInventoryDetails, setShowInventoryDetails] = useState(false);
+
   // Use infinite scroll for products
   const {
     data,
@@ -151,7 +156,8 @@ export default function Products({}: ProductsManagerProps) {
 
   const { data: categories = [], isLoading: categoriesLoading } =
     useCategories();
-  const { data: categoriesWithCounts = [] } = useCategoriesWithCounts();
+  const { data: categoriesWithCounts = [], refetch: refreshCategoryWithCount } =
+    useCategoriesWithCounts();
 
   const { data: suppliers = [], isLoading: suppliersLoading } =
     useBasicSuppliers();
@@ -222,6 +228,7 @@ export default function Products({}: ProductsManagerProps) {
 
   const onRefresh = () => {
     refetchProducts();
+    refreshCategoryWithCount();
   };
 
   // Close menus when tapping outside
@@ -1417,8 +1424,16 @@ export default function Products({}: ProductsManagerProps) {
       </>
 
       <View>
+        <View style={{ paddingLeft: 8, paddingRight: 8 }}>
+          {/* Compact Inventory Value Display */}
+          <CompactInventoryValue
+            categoryFilter={selectedCategory}
+            onShowDetails={() => setShowInventoryDetails(true)}
+          />
+        </View>
+
         {/* Products Count Display */}
-        <View style={styles.productsCountContainer}>
+        {/* <View style={styles.productsCountContainer}>
           <Text style={styles.productsCountText}>
             {productsLoading
               ? 'Loading products...'
@@ -1439,7 +1454,7 @@ export default function Products({}: ProductsManagerProps) {
           {!productsLoading && hasNextPage && (
             <Text style={styles.loadMoreHint}>Scroll down to load more</Text>
           )}
-        </View>
+        </View> */}
 
         <View style={styles.compactCategoryContainer}>
           <TouchableOpacity
@@ -2015,6 +2030,13 @@ export default function Products({}: ProductsManagerProps) {
         }}
         product={selectedProductForMovement || undefined}
         initialType={movementType}
+      />
+
+      {/* Inventory Details Modal */}
+      <InventoryDetailsModal
+        visible={showInventoryDetails}
+        onClose={() => setShowInventoryDetails(false)}
+        categoryFilter={selectedCategory}
       />
     </View>
   );

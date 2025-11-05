@@ -98,6 +98,12 @@ export interface ExpenseCategory {
   created_at: string;
 }
 
+export interface PaymentMethodAnalytics {
+  payment_method: string;
+  total_amount: number;
+  transaction_count: number;
+}
+
 export interface Expense {
   id: string;
   category_id: string;
@@ -5006,6 +5012,141 @@ export class DatabaseService {
       labels: allDays,
       data: data,
     };
+  }
+
+  // Payment Method Analytics
+  async getPaymentMethodAnalytics(
+    startDate: Date,
+    endDate: Date,
+    timezoneOffsetMinutes: number = -390
+  ): Promise<PaymentMethodAnalytics[]> {
+    try {
+      // Use timezone-aware date ranges like other analytics methods
+      const startRange = getTimezoneAwareDateRangeForDB(
+        startDate,
+        timezoneOffsetMinutes
+      );
+      const endRange = getTimezoneAwareDateRangeForDB(
+        endDate,
+        timezoneOffsetMinutes
+      );
+
+      const query = `
+        SELECT 
+          payment_method,
+          SUM(total) as total_amount,
+          COUNT(*) as transaction_count
+        FROM sales 
+        WHERE created_at BETWEEN ? AND ?
+        GROUP BY payment_method
+        ORDER BY total_amount DESC
+      `;
+
+      const result = await this.db.getAllAsync(query, [
+        startRange.start,
+        endRange.end,
+      ]);
+
+      return result as PaymentMethodAnalytics[];
+    } catch (error) {
+      console.error('Error getting payment method analytics:', error);
+      return [];
+    }
+  }
+
+  // Total Inventory Value (for all products, not paginated)
+  async getTotalInventoryValue(categoryFilter?: string): Promise<{
+    totalValue: number;
+    totalItems: number;
+    lowStockCount: number;
+    productCount: number;
+    categoryBreakdown: Array<{
+      category: string;
+      value: number;
+      count: number;
+      productCount: number;
+    }>;
+  }> {
+    try {
+      // Get main stats
+      let mainQuery = `
+        SELECT 
+          SUM(cost * quantity) as total_value,
+          SUM(quantity) as total_items,
+          COUNT(*) as product_count,
+          SUM(CASE WHEN quantity <= min_stock THEN 1 ELSE 0 END) as low_stock_count
+        FROM products
+      `;
+
+      const params: any[] = [];
+
+      if (categoryFilter && categoryFilter !== 'All') {
+        mainQuery += ' WHERE category_id = ?';
+        params.push(categoryFilter);
+      }
+
+      const mainResult = (await this.db.getFirstAsync(mainQuery, params)) as {
+        total_value: number | null;
+        total_items: number | null;
+        product_count: number | null;
+        low_stock_count: number | null;
+      } | null;
+
+      // Get category breakdown (only if showing all categories)
+      let categoryBreakdown: Array<{
+        category: string;
+        value: number;
+        count: number;
+        productCount: number;
+      }> = [];
+
+      if (!categoryFilter || categoryFilter === 'All') {
+        const categoryQuery = `
+          SELECT 
+            c.name as category,
+            SUM(p.cost * p.quantity) as value,
+            SUM(p.quantity) as count,
+            COUNT(p.id) as product_count
+          FROM products p
+          LEFT JOIN categories c ON p.category_id = c.id
+          GROUP BY p.category_id, c.name
+          ORDER BY value DESC
+        `;
+
+        const categoryResults = (await this.db.getAllAsync(
+          categoryQuery
+        )) as Array<{
+          category: string | null;
+          value: number | null;
+          count: number | null;
+          product_count: number | null;
+        }>;
+
+        categoryBreakdown = categoryResults.map((row) => ({
+          category: row.category || 'Uncategorized',
+          value: row.value || 0,
+          count: row.count || 0,
+          productCount: row.product_count || 0,
+        }));
+      }
+
+      return {
+        totalValue: mainResult?.total_value || 0,
+        totalItems: mainResult?.total_items || 0,
+        lowStockCount: mainResult?.low_stock_count || 0,
+        productCount: mainResult?.product_count || 0,
+        categoryBreakdown,
+      };
+    } catch (error) {
+      console.error('Error getting total inventory value:', error);
+      return {
+        totalValue: 0,
+        totalItems: 0,
+        lowStockCount: 0,
+        productCount: 0,
+        categoryBreakdown: [],
+      };
+    }
   }
 
   // Shop Settings Methods removed - now using AsyncStorage (see shopSettingsStorage.ts)

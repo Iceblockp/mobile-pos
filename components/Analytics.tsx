@@ -18,7 +18,7 @@ import { useCustomAnalytics, useSalesByDateRange } from '@/hooks/useQueries';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import DailySalesChart from '@/components/DailySalesChart';
 import DailyExpensesChart from '@/components/DailyExpensesChart';
-import { ReusablePieChart } from '@/components/Charts';
+import { ReusablePieChart, CustomBarChart } from '@/components/Charts';
 import { Sale } from '@/services/database';
 import {
   ChartBar as BarChart3,
@@ -34,6 +34,9 @@ import {
 } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from '@/context/LocalizationContext';
+import { usePaymentMethodAnalytics } from '@/hooks/useQueries';
+import type { PaymentMethodAnalytics } from '@/services/database';
+import { formatCurrency } from '@/utils/formatters';
 
 type FilterMode = 'day' | 'month' | 'year';
 type AnalyticsTab = 'overview' | 'customers' | 'ai-analytics';
@@ -148,12 +151,21 @@ export default function Analytics() {
     refetch: refetchSales,
   } = useSalesByDateRange(startDate, endDate, limit);
 
+  // Payment Method Analytics
+  const {
+    data: paymentAnalyticsData,
+    isLoading: paymentAnalyticsLoading,
+    error: paymentAnalyticsError,
+    refetch: refetchPaymentAnalytics,
+  } = usePaymentMethodAnalytics(startDate, endDate);
+
   const onRefresh = () => {
     refetchAnalytics();
     refetchSales();
+    refetchPaymentAnalytics();
   };
 
-  const isLoading = analyticsLoading || salesLoading;
+  const isLoading = analyticsLoading || salesLoading || paymentAnalyticsLoading;
   const isRefreshing = analyticsRefetching || salesRefetching;
 
   const { formatPrice } = useCurrencyFormatter();
@@ -518,6 +530,49 @@ export default function Analytics() {
 
           {/* Daily Expenses Chart */}
           <DailyExpensesChart startDate={startDate} endDate={endDate} />
+
+          {/* Payment Method Analytics Chart */}
+          {paymentAnalyticsData && paymentAnalyticsData.length > 0 ? (
+            <CustomBarChart
+              data={{
+                labels: paymentAnalyticsData.map(
+                  (item: PaymentMethodAnalytics) => item.payment_method
+                ),
+                datasets: [
+                  {
+                    data: paymentAnalyticsData.map(
+                      (item: PaymentMethodAnalytics) => item.total_amount
+                    ),
+                  },
+                ],
+              }}
+              title={t('analytics.paymentMethodsAnalytics')}
+              formatYLabel={(value) => formatCurrency(parseFloat(value))}
+              footer={{
+                label: t('analytics.totalRevenue'),
+                value: formatCurrency(
+                  paymentAnalyticsData.reduce(
+                    (sum: number, item: PaymentMethodAnalytics) =>
+                      sum + item.total_amount,
+                    0
+                  )
+                ),
+              }}
+            />
+          ) : (
+            <View style={styles.chartContainer}>
+              <Text style={styles.chartTitle}>
+                {t('analytics.paymentMethodsAnalytics')}
+              </Text>
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>
+                  {paymentAnalyticsLoading
+                    ? t('common.loading')
+                    : t('analytics.noPaymentData')}
+                </Text>
+              </View>
+            </View>
+          )}
 
           {/* Expense Breakdown Pie Chart */}
           {analytics?.expensesByCategory &&
@@ -935,5 +990,33 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontStyle: 'italic',
     marginTop: 8,
+  },
+  // Payment Analytics Chart Styles
+  chartContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  chartTitle: {
+    fontSize: 18,
+    color: '#111827',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
   },
 });

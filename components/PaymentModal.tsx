@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -18,9 +18,16 @@ import {
   Printer,
   Check,
   ChevronDown,
+  Plus,
+  Settings,
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
+import {
+  PaymentMethodService,
+  type PaymentMethod,
+} from '@/services/paymentMethodService';
+import { PaymentMethodManagement } from '@/components/PaymentMethodManagement';
 
 interface PaymentModalProps {
   visible: boolean;
@@ -34,10 +41,6 @@ interface PaymentModalProps {
   loading: boolean;
 }
 
-type PaymentMethod = 'cash' | 'card' | 'mobile';
-
-// Payment methods will be localized inside the component
-
 export const PaymentModal: React.FC<PaymentModalProps> = ({
   visible,
   onClose,
@@ -47,57 +50,81 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const { formatPrice } = useCurrencyFormatter();
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
-    useState<PaymentMethod>('cash');
+    useState<string>('cash');
   const [saleNote, setSaleNote] = useState('');
   const [shouldPrintReceipt, setShouldPrintReceipt] = useState(false);
   const [showPaymentPicker, setShowPaymentPicker] = useState(false);
+  const [showManagementModal, setShowManagementModal] = useState(false);
+  const [loadingMethods, setLoadingMethods] = useState(true);
 
-  const paymentMethods = [
-    {
-      value: 'cash',
-      label: t('paymentModal.cash'),
-      icon: Banknote,
-      color: '#10B981',
-    },
-    {
-      value: 'card',
-      label: t('paymentModal.card'),
-      icon: CreditCard,
-      color: '#3B82F6',
-    },
-    {
-      value: 'mobile',
-      label: t('paymentModal.mobilePayment'),
-      icon: Smartphone,
-      color: '#8B5CF6',
-    },
-  ];
+  // Load payment methods on component mount
+  useEffect(() => {
+    loadPaymentMethods();
+  }, []);
+
+  const loadPaymentMethods = async () => {
+    try {
+      setLoadingMethods(true);
+      const methods = await PaymentMethodService.getPaymentMethods();
+      setPaymentMethods(methods);
+
+      // Set default payment method to cash if available
+      const defaultMethod = methods.find((method) => method.isDefault);
+      if (defaultMethod) {
+        setSelectedPaymentMethod(defaultMethod.id);
+      } else if (methods.length > 0) {
+        setSelectedPaymentMethod(methods[0].id);
+      }
+    } catch (error) {
+      console.error('Error loading payment methods:', error);
+    } finally {
+      setLoadingMethods(false);
+    }
+  };
+
+  // Icon mapping for payment methods
+  const getPaymentMethodIcon = (iconName: string) => {
+    const iconMap: { [key: string]: React.ComponentType<any> } = {
+      Banknote: Banknote,
+      CreditCard: CreditCard,
+      Smartphone: Smartphone,
+    };
+    return iconMap[iconName] || CreditCard;
+  };
 
   // Removed formatMMK function - now using standardized currency formatting
 
   const handleConfirmSale = () => {
-    onConfirmSale(selectedPaymentMethod, saleNote.trim(), shouldPrintReceipt);
+    const selectedMethod = paymentMethods.find(
+      (method) => method.id === selectedPaymentMethod
+    );
+    const methodName = selectedMethod ? selectedMethod.name : 'Cash';
+    onConfirmSale(methodName, saleNote.trim(), shouldPrintReceipt);
   };
 
   const handleClose = () => {
     if (!loading) {
       setSaleNote('');
       setShouldPrintReceipt(false);
-      setSelectedPaymentMethod('cash');
+      // Reset to default payment method
+      const defaultMethod = paymentMethods.find((method) => method.isDefault);
+      if (defaultMethod) {
+        setSelectedPaymentMethod(defaultMethod.id);
+      }
       setShowPaymentPicker(false);
+      setShowManagementModal(false);
       onClose();
     }
   };
 
   const getSelectedPaymentMethod = () => {
-    return paymentMethods.find(
-      (method) => method.value === selectedPaymentMethod
-    );
+    return paymentMethods.find((method) => method.id === selectedPaymentMethod);
   };
 
-  const handlePaymentMethodSelect = (method: PaymentMethod) => {
-    setSelectedPaymentMethod(method);
+  const handlePaymentMethodSelect = (methodId: string) => {
+    setSelectedPaymentMethod(methodId);
     setShowPaymentPicker(false);
   };
 
@@ -136,48 +163,69 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
           {/* Payment Method Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle} weight="medium">
-              {t('paymentModal.paymentMethod')}
-            </Text>
-            <TouchableOpacity
-              style={styles.paymentMethodDropdown}
-              onPress={() => setShowPaymentPicker(true)}
-              disabled={loading}
-              activeOpacity={0.7}
-            >
-              <View style={styles.paymentMethodDropdownContent}>
-                {(() => {
-                  const selectedMethod = getSelectedPaymentMethod();
-                  const IconComponent = selectedMethod?.icon || Banknote;
-                  return (
-                    <>
-                      <View
-                        style={[
-                          styles.paymentMethodIconContainer,
-                          {
-                            backgroundColor: `${
-                              selectedMethod?.color || '#10B981'
-                            }15`,
-                          },
-                        ]}
-                      >
-                        <IconComponent
-                          size={20}
-                          color={selectedMethod?.color || '#10B981'}
-                        />
-                      </View>
-                      <Text
-                        style={styles.paymentMethodDropdownText}
-                        weight="medium"
-                      >
-                        {selectedMethod?.label || t('paymentModal.cash')}
-                      </Text>
-                    </>
-                  );
-                })()}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle} weight="medium">
+                {t('paymentModal.paymentMethod')}
+              </Text>
+              <TouchableOpacity
+                style={styles.manageButton}
+                onPress={() => setShowManagementModal(true)}
+                disabled={loading}
+              >
+                <Settings size={16} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            {loadingMethods ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#6B7280" />
+                <Text style={styles.loadingText}>
+                  Loading payment methods...
+                </Text>
               </View>
-              <ChevronDown size={20} color="#6B7280" />
-            </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.paymentMethodDropdown}
+                onPress={() => setShowPaymentPicker(true)}
+                disabled={loading}
+                activeOpacity={0.7}
+              >
+                <View style={styles.paymentMethodDropdownContent}>
+                  {(() => {
+                    const selectedMethod = getSelectedPaymentMethod();
+                    const IconComponent = selectedMethod
+                      ? getPaymentMethodIcon(selectedMethod.icon)
+                      : Banknote;
+                    return (
+                      <>
+                        <View
+                          style={[
+                            styles.paymentMethodIconContainer,
+                            {
+                              backgroundColor: `${
+                                selectedMethod?.color || '#10B981'
+                              }15`,
+                            },
+                          ]}
+                        >
+                          <IconComponent
+                            size={20}
+                            color={selectedMethod?.color || '#10B981'}
+                          />
+                        </View>
+                        <Text
+                          style={styles.paymentMethodDropdownText}
+                          weight="medium"
+                        >
+                          {selectedMethod?.name || 'Cash'}
+                        </Text>
+                      </>
+                    );
+                  })()}
+                </View>
+                <ChevronDown size={20} color="#6B7280" />
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Payment Method Picker Modal */}
@@ -206,21 +254,17 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 </View>
                 <View style={styles.pickerOptions}>
                   {paymentMethods.map((method) => {
-                    const IconComponent = method.icon;
-                    const isSelected = selectedPaymentMethod === method.value;
+                    const IconComponent = getPaymentMethodIcon(method.icon);
+                    const isSelected = selectedPaymentMethod === method.id;
 
                     return (
                       <TouchableOpacity
-                        key={method.value}
+                        key={method.id}
                         style={[
                           styles.pickerOption,
                           isSelected && styles.pickerOptionSelected,
                         ]}
-                        onPress={() =>
-                          handlePaymentMethodSelect(
-                            method.value as PaymentMethod
-                          )
-                        }
+                        onPress={() => handlePaymentMethodSelect(method.id)}
                         activeOpacity={0.7}
                       >
                         <View style={styles.pickerOptionContent}>
@@ -239,7 +283,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                             ]}
                             weight={isSelected ? 'medium' : 'regular'}
                           >
-                            {method.label}
+                            {method.name}
                           </Text>
                         </View>
                         {isSelected && (
@@ -254,6 +298,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </View>
             </TouchableOpacity>
           </Modal>
+
+          {/* Payment Method Management Modal */}
+          <PaymentMethodManagement
+            visible={showManagementModal}
+            onClose={() => setShowManagementModal(false)}
+            onMethodsUpdated={loadPaymentMethods}
+          />
 
           {/* Sale Note */}
           <View style={styles.section}>
@@ -400,6 +451,31 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: 8,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  manageButton: {
+    padding: 4,
+    borderRadius: 4,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+  },
+  loadingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#6B7280',
+  },
+
   paymentMethodDropdown: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -611,8 +687,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FFFFFF',
   },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  // loadingContainer: {
+  //   flexDirection: 'row',
+  //   alignItems: 'center',
+  // },
 });
