@@ -70,13 +70,32 @@ export class ShopSettingsService {
 
   // Update existing shop settings
   async updateShopSettings(updates: Partial<ShopSettingsInput>): Promise<void> {
-    // Only validate fields that are being updated
+    // Check if this is a non-essential update (currency, template, etc.) that doesn't require shop name validation
+    const nonEssentialFields = [
+      'currency',
+      'customCurrencies',
+      'receiptTemplate',
+      'receiptFontSize',
+    ];
+    const updateKeys = Object.keys(updates);
+    const isNonEssentialUpdate =
+      updateKeys.length > 0 &&
+      updateKeys.every((key) => nonEssentialFields.includes(key));
+
+    // Only validate fields that are being updated and require validation
     const fieldsToValidate: Partial<ShopSettingsInput> = {};
     if (updates.shopName !== undefined)
       fieldsToValidate.shopName = updates.shopName;
     if (updates.phone !== undefined) fieldsToValidate.phone = updates.phone;
+    if (updates.address !== undefined)
+      fieldsToValidate.address = updates.address;
+    if (updates.receiptFooter !== undefined)
+      fieldsToValidate.receiptFooter = updates.receiptFooter;
+    if (updates.thankYouMessage !== undefined)
+      fieldsToValidate.thankYouMessage = updates.thankYouMessage;
 
-    if (Object.keys(fieldsToValidate).length > 0) {
+    // Skip validation for non-essential updates (like currency changes)
+    if (Object.keys(fieldsToValidate).length > 0 && !isNonEssentialUpdate) {
       const validation = this.validateShopSettings(fieldsToValidate, true);
       if (!validation.isValid) {
         throw new Error(
@@ -216,13 +235,10 @@ export class ShopSettingsService {
         'Thank you message must be less than 200 characters';
     }
 
-    // Receipt template validation (required)
-    if (!isPartialUpdate || settings.receiptTemplate !== undefined) {
+    // Receipt template validation (only validate if provided)
+    if (settings.receiptTemplate !== undefined) {
       const validTemplates = ['classic', 'modern', 'minimal', 'elegant'];
-      if (
-        !settings.receiptTemplate ||
-        !validTemplates.includes(settings.receiptTemplate)
-      ) {
+      if (!validTemplates.includes(settings.receiptTemplate)) {
         errors.receiptTemplate = 'Please select a valid receipt template';
       }
     }

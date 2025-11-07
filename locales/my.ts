@@ -87,7 +87,7 @@ export const my: TranslationKeys = {
     totalExpenses: 'စုစုပေါင်းကုန်ကျစရိတ်',
     totalBalance: 'စုစုပေါင်းလက်ကျန်',
     totalProfit: 'စုစုပေါင်းရောင်းချမှုအမြတ်',
-    netProfit: 'သန့်အမြတ်',
+    netProfit: 'အသားတင်အမြတ်',
   },
   sales: {
     title: 'ရောင်းချမှု',

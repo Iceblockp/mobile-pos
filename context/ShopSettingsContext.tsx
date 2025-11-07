@@ -112,22 +112,47 @@ export const ShopSettingsProvider: React.FC<ShopSettingsProviderProps> = ({
           lastUpdated: new Date().toISOString(),
         };
       } else {
-        // Create new settings
-        const newSettings = {
-          shopName: updates.shopName || '',
-          address: updates.address,
-          phone: updates.phone,
-          logoPath: updates.logoPath,
-          receiptFooter: updates.receiptFooter,
-          thankYouMessage: updates.thankYouMessage,
-          receiptTemplate: updates.receiptTemplate || 'classic',
-        };
-        await shopSettingsService.saveShopSettings(newSettings);
-        // Set the new settings directly
-        updatedSettings = {
-          ...newSettings,
-          lastUpdated: new Date().toISOString(),
-        };
+        // Check if this is a non-essential update (like currency) that doesn't require full shop setup
+        const nonEssentialFields = [
+          'currency',
+          'customCurrencies',
+          'receiptTemplate',
+          'receiptFontSize',
+        ];
+        const updateKeys = Object.keys(updates);
+        const isNonEssentialUpdate =
+          updateKeys.length > 0 &&
+          updateKeys.every((key) => nonEssentialFields.includes(key));
+
+        if (isNonEssentialUpdate) {
+          // For non-essential updates, just update the storage without requiring shop name
+          await shopSettingsService.updateShopSettings(updates);
+          // Create minimal settings object
+          updatedSettings = {
+            ...updates,
+            lastUpdated: new Date().toISOString(),
+          } as ShopSettings;
+        } else {
+          // Create new settings with required fields
+          const newSettings = {
+            shopName: updates.shopName || '',
+            address: updates.address,
+            phone: updates.phone,
+            logoPath: updates.logoPath,
+            receiptFooter: updates.receiptFooter,
+            thankYouMessage: updates.thankYouMessage,
+            receiptTemplate: updates.receiptTemplate || 'classic',
+            receiptFontSize: updates.receiptFontSize || 'medium',
+            currency: updates.currency,
+            customCurrencies: updates.customCurrencies || [],
+          };
+          await shopSettingsService.saveShopSettings(newSettings);
+          // Set the new settings directly
+          updatedSettings = {
+            ...newSettings,
+            lastUpdated: new Date().toISOString(),
+          };
+        }
       }
 
       // Update local state directly instead of refreshing
