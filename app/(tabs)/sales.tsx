@@ -82,6 +82,7 @@ import { useMemoryCleanup, useRenderPerformance } from '@/utils/memoryManager';
 import { useBarcodeActions } from '@/hooks/useBarcodeActions';
 import { PrinterErrorBoundary } from '@/components/PrinterErrorBoundary';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { PaymentMethodService } from '@/services/paymentMethodService';
 
 interface CartItem {
   product: Product;
@@ -1111,6 +1112,7 @@ export default function Sales() {
         onConfirmSale={processSale}
         total={total}
         loading={loading}
+        selectedCustomer={selectedCustomer}
       />
 
       {receiptData && (
@@ -1152,6 +1154,28 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [showPrintManager, setShowPrintManager] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
   const { formatPrice } = useCurrencyFormatter();
+
+  // Payment method filter state
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('All');
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [showPaymentMethodFilter, setShowPaymentMethodFilter] = useState(false);
+
+  // Debt payment recording state
+  const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false);
+  const [recordingPayment, setRecordingPayment] = useState(false);
+
+  // Load payment methods on mount
+  useEffect(() => {
+    const loadPaymentMethods = async () => {
+      try {
+        const methods = await PaymentMethodService.getPaymentMethods();
+        setPaymentMethods(methods);
+      } catch (error) {
+        console.error('Error loading payment methods:', error);
+      }
+    };
+    loadPaymentMethods();
+  }, []);
 
   // Removed second formatMMK function - now using standardized currency formatting
 
@@ -1278,6 +1302,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   // Use React Query for sales data
   const {
     data: salesPages,
+    refetch,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -1290,14 +1315,23 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   // Flatten the paginated data
   const sales = salesPages?.pages.flatMap((page) => page.data) || [];
 
-  // Filter sales based on search query
-  const filteredSales = sales.filter((sale) => {
-    if (!searchQuery) return true;
-    return (
-      sale.id.includes(searchQuery) ||
-      sale.payment_method.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  });
+  // Filter sales based on search query and payment method
+  const filteredSales = useMemo(() => {
+    return sales.filter((sale) => {
+      // Search query filter
+      const matchesSearch =
+        !searchQuery ||
+        sale.id.includes(searchQuery) ||
+        sale.payment_method.toLowerCase().includes(searchQuery.toLowerCase());
+
+      // Payment method filter
+      const matchesPaymentMethod =
+        paymentMethodFilter === 'All' ||
+        sale.payment_method === paymentMethodFilter;
+
+      return matchesSearch && matchesPaymentMethod;
+    });
+  }, [sales, searchQuery, paymentMethodFilter]);
 
   // Get accurate sales summary (not limited by pagination)
   const { data: salesSummary } =
@@ -2078,6 +2112,46 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   // Replace the original exportToExcel function with showExportOptions
   const exportToExcel = showExportOptions;
 
+  // Handle recording debt payment
+  const handleRecordDebtPayment = () => {
+    if (!selectedSale) return;
+    setShowRecordPaymentModal(true);
+  };
+
+  // Handle payment method selection for debt payment
+  const handlePaymentMethodSelection = async (paymentMethodName: string) => {
+    if (!selectedSale || !db) return;
+
+    try {
+      setRecordingPayment(true);
+
+      // Update the sale's payment method
+      await db.updateSalePaymentMethod(selectedSale.id, paymentMethodName);
+
+      // Fetch the updated sale data
+      const updatedSale = await db.getSaleById(selectedSale.id);
+
+      // Update the selected sale with fresh data
+      if (updatedSale) {
+        setSelectedSale(updatedSale);
+      }
+
+      // Show success message
+      showToast(t('debt.paymentRecorded'), 'success');
+
+      // Close only the record payment modal, keep detail modal open with updated data
+      setShowRecordPaymentModal(false);
+      refetch();
+
+      // The sales list will automatically refresh due to React Query
+    } catch (error) {
+      console.error('Error recording debt payment:', error);
+      Alert.alert(t('common.error'), t('common.error'));
+    } finally {
+      setRecordingPayment(false);
+    }
+  };
+
   return (
     <Modal visible={true} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.modalContainer}>
@@ -2254,6 +2328,58 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               </TouchableOpacity>
             ))}
           </ScrollView>
+
+          {/* Payment Method Filter */}
+          <View style={styles.paymentMethodFilterContainer}>
+            <Text style={styles.paymentMethodFilterLabel} weight="medium">
+              {t('sales.paymentMethod')}:
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.paymentMethodFilters}
+            >
+              <TouchableOpacity
+                style={[
+                  styles.paymentMethodFilterChip,
+                  paymentMethodFilter === 'All' &&
+                    styles.paymentMethodFilterChipActive,
+                ]}
+                onPress={() => setPaymentMethodFilter('All')}
+              >
+                <Text
+                  style={[
+                    styles.paymentMethodFilterText,
+                    paymentMethodFilter === 'All' &&
+                      styles.paymentMethodFilterTextActive,
+                  ]}
+                >
+                  {t('sales.all')}
+                </Text>
+              </TouchableOpacity>
+              {paymentMethods.map((method) => (
+                <TouchableOpacity
+                  key={method.id}
+                  style={[
+                    styles.paymentMethodFilterChip,
+                    paymentMethodFilter === method.name &&
+                      styles.paymentMethodFilterChipActive,
+                  ]}
+                  onPress={() => setPaymentMethodFilter(method.name)}
+                >
+                  <Text
+                    style={[
+                      styles.paymentMethodFilterText,
+                      paymentMethodFilter === method.name &&
+                        styles.paymentMethodFilterTextActive,
+                    ]}
+                  >
+                    {method.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
 
           {dateFilter === 'custom' && (
             <View style={styles.customDateContainer}>
@@ -2568,6 +2694,19 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                       </Text>
                     </TouchableOpacity>
                   </View>
+
+                  {/* Record Payment button for debt sales */}
+                  {selectedSale?.payment_method === 'Debt' && (
+                    <TouchableOpacity
+                      style={styles.recordPaymentButton}
+                      onPress={handleRecordDebtPayment}
+                    >
+                      <FileText size={16} color="#FFFFFF" />
+                      <Text style={styles.recordPaymentButtonText}>
+                        {t('debt.recordPayment')}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
 
                 {/* Wrap the content to be captured in a View with ref */}
@@ -2727,6 +2866,84 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               />
             )}
           </SafeAreaView>
+          <Modal
+            visible={showRecordPaymentModal}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setShowRecordPaymentModal(false)}
+          >
+            <View style={styles.recordPaymentModalOverlay}>
+              <View style={styles.recordPaymentModalContainer}>
+                <View style={styles.recordPaymentModalHeader}>
+                  <Text style={styles.recordPaymentModalTitle} weight="bold">
+                    {t('debt.recordDebtPayment')}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setShowRecordPaymentModal(false)}
+                    style={styles.recordPaymentModalCloseButton}
+                    disabled={recordingPayment}
+                  >
+                    <X size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.recordPaymentModalDescription}>
+                  {t('sales.selectPaymentMethod')}
+                </Text>
+
+                <View style={styles.paymentMethodOptionsContainer}>
+                  {paymentMethods
+                    .filter((method) => method.id !== 'debt')
+                    .map((method) => (
+                      <TouchableOpacity
+                        key={method.id}
+                        style={styles.paymentMethodOption}
+                        onPress={() =>
+                          handlePaymentMethodSelection(method.name)
+                        }
+                        disabled={recordingPayment}
+                      >
+                        <View
+                          style={[
+                            styles.paymentMethodOptionIcon,
+                            { backgroundColor: method.color + '20' },
+                          ]}
+                        >
+                          <Text style={styles.paymentMethodOptionIconText}>
+                            {method.name.charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                        <Text
+                          style={styles.paymentMethodOptionText}
+                          weight="medium"
+                        >
+                          {method.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                </View>
+
+                {recordingPayment && (
+                  <View style={styles.recordingPaymentIndicator}>
+                    <ActivityIndicator size="small" color="#F59E0B" />
+                    <Text style={styles.recordingPaymentText}>
+                      {t('sales.recordingPayment')}
+                    </Text>
+                  </View>
+                )}
+
+                <TouchableOpacity
+                  style={styles.recordPaymentModalCancelButton}
+                  onPress={() => setShowRecordPaymentModal(false)}
+                  disabled={recordingPayment}
+                >
+                  <Text style={styles.recordPaymentModalCancelText}>
+                    {t('common.cancel')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
         </Modal>
 
         {/* Enhanced Print Manager for Sale Detail */}
@@ -2740,6 +2957,8 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             receiptData={receiptData}
           />
         )} */}
+
+        {/* Record Debt Payment Modal */}
       </SafeAreaView>
     </Modal>
   );
@@ -3438,6 +3657,37 @@ const styles = StyleSheet.create({
   dateFilterTextActive: {
     color: '#FFFFFF',
   },
+  paymentMethodFilterContainer: {
+    marginTop: 12,
+  },
+  paymentMethodFilterLabel: {
+    fontSize: 14,
+    color: '#374151',
+    marginBottom: 8,
+  },
+  paymentMethodFilters: {
+    flexDirection: 'row',
+  },
+  paymentMethodFilterChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  paymentMethodFilterChipActive: {
+    backgroundColor: '#10B981',
+    borderColor: '#10B981',
+  },
+  paymentMethodFilterText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  paymentMethodFilterTextActive: {
+    color: '#FFFFFF',
+  },
   customDateContainer: {
     marginTop: 12,
     alignItems: 'center',
@@ -3662,6 +3912,22 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontSize: 14,
   },
+  recordPaymentButton: {
+    backgroundColor: '#F59E0B',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  recordPaymentButtonText: {
+    color: '#FFFFFF',
+    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: '600',
+  },
   voucherToggleButton: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
@@ -3809,5 +4075,96 @@ const styles = StyleSheet.create({
   monthPickerConfirmText: {
     fontSize: 16,
     color: '#FFFFFF',
+  },
+  // Record Payment Modal Styles
+  recordPaymentModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  recordPaymentModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  recordPaymentModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  recordPaymentModalTitle: {
+    fontSize: 18,
+    color: '#111827',
+  },
+  recordPaymentModalCloseButton: {
+    padding: 4,
+  },
+  recordPaymentModalDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 20,
+  },
+  paymentMethodOptionsContainer: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  paymentMethodOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  paymentMethodOptionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  paymentMethodOptionIconText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#374151',
+  },
+  paymentMethodOptionText: {
+    fontSize: 16,
+    color: '#111827',
+  },
+  recordingPaymentIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  recordingPaymentText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#F59E0B',
+  },
+  recordPaymentModalCancelButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    marginTop: 8,
+  },
+  recordPaymentModalCancelText: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontWeight: '500',
   },
 });

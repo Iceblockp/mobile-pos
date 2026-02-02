@@ -17,11 +17,13 @@ import {
   X,
   ChevronDown,
   UserPlus,
+  FileText,
 } from 'lucide-react-native';
 import { CustomerForm } from '@/components/CustomerForm';
 import { useCustomers } from '@/hooks/useQueries';
 import { Customer } from '@/services/database';
 import { useTranslation } from '@/context/LocalizationContext';
+import { useCurrencyFormatter } from '@/context/CurrencyContext';
 
 interface CustomerSelectorProps {
   selectedCustomer?: Customer | null;
@@ -37,6 +39,7 @@ export const CustomerSelector: React.FC<CustomerSelectorProps> = ({
   disabled = false,
 }) => {
   const { t } = useTranslation();
+  const { formatPrice } = useCurrencyFormatter();
 
   const [showModal, setShowModal] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -91,17 +94,33 @@ export const CustomerSelector: React.FC<CustomerSelectorProps> = ({
     setShowAddForm(false);
   };
 
-  const renderCustomerItem = ({ item }: { item: Customer }) => (
+  const renderCustomerItem = ({
+    item,
+  }: {
+    item: Customer & { debt_balance?: number };
+  }) => (
     <TouchableOpacity
       style={styles.customerItem}
       onPress={() => handleSelectCustomer(item)}
     >
       <View style={styles.customerInfo}>
-        <Text style={styles.customerName} weight="medium">
-          {item.name}
-        </Text>
+        <View style={styles.customerNameRow}>
+          <Text style={styles.customerName} weight="medium">
+            {item.name}
+          </Text>
+          {item.debt_balance && item.debt_balance > 0 && (
+            <View style={styles.debtIndicator}>
+              <FileText size={12} color="#F59E0B" />
+            </View>
+          )}
+        </View>
         {item.phone && <Text style={styles.customerContact}>{item.phone}</Text>}
         {item.email && <Text style={styles.customerContact}>{item.email}</Text>}
+        {item.debt_balance && item.debt_balance > 0 && (
+          <Text style={styles.debtAmount} weight="medium">
+            {t('debt.owes')}: {formatPrice(item.debt_balance)}
+          </Text>
+        )}
       </View>
       <View style={styles.customerStats}>
         <Text style={styles.customerStat} weight="medium">
@@ -452,5 +471,23 @@ const styles = StyleSheet.create({
   walkInButtonText: {
     fontSize: 14,
     color: '#6B7280',
+  },
+  customerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  debtIndicator: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  debtAmount: {
+    fontSize: 11,
+    color: '#D97706',
+    marginTop: 2,
   },
 });

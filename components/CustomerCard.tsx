@@ -11,13 +11,14 @@ import {
   Edit,
   Trash2,
   ChevronRight,
+  FileText,
 } from 'lucide-react-native';
 import { Customer } from '@/services/database';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
 
 interface CustomerCardProps {
-  customer: Customer;
+  customer: Customer & { debt_balance?: number };
   onEdit?: (customer: Customer) => void;
   onDelete?: (customer: Customer) => void;
   showActions?: boolean;
@@ -58,6 +59,15 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
               <ChevronRight size={16} color="#9CA3AF" style={styles.chevron} />
             )}
           </View>
+
+          {customer.debt_balance && customer.debt_balance > 0 && (
+            <View style={styles.debtBadge}>
+              <FileText size={14} color="#F59E0B" />
+              <Text style={styles.debtText} weight="medium">
+                {t('debt.owes')}: {formatPrice(customer.debt_balance)}
+              </Text>
+            </View>
+          )}
 
           {customer.phone && (
             <View style={styles.contactRow}>
@@ -221,5 +231,21 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 14,
     color: '#111827',
+  },
+  debtBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginTop: 8,
+    marginBottom: 4,
+    alignSelf: 'flex-start',
+  },
+  debtText: {
+    fontSize: 12,
+    color: '#D97706',
+    marginLeft: 4,
   },
 });

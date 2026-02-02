@@ -20,6 +20,7 @@ import {
   Wallet,
   PiggyBank,
   CreditCard,
+  FileText,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useTranslation } from '@/context/LocalizationContext';
@@ -50,6 +51,7 @@ export default function Dashboard() {
   const totalProducts = dashboardData?.totalProducts || 0;
   const dailySalesChart = dashboardData?.dailySalesChart;
   const dailyExpensesChart = dashboardData?.dailyExpensesChart;
+  const debtMetrics = dashboardData?.debtMetrics || { count: 0, total: 0 };
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -186,6 +188,30 @@ export default function Dashboard() {
                 <Text style={styles.metricLabel} weight="medium">
                   {t('dashboard.netProfit')}
                 </Text>
+              </View>
+            </View>
+          </Card>
+
+          {/* Outstanding Debt */}
+          <Card style={styles.metricCard}>
+            <View style={styles.metricContent}>
+              <View
+                style={[styles.iconContainer, { backgroundColor: '#F59E0B' }]}
+              >
+                <FileText size={18} color="#FFFFFF" />
+              </View>
+              <View style={styles.metricText}>
+                <Text style={styles.metricValue} weight="bold">
+                  {formatPrice(debtMetrics.total)}
+                </Text>
+                <Text style={styles.metricLabel} weight="medium">
+                  {t('debt.outstandingDebt')}
+                </Text>
+                {debtMetrics.count > 0 && (
+                  <Text style={styles.metricSubLabel}>
+                    {debtMetrics.count} {t('debt.debtSales')}
+                  </Text>
+                )}
               </View>
             </View>
           </Card>
@@ -456,6 +482,12 @@ const styles = StyleSheet.create({
   metricLabel: {
     fontSize: 10,
     color: '#6B7280',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  metricSubLabel: {
+    fontSize: 9,
+    color: '#9CA3AF',
     marginTop: 2,
     textAlign: 'center',
   },

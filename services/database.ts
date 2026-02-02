@@ -126,6 +126,11 @@ export interface Customer {
   updated_at: string;
 }
 
+export interface CustomerWithDebt extends Customer {
+  debt_balance: number;
+  paid_amount: number;
+}
+
 export interface StockMovement {
   id: string;
   product_id: string;
@@ -2028,6 +2033,17 @@ export class DatabaseService {
     return result as (SaleItem & { product_name: string })[];
   }
 
+  async getSaleById(saleId: string): Promise<Sale | null> {
+    const result = await this.db.getAllAsync(
+      `SELECT s.*, c.name as customer_name 
+       FROM sales s 
+       LEFT JOIN customers c ON s.customer_id = c.id 
+       WHERE s.id = ?`,
+      [saleId]
+    );
+    return result.length > 0 ? (result[0] as Sale) : null;
+  }
+
   async deleteSale(saleId: string): Promise<void> {
     // Start a transaction to ensure data integrity
     await this.db.execAsync('BEGIN TRANSACTION');
@@ -3660,6 +3676,83 @@ export class DatabaseService {
       averageOrderValue,
       lastVisit: lastSale?.created_at || null,
     };
+  }
+
+  // Debt Management Methods
+  async getCustomerDebtBalance(customerId: string): Promise<number> {
+    const result = (await this.db.getFirstAsync(
+      `SELECT COALESCE(SUM(total), 0) as debt_balance
+       FROM sales
+       WHERE customer_id = ? AND payment_method = 'Debt'`,
+      [customerId]
+    )) as { debt_balance: number };
+
+    return result.debt_balance;
+  }
+
+  async getCustomersWithDebt(): Promise<
+    Array<
+      Customer & {
+        debt_balance: number;
+        paid_amount: number;
+      }
+    >
+  > {
+    const result = await this.db.getAllAsync(
+      `SELECT
+        c.*,
+        COALESCE(SUM(CASE WHEN s.payment_method = 'Debt' THEN s.total ELSE 0 END), 0) as debt_balance,
+        COALESCE(SUM(CASE WHEN s.payment_method != 'Debt' THEN s.total ELSE 0 END), 0) as paid_amount
+       FROM customers c
+       LEFT JOIN sales s ON c.id = s.customer_id
+       GROUP BY c.id
+       HAVING debt_balance > 0
+       ORDER BY debt_balance DESC`
+    );
+
+    return result as Array<
+      Customer & {
+        debt_balance: number;
+        paid_amount: number;
+      }
+    >;
+  }
+
+  async getCurrentMonthDebtMetrics(): Promise<{
+    count: number;
+    total: number;
+  }> {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999
+    );
+
+    const result = (await this.db.getFirstAsync(
+      `SELECT COUNT(*) as count, COALESCE(SUM(total), 0) as total
+       FROM sales
+       WHERE payment_method = 'Debt'
+       AND created_at BETWEEN ? AND ?`,
+      [startOfMonth.toISOString(), endOfMonth.toISOString()]
+    )) as { count: number; total: number };
+
+    return result || { count: 0, total: 0 };
+  }
+
+  async updateSalePaymentMethod(
+    saleId: string,
+    newPaymentMethod: string
+  ): Promise<void> {
+    await this.db.runAsync('UPDATE sales SET payment_method = ? WHERE id = ?', [
+      newPaymentMethod,
+      saleId,
+    ]);
   }
 
   // Customer Analytics Methods

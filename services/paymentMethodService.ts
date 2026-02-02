@@ -19,6 +19,13 @@ export class PaymentMethodService {
       color: '#10B981',
       isDefault: true,
     },
+    {
+      id: 'debt',
+      name: 'Debt',
+      icon: 'FileText',
+      color: '#F59E0B',
+      isDefault: true,
+    },
   ];
 
   /**
@@ -43,10 +50,15 @@ export class PaymentMethodService {
         return [...this.DEFAULT_METHODS];
       }
 
-      // Ensure cash method exists
+      // Ensure default methods exist (cash and debt)
       const hasCash = methods.some((method) => method.id === 'cash');
-      if (!hasCash) {
-        const updatedMethods = [this.DEFAULT_METHODS[0], ...methods];
+      const hasDebt = methods.some((method) => method.id === 'debt');
+
+      if (!hasCash || !hasDebt) {
+        const missingDefaults = this.DEFAULT_METHODS.filter(
+          (defaultMethod) => !methods.some((m) => m.id === defaultMethod.id)
+        );
+        const updatedMethods = [...missingDefaults, ...methods];
         await AsyncStorage.setItem(
           this.STORAGE_KEY,
           JSON.stringify(updatedMethods)
@@ -114,12 +126,12 @@ export class PaymentMethodService {
 
   /**
    * Remove a custom payment method
-   * Cannot remove the default cash method
+   * Cannot remove the default cash or debt methods
    */
   static async removePaymentMethod(methodId: string): Promise<void> {
     try {
-      if (methodId === 'cash') {
-        throw new Error('Cannot remove the default cash payment method');
+      if (methodId === 'cash' || methodId === 'debt') {
+        throw new Error('Cannot remove default payment methods');
       }
 
       const existingMethods = await this.getPaymentMethods();

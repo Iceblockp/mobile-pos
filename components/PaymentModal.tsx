@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import {
@@ -28,6 +29,7 @@ import {
   type PaymentMethod,
 } from '@/services/paymentMethodService';
 import { PaymentMethodManagement } from '@/components/PaymentMethodManagement';
+import { type Customer } from '@/services/database';
 
 interface PaymentModalProps {
   visible: boolean;
@@ -39,6 +41,7 @@ interface PaymentModalProps {
   ) => void;
   total: number;
   loading: boolean;
+  selectedCustomer?: Customer | null;
 }
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({
@@ -47,6 +50,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   onConfirmSale,
   total,
   loading,
+  selectedCustomer,
 }) => {
   const { t } = useTranslation();
   const { formatPrice } = useCurrencyFormatter();
@@ -100,6 +104,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     const selectedMethod = paymentMethods.find(
       (method) => method.id === selectedPaymentMethod
     );
+
+    // Validate customer for debt sales
+    if (selectedMethod?.id === 'debt' && !selectedCustomer) {
+      Alert.alert(t('common.error'), t('debt.customerRequiredForDebt'));
+      return;
+    }
+
     const methodName = selectedMethod ? selectedMethod.name : 'Cash';
     onConfirmSale(methodName, saleNote.trim(), shouldPrintReceipt);
   };

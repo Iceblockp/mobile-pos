@@ -18,6 +18,7 @@ import {
   ShoppingBag,
   TrendingUp,
   User,
+  FileText,
 } from 'lucide-react-native';
 import { Card } from '@/components/Card';
 import { CustomerForm } from '@/components/CustomerForm';
@@ -28,6 +29,8 @@ import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import { useToast } from '@/context/ToastContext';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useQuery } from '@tanstack/react-query';
+import { useDatabase } from '@/context/DatabaseContext';
 
 export default function CustomerDetail() {
   const router = useRouter();
@@ -35,11 +38,22 @@ export default function CustomerDetail() {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { deleteCustomer } = useCustomerMutations();
+  const { db } = useDatabase();
 
   const [showEditForm, setShowEditForm] = useState(false);
 
   const { data: customer, isLoading, error, refetch } = useCustomer(id!);
   const { formatPrice } = useCurrencyFormatter();
+
+  // Fetch customer debt balance
+  const { data: debtBalance = 0 } = useQuery({
+    queryKey: ['customerDebtBalance', id],
+    queryFn: async () => {
+      if (!db) return 0;
+      return await db.getCustomerDebtBalance(id!);
+    },
+    enabled: !!id && !!db,
+  });
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -230,6 +244,28 @@ export default function CustomerDetail() {
             </Text>
           </Card>
         </View>
+
+        {/* Debt Balance Card - Only show if customer has debt */}
+        {debtBalance > 0 && (
+          <Card style={styles.debtCard}>
+            <View style={styles.debtHeader}>
+              <View style={styles.debtIconContainer}>
+                <FileText size={24} color="#F59E0B" />
+              </View>
+              <View style={styles.debtInfo}>
+                <Text style={styles.debtLabel} weight="medium">
+                  {t('debt.debtBalance')}
+                </Text>
+                <Text style={styles.debtValue} weight="bold">
+                  {formatPrice(debtBalance)}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.debtDescription}>
+              This customer has outstanding debt from sales made on credit.
+            </Text>
+          </Card>
+        )}
 
         {/* Purchase History */}
         <Card style={styles.historyCard}>
@@ -460,5 +496,42 @@ const styles = StyleSheet.create({
   retryButtonText: {
     fontSize: 14,
     color: '#FFFFFF',
+  },
+  debtCard: {
+    marginBottom: 16,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+  },
+  debtHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  debtIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FDE68A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  debtInfo: {
+    flex: 1,
+  },
+  debtLabel: {
+    fontSize: 14,
+    color: '#92400E',
+    marginBottom: 4,
+  },
+  debtValue: {
+    fontSize: 24,
+    color: '#D97706',
+  },
+  debtDescription: {
+    fontSize: 13,
+    color: '#92400E',
+    lineHeight: 18,
   },
 });

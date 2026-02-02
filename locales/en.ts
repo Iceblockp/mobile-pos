@@ -203,6 +203,7 @@ export const en = {
     manualDiscount: 'Manual Discount',
     saleNote: 'Sale Note',
     addNote: 'Add Note (Optional)',
+    recordingPayment: 'Recording payment...',
   },
   printing: {
     title: 'Print Receipt',
@@ -1728,6 +1729,23 @@ export const en = {
     step2: "2. Pair it in your device's Bluetooth settings",
     step3: '3. Return here and tap "Scan"',
     step4: '4. Select your printer to connect',
+  },
+  debt: {
+    title: 'Debt Management',
+    outstandingDebt: 'Outstanding Debt',
+    debtSales: 'Debt Sales',
+    customerRequiredForDebt: 'Customer is required for debt sales',
+    recordPayment: 'Record Payment',
+    recordDebtPayment: 'Record Debt Payment',
+    selectPaymentMethod: 'Select Payment Method',
+    paymentRecorded: 'Payment recorded successfully',
+    owes: 'Owes',
+    debtBalance: 'Debt Balance',
+    totalDebt: 'Total Debt',
+    paidAmount: 'Paid Amount',
+    debtHistory: 'Debt History',
+    noDebtSales: 'No debt sales found',
+    customersWithDebt: 'Customers with Debt',
   },
 };
 

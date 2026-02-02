@@ -16,12 +16,14 @@ export const useDashboardAnalytics = () => {
         allProducts,
         dailySales,
         dailyExpenses,
+        debtMetrics,
       ] = await Promise.all([
         db.getCurrentMonthSalesAnalytics(), // Already uses timezone-aware ranges internally
         db.getLowStockProducts(),
         db.getProducts(),
         db.getDailySalesForCurrentMonth(),
         db.getDailyExpensesForCurrentMonth(),
+        db.getCurrentMonthDebtMetrics(),
       ]);
 
       return {
@@ -30,6 +32,7 @@ export const useDashboardAnalytics = () => {
         totalProducts: allProducts.length,
         dailySalesChart: dailySales,
         dailyExpensesChart: dailyExpenses,
+        debtMetrics,
       };
     },
     enabled: isReady && !!db,
