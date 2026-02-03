@@ -99,8 +99,12 @@ export const en = {
     addProducts: 'Add products to start a sale',
     addProduct: 'Add Product',
     processSale: 'Process Sale',
-    // paymentMethod: 'Payment Method',
+    paymentMethod: 'Payment Method',
     selectPaymentMethod: 'Select a payment method to complete the sale:',
+    managePaymentMethods: 'Manage Payment Methods',
+    noPaymentMethods: 'No payment methods available',
+    errorLoadingPaymentMethods: 'Failed to load payment methods',
+    default: 'Default',
     cash: 'Cash',
     card: 'Card',
     mobilePayment: 'Mobile Payment',
@@ -124,6 +128,12 @@ export const en = {
     low: '(Low)',
     out: '(Out)',
     noProductsAvailable: 'No products available',
+    // Payment method selector
+    selectPaymentMethodLabel: 'Select Payment Method',
+    // Debt validation
+    customerRequiredForDebt: 'Please select a customer for debt payment',
+    // Calculator
+    recalculate: 'Recalculate',
     // Sales History
     done: 'Done',
     exportOptions: 'Export Options',
@@ -162,7 +172,6 @@ export const en = {
     saleInformation: 'Sale Information',
     saleId: 'Sale ID:',
     date: 'Date:',
-    paymentMethod: 'Payment Method:',
     totalAmount: 'Total Amount:',
     totalCost: 'Total Cost:',
     totalProfit: 'Total Profit:',
@@ -274,6 +283,18 @@ export const en = {
     paymentMethodAdded: 'Payment method added successfully',
     paymentMethodRemoved: 'Payment method removed successfully',
     loadingPaymentMethods: 'Loading payment methods...',
+  },
+  calculator: {
+    title: 'Cash Payment Calculator',
+    subtotal: 'Subtotal',
+    amountGiven: 'Amount Given',
+    change: 'Change',
+    exact: 'EXACT',
+    clear: 'Clear',
+    continue: 'Continue',
+    cancel: 'Cancel',
+    insufficientAmount: 'Amount is less than subtotal',
+    backspace: 'Backspace',
   },
   barcodeScanner: {
     title: 'Scan Barcode',

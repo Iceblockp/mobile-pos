@@ -101,8 +101,13 @@ export const my: TranslationKeys = {
     addProducts: 'ရောင်းချရန် ကုန်ပစ္စည်းများထည့်ပါ',
     addProduct: 'ပစ္စည်းထည့်မည်',
     processSale: 'ရောင်းချမည်',
+    paymentMethod: 'ငွေပေးချေမှုနည်းလမ်း',
     selectPaymentMethod:
       'ရောင်းချမှုပြီးမြောက်စေရန် ငွေပေးချေမှုနည်းလမ်းရွေးပါ:',
+    managePaymentMethods: 'ငွေပေးချေမှုနည်းလမ်းများစီမံမည်',
+    noPaymentMethods: 'ငွေပေးချေမှုနည်းလမ်းများမရှိပါ',
+    errorLoadingPaymentMethods: 'ငွေပေးချေမှုနည်းလမ်းများဖွင့်ရန်မအောင်မြင်ပါ',
+    default: 'မူလ',
     cash: 'လက်ငင်း',
     card: 'ကတ်',
     mobilePayment: 'မိုဘိုင်းငွေပေးချေမှု',
@@ -127,6 +132,13 @@ export const my: TranslationKeys = {
     low: '(နည်း)',
     out: '(ကုန်)',
     noProductsAvailable: 'ကုန်ပစ္စည်းများမရှိပါ',
+    // Payment method selector
+    selectPaymentMethodLabel: 'ငွေပေးချေမှုနည်းလမ်းရွေးချယ်ပါ',
+    // Debt validation
+    customerRequiredForDebt:
+      'အကြွေးရောင်းချမှုအတွက် ဖောက်သည်ရွေးချယ်ရန်လိုအပ်သည်',
+    // Calculator
+    recalculate: 'ပြန်တွက်မည်',
     // Sales History
     done: 'ပြီးပါပြီ',
     exportOptions: 'တင်ပို့မှုရွေးချယ်စရာများ',
@@ -166,7 +178,6 @@ export const my: TranslationKeys = {
     saleInformation: 'ရောင်းချမှုအချက်အလက်',
     saleId: 'ရောင်းချမှုနံပါတ်:',
     date: 'ရက်စွဲ:',
-    paymentMethod: 'ငွေပေးချေမှုနည်းလမ်း:',
     totalAmount: 'စုစုပေါင်းပမာဏ:',
     totalCost: 'စုစုပေါင်းကုန်ကျစရိတ်:',
     totalProfit: 'စုစုပေါင်းအမြတ်အစွန်း:',
@@ -282,6 +293,18 @@ export const my: TranslationKeys = {
     paymentMethodAdded: 'ငွေပေးချေမှုနည်းလမ်းအောင်မြင်စွာထည့်ပါပြီ',
     paymentMethodRemoved: 'ငွေပေးချေမှုနည်းလမ်းအောင်မြင်စွာဖယ်ရှားပါပြီ',
     loadingPaymentMethods: 'ငွေပေးချေမှုနည်းလမ်းများဖွင့်နေသည်...',
+  },
+  calculator: {
+    title: 'လက်ငင်းငွေတွက်စက်',
+    subtotal: 'စုစုပေါင်း',
+    amountGiven: 'ပေးသောပမာဏ',
+    change: 'ပြန်အမ်း',
+    exact: 'အတိအကျ',
+    clear: 'ရှင်းလင်းမည်',
+    continue: 'ဆက်လုပ်မည်',
+    cancel: 'ပယ်ဖျက်မည်',
+    insufficientAmount: 'ပမာဏသည် စုစုပေါင်းထက်နည်းနေသည်',
+    backspace: 'ဖျက်မည်',
   },
   barcodeScanner: {
     title: 'ဘားကုဒ်စကင်မည်',

@@ -13,6 +13,7 @@ import {
   Image,
   FlatList,
   RefreshControl,
+  Animated,
 } from 'react-native';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Card } from '@/components/Card';
@@ -68,7 +69,8 @@ import * as Sharing from 'expo-sharing';
 import { captureRef } from 'react-native-view-shot';
 import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
-import { PaymentModal } from '@/components/PaymentModal';
+import { CompleteSaleModal } from '@/components/CompleteSaleModal';
+import { CashCalculatorModal } from '@/components/CashCalculatorModal';
 import { EnhancedPrintManager } from '@/components/EnhancedPrintManager';
 import { BulkPricingIndicator } from '@/components/BulkPricingIndicator';
 import {
@@ -82,7 +84,11 @@ import { useMemoryCleanup, useRenderPerformance } from '@/utils/memoryManager';
 import { useBarcodeActions } from '@/hooks/useBarcodeActions';
 import { PrinterErrorBoundary } from '@/components/PrinterErrorBoundary';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { PaymentMethodService } from '@/services/paymentMethodService';
+import {
+  PaymentMethodService,
+  type PaymentMethod,
+} from '@/services/paymentMethodService';
+import { PaymentMethodSelector } from '@/components/PaymentMethodSelector';
 
 interface CartItem {
   product: Product;
@@ -134,10 +140,20 @@ export default function Sales() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
-    null
+    null,
   );
+  const [selectedPaymentMethod, setSelectedPaymentMethod] =
+    useState<PaymentMethod | null>(null);
   const [saleDateTime, setSaleDateTime] = useState<Date>(new Date());
   const [showDateTimeSelector, setShowDateTimeSelector] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [calculatorData, setCalculatorData] = useState<{
+    amountGiven: number;
+    change: number;
+  } | null>(null);
+
+  // Ref and animation for customer selector highlighting
+  const customerSelectorOpacity = useRef(new Animated.Value(1)).current;
 
   // Debounced search for performance
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
@@ -155,7 +171,7 @@ export default function Sales() {
     refetch,
   } = useProductsInfinite(
     debouncedSearchQuery || undefined,
-    selectedCategory !== 'All' ? selectedCategory : undefined
+    selectedCategory !== 'All' ? selectedCategory : undefined,
   );
 
   // Flatten all pages into a single array
@@ -167,6 +183,37 @@ export default function Sales() {
     useCategoriesWithCounts();
 
   const { addSale } = useSaleMutations();
+
+  // Load default payment method on mount
+  useEffect(() => {
+    const loadDefaultPaymentMethod = async () => {
+      try {
+        const defaultMethod =
+          await PaymentMethodService.getDefaultPaymentMethod();
+        setSelectedPaymentMethod(defaultMethod);
+      } catch (error) {
+        console.error('Error loading default payment method:', error);
+
+        // Graceful fallback: provide default cash payment method
+        const fallbackMethod: PaymentMethod = {
+          id: 'cash',
+          name: 'Cash',
+          icon: 'Banknote',
+          color: '#10B981',
+          isDefault: true,
+        };
+        setSelectedPaymentMethod(fallbackMethod);
+
+        // Show toast notification instead of blocking alert
+        showToast(
+          t('sales.errorLoadingPaymentMethods') ||
+            'Using default cash payment method',
+          'error',
+        );
+      }
+    };
+    loadDefaultPaymentMethod();
+  }, []);
 
   useEffect(() => {
     // Calculate total considering both bulk pricing and manual discounts
@@ -214,7 +261,7 @@ export default function Sales() {
 
       // Find bulk pricing for this item
       const bulkItem = bulkPricingTotals.itemBreakdown.find(
-        (breakdown) => breakdown.item.id === item.product.id
+        (breakdown) => breakdown.item.id === item.product.id,
       );
 
       // Step 1: Calculate bulk discount
@@ -328,8 +375,8 @@ export default function Sales() {
                 quantity: newQuantity,
                 subtotal: bulkTotalPrice - item.discount, // bulk_total - manual_discount
               }
-            : item
-        )
+            : item,
+        ),
       );
     } else {
       // For new items, start with bulk price for quantity 1
@@ -405,8 +452,8 @@ export default function Sales() {
               quantity: newQuantity,
               subtotal: bulkTotalPrice - item.discount, // bulk_total - manual_discount
             }
-          : item
-      )
+          : item,
+      ),
     );
   };
 
@@ -460,8 +507,8 @@ export default function Sales() {
               // Note: subtotal will be recalculated in getCartTotals with stacked discounts
               subtotal: bulkPrice - newDiscount, // Apply manual discount to bulk price
             }
-          : item
-      )
+          : item,
+      ),
     );
   };
 
@@ -469,23 +516,67 @@ export default function Sales() {
     'saleda',
     saleDateTime,
     saleDateTime.toISOString(),
-    convertISOToDBFormat(saleDateTime.toISOString())
+    convertISOToDBFormat(saleDateTime.toISOString()),
   );
 
   const removeFromCart = (productId: string) => {
     setCart(cart.filter((item) => item.product.id !== productId));
   };
 
-  const clearCart = () => {
+  const highlightCustomerSelector = () => {
+    // Pulse animation to draw attention to customer selector
+    Animated.sequence([
+      Animated.timing(customerSelectorOpacity, {
+        toValue: 0.3,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(customerSelectorOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(customerSelectorOpacity, {
+        toValue: 0.3,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(customerSelectorOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const clearCart = async () => {
     setCart([]);
     setSelectedCustomer(null);
+    // Reset payment method to default
+    try {
+      const defaultMethod =
+        await PaymentMethodService.getDefaultPaymentMethod();
+      setSelectedPaymentMethod(defaultMethod);
+    } catch (error) {
+      console.error('Error resetting payment method:', error);
+
+      // Graceful fallback: use cash as default
+      const fallbackMethod: PaymentMethod = {
+        id: 'cash',
+        name: 'Cash',
+        icon: 'Banknote',
+        color: '#10B981',
+        isDefault: true,
+      };
+      setSelectedPaymentMethod(fallbackMethod);
+    }
     // Don't reset timestamp here - let it be handled by the component logic
   };
 
   const processSale = async (
     paymentMethod: string,
     note: string,
-    shouldPrint: boolean
+    shouldPrint: boolean,
   ) => {
     if (cart.length === 0) return;
 
@@ -502,13 +593,13 @@ export default function Sales() {
         created_at: convertISOToDBFormat(
           showDateTimeSelector
             ? saleDateTime.toISOString()
-            : new Date().toISOString()
+            : new Date().toISOString(),
         ), // Use current time unless datetime selector is open
       };
 
       const saleItems = cart.map((item) => {
         const itemPricing = cartTotals.itemBreakdown.find(
-          (breakdown) => breakdown.item?.id === item.product.id
+          (breakdown) => breakdown.item?.id === item.product.id,
         );
 
         // Calculate bulk pricing for this item
@@ -557,8 +648,11 @@ export default function Sales() {
         setShowPrintManager(true);
       }
 
+      // Clear all state after successful sale (Requirements 7.1, 7.2, 7.3, 7.4)
       clearCart();
       setShowPaymentModal(false);
+      // Reset calculator data
+      setCalculatorData(null);
       // Reset datetime state for next sale
       setSaleDateTime(new Date());
       setShowDateTimeSelector(false);
@@ -576,7 +670,37 @@ export default function Sales() {
       return;
     }
 
+    // Validate customer selection for debt payments
+    if (selectedPaymentMethod?.name === 'Debt' && !selectedCustomer) {
+      Alert.alert(t('common.error'), t('debt.customerRequiredForDebt'));
+      highlightCustomerSelector();
+      return;
+    }
+
+    // Show calculator for cash payments
+    if (selectedPaymentMethod?.id === 'cash') {
+      setShowCalculator(true);
+      return;
+    }
+
+    // Show complete sale modal directly for non-cash payments
     setShowPaymentModal(true);
+  };
+
+  const handleCalculatorContinue = (amountGiven: number, change: number) => {
+    // Store calculator data
+    setCalculatorData({ amountGiven, change });
+    // Close calculator
+    setShowCalculator(false);
+    // Open complete sale modal
+    setShowPaymentModal(true);
+  };
+
+  const handleRecalculate = () => {
+    // Close complete sale modal
+    setShowPaymentModal(false);
+    // Reopen calculator modal with previous values
+    setShowCalculator(true);
   };
 
   // Products are now filtered server-side through the infinite query
@@ -629,16 +753,21 @@ export default function Sales() {
             </View>
           </View>
 
-          {/* Customer Selection */}
+          {/* Customer and Payment Method Selection */}
           <View style={styles.customerSection}>
-            {/* <Text style={styles.customerLabel} weight="medium">
-              {t('sales.customer')}
-            </Text> */}
-            <CustomerSelector
-              selectedCustomer={selectedCustomer}
-              onCustomerSelect={setSelectedCustomer}
-              placeholder={t('sales.selectCustomerOptional')}
-            />
+            <Animated.View style={{ opacity: customerSelectorOpacity }}>
+              <CustomerSelector
+                selectedCustomer={selectedCustomer}
+                onCustomerSelect={setSelectedCustomer}
+                placeholder={t('sales.selectCustomerOptional')}
+              />
+            </Animated.View>
+            <View style={styles.paymentMethodSelectorContainer}>
+              <PaymentMethodSelector
+                selectedPaymentMethod={selectedPaymentMethod}
+                onPaymentMethodSelect={setSelectedPaymentMethod}
+              />
+            </View>
           </View>
 
           {/* Compact Bulk Pricing Summary */}
@@ -735,7 +864,7 @@ export default function Sales() {
                       <Text style={styles.cartItemSubtotal} weight="bold">
                         {formatPrice(
                           getBulkPricePerUnit(item) * item.quantity -
-                            item.discount
+                            item.discount,
                         )}
                       </Text>
                     </View>
@@ -908,7 +1037,7 @@ export default function Sales() {
                     All (
                     {categories.reduce(
                       (sum: number, cat: any) => sum + (cat.product_count || 0),
-                      0
+                      0,
                     )}
                     )
                   </Text>
@@ -1020,8 +1149,8 @@ export default function Sales() {
                         product.quantity <= 0
                           ? styles.outOfStock
                           : product.quantity <= product.min_stock
-                          ? styles.lowStock
-                          : styles.inStock,
+                            ? styles.lowStock
+                            : styles.inStock,
                       ]}
                     >
                       {t('sales.stock')}: {product.quantity}
@@ -1106,13 +1235,25 @@ export default function Sales() {
 
       {showHistory && <SalesHistory onClose={() => setShowHistory(false)} />}
 
-      <PaymentModal
+      <CashCalculatorModal
+        visible={showCalculator}
+        subtotal={total}
+        onContinue={handleCalculatorContinue}
+        onCancel={() => setShowCalculator(false)}
+        initialAmountGiven={calculatorData?.amountGiven}
+      />
+
+      <CompleteSaleModal
         visible={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         onConfirmSale={processSale}
         total={total}
+        paymentMethod={selectedPaymentMethod || undefined}
         loading={loading}
         selectedCustomer={selectedCustomer}
+        onRecalculate={
+          selectedPaymentMethod?.id === 'cash' ? handleRecalculate : undefined
+        }
       />
 
       {receiptData && (
@@ -1212,7 +1353,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const generateFilename = (
     baseFilename: string,
     dateFilter: string,
-    selectedDate: Date
+    selectedDate: Date,
   ) => {
     const now = new Date();
     const formatDateForFilename = (date: Date) => {
@@ -1229,14 +1370,14 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
         filename += `_${formatDateForFilename(
-          monthStart
+          monthStart,
         )}_to_${formatDateForFilename(monthEnd)}`;
         break;
       case 'selectedMonth':
         const selectedMonthStart = new Date(selectedYear, selectedMonth, 1);
         const selectedMonthEnd = new Date(selectedYear, selectedMonth + 1, 0);
         filename += `_${formatDateForFilename(
-          selectedMonthStart
+          selectedMonthStart,
         )}_to_${formatDateForFilename(selectedMonthEnd)}`;
         break;
       case 'custom':
@@ -1254,7 +1395,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   const calculateDateRange = (
     dateFilterType: string,
-    selectedDate: Date
+    selectedDate: Date,
   ): [Date, Date] => {
     const now = new Date();
     const startDate = new Date();
@@ -1342,7 +1483,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           endDate,
           searchQuery,
           undefined,
-          -390
+          -390,
         );
 
   // Get all sales for export (when needed)
@@ -1352,12 +1493,12 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       undefined, // No customer filter in sales history
       dateFilter === 'all' ? undefined : startDate,
       dateFilter === 'all' ? undefined : endDate,
-      -390 // Same timezone offset as the working queries
+      -390, // Same timezone offset as the working queries
     );
 
   // Use React Query for sale items
   const { data: saleItems = [], isLoading: saleItemsLoading } = useSaleItems(
-    selectedSale?.id || 0
+    selectedSale?.id || 0,
   );
 
   // Use mutations and database context
@@ -1498,7 +1639,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       } else {
         Alert.alert(
           'Sharing not available',
-          'Sharing is not available on this device'
+          'Sharing is not available on this device',
         );
       }
     } catch (error) {
@@ -1532,7 +1673,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -1572,7 +1713,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         const totalRevenue = salesSummary?.total || 0;
         const totalCost = items.reduce(
           (sum, item) => sum + (item.cost || 0) * item.quantity,
-          0
+          0,
         );
         const totalProfit = totalRevenue - totalCost;
 
@@ -1638,7 +1779,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         const filename = generateFilename(
           'sales_list',
           dateFilter,
-          selectedDate
+          selectedDate,
         );
 
         // Convert to binary string
@@ -1655,7 +1796,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         } else {
           Alert.alert(
             'Sharing not available',
-            'Sharing is not available on this device'
+            'Sharing is not available on this device',
           );
         }
         return;
@@ -1677,7 +1818,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       const totalRevenue = salesSummary?.total || 0;
       const totalCost = items.reduce(
         (sum, item) => sum + (item.cost || 0) * item.quantity,
-        0
+        0,
       );
       const totalProfit = totalRevenue - totalCost;
 
@@ -1753,7 +1894,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       const filename = generateFilename(
         'sales_history',
         dateFilter,
-        selectedDate
+        selectedDate,
       );
 
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
@@ -1814,12 +1955,12 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         // Add summary data
         const totalQuantity = items.reduce(
           (sum, item) => sum + item.quantity,
-          0
+          0,
         );
         const totalSales = items.reduce((sum, item) => sum + item.subtotal, 0);
         const totalCost = items.reduce(
           (sum, item) => sum + (item.cost || 0) * item.quantity,
-          0
+          0,
         );
         const totalProfit = totalSales - totalCost;
         excelData.push({
@@ -1911,7 +2052,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         const filename = generateFilename(
           'sales_items',
           dateFilter,
-          selectedDate
+          selectedDate,
         );
 
         // Convert to binary string
@@ -1928,7 +2069,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         } else {
           Alert.alert(
             'Sharing not available',
-            'Sharing is not available on this device'
+            'Sharing is not available on this device',
           );
         }
         return;
@@ -1950,7 +2091,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         'Subtotal (MMK)': formatPrice(item.subtotal),
         Profit: item.subtotal - (item.cost || 0) * item.quantity,
         'Profit (MMK)': formatPrice(
-          item.subtotal - (item.cost || 0) * item.quantity
+          item.subtotal - (item.cost || 0) * item.quantity,
         ),
       }));
 
@@ -1959,7 +2100,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       const totalSales = items.reduce((sum, item) => sum + item.subtotal, 0);
       const totalCost = items.reduce(
         (sum, item) => sum + (item.cost || 0) * item.quantity,
-        0
+        0,
       );
       const totalProfit = totalSales - totalCost;
 
@@ -2084,7 +2225,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       const filename = generateFilename(
         'sales_items',
         dateFilter,
-        selectedDate
+        selectedDate,
       );
 
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
@@ -2412,7 +2553,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     {
                       month: 'long',
                       year: 'numeric',
-                    }
+                    },
                   )}
                 </Text>
               </TouchableOpacity>
@@ -2536,7 +2677,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   >
                     {Array.from(
                       { length: 5 },
-                      (_, i) => new Date().getFullYear() - i
+                      (_, i) => new Date().getFullYear() - i,
                     ).map((year, index) => (
                       <View key={index}>
                         <TouchableOpacity
@@ -2689,8 +2830,8 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         {capturing
                           ? t('sales.exporting')
                           : isCustomerVoucher
-                          ? t('sales.printCustomerReceipt')
-                          : t('sales.exportAsImage')}
+                            ? t('sales.printCustomerReceipt')
+                            : t('sales.exportAsImage')}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -2775,8 +2916,8 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                             {formatPrice(
                               saleItems.reduce(
                                 (sum, item) => sum + item.cost * item.quantity,
-                                0
-                              )
+                                0,
+                              ),
                             )}
                           </Text>
                         </View>
@@ -2795,8 +2936,8 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                 saleItems.reduce(
                                   (sum, item) =>
                                     sum + item.cost * item.quantity,
-                                  0
-                                )
+                                  0,
+                                ),
                             )}
                           </Text>
                         </View>
@@ -2834,7 +2975,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                             <Text style={styles.saleItemProfit}>
                               {t('sales.profit')}{' '}
                               {formatPrice(
-                                item.subtotal - item.cost * item.quantity
+                                item.subtotal - item.cost * item.quantity,
                               )}
                             </Text>
                           )}
@@ -3141,6 +3282,9 @@ const styles = StyleSheet.create({
   },
   customerSection: {
     marginBottom: 5,
+  },
+  paymentMethodSelectorContainer: {
+    marginTop: 8,
   },
   customerLabel: {
     fontSize: 14,
