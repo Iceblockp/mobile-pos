@@ -100,7 +100,7 @@ export const en = {
     addProduct: 'Add Product',
     processSale: 'Process Sale',
     paymentMethod: 'Payment Method',
-    selectPaymentMethod: 'Select a payment method to complete the sale:',
+    selectPaymentMethod: 'Select payment method:',
     managePaymentMethods: 'Manage Payment Methods',
     noPaymentMethods: 'No payment methods available',
     errorLoadingPaymentMethods: 'Failed to load payment methods',

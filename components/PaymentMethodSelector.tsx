@@ -339,17 +339,20 @@ const styles = StyleSheet.create({
     padding: 20,
     width: '100%',
     maxWidth: 400,
-    maxHeight: '70%',
+    maxHeight: '85%',
+    minHeight: 500,
+    flex: 1,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 20,
   },
   modalTitle: {
     fontSize: 18,
     color: '#111827',
+    maxWidth: 300,
   },
   closeButton: {
     padding: 4,
@@ -378,6 +381,7 @@ const styles = StyleSheet.create({
   methodListContainer: {
     flex: 1,
     minHeight: 200,
+    maxHeight: 400,
   },
   methodList: {
     flex: 1,
