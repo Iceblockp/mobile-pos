@@ -7,7 +7,7 @@ import {
   Platform,
 } from 'react-native';
 import { MyanmarText as Text } from '@/components/MyanmarText';
-import { X, Delete } from 'lucide-react-native';
+import { X } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
 
@@ -47,28 +47,12 @@ export const CashCalculatorModal: React.FC<CashCalculatorModalProps> = ({
     return amount - subtotal;
   }, [amountGiven, subtotal]);
 
-  // Quick amount buttons (denominations in MMK)
-  const quickAmounts = [1000, 5000, 10000, 50000, 100000];
-
   // Handle EXACT button - sets amount equal to subtotal with validation
   const handleExact = () => {
     // Ensure subtotal is valid
     if (subtotal > 0 && isFinite(subtotal)) {
       setAmountGiven(subtotal.toString());
     }
-  };
-
-  // Handle quick amount buttons - ADD to current amount with validation
-  const handleQuickAmount = (amount: number) => {
-    const currentAmount = parseFloat(amountGiven) || 0;
-    const newAmount = currentAmount + amount;
-
-    // Prevent excessively large amounts (max 100 million)
-    if (newAmount > 100000000) {
-      return;
-    }
-
-    setAmountGiven(newAmount.toString());
   };
 
   // Handle numpad digit input with validation
@@ -111,12 +95,12 @@ export const CashCalculatorModal: React.FC<CashCalculatorModalProps> = ({
     onContinue(amount, change);
   };
 
-  // Numpad layout
+  // Numpad layout - removed 00 and 000, replaced with Clear and Backspace
   const numpadButtons = [
     ['7', '8', '9'],
     ['4', '5', '6'],
     ['1', '2', '3'],
-    ['0', '00', '000'],
+    ['CLEAR', '0', 'BACK'],
   ];
 
   return (
@@ -148,41 +132,38 @@ export const CashCalculatorModal: React.FC<CashCalculatorModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Display Area */}
+          {/* Calculator Display Box - Amount Given */}
           <View
-            style={styles.displayArea}
+            style={styles.calculatorDisplay}
             accessible={true}
-            accessibilityRole="summary"
-            accessibilityLabel={`${t('calculator.subtotal')}: ${formatPrice(subtotal)}, ${t('calculator.amountGiven')}: ${formatPrice(parseFloat(amountGiven) || 0)}, ${t('calculator.change')}: ${formatPrice(change)}`}
+            accessibilityRole="text"
+            accessibilityLabel={`${t('calculator.amountGiven')}: ${formatPrice(parseFloat(amountGiven) || 0)}`}
           >
+            <Text style={styles.calculatorDisplayText} weight="bold">
+              {formatPrice(parseFloat(amountGiven) || 0)}
+            </Text>
+          </View>
+
+          {/* Compact Info Display - Subtotal and Change */}
+          <View style={styles.compactInfoDisplay}>
             {/* Subtotal */}
-            <View style={styles.displayRow}>
-              <Text style={styles.displayLabel} weight="medium">
+            <View style={styles.compactInfoRow}>
+              <Text style={styles.compactLabel} weight="medium">
                 {t('calculator.subtotal')}
               </Text>
-              <Text style={styles.displayValue} weight="bold">
+              <Text style={styles.compactValue} weight="bold">
                 {formatPrice(subtotal)}
               </Text>
             </View>
 
-            {/* Amount Given */}
-            <View style={styles.displayRow}>
-              <Text style={styles.displayLabel} weight="medium">
-                {t('calculator.amountGiven')}
-              </Text>
-              <Text style={styles.displayValueLarge} weight="bold">
-                {formatPrice(parseFloat(amountGiven) || 0)}
-              </Text>
-            </View>
-
             {/* Change */}
-            <View style={styles.displayRow}>
-              <Text style={styles.displayLabel} weight="medium">
+            <View style={styles.compactInfoRow}>
+              <Text style={styles.compactLabel} weight="medium">
                 {t('calculator.change')}
               </Text>
               <Text
                 style={[
-                  styles.displayValueLarge,
+                  styles.compactValue,
                   change >= 0 ? styles.changePositive : styles.changeNegative,
                 ]}
                 weight="bold"
@@ -194,106 +175,87 @@ export const CashCalculatorModal: React.FC<CashCalculatorModalProps> = ({
             </View>
 
             {/* Warning for insufficient amount */}
-            {change < 0 && (
-              <View
-                style={styles.warningContainer}
-                accessible={true}
-                accessibilityRole="alert"
-                accessibilityLiveRegion="polite"
-              >
-                <Text style={styles.warningText}>
-                  {t('calculator.insufficientAmount')}
-                </Text>
-              </View>
-            )}
           </View>
 
-          {/* Quick Amount Buttons */}
-          <View style={styles.quickButtonsSection}>
-            {/* EXACT Button */}
-            <TouchableOpacity
-              style={[styles.quickButton, styles.exactButton]}
-              onPress={handleExact}
-              activeOpacity={0.7}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel={`${t('calculator.exact')} - Set amount to exact subtotal of ${formatPrice(subtotal)}`}
-              accessibilityHint="Sets the amount given to match the subtotal exactly"
-            >
-              <Text style={styles.exactButtonText} weight="bold">
-                {t('calculator.exact')}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Denomination Buttons */}
-            {quickAmounts.map((amount) => (
-              <TouchableOpacity
-                key={amount}
-                style={styles.quickButton}
-                onPress={() => handleQuickAmount(amount)}
-                activeOpacity={0.7}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel={`Add ${formatPrice(amount)} to amount given`}
-                accessibilityHint={`Adds ${amount >= 1000 ? `${amount / 1000}K` : amount} to the current amount`}
-              >
-                <Text style={styles.quickButtonText} weight="medium">
-                  {amount >= 1000 ? `${amount / 1000}K` : amount}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          {/* EXACT Button - Standalone */}
+          <TouchableOpacity
+            style={styles.exactButton}
+            onPress={handleExact}
+            activeOpacity={0.7}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('calculator.exact')} - Set amount to exact subtotal of ${formatPrice(subtotal)}`}
+            accessibilityHint="Sets the amount given to match the subtotal exactly"
+          >
+            <Text style={styles.exactButtonText} weight="bold">
+              {t('calculator.exact')}
+            </Text>
+          </TouchableOpacity>
 
           {/* Numeric Keypad */}
           <View style={styles.keypadSection}>
             {numpadButtons.map((row, rowIndex) => (
               <View key={rowIndex} style={styles.keypadRow}>
-                {row.map((button) => (
-                  <TouchableOpacity
-                    key={button}
-                    style={styles.keypadButton}
-                    onPress={() => handleDigit(button)}
-                    activeOpacity={0.7}
-                    accessible={true}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Digit ${button}`}
-                    accessibilityHint={`Adds ${button} to the amount`}
-                  >
-                    <Text style={styles.keypadButtonText} weight="medium">
-                      {button}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                {row.map((button) => {
+                  // Handle special buttons
+                  if (button === 'CLEAR') {
+                    return (
+                      <TouchableOpacity
+                        key={button}
+                        style={[styles.keypadButton, styles.clearButton]}
+                        onPress={handleClear}
+                        activeOpacity={0.7}
+                        accessible={true}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('calculator.clear')}
+                        accessibilityHint="Clears the amount given and resets to zero"
+                      >
+                        <Text style={styles.clearButtonText} weight="bold">
+                          C
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  }
+
+                  if (button === 'BACK') {
+                    return (
+                      <TouchableOpacity
+                        key={button}
+                        style={[styles.keypadButton, styles.backspaceButton]}
+                        onPress={handleBackspace}
+                        activeOpacity={0.7}
+                        accessible={true}
+                        accessibilityRole="button"
+                        accessibilityLabel="Backspace"
+                        accessibilityHint="Removes the last digit from the amount"
+                      >
+                        <Text style={styles.backspaceButtonText} weight="bold">
+                          ×
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  }
+
+                  // Regular digit buttons
+                  return (
+                    <TouchableOpacity
+                      key={button}
+                      style={styles.keypadButton}
+                      onPress={() => handleDigit(button)}
+                      activeOpacity={0.7}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Digit ${button}`}
+                      accessibilityHint={`Adds ${button} to the amount`}
+                    >
+                      <Text style={styles.keypadButtonText} weight="medium">
+                        {button}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             ))}
-
-            {/* Clear and Backspace Row */}
-            <View style={styles.keypadRow}>
-              <TouchableOpacity
-                style={[styles.keypadButton, styles.clearButton]}
-                onPress={handleClear}
-                activeOpacity={0.7}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel={t('calculator.clear')}
-                accessibilityHint="Clears the amount given and resets to zero"
-              >
-                <Text style={styles.clearButtonText} weight="medium">
-                  {t('calculator.clear')}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.keypadButton, styles.backspaceButton]}
-                onPress={handleBackspace}
-                activeOpacity={0.7}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="Backspace"
-                accessibilityHint="Removes the last digit from the amount"
-              >
-                <Delete size={24} color="#374151" />
-              </TouchableOpacity>
-            </View>
           </View>
 
           {/* Action Buttons */}
@@ -343,7 +305,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 24,
+    padding: 16,
     width: '100%',
     maxWidth: 500,
     maxHeight: '90%',
@@ -363,10 +325,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 12,
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     color: '#111827',
   },
   closeButton: {
@@ -376,96 +338,94 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  displayArea: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
+  calculatorDisplay: {
+    backgroundColor: '#1F2937',
+    borderRadius: 10,
     padding: 16,
-    marginBottom: 20,
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: '#374151',
+    minHeight: 70,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+  },
+  calculatorDisplayText: {
+    fontSize: 32,
+    color: '#10B981',
+    letterSpacing: 1,
+    fontVariant: ['tabular-nums'],
+  },
+  compactInfoDisplay: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
-  displayRow: {
+  compactInfoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 4,
   },
-  displayLabel: {
-    fontSize: 14,
+  compactLabel: {
+    fontSize: 12,
     color: '#6B7280',
   },
-  displayValue: {
-    fontSize: 16,
-    color: '#111827',
-  },
-  displayValueLarge: {
-    fontSize: 20,
+  compactValue: {
+    fontSize: 14,
     color: '#111827',
   },
   changePositive: {
-    color: '#047857', // Darker green for better contrast (WCAG AA compliant)
+    color: '#047857',
   },
   changeNegative: {
-    color: '#B91C1C', // Darker red for better contrast (WCAG AA compliant)
+    color: '#B91C1C',
   },
   warningContainer: {
     backgroundColor: '#FEF2F2',
-    borderRadius: 8,
-    padding: 8,
+    borderRadius: 6,
+    padding: 5,
     marginTop: 4,
     borderWidth: 1,
     borderColor: '#FCA5A5',
   },
   warningText: {
-    fontSize: 12,
-    color: '#B91C1C', // Darker red for better contrast
+    fontSize: 10,
+    color: '#B91C1C',
     textAlign: 'center',
-  },
-  quickButtonsSection: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 20,
-  },
-  quickButton: {
-    backgroundColor: '#F3F4F6',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    minWidth: 70,
-    minHeight: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
   },
   exactButton: {
     backgroundColor: '#DBEAFE',
     borderColor: '#3B82F6',
-  },
-  quickButtonText: {
-    fontSize: 14,
-    color: '#374151',
+    borderWidth: 2,
+    borderRadius: 8,
+    paddingVertical: 10,
+    marginBottom: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 44,
   },
   exactButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#1D4ED8',
   },
   keypadSection: {
-    marginBottom: 20,
+    marginBottom: 12,
   },
   keypadRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
-    gap: 8,
+    marginBottom: 6,
+    gap: 6,
   },
   keypadButton: {
     flex: 1,
     backgroundColor: '#F9FAFB',
     borderRadius: 8,
-    paddingVertical: 16,
-    minHeight: 56,
+    paddingVertical: 12,
+    minHeight: 50,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -480,46 +440,50 @@ const styles = StyleSheet.create({
     borderColor: '#FCA5A5',
   },
   clearButtonText: {
-    fontSize: 16,
-    color: '#B91C1C', // Darker red for better contrast
+    fontSize: 22,
+    color: '#B91C1C',
   },
   backspaceButton: {
-    backgroundColor: '#F3F4F6',
-    borderColor: '#D1D5DB',
+    backgroundColor: '#FFF7ED',
+    borderColor: '#FDBA74',
+  },
+  backspaceButtonText: {
+    fontSize: 26,
+    color: '#EA580C',
   },
   actions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 10,
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#D1D5DB',
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    minHeight: 48,
+    minHeight: 44,
     justifyContent: 'center',
   },
   cancelButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#6B7280',
   },
   continueButton: {
     flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     borderRadius: 8,
     backgroundColor: '#059669',
     alignItems: 'center',
-    minHeight: 48,
+    minHeight: 44,
     justifyContent: 'center',
   },
   continueButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#FFFFFF',
   },
 });
