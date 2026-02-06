@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Linking,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { X, Printer, Share, ExternalLink } from 'lucide-react-native';
@@ -62,7 +63,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
   const [bluetoothAvailable, setBluetoothAvailable] = useState(false);
   const [shopSettings, setShopSettings] = useState<ShopSettings | null>(null);
   const [templateEngine, setTemplateEngine] = useState<TemplateEngine | null>(
-    null
+    null,
   );
   const [shopSettingsService, setShopSettingsService] =
     useState<ShopSettingsService | null>(null);
@@ -170,13 +171,13 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
       const context = templateEngine.buildTemplateContext(
         shopSettings,
         templateReceiptData,
-        translations
+        translations,
       );
 
       // Render receipt using template engine
       const htmlContent = await templateEngine.renderReceipt(
         templateId,
-        context
+        context,
       );
       return htmlContent;
     } catch (error) {
@@ -408,13 +409,13 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
             
             <div class="receipt-info">
               <div><strong>${t(
-                'printing.receiptNumber'
+                'printing.receiptNumber',
               )}:</strong> ${saleId}</div>
               <div><strong>${t('common.date')}:</strong> ${formatDate(
-      date
-    )}</div>
+                date,
+              )}</div>
               <div><strong>${t(
-                'printing.paymentMethod'
+                'printing.paymentMethod',
               )}:</strong> ${paymentMethod.toUpperCase()}</div>
             </div>
             
@@ -429,7 +430,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
                       item.quantity
                     } x ${formatCurrency(item.product.price)}</span>
                     <span class="item-total">${formatCurrency(
-                      item.subtotal
+                      item.subtotal,
                     )}</span>
                   </div>
                   ${
@@ -443,7 +444,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
                       : ''
                   }
                 </div>
-              `
+              `,
                 )
                 .join('')}
             </div>
@@ -458,7 +459,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
             ${
               note
                 ? `<div class="note-section"><strong>${t(
-                    'sales.saleNote'
+                    'sales.saleNote',
                   )}:</strong> ${note}</div>`
                 : ''
             }
@@ -473,7 +474,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
                   : ''
               }
               <div style="margin-top: 6px; font-size: 9px;">${t(
-                'printing.generatedBy'
+                'printing.generatedBy',
               )}</div>
                 </div>
               </td>
@@ -544,7 +545,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
       } else {
         Alert.alert(
           'Sharing Not Available',
-          'Sharing is not available on this device'
+          'Sharing is not available on this device',
         );
       }
     } catch (error) {
@@ -571,7 +572,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
             Linking.openURL(url);
           },
         },
-      ]
+      ],
     );
   };
 
@@ -595,7 +596,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
                   onClose();
                 },
               },
-            ]
+            ],
           );
           return;
         }
@@ -614,13 +615,13 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
       // Print directly to Bluetooth printer
       await BluetoothPrinterService.printReceipt(
         bluetoothReceiptData,
-        shopSettings
+        shopSettings,
       );
 
       Alert.alert(
         t('printing.printSuccessful'),
         t('printing.printSuccessfulMessage'),
-        [{ text: t('common.confirm'), onPress: onClose }]
+        [{ text: t('common.confirm'), onPress: onClose }],
       );
     } catch (error) {
       console.error('Bluetooth print error:', error);
@@ -635,7 +636,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
             text: 'Share PDF',
             onPress: () => shareReceipt(),
           },
-        ]
+        ],
       );
     } finally {
       setIsBluetoothPrinting(false);
@@ -655,82 +656,151 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
             </TouchableOpacity>
           </View>
 
-          <View style={styles.content}>
-            <Text style={styles.description}>{t('printing.chooseMethod')}</Text>
-
-            <View style={styles.actions}>
-              {/* Direct Bluetooth Print Option */}
-              {bluetoothAvailable && (
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.directBluetoothButton]}
-                  onPress={printDirectToBluetooth}
-                  disabled={isPrinting || isSharing || isBluetoothPrinting}
-                >
-                  <Printer size={24} color="#059669" />
-                  <Text
-                    style={[
-                      styles.actionButtonText,
-                      styles.directBluetoothText,
-                    ]}
-                    weight="medium"
-                  >
-                    Print Direct
+          {/* Receipt Preview Section - Scrollable */}
+          <View style={styles.previewSection}>
+            <Text style={styles.previewTitle} weight="medium">
+              {t('printing.preview')}
+            </Text>
+            <View style={styles.previewContainer}>
+              <View style={styles.receiptPreview}>
+                {/* Receipt Header */}
+                <View style={styles.receiptHeader}>
+                  <Text style={styles.receiptShopName} weight="bold">
+                    {shopSettings?.shopName || t('printing.mobilePOS')}
                   </Text>
-                  <Text style={styles.actionButtonSubtext}>
-                    {t('printing.printDirectlyToThermal')}
-                  </Text>
-                  {isBluetoothPrinting && (
-                    <ActivityIndicator
-                      size="small"
-                      color="#059669"
-                      style={{ marginTop: 4 }}
-                    />
+                  {shopSettings?.address && (
+                    <Text style={styles.receiptInfo}>
+                      {shopSettings.address}
+                    </Text>
                   )}
-                </TouchableOpacity>
-              )}
+                  {shopSettings?.phone && (
+                    <Text style={styles.receiptInfo}>{shopSettings.phone}</Text>
+                  )}
+                </View>
 
-              {/* System Print Option */}
+                {/* Receipt Details */}
+                <View style={styles.receiptDetails}>
+                  <View style={styles.receiptRow}>
+                    <Text style={styles.receiptLabel}>
+                      {t('printing.receiptNumber')}:
+                    </Text>
+                    <Text style={styles.receiptValue}>
+                      {receiptData.saleId}
+                    </Text>
+                  </View>
+                  <View style={styles.receiptRow}>
+                    <Text style={styles.receiptLabel}>{t('common.date')}:</Text>
+                    <Text style={styles.receiptValue}>
+                      {formatDate(receiptData.date)}
+                    </Text>
+                  </View>
+                  <View style={styles.receiptRow}>
+                    <Text style={styles.receiptLabel}>
+                      {t('printing.paymentMethod')}:
+                    </Text>
+                    <Text style={styles.receiptValue}>
+                      {receiptData.paymentMethod.toUpperCase()}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Items List */}
+                <View style={styles.receiptItems}>
+                  {receiptData.items.map((item, index) => (
+                    <View key={index} style={styles.receiptItem}>
+                      <Text style={styles.itemName}>{item.product.name}</Text>
+                      <View style={styles.itemDetails}>
+                        <Text style={styles.itemQtyPrice}>
+                          {item.quantity} x {formatCurrency(item.product.price)}
+                        </Text>
+                        <Text style={styles.itemTotal}>
+                          {formatCurrency(item.subtotal)}
+                        </Text>
+                      </View>
+                      {item.discount > 0 && (
+                        <View style={styles.itemDetails}>
+                          <Text style={styles.itemDiscount}>
+                            {t('sales.discount')}
+                          </Text>
+                          <Text style={styles.itemDiscount}>
+                            -{formatCurrency(item.discount)}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  ))}
+                </View>
+
+                {/* Total */}
+                <View style={styles.receiptTotal}>
+                  <Text style={styles.totalLabel} weight="bold">
+                    {t('common.total').toUpperCase()}
+                  </Text>
+                  <Text style={styles.totalValue} weight="bold">
+                    {formatCurrency(receiptData.total)}
+                  </Text>
+                </View>
+
+                {/* Note */}
+                {receiptData.note && (
+                  <View style={styles.receiptNote}>
+                    <Text style={styles.noteLabel} weight="medium">
+                      {t('sales.saleNote')}:
+                    </Text>
+                    <Text style={styles.noteText}>{receiptData.note}</Text>
+                  </View>
+                )}
+
+                {/* Footer */}
+                <View style={styles.receiptFooter}>
+                  <Text style={styles.thankYou}>
+                    {shopSettings?.thankYouMessage || t('printing.thankYou')}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Compact Action Buttons at Bottom */}
+          <View style={styles.actionsSection}>
+            <View style={styles.actionButtons}>
+              {/* Print Receipt Button */}
               <TouchableOpacity
-                style={styles.actionButton}
+                style={styles.compactButton}
                 onPress={printReceipt}
                 disabled={isPrinting || isSharing || isBluetoothPrinting}
               >
-                <Printer size={24} color="#059669" />
-                <Text style={styles.actionButtonText} weight="medium">
+                <Printer size={18} color="#FFFFFF" />
+                <Text style={styles.compactButtonText} weight="medium">
                   {t('printing.printReceipt')}
-                </Text>
-                <Text style={styles.actionButtonSubtext}>
-                  {t('printing.printReceiptDesc')}
                 </Text>
               </TouchableOpacity>
 
-              {/* Share for General Use */}
+              {/* Share PDF Button */}
               <TouchableOpacity
-                style={styles.actionButton}
+                style={[styles.compactButton, styles.shareButton]}
                 onPress={shareReceipt}
                 disabled={isPrinting || isSharing || isBluetoothPrinting}
               >
-                <Share size={24} color="#2563EB" />
-                <Text style={styles.actionButtonText} weight="medium">
+                <Share size={18} color="#FFFFFF" />
+                <Text style={styles.compactButtonText} weight="medium">
                   {t('printing.sharePDF')}
-                </Text>
-                <Text style={styles.actionButtonSubtext}>
-                  {t('printing.sharePDFDesc')}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Info about Bluetooth Apps */}
-              <TouchableOpacity
-                style={styles.infoButton}
-                onPress={openPrintingAppsInfo}
-              >
-                <ExternalLink size={16} color="#6B7280" />
-                <Text style={styles.infoButtonText} weight="medium">
-                  {t('printing.getBluetoothApps')}
                 </Text>
               </TouchableOpacity>
             </View>
 
+            {/* Info Link */}
+            <TouchableOpacity
+              style={styles.infoLink}
+              onPress={openPrintingAppsInfo}
+            >
+              <ExternalLink size={14} color="#6B7280" />
+              <Text style={styles.infoLinkText}>
+                {t('printing.getBluetoothApps')}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Loading Indicator */}
             {(isPrinting || isSharing || isBluetoothPrinting) && (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color="#059669" />
@@ -738,8 +808,8 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
                   {isPrinting
                     ? t('printing.preparingToPrint')
                     : isBluetoothPrinting
-                    ? t('printing.printingToThermalPrinter')
-                    : t('printing.preparingToShare')}
+                      ? t('printing.printingToThermalPrinter')
+                      : t('printing.preparingToShare')}
                 </Text>
               </View>
             )}
@@ -756,93 +826,222 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 16,
   },
   container: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 24,
     width: '100%',
     maxWidth: 400,
+    minHeight: '80%',
+    maxHeight: '85%',
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     color: '#111827',
   },
   closeButton: {
     padding: 4,
-  },
-  content: {
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  description: {
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginBottom: 32,
+  // Preview Section - Scrollable
+  previewSection: {
+    flex: 1,
+    padding: 16,
   },
-  actions: {
-    width: '100%',
-    gap: 16,
-  },
-  actionButton: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#F9FAFB',
-  },
-
-  directBluetoothButton: {
-    borderColor: '#059669',
-    backgroundColor: '#ECFDF5',
-  },
-  actionButtonText: {
-    fontSize: 16,
-    color: '#111827',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-
-  directBluetoothText: {
-    color: '#059669',
-  },
-  actionButtonSubtext: {
+  previewTitle: {
     fontSize: 14,
     color: '#6B7280',
-    marginTop: 4,
+    marginBottom: 12,
+  },
+  previewContainer: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    overflow: 'hidden',
+  },
+  receiptScrollView: {
+    flex: 1,
+  },
+  receiptPreview: {
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+  },
+  // Receipt Preview Styles
+  receiptHeader: {
+    alignItems: 'center',
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    marginBottom: 12,
+  },
+  receiptShopName: {
+    fontSize: 16,
+    color: '#111827',
+    marginBottom: 4,
+  },
+  receiptInfo: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  receiptDetails: {
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  receiptRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  receiptLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  receiptValue: {
+    fontSize: 12,
+    color: '#111827',
+  },
+  receiptItems: {
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  receiptItem: {
+    marginBottom: 8,
+  },
+  itemName: {
+    fontSize: 13,
+    color: '#111827',
+    marginBottom: 4,
+  },
+  itemDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  itemQtyPrice: {
+    fontSize: 11,
+    color: '#6B7280',
+  },
+  itemTotal: {
+    fontSize: 11,
+    color: '#111827',
+  },
+  itemDiscount: {
+    fontSize: 11,
+    color: '#EF4444',
+  },
+  receiptTotal: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderTopWidth: 2,
+    borderTopColor: '#111827',
+    marginBottom: 12,
+  },
+  totalLabel: {
+    fontSize: 14,
+    color: '#111827',
+  },
+  totalValue: {
+    fontSize: 14,
+    color: '#111827',
+  },
+  receiptNote: {
+    marginBottom: 12,
+    padding: 8,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 6,
+  },
+  noteLabel: {
+    fontSize: 11,
+    color: '#92400E',
+    marginBottom: 4,
+  },
+  noteText: {
+    fontSize: 11,
+    color: '#78350F',
+  },
+  receiptFooter: {
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  thankYou: {
+    fontSize: 12,
+    color: '#6B7280',
     textAlign: 'center',
   },
-  infoButton: {
+  // Actions Section - Compact at Bottom
+  actionsSection: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  compactButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 12,
+    backgroundColor: '#059669',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-    marginTop: 8,
+    gap: 6,
+    minHeight: 44,
   },
-  infoButtonText: {
-    fontSize: 14,
+  shareButton: {
+    backgroundColor: '#2563EB',
+  },
+  compactButtonText: {
+    fontSize: 13,
+    color: '#FFFFFF',
+  },
+  infoLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8,
+    gap: 6,
+  },
+  infoLinkText: {
+    fontSize: 12,
     color: '#6B7280',
-    marginLeft: 8,
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 20,
+    justifyContent: 'center',
+    marginTop: 8,
     gap: 8,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#6B7280',
   },
 });

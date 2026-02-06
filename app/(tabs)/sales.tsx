@@ -755,7 +755,12 @@ export default function Sales() {
 
           {/* Customer and Payment Method Selection */}
           <View style={styles.customerSection}>
-            <Animated.View style={{ opacity: customerSelectorOpacity }}>
+            <Animated.View
+              style={[
+                styles.customerSelectorWrapper,
+                { opacity: customerSelectorOpacity },
+              ]}
+            >
               <CustomerSelector
                 selectedCustomer={selectedCustomer}
                 onCustomerSelect={setSelectedCustomer}
@@ -3281,10 +3286,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   customerSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginBottom: 5,
   },
+  customerSelectorWrapper: {
+    flex: 2,
+  },
   paymentMethodSelectorContainer: {
-    marginTop: 8,
+    flex: 1,
   },
   customerLabel: {
     fontSize: 14,
