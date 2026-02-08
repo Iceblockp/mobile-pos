@@ -167,7 +167,7 @@ export const my: TranslationKeys = {
     preparingExport: 'တင်ပို့မှုပြင်ဆင်နေသည်...',
     loadingSalesItemsData: 'ရောင်းချမှုပစ္စည်းများအချက်အလက်ဖွင့်နေသည်...',
     searchBySaleId:
-      'ရောင်းချမှုနံပါတ် သို့မဟုတ် ငွေပေးချေမှုနည်းလမ်းဖြင့် ရှာဖွေပါ...',
+      'ရောင်းချမှုနံပါတ်၊ ဖောက်သည်၊ ငွေပေးချေမှုနည်းလမ်းဖြင့် ရှာဖွေပါ...',
     all: 'အားလုံး',
     today: 'ယနေ့',
     thisMonth: 'ဒီလ',
@@ -401,6 +401,8 @@ export const my: TranslationKeys = {
     supplier: 'ပေးသွင်းသူ',
     inventoryDetails: 'ကုန်စာရင်းအသေးစိတ်',
     categoryInventoryDetails: '{{category}} ကုန်စာရင်းအသေးစိတ်',
+    noLowStock: 'လက်ကျန်နည်းသောပစ္စည်းမရှိပါ',
+    allProductsStocked: 'ကုန်ပစ္စည်းအားလုံး လုံလောက်စွာ သိုလှောင်ထားပါသည်',
     overview: 'ခြုံငုံကြည့်ရှုမှု',
     products: 'ကုန်ပစ္စည်းများ',
     totalProducts: 'စုစုပေါင်းကုန်ပစ္စည်းများ',

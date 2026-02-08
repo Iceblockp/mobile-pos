@@ -159,7 +159,7 @@ export const en = {
       'Export detailed list of individual sale items with product name, quantity, price, and profit',
     preparingExport: 'Preparing export...',
     loadingSalesItemsData: 'Loading sales items data...',
-    searchBySaleId: 'Search by sale ID or payment method...',
+    searchBySaleId: 'Search by sale ID, customer, payment method...',
     selectCustomerOptional: ' Select Customer',
     all: 'All',
     today: 'Today',
@@ -415,6 +415,8 @@ export const en = {
     moreCategories: '+{{count}} more categories',
     inventoryDetails: 'Inventory Details',
     categoryInventoryDetails: '{{category}} Inventory Details',
+    noLowStock: 'No Low Stock Items',
+    allProductsStocked: 'All products are adequately stocked',
   },
   stockMovement: {
     title: 'Stock Movement',

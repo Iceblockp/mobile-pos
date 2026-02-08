@@ -93,14 +93,14 @@ This implementation plan outlines the step-by-step approach to migrate from tab-
     - **Property 7: Localization Completeness**
     - **Validates: Requirements 1.8, 9.1, 9.2**
 
-- [ ] 7. Extract sale history to dedicated page
-  - [ ] 7.1 Create `app/(drawer)/sale-history.tsx`
+- [x] 7. Extract sale history to dedicated page
+  - [x] 7.1 Create `app/(drawer)/sale-history.tsx`
     - Extract sale history logic from sales tab modal
     - Implement as full page with header
     - Add MenuButton to header
     - _Requirements: 3.1, 3.2_
 
-  - [ ] 7.2 Add filtering and search functionality
+  - [x] 7.2 Add filtering and search functionality
     - Implement date range filter
     - Add search by customer or product
     - Display sale details on item tap
@@ -112,20 +112,20 @@ This implementation plan outlines the step-by-step approach to migrate from tab-
     - Test search functionality
     - _Requirements: 3.2, 3.3, 3.4_
 
-- [ ] 8. Create separated inventory pages
-  - [ ] 8.1 Create `app/(drawer)/product-management.tsx`
+- [x] 8. Create separated inventory pages
+  - [x] 8.1 Create `app/(drawer)/product-management.tsx`
     - Extract products list from inventory tab
     - Reuse existing ProductsManager component
     - Add MenuButton to header
     - _Requirements: 4.1, 4.4_
 
-  - [ ] 8.2 Create `app/(drawer)/movement-history.tsx`
+  - [x] 8.2 Create `app/(drawer)/movement-history.tsx`
     - Extract stock movements from inventory tab
     - Reuse existing EnhancedMovementHistory component
     - Add MenuButton to header
     - _Requirements: 4.2, 4.5_
 
-  - [ ] 8.3 Create `app/(drawer)/low-stock.tsx`
+  - [x] 8.3 Create `app/(drawer)/low-stock.tsx`
     - Extract low stock overview from inventory tab
     - Display products below minimum stock
     - Add quick action buttons
@@ -138,30 +138,30 @@ This implementation plan outlines the step-by-step approach to migrate from tab-
     - Test navigation between pages
     - _Requirements: 4.1, 4.2, 4.3_
 
-- [ ] 9. Create main navigation pages
-  - [ ] 9.1 Create `app/(drawer)/dashboard.tsx`
+- [x] 9. Create main navigation pages
+  - [x] 9.1 Create `app/(drawer)/dashboard.tsx`
     - Copy existing dashboard content
     - Add MenuButton to header
     - Set as default page
     - _Requirements: 1.1, 2.1_
 
-  - [ ] 9.2 Create `app/(drawer)/sale.tsx`
+  - [x] 9.2 Create `app/(drawer)/sale.tsx`
     - Copy existing sales tab content
     - Add MenuButton to header
     - Remove sale history modal (now separate page)
     - _Requirements: 2.1_
 
-  - [ ] 9.3 Create `app/(drawer)/overview.tsx`
+  - [x] 9.3 Create `app/(drawer)/overview.tsx`
     - Extract analytics overview from reports tab
     - Add MenuButton to header
     - _Requirements: 2.1_
 
-  - [ ] 9.4 Create `app/(drawer)/customer-analytics.tsx`
+  - [x] 9.4 Create `app/(drawer)/customer-analytics.tsx`
     - Extract customer analytics from reports tab
     - Add MenuButton to header
     - _Requirements: 2.1_
 
-  - [ ] 9.5 Create `app/(drawer)/ai-analytics.tsx`
+  - [x] 9.5 Create `app/(drawer)/ai-analytics.tsx`
     - Extract AI analytics from reports tab
     - Add MenuButton to header
     - _Requirements: 2.1_
