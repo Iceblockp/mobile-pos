@@ -84,7 +84,7 @@ export default function Dashboard() {
           <Text style={styles.title} weight="bold">
             {t('dashboard.title')}
           </Text>
-          <Text style={styles.subtitle}>{t('dashboard.subtitle')}</Text>
+          {/* <Text style={styles.subtitle}>{t('dashboard.subtitle')}</Text> */}
         </View>
         <View style={styles.headerRight}>
           <LanguageIconButton style={styles.languageSelector} />

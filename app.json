@@ -147,9 +147,51 @@
       "typedRoutes": true
     },
     "extra": {
-      "router": {},
+      "router": {
+        "origin": false
+      },
       "eas": {
         "projectId": "74480d35-2bb3-4772-bf62-dfed94231f6c"
+      }
+    },
+    "linking": {
+      "prefixes": ["pos://", "https://pos.app"],
+      "config": {
+        "screens": {
+          "index": "",
+          "(drawer)": {
+            "path": "",
+            "screens": {
+              "dashboard": "dashboard",
+              "sale": "sale",
+              "sale-history": "sale-history",
+              "product-management": "products",
+              "movement-history": "movements",
+              "low-stock": "low-stock",
+              "overview": "overview",
+              "customer-analytics": "customer-analytics",
+              "ai-analytics": "ai-analytics",
+              "customer-management": "customers",
+              "supplier-management": "suppliers",
+              "expenses": "expenses",
+              "shop-settings": "settings",
+              "license-management": "license",
+              "language-settings": "language",
+              "data-export": "export",
+              "data-import": "import"
+            }
+          },
+          "(tabs)": {
+            "path": "tabs",
+            "screens": {
+              "dashboard": "dashboard",
+              "sales": "sales",
+              "inventory": "inventory",
+              "reports": "reports",
+              "more": "more"
+            }
+          }
+        }
       }
     }
   }

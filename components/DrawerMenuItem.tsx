@@ -26,13 +26,14 @@ interface DrawerMenuItemProps {
  * DrawerMenuItem component
  * Renders individual menu items in a flat structure without nesting
  * Handles navigation and active state highlighting
+ * Optimized with React.memo to prevent unnecessary re-renders (Requirement 8.4)
  *
  * @param item - Menu item configuration
  * @param currentRoute - Current active route
  * @param onPress - Callback to close drawer after navigation
  * @param style - Optional additional styles
  */
-export function DrawerMenuItem({
+export const DrawerMenuItem = React.memo(function DrawerMenuItem({
   item,
   currentRoute,
   onPress,
@@ -74,7 +75,7 @@ export function DrawerMenuItem({
       </Text>
     </TouchableOpacity>
   );
-}
+});
 
 const styles = StyleSheet.create({
   menuItem: {

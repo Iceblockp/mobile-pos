@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useCallback,
+} from 'react';
 
 /**
  * Drawer context type definition
@@ -27,17 +33,23 @@ interface DrawerProviderProps {
 /**
  * DrawerProvider component
  * Wraps the application to provide drawer state management
+ * Optimized with useCallback to prevent unnecessary re-renders (Requirement 8.4)
  *
  * @param children - Child components that need access to drawer state
  */
 export function DrawerProvider({ children }: DrawerProviderProps) {
   const [isOpen, setIsOpen] = useState(false);
 
+  // Memoize callbacks to prevent recreation on every render (Requirement 8.4)
+  const openDrawer = useCallback(() => setIsOpen(true), []);
+  const closeDrawer = useCallback(() => setIsOpen(false), []);
+  const toggleDrawer = useCallback(() => setIsOpen((prev) => !prev), []);
+
   const drawerContext: DrawerContextType = {
     isOpen,
-    openDrawer: () => setIsOpen(true),
-    closeDrawer: () => setIsOpen(false),
-    toggleDrawer: () => setIsOpen(!isOpen),
+    openDrawer,
+    closeDrawer,
+    toggleDrawer,
   };
 
   return (

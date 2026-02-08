@@ -118,8 +118,8 @@ const Index = () => {
     const expiryDate = new Date(
       `${licenseStatus.expiryDate.slice(0, 4)}-${licenseStatus.expiryDate.slice(
         4,
-        6
-      )}-${licenseStatus.expiryDate.slice(6, 8)}`
+        6,
+      )}-${licenseStatus.expiryDate.slice(6, 8)}`,
     );
     const currentDate = new Date();
     const timeDifference = expiryDate.getTime() - currentDate.getTime();
@@ -275,7 +275,7 @@ const Index = () => {
                   ]}
                   onPress={() =>
                     regenerateChallenge(
-                      LICENSE_PACKAGES[selectedDuration]?.validityMonths || 1
+                      LICENSE_PACKAGES[selectedDuration]?.validityMonths || 1,
                     )
                   }
                   disabled={loading}
@@ -348,15 +348,15 @@ const Index = () => {
                     licenseStatus?.expiryDate
                       ? `${licenseStatus.expiryDate.slice(
                           0,
-                          4
+                          4,
                         )}-${licenseStatus.expiryDate.slice(
                           4,
-                          6
+                          6,
                         )}-${licenseStatus.expiryDate.slice(6, 8)}`
-                      : ''
+                      : '',
                   ).getTime() -
                     new Date().getTime()) /
-                    (1000 * 3600 * 24)
+                    (1000 * 3600 * 24),
                 )}{' '}
                 {t('analytics.days')}. {t('license.regenerateChallenge')}
               </Text>
@@ -389,7 +389,7 @@ const Index = () => {
             </Text>
 
             <TouchableOpacity
-              onPress={() => router.push('/(tabs)/dashboard')}
+              onPress={() => router.push('/(drawer)/dashboard')}
               style={styles.getStartedButton}
             >
               <Text style={styles.getStartedButtonText} weight="medium">
