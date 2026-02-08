@@ -166,43 +166,43 @@ This implementation plan outlines the step-by-step approach to migrate from tab-
     - Add MenuButton to header
     - _Requirements: 2.1_
 
-- [ ] 10. Create management and settings pages
-  - [ ] 10.1 Create `app/(drawer)/customer-management.tsx`
+- [x] 10. Create management and settings pages
+  - [x] 10.1 Create `app/(drawer)/customer-management.tsx`
     - Copy existing customer management page
     - Add MenuButton to header
     - _Requirements: 2.1, 5.2_
 
-  - [ ] 10.2 Create `app/(drawer)/supplier-management.tsx`
+  - [x] 10.2 Create `app/(drawer)/supplier-management.tsx`
     - Copy existing supplier management page
     - Add MenuButton to header
     - _Requirements: 2.1, 5.2_
 
-  - [ ] 10.3 Create `app/(drawer)/expenses.tsx`
+  - [x] 10.3 Create `app/(drawer)/expenses.tsx`
     - Copy existing expenses page
     - Add MenuButton to header
     - _Requirements: 2.1, 5.2_
 
-  - [ ] 10.4 Create `app/(drawer)/shop-settings.tsx`
+  - [x] 10.4 Create `app/(drawer)/shop-settings.tsx`
     - Copy existing shop settings page
     - Add MenuButton to header
     - _Requirements: 2.1, 5.2_
 
-  - [ ] 10.5 Create `app/(drawer)/license-management.tsx`
+  - [x] 10.5 Create `app/(drawer)/license-management.tsx`
     - Copy existing license management page
     - Add MenuButton to header
     - _Requirements: 2.1, 5.2_
 
-  - [ ] 10.6 Create `app/(drawer)/language-settings.tsx`
+  - [x] 10.6 Create `app/(drawer)/language-settings.tsx`
     - Copy existing language settings page
     - Add MenuButton to header
     - _Requirements: 2.1, 5.2_
 
-  - [ ] 10.7 Create `app/(drawer)/data-export.tsx`
+  - [x] 10.7 Create `app/(drawer)/data-export.tsx`
     - Copy existing data export page
     - Add MenuButton to header
     - _Requirements: 2.1, 5.2_
 
-  - [ ] 10.8 Create `app/(drawer)/data-import.tsx`
+  - [x] 10.8 Create `app/(drawer)/data-import.tsx`
     - Copy existing data import page
     - Add MenuButton to header
     - _Requirements: 2.1, 5.2_
