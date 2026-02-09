@@ -496,6 +496,7 @@ export const en = {
     title: 'Products',
     addNewProduct: 'Add New Product',
     editProduct: 'Edit Product',
+    productDetails: 'Product Details',
     productName: 'Product Name',
     barcode: 'Barcode',
     optional: 'Optional',
@@ -538,6 +539,7 @@ export const en = {
     basicInfo: 'Basic Information',
     pricingInfo: 'Pricing Information',
     stockInfo: 'Stock Information',
+    stockInformation: 'Stock Information',
     stockMovements: 'Stock Movements',
     noSupplier: 'Select Supplier',
     selectSupplier: 'Select Supplier',
@@ -558,6 +560,7 @@ export const en = {
     cancel: 'Cancel',
     add: 'Add',
     update: 'Update',
+    units: 'units',
     done: 'Done',
     warning: 'Warning',
     // Sorting options

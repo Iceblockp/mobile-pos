@@ -1,50 +1,33 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   Modal,
   Image,
   RefreshControl,
   FlatList,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import OptimizedImage from '../OptimizedImage';
 import { Card } from '@/components/Card';
-import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { PriceInput } from '@/components/PriceInput';
 import { MyanmarTextInput as TextInput } from '../MyanmarTextInput';
 import {
-  useProducts,
-  useCategories,
-  useBasicSuppliers,
-  useProductMutations,
-  useBulkPricing,
   useProductsInfinite,
   useCategoriesWithCounts,
 } from '@/hooks/useQueries';
 import { useDebounce } from '@/hooks/useDebounce';
-import { Product, Category, Supplier } from '@/services/database';
+import { Product } from '@/services/database';
 import { MyanmarText as Text } from '../MyanmarText';
 
-type CategoryWithCount = {
-  id: string;
-  name: string;
-  product_count: number;
-};
 import {
   Plus,
   Search,
   Edit,
-  Trash2,
   Package,
-  Settings,
   Scan,
-  Camera,
-  Image as ImageIcon,
   ArrowUpAZ,
   Calendar,
   ArrowDownAZ,
@@ -53,28 +36,14 @@ import {
   ChevronDown,
   Grid3X3,
   List,
-  TrendingUp,
   TrendingDown,
 } from 'lucide-react-native';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
-// import TextScanner from '@/components/TextScanner';
 import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
-import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
-import { documentDirectory } from 'expo-file-system/legacy';
-// import {
-//   useMemoryCleanup,
-//   useRenderPerformance,
-//   useQueryCacheManager,
-// } from '@/utils/memoryManager';
 
-import { BulkPricingTiers } from '@/components/BulkPricingTiers';
-import { ProductMovementHistory } from '@/components/ProductMovementHistory';
-import { QuickStockActions } from '@/components/QuickStockActions';
 import { StockMovementForm } from '@/components/StockMovementForm';
-import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { CompactInventoryValue } from '@/components/CompactInventoryValue';
 import { InventoryDetailsModal } from '@/components/InventoryDetailsModal';
 
@@ -83,22 +52,15 @@ interface ProductsManagerProps {
 }
 
 export default function Products({}: ProductsManagerProps) {
+  const router = useRouter();
   const { showToast } = useToast();
   const { t } = useTranslation();
-
-  // Memory management hooks
-  // const { addCleanup } = useMemoryCleanup();
-  // useRenderPerformance('ProductsManager');
-  // useQueryCacheManager();
   const { formatPrice } = useCurrencyFormatter();
+
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [showSearchScanner, setShowSearchScanner] = useState(false);
-  // const [showTextScanner, setShowTextScanner] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [sortBy, setSortBy] = useState<'name' | 'updated_at' | 'none'>('none');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showSortOptions, setShowSortOptions] = useState(false);
@@ -106,24 +68,10 @@ export default function Products({}: ProductsManagerProps) {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
-  // Add state for remembering last selected category and supplier
-  const [lastSelectedCategoryId, setLastSelectedCategoryId] = useState<
-    string | null
-  >(null);
-  const [showSupplierPicker, setShowSupplierPicker] = useState(false);
-  const [showCategoryFormPicker, setShowCategoryFormPicker] = useState(false);
-
   // Add state for stock movement form
   const [showStockMovementForm, setShowStockMovementForm] = useState(false);
   const [selectedProductForMovement, setSelectedProductForMovement] =
     useState<Product | null>(null);
-  const [movementType, setMovementType] = useState<'stock_in' | 'stock_out'>(
-    'stock_in',
-  );
-
-  // Add state for product detail modal
-  const [showProductDetail, setShowProductDetail] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   // Add state for inventory details modal
   const [showInventoryDetails, setShowInventoryDetails] = useState(false);
@@ -135,7 +83,6 @@ export default function Products({}: ProductsManagerProps) {
     hasNextPage,
     isFetchingNextPage,
     isLoading: productsLoading,
-    isError: productsError,
     refetch: refetchProducts,
     isRefetching: productsRefetching,
   } = useProductsInfinite(
@@ -150,70 +97,10 @@ export default function Products({}: ProductsManagerProps) {
     return data?.pages.flatMap((page: any) => page.data) ?? [];
   }, [data]);
 
-  const { data: categories = [], isLoading: categoriesLoading } =
-    useCategories();
   const { data: categoriesWithCounts = [], refetch: refreshCategoryWithCount } =
     useCategoriesWithCounts();
 
-  const { data: suppliers = [], isLoading: suppliersLoading } =
-    useBasicSuppliers();
-
-  const {
-    addProduct,
-    updateProduct,
-    deleteProduct,
-    updateProductWithBulkPricing,
-  } = useProductMutations();
-
-  // Load bulk pricing for the product being edited
-  const { data: editingProductBulkPricing = [] } = useBulkPricing(
-    editingProduct?.id || '',
-  );
-
-  const isLoading = categoriesLoading || suppliersLoading; // Only essential data, not products
   const isRefreshing = productsRefetching;
-
-  // Update bulk pricing tiers when editing product bulk pricing data is loaded
-  useEffect(() => {
-    if (editingProduct && editingProductBulkPricing.length > 0) {
-      setBulkPricingTiers(
-        editingProductBulkPricing.map((bp) => ({
-          min_quantity: bp.min_quantity,
-          bulk_price: bp.bulk_price,
-        })),
-      );
-    }
-  }, [editingProduct, editingProductBulkPricing]);
-
-  const [formData, setFormData] = useState({
-    name: '',
-    barcode: '',
-    category_id: '',
-    price: '',
-    cost: '',
-    quantity: '0', // Default to 0
-    min_stock: '10', // Default to 10
-    supplier_id: '',
-    imageUrl: '',
-  });
-
-  // Store numeric values separately for proper decimal handling
-  const [numericValues, setNumericValues] = useState({
-    price: 0,
-    cost: 0,
-  });
-
-  const [bulkPricingTiers, setBulkPricingTiers] = useState<
-    Array<{ min_quantity: number; bulk_price: number }>
-  >([]);
-
-  // Memoize the bulk pricing tiers change handler to prevent infinite re-renders
-  const handleBulkPricingTiersChange = useCallback(
-    (newTiers: Array<{ min_quantity: number; bulk_price: number }>) => {
-      setBulkPricingTiers(newTiers);
-    },
-    [],
-  );
 
   const onRefresh = () => {
     refetchProducts();
@@ -226,22 +113,21 @@ export default function Products({}: ProductsManagerProps) {
     if (showSortOptions) setShowSortOptions(false);
   };
 
-  // Removed formatMMK function - now using standardized currency formatting
+  const handleSearchBarcodeScanned = async (barcode: string) => {
+    setSearchQuery(barcode);
+    setShowSearchScanner(false);
+
+    // Find and highlight the product if it exists
+    const foundProduct = products.find((p) => p.barcode === barcode);
+    if (foundProduct) {
+      showToast(t('messages.found', { name: foundProduct.name }), 'success');
+    } else {
+      showToast(t('messages.noProductWithBarcode'), 'error');
+    }
+  };
 
   // Simple key extractor for FlatList
   const keyExtractor = useCallback((item: Product) => item.id, []);
-
-  // Function to toggle sort order or change sort field
-  // const handleSort = (field: 'name' | 'updated_at') => {
-  //   if (sortBy === field) {
-  //     // Toggle sort order if clicking the same field
-  //     setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-  //   } else {
-  //     // Change sort field and reset to ascending order
-  //     setSortBy(field);
-  //     setSortOrder('asc');
-  //   }
-  // };
 
   // Get selected category name for display
   const getSelectedCategoryName = () => {
@@ -263,306 +149,9 @@ export default function Products({}: ProductsManagerProps) {
     return t('common.all');
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      barcode: '',
-      category_id: lastSelectedCategoryId || '', // Use remembered category
-      price: '',
-      cost: '',
-      quantity: '0', // Default to 0
-      min_stock: '10', // Default to 10
-      supplier_id: '',
-      imageUrl: '',
-    });
-    setNumericValues({
-      price: 0,
-      cost: 0,
-    });
-    setBulkPricingTiers([]);
-    setEditingProduct(null);
-    setShowAddForm(false);
-  };
-
   const handleAddNew = () => {
-    setFormData({
-      name: '',
-      barcode: '',
-      category_id: lastSelectedCategoryId || '', // Use remembered category
-      price: '',
-      cost: '',
-      quantity: '0', // Default to 0
-      min_stock: '10', // Default to 10
-      supplier_id: '',
-      imageUrl: '',
-    });
-    setNumericValues({
-      price: 0,
-      cost: 0,
-    });
-    setBulkPricingTiers([]);
-    setEditingProduct(null); // Clear editing state so bulk pricing won't load
-    setShowAddForm(true);
+    router.push('/(drawer)/product-form?mode=create' as any);
   };
-
-  const handleBarcodeScanned = (barcode: string) => {
-    setFormData({ ...formData, barcode });
-    setShowBarcodeScanner(false);
-    showToast(t('messages.barcodeAdded', { barcode }), 'success');
-  };
-
-  const handleSearchBarcodeScanned = async (barcode: string) => {
-    setSearchQuery(barcode);
-    setShowSearchScanner(false);
-
-    // Find and highlight the product if it exists
-    const foundProduct = products.find((p) => p.barcode === barcode);
-    if (foundProduct) {
-      showToast(t('messages.found', { name: foundProduct.name }), 'success');
-    } else {
-      showToast(t('messages.noProductWithBarcode'), 'error');
-    }
-  };
-
-  // const handleTextScanned = (text: string) => {
-  //   // Clean up the scanned text - remove extra whitespace, newlines, and special characters
-  //   let cleanedText = text
-  //     .trim()
-  //     .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-  //     .replace(/[^\w\s\-\.]/g, '') // Keep only letters, numbers, spaces, hyphens, and dots
-  //     .substring(0, 100); // Limit length to 100 characters
-
-  //   // Capitalize first letter of each word for better presentation
-  //   cleanedText = cleanedText.replace(/\b\w/g, (l) => l.toUpperCase());
-
-  //   setFormData({ ...formData, name: cleanedText });
-  //   setShowTextScanner(false);
-  //   showToast(`Product name scanned: ${cleanedText}`, 'success');
-  // };
-
-  // Add image picker functions
-  const pickImage = async () => {
-    // Request permissions
-    // const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    // if (status !== 'granted') {
-    //   Alert.alert(
-    //     t('products.permissionRequired'),
-    //     t('products.galleryPermissionNeeded')
-    //   );
-    //   return;
-    // }
-
-    // Launch image picker
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      const selectedAsset = result.assets[0];
-      const fileName = selectedAsset.uri.split('/').pop();
-      //@ts-ignore
-      const newPath = documentDirectory + fileName;
-
-      try {
-        // Copy the image to app's document directory for persistence
-        //@ts-ignore
-        const sourceFile = new FileSystem.File(selectedAsset.uri);
-        const destFile = new FileSystem.File(newPath);
-        await sourceFile.copy(destFile);
-
-        setFormData({ ...formData, imageUrl: newPath });
-        showToast(t('products.imageSelected'), 'success');
-      } catch (error) {
-        console.error('Error saving image:', error);
-        Alert.alert(t('common.error'), t('products.failedToSaveImage'));
-      }
-    }
-  };
-
-  const takePhoto = async () => {
-    // Request camera permissions
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-
-    if (status !== 'granted') {
-      Alert.alert(
-        t('products.permissionRequired'),
-        t('products.cameraPermissionNeeded'),
-      );
-      return;
-    }
-
-    // Launch camera
-    let result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      const selectedAsset = result.assets[0];
-      const fileName = selectedAsset.uri.split('/').pop();
-      //@ts-ignore
-      const newPath = documentDirectory + fileName;
-
-      try {
-        // Copy the image to app's document directory for persistence
-        //@ts-ignore
-        const sourceFile = new FileSystem.File(selectedAsset.uri);
-        const destFile = new FileSystem.File(newPath);
-        await sourceFile.copy(destFile);
-
-        setFormData({ ...formData, imageUrl: newPath });
-        showToast(t('products.photoTaken'), 'success');
-      } catch (error) {
-        console.error('Error saving image:', error);
-        Alert.alert(t('common.error'), t('products.failedToSaveImage'));
-      }
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!formData.name.trim()) {
-      Alert.alert(t('common.error'), t('products.nameRequired'));
-      return;
-    }
-
-    if (!formData.category_id) {
-      Alert.alert(t('common.error'), t('products.categoryRequired'));
-      return;
-    }
-
-    if (!formData.price || numericValues.price <= 0) {
-      Alert.alert(t('common.error'), t('products.priceRequired'));
-      return;
-    }
-
-    if (!formData.cost || numericValues.cost <= 0) {
-      Alert.alert(t('common.error'), t('products.costRequired'));
-      return;
-    }
-
-    try {
-      const price = numericValues.price;
-      const cost = numericValues.cost;
-
-      const productData = {
-        name: formData.name,
-        barcode: formData.barcode ? formData.barcode : undefined,
-        category_id: formData.category_id,
-        price: price,
-        cost: cost,
-        quantity: parseInt(formData.quantity) || 0,
-        min_stock: parseInt(formData.min_stock) || 10,
-        supplier_id: formData.supplier_id || undefined, // Optional supplier
-        imageUrl: formData.imageUrl || undefined,
-      };
-
-      // Remember the selected category for next time
-      setLastSelectedCategoryId(formData.category_id);
-
-      if (editingProduct) {
-        // Use bulk pricing mutation if there are tiers, otherwise use regular update
-        if (bulkPricingTiers.length > 0) {
-          await updateProductWithBulkPricing.mutateAsync({
-            id: editingProduct.id,
-            productData: productData,
-            bulkPricingTiers: bulkPricingTiers,
-          });
-        } else {
-          await updateProduct.mutateAsync({
-            id: editingProduct.id,
-            data: productData,
-          });
-        }
-      } else {
-        // For new products, create the product first, then add bulk pricing if needed
-        const newProductId = await addProduct.mutateAsync(productData);
-
-        if (bulkPricingTiers.length > 0 && newProductId) {
-          await updateProductWithBulkPricing.mutateAsync({
-            id: newProductId,
-            productData: {},
-            bulkPricingTiers: bulkPricingTiers,
-          });
-        }
-      }
-
-      resetForm();
-      showToast(
-        editingProduct
-          ? t('products.productUpdated')
-          : t('products.productAdded'),
-        'success',
-      );
-    } catch (error) {
-      console.error('Error saving product:', error);
-      Alert.alert(t('common.error'), t('products.failedToSave'));
-    }
-  };
-
-  const handleEdit = (product: Product) => {
-    setFormData({
-      name: product.name,
-      barcode: product.barcode || '',
-      category_id: product.category_id,
-      price: formatPrice(product.price), // Use formatted price for display
-      cost: formatPrice(product.cost), // Use formatted cost for display
-      quantity: product.quantity.toString(),
-      min_stock: product.min_stock?.toString() || '10',
-      supplier_id: product.supplier_id || '', // Handle optional supplier
-      imageUrl: product.imageUrl || '',
-    });
-
-    // Set numeric values for calculations
-    setNumericValues({
-      price: product.price,
-      cost: product.cost,
-    });
-
-    // Clear bulk pricing tiers - they will be loaded by useEffect when editingProductBulkPricing is fetched
-    setBulkPricingTiers([]);
-
-    setEditingProduct(product);
-    setShowAddForm(true);
-  };
-
-  const handleDelete = async (product: Product) => {
-    Alert.alert(
-      t('products.deleteProduct'),
-      `${t('products.areYouSure')} "${product.name}"?`,
-      [
-        { text: t('products.cancel'), style: 'cancel' },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteProduct.mutateAsync(product.id);
-              showToast(t('products.productDeleted'), 'success');
-            } catch (error) {
-              showToast(t('products.failedToSave'), 'error');
-              console.error('Error deleting product:', error);
-            }
-          },
-        },
-      ],
-    );
-  };
-
-  const getSupplierName = (supplierId: string | undefined) => {
-    if (!supplierId) return t('products.noSupplier');
-    const supplier = suppliers.find((s) => s.id === supplierId);
-    return supplier ? supplier.name : t('products.unknown');
-  };
-
-  // console.log('products ', products);
-  if (isLoading && !isRefreshing) {
-    return <LoadingSpinner />;
-  }
 
   // Optimized Product Card with memoization
   const ProductCard = React.memo(
@@ -585,14 +174,15 @@ export default function Products({}: ProductsManagerProps) {
 
       // Stable callbacks
       const handlePress = useCallback(() => {
-        setSelectedProduct(product);
-        setShowProductDetail(true);
+        router.push(`/(drawer)/product-detail?id=${product.id}` as any);
       }, [product.id]);
 
       const handleEditPress = useCallback(
         (e: any) => {
           e.stopPropagation();
-          handleEdit(product);
+          router.push(
+            `/(drawer)/product-form?mode=edit&id=${product.id}` as any,
+          );
         },
         [product.id],
       );
@@ -762,8 +352,7 @@ export default function Products({}: ProductsManagerProps) {
     return (
       <TouchableOpacity
         onPress={() => {
-          setSelectedProduct(product);
-          setShowProductDetail(true);
+          router.push(`/(drawer)/product-detail?id=${product.id}` as any);
         }}
         activeOpacity={0.7}
       >
@@ -850,7 +439,9 @@ export default function Products({}: ProductsManagerProps) {
               style={styles.tableQuickAction}
               onPress={(e) => {
                 e.stopPropagation();
-                handleEdit(product);
+                router.push(
+                  `/(drawer)/product-form?mode=edit&id=${product.id}` as any,
+                );
               }}
             >
               <Edit size={16} color="#6B7280" />
@@ -908,143 +499,11 @@ export default function Products({}: ProductsManagerProps) {
   };
 
   const categoryModal = () => {
-    return (
-      <Modal
-        visible={showCategoryFormPicker}
-        animationType="slide"
-        transparent={true}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.categoryPickerContainer}>
-            <View style={styles.categoryPickerHeader}>
-              <Text style={styles.categoryPickerTitle} weight="medium">
-                {t('products.selectCategory')}
-              </Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setShowCategoryFormPicker(false)}
-              >
-                <X size={24} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.categoryPickerList}>
-              {categories.map((category) => (
-                <TouchableOpacity
-                  key={category.id}
-                  style={[
-                    styles.categoryFilterPickerItem,
-                    formData.category_id === category.id &&
-                      styles.categoryFilterPickerItemActive,
-                  ]}
-                  onPress={() => {
-                    setFormData({ ...formData, category_id: category.id });
-                    setShowCategoryFormPicker(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.categoryPickerItemText,
-                      formData.category_id === category.id &&
-                        styles.categoryPickerItemTextActive,
-                    ]}
-                  >
-                    {category.name}
-                  </Text>
-                  {formData.category_id === category.id && (
-                    <View style={styles.selectedIndicator} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-    );
+    return null; // Removed - no longer needed
   };
 
   const supplierModal = () => {
-    return (
-      <Modal
-        visible={showSupplierPicker}
-        animationType="slide"
-        transparent={true}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.categoryPickerContainer}>
-            <View style={styles.categoryPickerHeader}>
-              <Text style={styles.categoryPickerTitle}>
-                {t('products.selectSupplier')}
-              </Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setShowSupplierPicker(false)}
-              >
-                <X size={24} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.categoryPickerList}>
-              {/* No Supplier Option */}
-              <TouchableOpacity
-                style={[
-                  styles.categoryFilterPickerItem,
-                  !formData.supplier_id &&
-                    styles.categoryFilterPickerItemActive,
-                ]}
-                onPress={() => {
-                  setFormData({ ...formData, supplier_id: '' });
-                  setShowSupplierPicker(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.categoryPickerItemText,
-                    !formData.supplier_id &&
-                      styles.categoryPickerItemTextActive,
-                  ]}
-                >
-                  {t('products.noSupplier')}
-                </Text>
-                {!formData.supplier_id && (
-                  <View style={styles.selectedIndicator} />
-                )}
-              </TouchableOpacity>
-
-              {/* Supplier Options */}
-              {suppliers.map((supplier) => (
-                <TouchableOpacity
-                  key={supplier.id}
-                  style={[
-                    styles.categoryFilterPickerItem,
-                    formData.supplier_id === supplier.id &&
-                      styles.categoryFilterPickerItemActive,
-                  ]}
-                  onPress={() => {
-                    setFormData({
-                      ...formData,
-                      supplier_id: supplier.id,
-                    });
-                    setShowSupplierPicker(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.categoryPickerItemText,
-                      formData.supplier_id === supplier.id &&
-                        styles.categoryPickerItemTextActive,
-                    ]}
-                  >
-                    {supplier.name}
-                  </Text>
-                  {formData.supplier_id === supplier.id && (
-                    <View style={styles.selectedIndicator} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-    );
+    return null; // Removed - no longer needed
   };
 
   return (
@@ -1467,267 +926,6 @@ export default function Products({}: ProductsManagerProps) {
         />
       )}
 
-      {/* Product Form Modal */}
-      <Modal
-        visible={showAddForm}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              {editingProduct
-                ? t('products.editProduct')
-                : t('products.addNewProduct')}
-            </Text>
-            <TouchableOpacity onPress={resetForm}>
-              <Text style={styles.modalClose}>{t('products.cancel')}</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            style={styles.formScrollView}
-            contentContainerStyle={styles.formContent}
-          >
-            {/* Image Picker Section */}
-            <View style={styles.imagePickerContainer}>
-              {formData.imageUrl ? (
-                <OptimizedImage
-                  source={{ uri: formData.imageUrl }}
-                  style={styles.productFormImage}
-                  lazy={false}
-                  priority="high"
-                />
-              ) : (
-                <View style={styles.imagePlaceholder}>
-                  <ImageIcon size={40} color="#9CA3AF" />
-                  <Text style={styles.imagePlaceholderText}>
-                    {t('products.noImage')}
-                  </Text>
-                </View>
-              )}
-
-              <View style={styles.imagePickerButtons}>
-                <TouchableOpacity
-                  style={styles.imagePickerButton}
-                  onPress={takePhoto}
-                >
-                  <Camera size={20} color="#FFFFFF" />
-                  <Text style={styles.imagePickerButtonText}>
-                    {t('products.camera')}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.imagePickerButton}
-                  onPress={pickImage}
-                >
-                  <ImageIcon size={20} color="#FFFFFF" />
-                  <Text style={styles.imagePickerButtonText}>
-                    {t('products.gallery')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>
-                {t('products.productName')} *
-              </Text>
-              <View style={styles.barcodeContainer}>
-                <TextInput
-                  style={[styles.input, styles.barcodeInput]}
-                  placeholder={t('products.productNamePlaceholder')}
-                  value={formData.name}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, name: text })
-                  }
-                  multiline={true}
-                  numberOfLines={4}
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>
-                {t('products.barcode')} ({t('products.optional')})
-              </Text>
-              <View style={styles.barcodeContainer}>
-                <TextInput
-                  style={[styles.input, styles.barcodeInput]}
-                  placeholder={t('products.barcodePlaceholder')}
-                  value={formData.barcode}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, barcode: text })
-                  }
-                />
-                <TouchableOpacity
-                  style={styles.scanBarcodeButton}
-                  onPress={() => setShowBarcodeScanner(true)}
-                >
-                  <Scan size={20} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.pickerContainer}>
-              <Text style={styles.pickerLabel}>{t('common.category')} *</Text>
-              <TouchableOpacity
-                style={styles.categoryDropdown}
-                onPress={() => setShowCategoryFormPicker(true)}
-              >
-                <Text style={styles.categoryDropdownText}>
-                  {formData.category_id
-                    ? categories.find((c) => c.id === formData.category_id)
-                        ?.name || t('products.selectCategory')
-                    : t('products.selectCategory')}
-                </Text>
-                <ChevronDown size={20} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.pickerContainer}>
-              <Text style={styles.pickerLabel}>
-                {t('products.supplier')} ({t('products.optional')})
-              </Text>
-              <TouchableOpacity
-                style={styles.categoryDropdown}
-                onPress={() => setShowSupplierPicker(true)}
-              >
-                <Text style={styles.categoryDropdownText}>
-                  {getSupplierName(formData.supplier_id)}
-                </Text>
-                <ChevronDown size={20} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-
-            <PriceInput
-              label={t('common.price')}
-              value={formData.price}
-              onValueChange={(text, numericValue) => {
-                setFormData({ ...formData, price: text });
-                setNumericValues({ ...numericValues, price: numericValue });
-              }}
-              required
-            />
-
-            <PriceInput
-              label={t('products.cost')}
-              value={formData.cost}
-              onValueChange={(text, numericValue) => {
-                setFormData({ ...formData, cost: text });
-                setNumericValues({ ...numericValues, cost: numericValue });
-              }}
-              required
-            />
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>{t('common.quantity')}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={t('products.quantityPlaceholder')}
-                value={formData.quantity}
-                onChangeText={(text) =>
-                  setFormData({
-                    ...formData,
-                    quantity: text.replace(/[^\d]/g, ''),
-                  })
-                }
-                keyboardType="numeric"
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>
-                {t('products.minStockLevel')}
-              </Text>
-              <TextInput
-                style={styles.input}
-                placeholder={t('products.minStockPlaceholder')}
-                value={formData.min_stock}
-                onChangeText={(text) =>
-                  setFormData({
-                    ...formData,
-                    min_stock: text.replace(/[^\d]/g, ''),
-                  })
-                }
-                keyboardType="numeric"
-              />
-            </View>
-
-            {formData.price &&
-              formData.cost &&
-              numericValues.price > 0 &&
-              numericValues.cost > 0 && (
-                <View style={styles.profitPreview}>
-                  <Text style={styles.profitLabel}>
-                    {t('products.profitPreview')}:
-                  </Text>
-                  <Text style={styles.profitValue}>
-                    {formatPrice(numericValues.price - numericValues.cost)}{' '}
-                    {t('products.perUnit')}
-                  </Text>
-                  <Text style={styles.marginValue}>
-                    {t('products.margin')}:{' '}
-                    {(
-                      ((numericValues.price - numericValues.cost) /
-                        numericValues.price) *
-                      100
-                    ).toFixed(1)}
-                    %
-                  </Text>
-                </View>
-              )}
-
-            {/* Bulk Pricing Configuration */}
-            {formData.price && numericValues.price > 0 && (
-              <BulkPricingTiers
-                productPrice={numericValues.price}
-                initialTiers={bulkPricingTiers}
-                onTiersChange={handleBulkPricingTiersChange}
-              />
-            )}
-
-            <View style={styles.formButtons}>
-              <Button
-                title={t('common.cancel')}
-                onPress={resetForm}
-                variant="secondary"
-                style={styles.formButton}
-              />
-              <Button
-                title={editingProduct ? t('common.edit') : t('common.add')}
-                onPress={handleSubmit}
-                style={styles.formButton}
-              />
-            </View>
-          </ScrollView>
-
-          {/* Barcode Scanner inside the form modal */}
-          {showBarcodeScanner && (
-            <BarcodeScanner
-              onBarcodeScanned={handleBarcodeScanned}
-              onClose={() => setShowBarcodeScanner(false)}
-            />
-          )}
-        </SafeAreaView>
-        {categoryModal()}
-        {supplierModal()}
-      </Modal>
-
-      {/* Product Detail Modal */}
-      <ProductDetailModal
-        visible={showProductDetail}
-        product={selectedProduct}
-        onClose={() => {
-          setShowProductDetail(false);
-          setSelectedProduct(null);
-        }}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        getSupplierName={getSupplierName}
-      />
-
       {/* Stock Movement Form Modal */}
       <StockMovementForm
         visible={showStockMovementForm}
@@ -1736,7 +934,7 @@ export default function Products({}: ProductsManagerProps) {
           setSelectedProductForMovement(null);
         }}
         product={selectedProductForMovement || undefined}
-        initialType={movementType}
+        initialType="stock_in"
       />
 
       {/* Inventory Details Modal */}
