@@ -23,9 +23,9 @@ This implementation plan outlines the step-by-step approach to migrate from tab-
     - Use React Native Animated API
     - _Requirements: 1.2, 1.3, 1.4, 6.1, 6.2, 6.3, 6.4_
 
-  - [x] 2.2 Add menu items configuration with 17 flat items
+  - [x] 2.2 Add menu items configuration with 18 flat items
     - Define menu items array with icons and routes
-    - Include all navigation items: Dashboard, Sale, Sale History, Product Management, Movement History, Low Stock, Overview, Customer Analytics, AI Analytics, Customers, Suppliers, Expenses, Shop Settings, License Management, Language Settings, Data Export, Data Import
+    - Include all navigation items: Dashboard, Sale, Sale History, Product Management, Category Management, Movement History, Low Stock, Overview, Customer Analytics, AI Analytics, Customers, Suppliers, Expenses, Shop Settings, License Management, Language Settings, Data Export, Data Import
     - _Requirements: 1.6, 5.1, 5.4_
 
   - [ ]\* 2.3 Write property test for animation completion
@@ -80,8 +80,8 @@ This implementation plan outlines the step-by-step approach to migrate from tab-
 
 - [x] 6. Add localization support
   - [x] 6.1 Update `locales/en.ts` with new navigation keys
-    - Add keys for: saleHistory, productManagement, movementHistory, lowStock, overview, customerAnalytics, aiAnalytics, customers, suppliers, expenses, shopSettings, licenseManagement, language, dataExport, dataImport
-    - Ensure all 17 menu items have translations
+    - Add keys for: saleHistory, productManagement, categoryManagement, movementHistory, lowStock, overview, customerAnalytics, aiAnalytics, customers, suppliers, expenses, shopSettings, licenseManagement, language, dataExport, dataImport
+    - Ensure all 18 menu items have translations
     - _Requirements: 1.8, 9.1, 9.2_
 
   - [x] 6.2 Update `locales/my.ts` with Myanmar translations
@@ -119,20 +119,27 @@ This implementation plan outlines the step-by-step approach to migrate from tab-
     - Add MenuButton to header
     - _Requirements: 4.1, 4.4_
 
-  - [x] 8.2 Create `app/(drawer)/movement-history.tsx`
+  - [x] 8.2 Create `app/(drawer)/category-management.tsx`
+    - Extract category management from product management modal
+    - Create dedicated page for category CRUD operations
+    - Display categories with product counts
+    - Add MenuButton to header
+    - _Requirements: 4.1, 4.4_
+
+  - [x] 8.3 Create `app/(drawer)/movement-history.tsx`
     - Extract stock movements from inventory tab
     - Reuse existing EnhancedMovementHistory component
     - Add MenuButton to header
     - _Requirements: 4.2, 4.5_
 
-  - [x] 8.3 Create `app/(drawer)/low-stock.tsx`
+  - [x] 8.4 Create `app/(drawer)/low-stock.tsx`
     - Extract low stock overview from inventory tab
     - Display products below minimum stock
     - Add quick action buttons
     - Add MenuButton to header
     - _Requirements: 4.3, 4.6_
 
-  - [ ]\* 8.4 Write integration tests for inventory pages
+  - [ ]\* 8.5 Write integration tests for inventory pages
     - Test each page loads independently
     - Test data consistency across pages
     - Test navigation between pages

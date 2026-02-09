@@ -122,6 +122,7 @@ function Sidebar({ isOpen, onClose, currentRoute }: SidebarProps) {
     { id: 'sale', label: t('navigation.sale'), icon: ShoppingCart, route: '/(drawer)/sale' },
     { id: 'sale-history', label: t('navigation.saleHistory'), icon: History, route: '/(drawer)/sale-history' },
     { id: 'products', label: t('navigation.products'), icon: Package, route: '/(drawer)/product-management' },
+    { id: 'categories', label: t('navigation.categories'), icon: FolderTree, route: '/(drawer)/category-management' },
     { id: 'movements', label: t('navigation.movements'), icon: RotateCcw, route: '/(drawer)/movement-history' },
     { id: 'low-stock', label: t('navigation.lowStock'), icon: AlertTriangle, route: '/(drawer)/low-stock' },
     { id: 'overview', label: t('navigation.overview'), icon: BarChart3, route: '/(drawer)/overview' },
@@ -462,7 +463,7 @@ _For any_ touch event on the overlay when the drawer is open, the drawer should 
 
 ### Property 10: Menu Item Count
 
-_For any_ menu configuration, the sidebar should contain exactly 17 menu items in a flat structure.
+_For any_ menu configuration, the sidebar should contain exactly 18 menu items in a flat structure.
 
 **Validates: Requirements 1.6, 5.1, 5.4**
 
@@ -627,7 +628,7 @@ Property-based tests will verify universal correctness properties across many ge
 7. **Property Test: Menu Item Count**
    - **Property 10: Menu Item Count**
    - **Validates: Requirements 1.6, 5.1, 5.4**
-   - Verify sidebar contains exactly 17 menu items
+   - Verify sidebar contains exactly 18 menu items
    - Verify all items are in flat structure (no nesting)
 
 ### Integration Tests

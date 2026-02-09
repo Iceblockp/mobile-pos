@@ -34,7 +34,7 @@ This document specifies the requirements for transitioning a React Native Expo m
 3. WHEN the Sidebar is open, THE Overlay SHALL appear behind it with 50% opacity
 4. WHEN a user taps the Overlay, THE Sidebar SHALL close with smooth animation
 5. WHEN a user selects a menu item, THE Navigation_System SHALL navigate to the corresponding page and close the Sidebar
-6. THE Sidebar SHALL contain 17 menu items in a flat structure in the following order: Dashboard, Sale, Sale History, Product Management, Movement History, Low Stock, Overview, Customers, AI Analytics, Customers, Suppliers, Expenses, Shop Settings, License Management, Language Settings, Data Export, Data Import
+6. THE Sidebar SHALL contain 18 menu items in a flat structure in the following order: Dashboard, Sale, Sale History, Product Management, Category Management, Movement History, Low Stock, Overview, Customer Analytics, AI Analytics, Customers, Suppliers, Expenses, Shop Settings, License Management, Language Settings, Data Export, Data Import
 7. THE Current_Page_Indicator SHALL highlight the active menu item with a distinct background color
 8. THE Sidebar SHALL support both English and Myanmar languages using the existing localization system
 
@@ -85,7 +85,7 @@ This document specifies the requirements for transitioning a React Native Expo m
 1. THE Sidebar SHALL display all menu items in a flat structure without submenus or nested items
 2. THE Sidebar SHALL include all items from the previous "More" tab as individual menu items: Customers, Suppliers, Expenses, Shop Settings, License Management, Language Settings, Data Export, Data Import
 3. WHEN a user selects any menu item, THE Navigation_System SHALL navigate to the corresponding page and close the Sidebar
-4. THE Sidebar SHALL display all 17 menu items with consistent spacing and styling
+4. THE Sidebar SHALL display all 18 menu items with consistent spacing and styling
 5. THE Sidebar SHALL be scrollable to accommodate all menu items
 6. THE menu items SHALL be organized logically: core features first (Dashboard, Sale, Sale History), then inventory features, then reports features, then management and settings features
 

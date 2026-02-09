@@ -27,6 +27,7 @@ import {
   FileUp,
   FileDown,
   X,
+  FolderTree,
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import { DrawerMenuItem, MenuItem } from './DrawerMenuItem';
@@ -77,6 +78,12 @@ export function Sidebar({ isOpen, onClose, currentRoute }: SidebarProps) {
         label: t('products.title'),
         icon: Package,
         route: '/(drawer)/product-management',
+      },
+      {
+        id: 'category-management',
+        label: t('categories.manageCategories'),
+        icon: FolderTree,
+        route: '/(drawer)/category-management',
       },
       {
         id: 'movement-history',
