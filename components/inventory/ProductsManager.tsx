@@ -22,7 +22,6 @@ import {
   useCategories,
   useBasicSuppliers,
   useProductMutations,
-  useCategoryMutations,
   useBulkPricing,
   useProductsInfinite,
   useCategoriesWithCounts,
@@ -42,7 +41,6 @@ import {
   Edit,
   Trash2,
   Package,
-  FolderPlus,
   Settings,
   Scan,
   Camera,
@@ -97,12 +95,10 @@ export default function Products({}: ProductsManagerProps) {
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showAddForm, setShowAddForm] = useState(false);
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [showSearchScanner, setShowSearchScanner] = useState(false);
   // const [showTextScanner, setShowTextScanner] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [sortBy, setSortBy] = useState<'name' | 'updated_at' | 'none'>('none');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showSortOptions, setShowSortOptions] = useState(false);
@@ -122,7 +118,7 @@ export default function Products({}: ProductsManagerProps) {
   const [selectedProductForMovement, setSelectedProductForMovement] =
     useState<Product | null>(null);
   const [movementType, setMovementType] = useState<'stock_in' | 'stock_out'>(
-    'stock_in'
+    'stock_in',
   );
 
   // Add state for product detail modal
@@ -146,7 +142,7 @@ export default function Products({}: ProductsManagerProps) {
     debouncedSearchQuery || undefined,
     selectedCategory !== 'All' ? selectedCategory : undefined,
     sortBy,
-    sortOrder
+    sortOrder,
   );
 
   // Flatten all pages into a single array
@@ -168,12 +164,10 @@ export default function Products({}: ProductsManagerProps) {
     deleteProduct,
     updateProductWithBulkPricing,
   } = useProductMutations();
-  const { addCategory, updateCategory, deleteCategory } =
-    useCategoryMutations();
 
   // Load bulk pricing for the product being edited
   const { data: editingProductBulkPricing = [] } = useBulkPricing(
-    editingProduct?.id || ''
+    editingProduct?.id || '',
   );
 
   const isLoading = categoriesLoading || suppliersLoading; // Only essential data, not products
@@ -186,7 +180,7 @@ export default function Products({}: ProductsManagerProps) {
         editingProductBulkPricing.map((bp) => ({
           min_quantity: bp.min_quantity,
           bulk_price: bp.bulk_price,
-        }))
+        })),
       );
     }
   }, [editingProduct, editingProductBulkPricing]);
@@ -209,11 +203,6 @@ export default function Products({}: ProductsManagerProps) {
     cost: 0,
   });
 
-  const [categoryFormData, setCategoryFormData] = useState({
-    name: '',
-    description: '',
-  });
-
   const [bulkPricingTiers, setBulkPricingTiers] = useState<
     Array<{ min_quantity: number; bulk_price: number }>
   >([]);
@@ -223,7 +212,7 @@ export default function Products({}: ProductsManagerProps) {
     (newTiers: Array<{ min_quantity: number; bulk_price: number }>) => {
       setBulkPricingTiers(newTiers);
     },
-    []
+    [],
   );
 
   const onRefresh = () => {
@@ -259,12 +248,12 @@ export default function Products({}: ProductsManagerProps) {
     if (selectedCategory === 'All') {
       const totalProducts = categoriesWithCounts.reduce(
         (sum: number, cat: any) => sum + (cat.product_count || 0),
-        0
+        0,
       );
       return `${t('common.all')} (${products.length}/${totalProducts})`;
     }
     const category = categoriesWithCounts.find(
-      (c: any) => c.id === selectedCategory
+      (c: any) => c.id === selectedCategory,
     );
     if (category) {
       return `${category.name} (${products.length}/${
@@ -314,15 +303,6 @@ export default function Products({}: ProductsManagerProps) {
     setBulkPricingTiers([]);
     setEditingProduct(null); // Clear editing state so bulk pricing won't load
     setShowAddForm(true);
-  };
-
-  const resetCategoryForm = () => {
-    setCategoryFormData({
-      name: '',
-      description: '',
-    });
-    setEditingCategory(null);
-    setShowCategoryModal(false);
   };
 
   const handleBarcodeScanned = (barcode: string) => {
@@ -410,7 +390,7 @@ export default function Products({}: ProductsManagerProps) {
     if (status !== 'granted') {
       Alert.alert(
         t('products.permissionRequired'),
-        t('products.cameraPermissionNeeded')
+        t('products.cameraPermissionNeeded'),
       );
       return;
     }
@@ -516,52 +496,11 @@ export default function Products({}: ProductsManagerProps) {
         editingProduct
           ? t('products.productUpdated')
           : t('products.productAdded'),
-        'success'
+        'success',
       );
     } catch (error) {
       console.error('Error saving product:', error);
       Alert.alert(t('common.error'), t('products.failedToSave'));
-    }
-  };
-
-  const handleCategorySubmit = async () => {
-    if (!categoryFormData.name) {
-      Alert.alert(t('common.error'), t('products.enterCategoryName'));
-      return;
-    }
-
-    try {
-      if (editingCategory) {
-        await updateCategory.mutateAsync({
-          id: editingCategory.id,
-          data: {
-            name: categoryFormData.name,
-            description: categoryFormData.description,
-          },
-        });
-      } else {
-        await addCategory.mutateAsync({
-          ...categoryFormData,
-          created_at: new Date().toISOString(),
-        });
-      }
-
-      // Reset form but keep modal open
-      setCategoryFormData({
-        name: '',
-        description: '',
-      });
-      setEditingCategory(null);
-
-      showToast(
-        editingCategory
-          ? t('products.categoryUpdated')
-          : t('products.categoryAdded'),
-        'success'
-      );
-    } catch (error) {
-      Alert.alert(t('common.error'), t('products.failedToSaveCategory'));
-      console.error('Error saving category:', error);
     }
   };
 
@@ -591,15 +530,6 @@ export default function Products({}: ProductsManagerProps) {
     setShowAddForm(true);
   };
 
-  const handleEditCategory = (category: Category) => {
-    setCategoryFormData({
-      name: category.name,
-      description: category.description || '',
-    });
-    setEditingCategory(category);
-    setShowCategoryModal(true);
-  };
-
   const handleDelete = async (product: Product) => {
     Alert.alert(
       t('products.deleteProduct'),
@@ -619,86 +549,9 @@ export default function Products({}: ProductsManagerProps) {
             }
           },
         },
-      ]
+      ],
     );
   };
-
-  const handleDeleteCategory = async (category: Category) => {
-    // First check if there are products using this category
-    const productsInCategory = products.filter(
-      (p) => p.category_id === category.id
-    );
-
-    if (productsInCategory.length > 0) {
-      // Show alert for error - it will appear on top of modal and be clearly visible
-      Alert.alert(
-        t('categories.cannotDelete'),
-        `${t('categories.cannotDelete')} "${category.name}" - ${
-          productsInCategory.length
-        } ${
-          productsInCategory.length > 1
-            ? t('categories.productsStillUse')
-            : t('categories.productStillUses')
-        }`,
-        [{ text: t('common.close'), style: 'default' }]
-      );
-      return;
-    }
-
-    Alert.alert(
-      t('categories.deleteCategory'),
-      `${t('categories.areYouSure')} "${category.name}"?`,
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteCategory.mutateAsync(category.id);
-              // Keep modal open after deletion
-              showToast(t('categories.categoryDeleted'), 'success');
-            } catch (error: any) {
-              console.error('Error deleting category:', error);
-              // Check if it's a foreign key constraint error
-              if (
-                error.message &&
-                (error.message.includes('FOREIGN KEY constraint') ||
-                  error.message.includes('foreign key constraint') ||
-                  error.message.includes('constraint failed'))
-              ) {
-                Alert.alert(
-                  t('categories.cannotDelete'),
-                  `${t('categories.cannotDelete')} "${category.name}" - ${t(
-                    'categories.productsStillUse'
-                  )}`,
-                  [{ text: t('common.close'), style: 'default' }]
-                );
-              } else {
-                Alert.alert(
-                  t('common.error'),
-                  `${t('categories.failedToSave')} "${category.name}". ${t(
-                    'common.error'
-                  )}.`,
-                  [{ text: t('common.close'), style: 'default' }]
-                );
-              }
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  // Add handler for quick stock movement
-  // const handleQuickStockMovement = (
-  //   product: Product,
-  //   type: 'stock_in' | 'stock_out'
-  // ) => {
-  //   setSelectedProductForMovement(product);
-  //   setMovementType(type);
-  //   setShowStockMovementForm(true);
-  // };
 
   const getSupplierName = (supplierId: string | undefined) => {
     if (!supplierId) return t('products.noSupplier');
@@ -711,32 +564,23 @@ export default function Products({}: ProductsManagerProps) {
     return <LoadingSpinner />;
   }
 
-  // Memoized callbacks for better performance
-  // const handleEditCallback = useCallback((product: Product) => {
-  //   handleEdit(product);
-  // }, []);
-
-  // const handleDeleteCallback = useCallback((product: Product) => {
-  //   handleDelete(product);
-  // }, []);
-
   // Optimized Product Card with memoization
   const ProductCard = React.memo(
     ({ product }: { product: Product }) => {
       // Memoized calculations for better performance
       const profit = useMemo(
         () => product.price - product.cost,
-        [product.price, product.cost]
+        [product.price, product.cost],
       );
       const isLowStock = useMemo(
         () => product.quantity <= product.min_stock,
-        [product.quantity, product.min_stock]
+        [product.quantity, product.min_stock],
       );
       const hasBulkPricing = useMemo(
         () =>
           Boolean(product.has_bulk_pricing) ||
           (product.bulk_pricing && product.bulk_pricing.length > 0),
-        [product.has_bulk_pricing, product.bulk_pricing]
+        [product.has_bulk_pricing, product.bulk_pricing],
       );
 
       // Stable callbacks
@@ -750,7 +594,7 @@ export default function Products({}: ProductsManagerProps) {
           e.stopPropagation();
           handleEdit(product);
         },
-        [product.id]
+        [product.id],
       );
 
       return (
@@ -862,7 +706,7 @@ export default function Products({}: ProductsManagerProps) {
         prev.has_bulk_pricing === next.has_bulk_pricing &&
         prev.updated_at === next.updated_at
       );
-    }
+    },
   );
 
   // Simplified Table Header Component
@@ -1230,12 +1074,7 @@ export default function Products({}: ProductsManagerProps) {
               <Scan size={16} color="#3B82F6" />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={styles.compactAddButton}
-            onPress={handleAddNew}
-          >
-            <Plus size={16} color="#FFFFFF" />
-          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.compactMenuButton}
             onPress={() => setShowActionsMenu(!showActionsMenu)}
@@ -1275,21 +1114,6 @@ export default function Products({}: ProductsManagerProps) {
                 )}
                 <Text style={styles.actionMenuItemText}>
                   {t('products.sort')} {sortOrder === 'asc' ? '↑' : '↓'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionMenuItem}
-              onPress={() => {
-                setShowCategoryModal(true);
-                setShowActionsMenu(false);
-              }}
-            >
-              <View style={styles.actionMenuItemContent}>
-                <Settings size={16} color="#6B7280" />
-                <Text style={styles.actionMenuItemText}>
-                  {t('products.categories')}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -1515,7 +1339,7 @@ export default function Products({}: ProductsManagerProps) {
                       {categoriesWithCounts.reduce(
                         (sum: number, cat: any) =>
                           sum + (cat.product_count || 0),
-                        0
+                        0,
                       )}
                       )
                     </Text>
@@ -1891,123 +1715,6 @@ export default function Products({}: ProductsManagerProps) {
         {supplierModal()}
       </Modal>
 
-      {/* Category Management Modal */}
-      <Modal
-        visible={showCategoryModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              {t('products.manageCategories')}
-            </Text>
-            <TouchableOpacity onPress={resetCategoryForm}>
-              <Text style={styles.modalClose}>{t('common.done')}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Sticky Category Form - Not in ScrollView */}
-          <View style={styles.stickyFormContainer}>
-            <Card style={styles.categoryFormCard}>
-              <Text style={styles.formTitle}>
-                {editingCategory
-                  ? t('products.editCategory')
-                  : t('products.addNewCategory')}
-              </Text>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>
-                  {t('categories.categoryName')} *
-                </Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder={t('products.categoryNamePlaceholder')}
-                  value={categoryFormData.name}
-                  onChangeText={(text) =>
-                    setCategoryFormData({ ...categoryFormData, name: text })
-                  }
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>
-                  {t('products.description')}
-                </Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder={t('products.description')}
-                  value={categoryFormData.description}
-                  onChangeText={(text) =>
-                    setCategoryFormData({
-                      ...categoryFormData,
-                      description: text,
-                    })
-                  }
-                  multiline
-                  numberOfLines={3}
-                />
-              </View>
-
-              <View style={styles.formButtons}>
-                <Button
-                  title={t('common.cancel')}
-                  onPress={resetCategoryForm}
-                  variant="secondary"
-                  style={styles.formButton}
-                />
-                <Button
-                  title={editingCategory ? t('common.edit') : t('common.add')}
-                  onPress={handleCategorySubmit}
-                  style={styles.formButton}
-                />
-              </View>
-            </Card>
-          </View>
-
-          {/* Scrollable Categories List */}
-          <View style={styles.categoriesListContainer}>
-            <View style={styles.sectionTitleContainer}>
-              <Text style={styles.sectionTitle}>
-                {t('categories.existingCategories')}
-              </Text>
-            </View>
-            <ScrollView
-              style={styles.categoriesScrollView}
-              contentContainerStyle={styles.categoriesContent}
-              showsVerticalScrollIndicator={true}
-            >
-              {categories.map((category) => (
-                <Card key={category.id} style={styles.categoryCard}>
-                  <View style={styles.categoryHeader}>
-                    <View style={styles.categoryInfo}>
-                      <Text style={styles.categoryName}>{category.name}</Text>
-                      <Text style={styles.categoryDescription}>
-                        {category.description}
-                      </Text>
-                    </View>
-                    <View style={styles.categoryActions}>
-                      <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={() => handleEditCategory(category)}
-                      >
-                        <Edit size={18} color="#6B7280" />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={() => handleDeleteCategory(category)}
-                      >
-                        <Trash2 size={18} color="#EF4444" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </Card>
-              ))}
-            </ScrollView>
-          </View>
-        </SafeAreaView>
-      </Modal>
-
       {/* Product Detail Modal */}
       <ProductDetailModal
         visible={showProductDetail}
@@ -2038,6 +1745,15 @@ export default function Products({}: ProductsManagerProps) {
         onClose={() => setShowInventoryDetails(false)}
         categoryFilter={selectedCategory}
       />
+
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={handleAddNew}
+        activeOpacity={0.8}
+      >
+        <Plus size={28} color="#FFFFFF" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -2069,6 +1785,22 @@ const styles = StyleSheet.create({
   tableBulkPricingQuantity: {
     fontSize: 9,
     color: '#059669',
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#059669',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   tableBulkPricingPrice: {
     fontSize: 8,
