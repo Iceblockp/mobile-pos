@@ -1,13 +1,14 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Slot, usePathname } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import { DrawerProvider } from '@/context/DrawerContext';
 import { Sidebar } from '@/components/Sidebar';
 import { useDrawer } from '@/context/DrawerContext';
+import { detailScreenOptions } from '@/config/screenOptions';
 
 /**
  * DrawerContent component
- * Renders the sidebar and screen content
+ * Renders the sidebar and screen content with Stack navigation
  * Separated to allow useDrawer hook access within DrawerProvider
  */
 function DrawerContent() {
@@ -16,8 +17,12 @@ function DrawerContent() {
 
   return (
     <View style={styles.container}>
-      {/* Screen content */}
-      <Slot />
+      {/* Screen content with Stack navigation */}
+      <Stack screenOptions={{ headerShown: false }}>
+        {/* Detail and form screens with modal presentation */}
+        <Stack.Screen name="product-detail" options={detailScreenOptions} />
+        <Stack.Screen name="product-form" options={detailScreenOptions} />
+      </Stack>
 
       {/* Sidebar overlay */}
       <Sidebar isOpen={isOpen} onClose={closeDrawer} currentRoute={pathname} />

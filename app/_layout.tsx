@@ -19,6 +19,10 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import {
+  defaultScreenOptions,
+  detailScreenOptions,
+} from '@/config/screenOptions';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -95,7 +99,7 @@ export default function RootLayout() {
               <CurrencyProvider>
                 <ToastProvider>
                   <SafeAreaProvider>
-                    <Stack screenOptions={{ headerShown: false }}>
+                    <Stack screenOptions={defaultScreenOptions}>
                       <Stack.Screen name="index" />
                       <Stack.Screen
                         name="(drawer)"
@@ -108,6 +112,14 @@ export default function RootLayout() {
                         options={{
                           headerShown: false,
                         }}
+                      />
+                      <Stack.Screen
+                        name="customer-detail"
+                        options={detailScreenOptions}
+                      />
+                      <Stack.Screen
+                        name="supplier-detail"
+                        options={detailScreenOptions}
                       />
                       <Stack.Screen name="+not-found" />
                     </Stack>
