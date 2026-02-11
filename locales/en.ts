@@ -166,6 +166,7 @@ export const en = {
     thisMonth: 'This Month',
     selectDate: 'Select Date',
     selectMonth: 'Select Month',
+    selectDateRange: 'Select Date Range',
     selectMonthYear: 'Select Month & Year',
     year: 'Year',
     month: 'Month',

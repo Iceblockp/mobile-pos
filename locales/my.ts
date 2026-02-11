@@ -172,6 +172,7 @@ export const my: TranslationKeys = {
     thisMonth: 'ဒီလ',
     selectDate: 'ရက်စွဲရွေးပါ',
     selectMonth: 'လရွေးမည်',
+    selectDateRange: 'ရက်စွဲအပိုင်းအခြားရွေးပါ',
     selectMonthYear: 'လနှင့်နှစ်ရွေးမည်',
     year: 'နှစ်',
     month: 'လ',

@@ -39,7 +39,6 @@ import {
   ImageIcon,
   Printer,
 } from 'lucide-react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import * as XLSX from 'xlsx';
 import * as FileSystem from 'expo-file-system';
 import { cacheDirectory } from 'expo-file-system/legacy';
@@ -56,6 +55,7 @@ import {
 } from '@/services/paymentMethodService';
 import { MenuButton } from '@/components/MenuButton';
 import { useDrawer } from '@/context/DrawerContext';
+import { DateRangePicker } from '@/components/DateRangePicker';
 /**
  * Sale History Page
  * Dedicated page for viewing past sales with filtering and search functionality
@@ -83,12 +83,10 @@ export default function SaleHistory() {
   const { t } = useTranslation();
   const { openDrawer } = useDrawer();
   const [searchQuery, setSearchQuery] = useState('');
-  const [dateFilter, setDateFilter] = useState('today');
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [showMonthYearPicker, setShowMonthYearPicker] = useState(false);
+  const today = new Date();
+  const [customStartDate, setCustomStartDate] = useState(today);
+  const [customEndDate, setCustomEndDate] = useState(today);
+  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
   const [selectedSale, setSelectedSale] = useState<any>(null);
   const [showSaleDetail, setShowSaleDetail] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -148,85 +146,34 @@ export default function SaleHistory() {
 
   const generateFilename = (
     baseFilename: string,
-    dateFilter: string,
-    selectedDate: Date,
+    customStart: Date,
+    customEnd: Date,
   ) => {
-    const now = new Date();
     const formatDateForFilename = (date: Date) => {
       return date.toISOString().split('T')[0];
     };
 
-    let filename = baseFilename;
-
-    switch (dateFilter) {
-      case 'today':
-        filename += `_${formatDateForFilename(now)}`;
-        break;
-      case 'month':
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        filename += `_${formatDateForFilename(monthStart)}_to_${formatDateForFilename(monthEnd)}`;
-        break;
-      case 'selectedMonth':
-        const selectedMonthStart = new Date(selectedYear, selectedMonth, 1);
-        const selectedMonthEnd = new Date(selectedYear, selectedMonth + 1, 0);
-        filename += `_${formatDateForFilename(selectedMonthStart)}_to_${formatDateForFilename(selectedMonthEnd)}`;
-        break;
-      case 'custom':
-        filename += `_${formatDateForFilename(selectedDate)}`;
-        break;
-      case 'all':
-        filename += `_all_time_${formatDateForFilename(now)}`;
-        break;
-      default:
-        filename += `_${formatDateForFilename(now)}`;
-    }
-
-    return filename + '.xlsx';
+    const filename = `${baseFilename}_${formatDateForFilename(customStart)}_to_${formatDateForFilename(customEnd)}.xlsx`;
+    return filename;
   };
 
   const calculateDateRange = (
-    dateFilterType: string,
-    selectedDate: Date,
+    customStart: Date,
+    customEnd: Date,
   ): [Date, Date] => {
-    const now = new Date();
-    const startDate = new Date();
-    const endDate = new Date();
+    const startDate = new Date(customStart);
+    startDate.setHours(0, 0, 0, 0);
 
-    switch (dateFilterType) {
-      case 'today':
-        startDate.setHours(0, 0, 0, 0);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      case 'month':
-        startDate.setDate(1);
-        startDate.setHours(0, 0, 0, 0);
-        endDate.setMonth(now.getMonth() + 1, 0);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      case 'selectedMonth':
-        startDate.setFullYear(selectedYear, selectedMonth, 1);
-        startDate.setHours(0, 0, 0, 0);
-        endDate.setFullYear(selectedYear, selectedMonth + 1, 0);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      case 'custom':
-        const customDate = new Date(selectedDate);
-        customDate.setHours(0, 0, 0, 0);
-        startDate.setTime(customDate.getTime());
-        endDate.setTime(customDate.getTime());
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      default:
-        startDate.setFullYear(startDate.getFullYear() - 10);
-        startDate.setHours(0, 0, 0, 0);
-        endDate.setHours(23, 59, 59, 999);
-    }
+    const endDate = new Date(customEnd);
+    endDate.setHours(23, 59, 59, 999);
 
     return [startDate, endDate];
   };
 
-  const [startDate, endDate] = calculateDateRange(dateFilter, selectedDate);
+  const [startDate, endDate] = calculateDateRange(
+    customStartDate,
+    customEndDate,
+  );
 
   const {
     data: salesPages,
@@ -235,9 +182,7 @@ export default function SaleHistory() {
     hasNextPage,
     isFetchingNextPage,
     isLoading: salesLoading,
-  } = dateFilter === 'all'
-    ? useInfiniteSales()
-    : useInfiniteSalesByDateRange(startDate, endDate);
+  } = useInfiniteSalesByDateRange(startDate, endDate);
 
   const sales = salesPages?.pages.flatMap((page) => page.data) || [];
 
@@ -263,25 +208,16 @@ export default function SaleHistory() {
     });
   }, [sales, searchQuery, paymentMethodFilter]);
 
-  const { data: salesSummary } =
-    dateFilter === 'all'
-      ? useSalesSummary(searchQuery)
-      : useSalesSummaryByDateRange(
-          startDate,
-          endDate,
-          searchQuery,
-          undefined,
-          -390,
-        );
+  const { data: salesSummary } = useSalesSummaryByDateRange(
+    startDate,
+    endDate,
+    searchQuery,
+    undefined,
+    -390,
+  );
 
   const { data: allSalesForExport, refetch: refetchAllSales } =
-    useAllSalesForExport(
-      searchQuery,
-      undefined,
-      dateFilter === 'all' ? undefined : startDate,
-      dateFilter === 'all' ? undefined : endDate,
-      -390,
-    );
+    useAllSalesForExport(searchQuery, undefined, startDate, endDate, -390);
 
   const { data: saleItems = [], isLoading: saleItemsLoading } = useSaleItems(
     selectedSale?.id || 0,
@@ -303,14 +239,36 @@ export default function SaleHistory() {
 
   useEffect(() => {
     setAllSaleItems([]);
-  }, [dateFilter, searchQuery, selectedDate, selectedMonth, selectedYear]);
+  }, [searchQuery, customStartDate, customEndDate]);
 
-  const onDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      setSelectedDate(selectedDate);
-      setDateFilter('custom');
+  const handleDateRangeApply = (start: Date, end: Date) => {
+    setCustomStartDate(start);
+    setCustomEndDate(end);
+  };
+
+  const formatDateRangeDisplay = () => {
+    const isSameDay =
+      customStartDate.getDate() === customEndDate.getDate() &&
+      customStartDate.getMonth() === customEndDate.getMonth() &&
+      customStartDate.getFullYear() === customEndDate.getFullYear();
+
+    if (isSameDay) {
+      return customStartDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
     }
+
+    return `${customStartDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })} - ${customEndDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })}`;
   };
 
   const loadAllSaleItems = async () => {
@@ -567,8 +525,8 @@ export default function SaleHistory() {
 
         const filename = generateFilename(
           'sales_list',
-          dateFilter,
-          selectedDate,
+          customStartDate,
+          customEndDate,
         );
         const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
 
@@ -641,8 +599,8 @@ export default function SaleHistory() {
 
         const filename = generateFilename(
           'sales_items',
-          dateFilter,
-          selectedDate,
+          customStartDate,
+          customEndDate,
         );
         const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
 
@@ -706,45 +664,16 @@ export default function SaleHistory() {
           )}
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.dateFilters}
+        {/* Date Range Picker Button */}
+        <TouchableOpacity
+          style={styles.dateRangePickerButton}
+          onPress={() => setShowDateRangePicker(true)}
         >
-          {[
-            { key: 'all', label: t('sales.all') },
-            { key: 'today', label: t('sales.today') },
-            { key: 'month', label: t('sales.thisMonth') },
-            { key: 'selectedMonth', label: t('sales.selectMonth') },
-            { key: 'custom', label: t('sales.selectDate') },
-          ].map((filter) => (
-            <TouchableOpacity
-              key={filter.key}
-              style={[
-                styles.dateFilterChip,
-                dateFilter === filter.key && styles.dateFilterChipActive,
-              ]}
-              onPress={() => {
-                if (filter.key === 'custom') {
-                  setShowDatePicker(true);
-                } else if (filter.key === 'selectedMonth') {
-                  setShowMonthYearPicker(true);
-                } else {
-                  setDateFilter(filter.key);
-                }
-              }}
-            >
-              <Text
-                style={[
-                  styles.dateFilterText,
-                  dateFilter === filter.key && styles.dateFilterTextActive,
-                ]}
-              >
-                {filter.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+          <Calendar size={20} color="#059669" />
+          <Text style={styles.dateRangePickerButtonText}>
+            {formatDateRangeDisplay()}
+          </Text>
+        </TouchableOpacity>
 
         {/* Payment Method Filter */}
         <View style={styles.paymentMethodFilterContainer}>
@@ -798,44 +727,6 @@ export default function SaleHistory() {
           </ScrollView>
         </View>
 
-        {dateFilter === 'custom' && (
-          <View style={styles.customDateContainer}>
-            <TouchableOpacity
-              style={styles.customDateButton}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Calendar size={16} color="#6B7280" />
-              <Text style={styles.customDateText}>
-                {selectedDate.toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                })}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {dateFilter === 'selectedMonth' && (
-          <View style={styles.customDateContainer}>
-            <TouchableOpacity
-              style={styles.customDateButton}
-              onPress={() => setShowMonthYearPicker(true)}
-            >
-              <Calendar size={16} color="#6B7280" />
-              <Text style={styles.customDateText}>
-                {new Date(selectedYear, selectedMonth).toLocaleDateString(
-                  'en-US',
-                  {
-                    month: 'long',
-                    year: 'numeric',
-                  },
-                )}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
         <View style={styles.summaryContainer}>
           <Text style={styles.summaryText}>
             {salesSummary?.count || 0} {t('sales.salesTotal')}{' '}
@@ -865,7 +756,7 @@ export default function SaleHistory() {
             <History size={48} color="#9CA3AF" />
             <Text style={styles.emptyStateText}>{t('sales.noSalesFound')}</Text>
             <Text style={styles.emptyStateSubtext}>
-              {searchQuery || dateFilter !== 'all'
+              {searchQuery
                 ? t('sales.tryAdjustingFilters')
                 : t('sales.noSalesMadeYet')}
             </Text>
@@ -907,16 +798,15 @@ export default function SaleHistory() {
         contentContainerStyle={{ paddingBottom: 20 }}
       />
 
-      {/* Date Picker */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={selectedDate}
-          mode="date"
-          display="default"
-          onChange={onDateChange}
-          maximumDate={new Date()}
-        />
-      )}
+      {/* Date Range Picker */}
+      <DateRangePicker
+        visible={showDateRangePicker}
+        onClose={() => setShowDateRangePicker(false)}
+        onApply={handleDateRangeApply}
+        initialStartDate={customStartDate}
+        initialEndDate={customEndDate}
+        maxDate={new Date()}
+      />
 
       {/* Export Options Modal - Simplified version */}
       <Modal
@@ -998,106 +888,6 @@ export default function SaleHistory() {
                 {t('common.cancel')}
               </Text>
             </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Month/Year Picker Modal - Simplified */}
-      <Modal
-        visible={showMonthYearPicker}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowMonthYearPicker(false)}
-      >
-        <View style={styles.monthPickerOverlay}>
-          <View style={styles.monthPickerContainer}>
-            <View style={styles.monthPickerHeader}>
-              <Text style={styles.monthPickerTitle}>
-                {t('sales.selectMonthYear')}
-              </Text>
-              <TouchableOpacity onPress={() => setShowMonthYearPicker(false)}>
-                <X size={20} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.monthSelectorContainer}>
-              <Text style={styles.yearSelectorLabel}>{t('sales.year')}</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.yearSelector}
-              >
-                {Array.from(
-                  { length: 5 },
-                  (_, i) => new Date().getFullYear() - i,
-                ).map((year) => (
-                  <TouchableOpacity
-                    key={year}
-                    style={[
-                      styles.yearOption,
-                      selectedYear === year && styles.yearOptionActive,
-                    ]}
-                    onPress={() => setSelectedYear(year)}
-                  >
-                    <Text
-                      style={[
-                        styles.yearOptionText,
-                        selectedYear === year && styles.yearOptionTextActive,
-                      ]}
-                    >
-                      {year}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-
-              <Text style={styles.monthSelectorLabel}>{t('sales.month')}</Text>
-              <View style={styles.monthGrid}>
-                {Array.from({ length: 12 }, (_, i) => i).map((month) => (
-                  <TouchableOpacity
-                    key={month}
-                    style={[
-                      styles.monthOption,
-                      selectedMonth === month && styles.monthOptionActive,
-                    ]}
-                    onPress={() => setSelectedMonth(month)}
-                  >
-                    <Text
-                      style={[
-                        styles.monthOptionText,
-                        selectedMonth === month && styles.monthOptionTextActive,
-                      ]}
-                    >
-                      {new Date(2024, month).toLocaleDateString('en-US', {
-                        month: 'short',
-                      })}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.monthPickerActions}>
-              <TouchableOpacity
-                style={styles.monthPickerCancelButton}
-                onPress={() => setShowMonthYearPicker(false)}
-              >
-                <Text style={styles.monthPickerCancelText}>
-                  {t('common.cancel')}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.monthPickerConfirmButton}
-                onPress={() => {
-                  setDateFilter('selectedMonth');
-                  setShowMonthYearPicker(false);
-                }}
-              >
-                <Text style={styles.monthPickerConfirmText}>
-                  {t('common.confirm')}
-                </Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
       </Modal>
@@ -1475,25 +1265,22 @@ const styles = StyleSheet.create({
   clearButton: {
     padding: 8,
   },
-  dateFilters: {
+  dateRangePickerButton: {
     flexDirection: 'row',
-  },
-  dateFilterChip: {
+    alignItems: 'center',
+    gap: 12,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    marginRight: 8,
+    paddingVertical: 14,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#059669',
   },
-  dateFilterChipActive: {
-    backgroundColor: '#059669',
-  },
-  dateFilterText: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  dateFilterTextActive: {
-    color: '#FFFFFF',
+  dateRangePickerButtonText: {
+    flex: 1,
+    fontSize: 15,
+    color: '#059669',
+    fontWeight: '600',
   },
   paymentMethodFilterContainer: {
     gap: 8,
@@ -1521,24 +1308,6 @@ const styles = StyleSheet.create({
   },
   paymentMethodFilterTextActive: {
     color: '#FFFFFF',
-  },
-  customDateContainer: {
-    marginTop: 8,
-  },
-  customDateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  customDateText: {
-    fontSize: 14,
-    color: '#111827',
   },
   summaryContainer: {
     paddingTop: 12,
@@ -1695,114 +1464,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  monthPickerOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  monthPickerContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    width: '100%',
-    maxWidth: 400,
-  },
-  monthPickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  monthPickerTitle: {
-    fontSize: 18,
-    color: '#111827',
-    fontWeight: '600',
-  },
-  monthSelectorContainer: {
-    marginBottom: 24,
-  },
-  yearSelectorLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 12,
-  },
-  yearSelector: {
-    flexDirection: 'row',
-    marginBottom: 20,
-  },
-  yearOption: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-    marginRight: 8,
-  },
-  yearOptionActive: {
-    backgroundColor: '#059669',
-  },
-  yearOptionText: {
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  yearOptionTextActive: {
-    color: '#FFFFFF',
-  },
-  monthSelectorLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 12,
-  },
-  monthGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  monthOption: {
-    width: '22%',
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-  },
-  monthOptionActive: {
-    backgroundColor: '#059669',
-  },
-  monthOptionText: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  monthOptionTextActive: {
-    color: '#FFFFFF',
-  },
-  monthPickerActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  monthPickerCancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-  },
-  monthPickerCancelText: {
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  monthPickerConfirmButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#059669',
-    alignItems: 'center',
-  },
-  monthPickerConfirmText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
   modalContainer: {
     flex: 1,
     backgroundColor: '#F9FAFB',
