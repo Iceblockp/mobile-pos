@@ -1790,6 +1790,7 @@ export const en = {
     debtHistory: 'Debt History',
     noDebtSales: 'No debt sales found',
     customersWithDebt: 'Customers with Debt',
+    unpaid: 'Unpaid',
   },
 };
 

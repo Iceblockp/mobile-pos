@@ -1878,5 +1878,6 @@ export const my: TranslationKeys = {
     debtHistory: 'အကြွေးမှတ်တမ်း',
     noDebtSales: 'အကြွေးရောင်းချမှုများမတွေ့ပါ',
     customersWithDebt: 'အကြွေးရှိသောဖောက်သည်များ',
+    unpaid: 'မပေးရသေး',
   },
 } as const;

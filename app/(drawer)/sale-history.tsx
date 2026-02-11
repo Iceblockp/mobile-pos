@@ -765,36 +765,56 @@ export default function SaleHistory() {
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={5}
-        renderItem={({ item: sale }) => (
-          <TouchableOpacity onPress={() => handleSalePress(sale)}>
-            <Card style={styles.saleCard}>
-              <View style={styles.saleHeader}>
-                <View style={styles.saleInfo}>
-                  <Text style={styles.saleId}>
-                    {t('sales.saleNumber')} {sale.id}
-                  </Text>
-                  <Text style={styles.saleDate}>
-                    {formatDate(sale.created_at)}
-                  </Text>
-                  <Text style={styles.salePayment}>
-                    {t('sales.payment')} {sale.payment_method.toUpperCase()}
-                  </Text>
-                  {sale.note && (
-                    <Text style={styles.saleNote} numberOfLines={1}>
-                      {t('sales.saleNote')}: {sale.note}
+        renderItem={({ item: sale }) => {
+          const isDebt = sale.payment_method.toLowerCase() === 'debt';
+          const cardStyle = isDebt
+            ? { ...styles.saleCard, ...styles.saleCardDebt }
+            : styles.saleCard;
+          return (
+            <TouchableOpacity onPress={() => handleSalePress(sale)}>
+              <Card style={cardStyle}>
+                <View style={styles.saleHeader}>
+                  <View style={styles.saleInfo}>
+                    <Text style={styles.saleId}>
+                      {t('sales.saleNumber')} {sale.id}
                     </Text>
-                  )}
+                    <Text style={styles.saleDate}>
+                      {formatDate(sale.created_at)}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.salePayment,
+                        isDebt && styles.salePaymentDebt,
+                      ]}
+                    >
+                      {t('sales.payment')} {sale.payment_method.toUpperCase()}
+                    </Text>
+                    {sale.note && (
+                      <Text style={styles.saleNote} numberOfLines={1}>
+                        {t('sales.saleNote')}: {sale.note}
+                      </Text>
+                    )}
+                  </View>
+                  <View style={styles.saleAmountContainer}>
+                    <Text
+                      style={[styles.saleTotal, isDebt && styles.saleTotalDebt]}
+                    >
+                      {formatPrice(sale.total)}
+                    </Text>
+                    <Eye size={16} color={isDebt ? '#DC2626' : '#6B7280'} />
+                  </View>
                 </View>
-                <View style={styles.saleAmountContainer}>
-                  <Text style={styles.saleTotal}>
-                    {formatPrice(sale.total)}
-                  </Text>
-                  <Eye size={16} color="#6B7280" />
-                </View>
-              </View>
-            </Card>
-          </TouchableOpacity>
-        )}
+                {isDebt && (
+                  <View style={styles.debtIndicator}>
+                    <Text style={styles.debtIndicatorText}>
+                      {t('debt.unpaid')}
+                    </Text>
+                  </View>
+                )}
+              </Card>
+            </TouchableOpacity>
+          );
+        }}
         contentContainerStyle={{ paddingBottom: 20 }}
       />
 
@@ -1322,6 +1342,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 12,
   },
+  saleCardDebt: {
+    backgroundColor: '#FEF2F2',
+    borderLeftWidth: 4,
+    borderLeftColor: '#DC2626',
+  },
   saleHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1343,6 +1368,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#059669',
   },
+  salePaymentDebt: {
+    color: '#DC2626',
+    fontWeight: '600',
+  },
   saleNote: {
     fontSize: 12,
     color: '#9CA3AF',
@@ -1356,6 +1385,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#111827',
     fontWeight: 'bold',
+  },
+  saleTotalDebt: {
+    color: '#DC2626',
+  },
+  debtIndicator: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#FEE2E2',
+    alignItems: 'center',
+  },
+  debtIndicatorText: {
+    fontSize: 12,
+    color: '#DC2626',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   loadingMore: {
     flexDirection: 'row',
