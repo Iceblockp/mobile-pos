@@ -118,7 +118,7 @@ export const EnhancedMovementHistory: React.FC<EnhancedMovementHistoryProps> =
             movement.product_name?.toLowerCase().includes(query) ||
             movement.reason?.toLowerCase().includes(query) ||
             movement.reference_number?.toLowerCase().includes(query) ||
-            movement.supplier_name?.toLowerCase().includes(query)
+            movement.supplier_name?.toLowerCase().includes(query),
         );
       }, [movements, filters.searchQuery]);
 
@@ -164,7 +164,7 @@ export const EnhancedMovementHistory: React.FC<EnhancedMovementHistoryProps> =
             }));
           }
         },
-        [showDatePicker]
+        [showDatePicker],
       );
 
       const clearFilters = useCallback(() => {
@@ -297,7 +297,7 @@ export const EnhancedMovementHistory: React.FC<EnhancedMovementHistoryProps> =
             </View>
           </Card>
         ),
-        [compact, showProductName, t]
+        [compact, showProductName, t],
       );
 
       const renderEmptyState = () => (
@@ -536,7 +536,7 @@ export const EnhancedMovementHistory: React.FC<EnhancedMovementHistoryProps> =
             keyExtractor={(item) => item.id}
             renderItem={renderMovementItem}
             ListEmptyComponent={renderEmptyState}
-            ListHeaderComponent={headerComponent}
+            // ListHeaderComponent={headerComponent}
             refreshControl={
               <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
             }
@@ -549,7 +549,7 @@ export const EnhancedMovementHistory: React.FC<EnhancedMovementHistoryProps> =
           {renderFilterModal()}
         </View>
       );
-    }
+    },
   );
 
 const styles = StyleSheet.create({

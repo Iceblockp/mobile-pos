@@ -49,7 +49,7 @@ export const DrawerMenuItem = React.memo(function DrawerMenuItem({
    */
   const handlePress = () => {
     try {
-      router.push(item.route);
+      router.push(item.route as any);
       onPress();
     } catch (error) {
       console.error('Navigation error:', error);

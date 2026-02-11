@@ -240,27 +240,7 @@ export default function ProductDetail() {
             </View>
           )}
 
-          {/* Stock Movement Buttons */}
-          <View style={styles.stockMovementButtons}>
-            <TouchableOpacity
-              style={styles.stockInButton}
-              onPress={handleStockIn}
-            >
-              <Plus size={20} color="#FFFFFF" />
-              <Text style={styles.stockButtonText}>
-                {t('inventory.stockIn')}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.stockOutButton}
-              onPress={handleStockOut}
-            >
-              <Minus size={20} color="#FFFFFF" />
-              <Text style={styles.stockButtonText}>
-                {t('inventory.stockOut')}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <ProductMovementHistory product={product} compact={true} />
         </Card>
 
         {/* Supplier Info */}
@@ -305,17 +285,6 @@ export default function ProductDetail() {
             })}
           </Card>
         )}
-
-        {/* Movement History */}
-        <Card style={styles.card}>
-          <View style={styles.cardHeader}>
-            <History size={20} color="#3B82F6" />
-            <Text style={styles.cardTitle} weight="bold">
-              {t('inventory.movementHistory')}
-            </Text>
-          </View>
-          <ProductMovementHistory product={product} compact={true} />
-        </Card>
 
         {/* Action Buttons */}
         <View style={styles.actions}>
