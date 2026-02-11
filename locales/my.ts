@@ -184,6 +184,9 @@ export const my: TranslationKeys = {
     noSalesFound: 'ရောင်းချမှုများမတွေ့ပါ',
     tryAdjustingFilters: 'သင့်စစ်ထုတ်မှုများကို ပြင်ဆင်ကြည့်ပါ',
     noSalesMadeYet: 'ရောင်းချမှုများမရှိသေးပါ',
+    exportData: 'ဒေတာထုတ်ယူမည်',
+    tableView: 'ဇယားမြင်ကွင်း',
+    cardView: 'ကတ်မြင်ကွင်း',
     // Sale Details
     saleDetails: 'ရောင်းချမှုအသေးစိတ်',
     close: 'ပိတ်မည်',

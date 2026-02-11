@@ -25,6 +25,7 @@ export const en = {
     done: 'Done',
     back: 'Back',
     next: 'Next',
+    actions: 'Actions',
     previous: 'Previous',
     total: 'Total',
     amount: 'Amount',
@@ -177,6 +178,9 @@ export const en = {
     noSalesFound: 'No sales found',
     tryAdjustingFilters: 'Try adjusting your filters',
     noSalesMadeYet: 'No sales have been made yet',
+    exportData: 'Export Data',
+    tableView: 'Table View',
+    cardView: 'Card View',
     // Sale Details
     saleDetails: 'Sale Details',
     close: 'Close',

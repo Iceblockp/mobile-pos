@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   PixelRatio,
   FlatList,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Card } from '@/components/Card';
@@ -38,6 +39,9 @@ import {
   Trash2,
   ImageIcon,
   Printer,
+  MoreVertical,
+  LayoutGrid,
+  List,
 } from 'lucide-react-native';
 import * as XLSX from 'xlsx';
 import * as FileSystem from 'expo-file-system';
@@ -99,6 +103,10 @@ export default function SaleHistory() {
   const [showPrintManager, setShowPrintManager] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
   const { formatPrice } = useCurrencyFormatter();
+
+  // View mode and dropdown menu state
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
 
   // Payment method filter state
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('All');
@@ -629,608 +637,802 @@ export default function SaleHistory() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header with MenuButton */}
-      <View style={styles.header}>
-        <MenuButton onPress={openDrawer} />
-        <Text style={styles.title} weight="bold">
-          {t('sales.salesHistory')}
-        </Text>
-        <TouchableOpacity
-          style={styles.exportButton}
-          onPress={showExportOptions}
-          disabled={exporting || !salesSummary || salesSummary.count === 0}
-        >
-          <Download size={20} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
+    <TouchableWithoutFeedback onPress={() => setShowOptionsMenu(false)}>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {/* Header with MenuButton */}
+        <View style={styles.header}>
+          <MenuButton onPress={openDrawer} />
+          <Text style={styles.title} weight="bold">
+            {t('sales.salesHistory')}
+          </Text>
+          <TouchableOpacity
+            style={styles.moreButton}
+            onPress={() => setShowOptionsMenu(!showOptionsMenu)}
+          >
+            <MoreVertical size={20} color="#111827" />
+          </TouchableOpacity>
 
-      {/* Filters Container */}
-      <View style={styles.filtersContainer}>
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder={t('sales.searchBySaleId')}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity
-              style={styles.clearButton}
-              onPress={() => setSearchQuery('')}
-            >
-              <X size={16} color="#6B7280" />
-            </TouchableOpacity>
+          {/* Options Dropdown Menu */}
+          {showOptionsMenu && (
+            <View style={styles.optionsMenu}>
+              <TouchableOpacity
+                style={styles.optionsMenuItem}
+                onPress={() => {
+                  setShowOptionsMenu(false);
+                  showExportOptions();
+                }}
+                disabled={
+                  exporting || !salesSummary || salesSummary.count === 0
+                }
+              >
+                <Download size={18} color="#059669" />
+                <Text style={styles.optionsMenuItemText}>
+                  {t('sales.exportData')}
+                </Text>
+              </TouchableOpacity>
+
+              <View style={styles.optionsMenuDivider} />
+
+              <TouchableOpacity
+                style={styles.optionsMenuItem}
+                onPress={() => {
+                  setViewMode(viewMode === 'card' ? 'table' : 'card');
+                  setShowOptionsMenu(false);
+                }}
+              >
+                {viewMode === 'card' ? (
+                  <List size={18} color="#059669" />
+                ) : (
+                  <LayoutGrid size={18} color="#059669" />
+                )}
+                <Text style={styles.optionsMenuItemText}>
+                  {viewMode === 'card'
+                    ? t('sales.tableView')
+                    : t('sales.cardView')}
+                </Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
 
-        {/* Date Range Picker Button */}
-        <TouchableOpacity
-          style={styles.dateRangePickerButton}
-          onPress={() => setShowDateRangePicker(true)}
-        >
-          <Calendar size={20} color="#059669" />
-          <Text style={styles.dateRangePickerButtonText}>
-            {formatDateRangeDisplay()}
-          </Text>
-        </TouchableOpacity>
-
-        {/* Payment Method Filter */}
-        <View style={styles.paymentMethodFilterContainer}>
-          <Text style={styles.paymentMethodFilterLabel} weight="medium">
-            {t('sales.paymentMethod')}:
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.paymentMethodFilters}
-          >
-            <TouchableOpacity
-              style={[
-                styles.paymentMethodFilterChip,
-                paymentMethodFilter === 'All' &&
-                  styles.paymentMethodFilterChipActive,
-              ]}
-              onPress={() => setPaymentMethodFilter('All')}
-            >
-              <Text
-                style={[
-                  styles.paymentMethodFilterText,
-                  paymentMethodFilter === 'All' &&
-                    styles.paymentMethodFilterTextActive,
-                ]}
-              >
-                {t('sales.all')}
-              </Text>
-            </TouchableOpacity>
-            {paymentMethods.map((method) => (
+        {/* Filters Container */}
+        <View style={styles.filtersContainer}>
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder={t('sales.searchBySaleId')}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
               <TouchableOpacity
-                key={method.id}
+                style={styles.clearButton}
+                onPress={() => setSearchQuery('')}
+              >
+                <X size={16} color="#6B7280" />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Date Range Picker Button */}
+          <TouchableOpacity
+            style={styles.dateRangePickerButton}
+            onPress={() => setShowDateRangePicker(true)}
+          >
+            <Calendar size={20} color="#059669" />
+            <Text style={styles.dateRangePickerButtonText}>
+              {formatDateRangeDisplay()}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Payment Method Filter */}
+          <View style={styles.paymentMethodFilterContainer}>
+            <Text style={styles.paymentMethodFilterLabel} weight="medium">
+              {t('sales.paymentMethod')}:
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.paymentMethodFilters}
+            >
+              <TouchableOpacity
                 style={[
                   styles.paymentMethodFilterChip,
-                  paymentMethodFilter === method.name &&
+                  paymentMethodFilter === 'All' &&
                     styles.paymentMethodFilterChipActive,
                 ]}
-                onPress={() => setPaymentMethodFilter(method.name)}
+                onPress={() => setPaymentMethodFilter('All')}
               >
                 <Text
                   style={[
                     styles.paymentMethodFilterText,
-                    paymentMethodFilter === method.name &&
+                    paymentMethodFilter === 'All' &&
                       styles.paymentMethodFilterTextActive,
                   ]}
                 >
-                  {method.name}
+                  {t('sales.all')}
                 </Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+              {paymentMethods.map((method) => (
+                <TouchableOpacity
+                  key={method.id}
+                  style={[
+                    styles.paymentMethodFilterChip,
+                    paymentMethodFilter === method.name &&
+                      styles.paymentMethodFilterChipActive,
+                  ]}
+                  onPress={() => setPaymentMethodFilter(method.name)}
+                >
+                  <Text
+                    style={[
+                      styles.paymentMethodFilterText,
+                      paymentMethodFilter === method.name &&
+                        styles.paymentMethodFilterTextActive,
+                    ]}
+                  >
+                    {method.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
 
-        <View style={styles.summaryContainer}>
-          <Text style={styles.summaryText}>
-            {salesSummary?.count || 0} {t('sales.salesTotal')}{' '}
-            {formatPrice(salesSummary?.total || 0)}
-          </Text>
-        </View>
-      </View>
-
-      {/* Sales List */}
-      <FlatList
-        data={filteredSales}
-        keyExtractor={(item) => item.id}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.5}
-        ListFooterComponent={
-          isFetchingNextPage ? (
-            <View style={styles.loadingMore}>
-              <ActivityIndicator size="small" color="#059669" />
-              <Text style={styles.loadingMoreText}>
-                {t('common.loadingMore')}
-              </Text>
-            </View>
-          ) : null
-        }
-        ListEmptyComponent={() => (
-          <View style={styles.emptyState}>
-            <History size={48} color="#9CA3AF" />
-            <Text style={styles.emptyStateText}>{t('sales.noSalesFound')}</Text>
-            <Text style={styles.emptyStateSubtext}>
-              {searchQuery
-                ? t('sales.tryAdjustingFilters')
-                : t('sales.noSalesMadeYet')}
+          <View style={styles.summaryContainer}>
+            <Text style={styles.summaryText}>
+              {salesSummary?.count || 0} {t('sales.salesTotal')}{' '}
+              {formatPrice(salesSummary?.total || 0)}
             </Text>
           </View>
-        )}
-        initialNumToRender={10}
-        maxToRenderPerBatch={10}
-        windowSize={5}
-        renderItem={({ item: sale }) => {
-          const isDebt = sale.payment_method.toLowerCase() === 'debt';
-          const cardStyle = isDebt
-            ? { ...styles.saleCard, ...styles.saleCardDebt }
-            : styles.saleCard;
-          return (
-            <TouchableOpacity onPress={() => handleSalePress(sale)}>
-              <Card style={cardStyle}>
-                <View style={styles.saleHeader}>
-                  <View style={styles.saleInfo}>
-                    <Text style={styles.saleId}>
-                      {t('sales.saleNumber')} {sale.id}
-                    </Text>
-                    <Text style={styles.saleDate}>
-                      {formatDate(sale.created_at)}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.salePayment,
-                        isDebt && styles.salePaymentDebt,
-                      ]}
-                    >
-                      {t('sales.payment')} {sale.payment_method.toUpperCase()}
-                    </Text>
-                    {sale.note && (
-                      <Text style={styles.saleNote} numberOfLines={1}>
-                        {t('sales.saleNote')}: {sale.note}
-                      </Text>
-                    )}
-                  </View>
-                  <View style={styles.saleAmountContainer}>
-                    <Text
-                      style={[styles.saleTotal, isDebt && styles.saleTotalDebt]}
-                    >
-                      {formatPrice(sale.total)}
-                    </Text>
-                    <Eye size={16} color={isDebt ? '#DC2626' : '#6B7280'} />
-                  </View>
-                </View>
-                {isDebt && (
-                  <View style={styles.debtIndicator}>
-                    <Text style={styles.debtIndicatorText}>
-                      {t('debt.unpaid')}
-                    </Text>
-                  </View>
-                )}
-              </Card>
-            </TouchableOpacity>
-          );
-        }}
-        contentContainerStyle={{ paddingBottom: 20 }}
-      />
+        </View>
 
-      {/* Date Range Picker */}
-      <DateRangePicker
-        visible={showDateRangePicker}
-        onClose={() => setShowDateRangePicker(false)}
-        onApply={handleDateRangeApply}
-        initialStartDate={customStartDate}
-        initialEndDate={customEndDate}
-        maxDate={new Date()}
-      />
-
-      {/* Export Options Modal - Simplified version */}
-      <Modal
-        visible={showExportModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowExportModal(false)}
-      >
-        <View style={styles.exportModalOverlay}>
-          <View style={styles.exportModalContainer}>
-            <View style={styles.exportModalHeader}>
-              <Text style={styles.exportModalTitle} weight="bold">
-                {t('sales.exportOptions')}
-              </Text>
-              <TouchableOpacity onPress={() => setShowExportModal(false)}>
-                <X size={20} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.exportModalDescription}>
-              {t('sales.chooseDataToExport')}
-            </Text>
-
-            <View style={styles.exportOptionsContainer}>
-              <TouchableOpacity
-                style={styles.exportOption}
-                onPress={exportSalesList}
-                disabled={exporting}
-              >
-                <View style={styles.exportOptionIcon}>
-                  <FileText size={24} color="#059669" />
-                </View>
-                <View style={styles.exportOptionContent}>
-                  <Text style={styles.exportOptionTitle} weight="bold">
-                    {t('sales.salesList')}
-                  </Text>
-                  <Text style={styles.exportOptionDescription}>
-                    {t('sales.salesListDescription')}
+        {/* Sales List */}
+        {viewMode === 'card' ? (
+          <FlatList
+            data={filteredSales}
+            keyExtractor={(item) => item.id}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              isFetchingNextPage ? (
+                <View style={styles.loadingMore}>
+                  <ActivityIndicator size="small" color="#059669" />
+                  <Text style={styles.loadingMoreText}>
+                    {t('common.loadingMore')}
                   </Text>
                 </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.exportOption}
-                onPress={exportSalesItemsData}
-                disabled={exporting}
-              >
-                <View style={styles.exportOptionIcon}>
-                  <FileSpreadsheet size={24} color="#0284C7" />
-                </View>
-                <View style={styles.exportOptionContent}>
-                  <Text style={styles.exportOptionTitle} weight="bold">
-                    {t('sales.salesItemsData')}
-                  </Text>
-                  <Text style={styles.exportOptionDescription}>
-                    {t('sales.salesItemsDataDescription')}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            {(exporting || loadingAllItems) && (
-              <View style={styles.exportingIndicator}>
-                <ActivityIndicator size="small" color="#059669" />
-                <Text style={styles.exportingText}>
-                  {loadingAllItems
-                    ? t('sales.loadingSalesItemsData')
-                    : t('sales.preparingExport')}
+              ) : null
+            }
+            ListEmptyComponent={() => (
+              <View style={styles.emptyState}>
+                <History size={48} color="#9CA3AF" />
+                <Text style={styles.emptyStateText}>
+                  {t('sales.noSalesFound')}
+                </Text>
+                <Text style={styles.emptyStateSubtext}>
+                  {searchQuery
+                    ? t('sales.tryAdjustingFilters')
+                    : t('sales.noSalesMadeYet')}
                 </Text>
               </View>
             )}
-
-            <TouchableOpacity
-              style={styles.exportModalCancelButton}
-              onPress={() => setShowExportModal(false)}
-              disabled={exporting || loadingAllItems}
-            >
-              <Text style={styles.exportModalCancelText}>
-                {t('common.cancel')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Sale Detail Modal */}
-      <Modal
-        visible={showSaleDetail}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowSaleDetail(false)}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{t('sales.saleDetails')}</Text>
-            <TouchableOpacity onPress={() => setShowSaleDetail(false)}>
-              <Text style={styles.modalClose}>{t('sales.close')}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {selectedSale && (
-            <ScrollView style={styles.saleDetailContent}>
-              <View style={styles.saleDetailActions}>
-                <TouchableOpacity
-                  style={[
-                    styles.voucherToggleButton,
-                    isCustomerVoucher && styles.voucherToggleButtonActive,
-                  ]}
-                  onPress={() => setIsCustomerVoucher(!isCustomerVoucher)}
-                >
-                  <FileText
-                    size={16}
-                    color={isCustomerVoucher ? '#FFFFFF' : '#059669'}
-                  />
-                  <Text
-                    style={[
-                      styles.voucherToggleButtonText,
-                      isCustomerVoucher && styles.voucherToggleButtonTextActive,
-                    ]}
-                  >
-                    {isCustomerVoucher
-                      ? t('sales.customerReceipt')
-                      : t('sales.internalView')}
-                  </Text>
-                </TouchableOpacity>
-
-                <View style={styles.actionButtonsRow}>
-                  <TouchableOpacity
-                    style={styles.deleteSaleButton}
-                    onPress={handleDeleteSale}
-                  >
-                    <Trash2 size={16} color="#FFFFFF" />
-                    <Text style={styles.deleteSaleButtonText}>
-                      {t('sales.deleteSale')}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.exportImageButton}
-                    onPress={
-                      isCustomerVoucher ? handlePrintReceipt : captureSaleDetail
-                    }
-                    disabled={capturing}
-                  >
-                    {isCustomerVoucher ? (
-                      <Printer size={16} color="#FFFFFF" />
-                    ) : (
-                      <ImageIcon size={16} color="#FFFFFF" />
-                    )}
-                    <Text style={styles.exportImageButtonText}>
-                      {capturing
-                        ? t('sales.exporting')
-                        : isCustomerVoucher
-                          ? t('sales.printCustomerReceipt')
-                          : t('sales.exportAsImage')}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {selectedSale?.payment_method === 'Debt' && (
-                  <TouchableOpacity
-                    style={styles.recordPaymentButton}
-                    onPress={handleRecordDebtPayment}
-                  >
-                    <FileText size={16} color="#FFFFFF" />
-                    <Text style={styles.recordPaymentButtonText}>
-                      {t('debt.recordPayment')}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              <View
-                ref={saleDetailRef}
-                collapsable={false}
-                style={styles.captureContainer}
-              >
-                <Card style={styles.saleDetailCard}>
-                  <Text style={styles.saleDetailTitle}>
-                    {t('sales.saleInformation')}
-                  </Text>
-                  <View style={styles.saleDetailRow}>
-                    <Text style={styles.saleDetailLabel}>
-                      {t('sales.saleId')}
-                    </Text>
-                    <Text style={styles.saleDetailValue}>
-                      #{selectedSale.id}
-                    </Text>
-                  </View>
-                  <View style={styles.saleDetailRow}>
-                    <Text style={styles.saleDetailLabel}>
-                      {t('sales.date')}
-                    </Text>
-                    <Text style={styles.saleDetailValue}>
-                      {formatDate(selectedSale.created_at)}
-                    </Text>
-                  </View>
-                  <View style={styles.saleDetailRow}>
-                    <Text style={styles.saleDetailLabel}>
-                      {t('sales.paymentMethod')}
-                    </Text>
-                    <Text style={styles.saleDetailValue}>
-                      {selectedSale.payment_method.toUpperCase()}
-                    </Text>
-                  </View>
-                  {selectedSale.note && (
-                    <View style={styles.saleDetailRow}>
-                      <Text style={styles.saleDetailLabel}>
-                        {t('sales.saleNote')}
-                      </Text>
-                      <Text style={styles.saleDetailValue}>
-                        {selectedSale.note}
-                      </Text>
-                    </View>
-                  )}
-                  <View style={styles.saleDetailRow}>
-                    <Text style={styles.saleDetailLabel}>
-                      {t('sales.totalAmount')}
-                    </Text>
-                    <Text
-                      style={[styles.saleDetailValue, styles.saleDetailTotal]}
-                    >
-                      {formatPrice(selectedSale.total)}
-                    </Text>
-                  </View>
-
-                  {!isCustomerVoucher && (
-                    <>
-                      <View style={styles.saleDetailRow}>
-                        <Text style={styles.saleDetailLabel}>
-                          {t('sales.totalCost')}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            renderItem={({ item: sale }) => {
+              const isDebt = sale.payment_method.toLowerCase() === 'debt';
+              const cardStyle = isDebt
+                ? { ...styles.saleCard, ...styles.saleCardDebt }
+                : styles.saleCard;
+              return (
+                <TouchableOpacity onPress={() => handleSalePress(sale)}>
+                  <Card style={cardStyle}>
+                    <View style={styles.saleHeader}>
+                      <View style={styles.saleInfo}>
+                        <Text style={styles.saleId}>
+                          {t('sales.saleNumber')} {sale.id}
                         </Text>
-                        <Text style={styles.saleDetailValue}>
-                          {formatPrice(
-                            saleItems.reduce(
-                              (sum, item) => sum + item.cost * item.quantity,
-                              0,
-                            ),
-                          )}
-                        </Text>
-                      </View>
-                      <View style={styles.saleDetailRow}>
-                        <Text style={styles.saleDetailLabel}>
-                          {t('sales.totalProfit')}
+                        <Text style={styles.saleDate}>
+                          {formatDate(sale.created_at)}
                         </Text>
                         <Text
                           style={[
-                            styles.saleDetailValue,
-                            styles.saleDetailProfit,
+                            styles.salePayment,
+                            isDebt && styles.salePaymentDebt,
                           ]}
                         >
-                          {formatPrice(
-                            selectedSale.total -
-                              saleItems.reduce(
-                                (sum, item) => sum + item.cost * item.quantity,
-                                0,
-                              ),
-                          )}
+                          {t('sales.payment')}{' '}
+                          {sale.payment_method.toUpperCase()}
                         </Text>
-                      </View>
-                    </>
-                  )}
-                </Card>
-
-                <Card style={styles.saleDetailCard}>
-                  <Text style={styles.saleDetailTitle}>
-                    {t('sales.itemsPurchased')}
-                  </Text>
-                  {saleItems.map((item, index) => (
-                    <View key={index} style={styles.saleItemRow}>
-                      <View style={styles.saleItemInfo}>
-                        <Text style={styles.saleItemName}>
-                          {item.product_name}
-                        </Text>
-                        <Text style={styles.saleItemDetails}>
-                          {item.quantity} × {formatPrice(item.price)}
-                          {item.discount > 0 && (
-                            <Text style={styles.saleItemDiscount}>
-                              {' '}
-                              - {formatPrice(item.discount)}{' '}
-                              {t('sales.discount')}
-                            </Text>
-                          )}
-                        </Text>
-                      </View>
-                      <View style={styles.saleItemPricing}>
-                        <Text style={styles.saleItemSubtotal}>
-                          {formatPrice(item.subtotal)}
-                        </Text>
-                        {!isCustomerVoucher && (
-                          <Text style={styles.saleItemProfit}>
-                            {t('sales.profit')}{' '}
-                            {formatPrice(
-                              item.subtotal - item.cost * item.quantity,
-                            )}
+                        {sale.note && (
+                          <Text style={styles.saleNote} numberOfLines={1}>
+                            {t('sales.saleNote')}: {sale.note}
                           </Text>
                         )}
                       </View>
+                      <View style={styles.saleAmountContainer}>
+                        <Text
+                          style={[
+                            styles.saleTotal,
+                            isDebt && styles.saleTotalDebt,
+                          ]}
+                        >
+                          {formatPrice(sale.total)}
+                        </Text>
+                        <Eye size={16} color={isDebt ? '#DC2626' : '#6B7280'} />
+                      </View>
                     </View>
-                  ))}
+                    {isDebt && (
+                      <View style={styles.debtIndicator}>
+                        <Text style={styles.debtIndicatorText}>
+                          {t('debt.unpaid')}
+                        </Text>
+                      </View>
+                    )}
+                  </Card>
+                </TouchableOpacity>
+              );
+            }}
+            contentContainerStyle={{ paddingBottom: 20 }}
+          />
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.tableContainer}>
+              {/* Table Header */}
+              <View style={styles.tableHeader}>
+                <View style={[styles.tableHeaderCell, { width: 250 }]}>
+                  <Text style={styles.tableHeaderText} weight="medium">
+                    {t('sales.saleId')}
+                  </Text>
+                </View>
+                <View style={[styles.tableHeaderCell, { width: 250 }]}>
+                  <Text style={styles.tableHeaderText} weight="medium">
+                    {t('sales.date')}
+                  </Text>
+                </View>
+                <View style={[styles.tableHeaderCell, { width: 200 }]}>
+                  <Text style={styles.tableHeaderText} weight="medium">
+                    {t('sales.paymentMethod')}
+                  </Text>
+                </View>
+                <View style={[styles.tableHeaderCell, { width: 200 }]}>
+                  <Text style={styles.tableHeaderText} weight="medium">
+                    {t('sales.totalAmount')}
+                  </Text>
+                </View>
+                <View style={[styles.tableHeaderCell, { width: 200 }]}>
+                  <Text style={styles.tableHeaderText} weight="medium">
+                    {t('sales.saleNote')}
+                  </Text>
+                </View>
+                <View style={[styles.tableHeaderCell, { width: 80 }]}>
+                  <Text style={styles.tableHeaderText} weight="medium">
+                    {t('common.actions')}
+                  </Text>
+                </View>
+              </View>
 
-                  <View style={styles.saleItemsTotal}>
-                    <Text style={styles.saleItemsTotalLabel}>
-                      {t('sales.totalItems')} {saleItems.length}
+              {/* Table Rows */}
+              <FlatList
+                data={filteredSales}
+                keyExtractor={(item) => item.id}
+                onEndReached={loadMore}
+                onEndReachedThreshold={0.5}
+                ListFooterComponent={
+                  isFetchingNextPage ? (
+                    <View style={styles.loadingMore}>
+                      <ActivityIndicator size="small" color="#059669" />
+                      <Text style={styles.loadingMoreText}>
+                        {t('common.loadingMore')}
+                      </Text>
+                    </View>
+                  ) : null
+                }
+                ListEmptyComponent={() => (
+                  <View style={styles.emptyState}>
+                    <History size={48} color="#9CA3AF" />
+                    <Text style={styles.emptyStateText}>
+                      {t('sales.noSalesFound')}
                     </Text>
-                    <Text style={styles.saleItemsTotalValue}>
-                      {formatPrice(selectedSale.total)}
+                    <Text style={styles.emptyStateSubtext}>
+                      {searchQuery
+                        ? t('sales.tryAdjustingFilters')
+                        : t('sales.noSalesMadeYet')}
                     </Text>
                   </View>
-                </Card>
-              </View>
-            </ScrollView>
-          )}
+                )}
+                renderItem={({ item: sale }) => {
+                  const isDebt = sale.payment_method.toLowerCase() === 'debt';
+                  return (
+                    <TouchableOpacity
+                      onPress={() => handleSalePress(sale)}
+                      activeOpacity={0.7}
+                    >
+                      <View
+                        style={[styles.tableRow, isDebt && styles.tableRowDebt]}
+                      >
+                        {/* Sale ID */}
+                        <View style={[styles.tableCell, { width: 250 }]}>
+                          <Text style={styles.tableCellText}>#{sale.id}</Text>
+                        </View>
 
-          {receiptData && (
-            <EnhancedPrintManager
-              visible={showPrintManager}
-              onClose={() => {
-                setShowPrintManager(false);
-                setReceiptData(null);
-              }}
-              receiptData={receiptData}
-            />
-          )}
-        </SafeAreaView>
+                        {/* Date */}
+                        <View style={[styles.tableCell, { width: 250 }]}>
+                          <Text style={styles.tableCellText} numberOfLines={2}>
+                            {formatDate(sale.created_at)}
+                          </Text>
+                        </View>
 
-        {/* Record Debt Payment Modal */}
+                        {/* Payment Method */}
+                        <View style={[styles.tableCell, { width: 200 }]}>
+                          <Text
+                            style={[
+                              styles.tableCellText,
+                              isDebt && styles.tableCellTextDebt,
+                            ]}
+                          >
+                            {sale.payment_method.toUpperCase()}
+                          </Text>
+                        </View>
+
+                        {/* Total Amount */}
+                        <View style={[styles.tableCell, { width: 200 }]}>
+                          <Text
+                            style={[
+                              styles.tableCellText,
+                              styles.tableCellAmount,
+                              isDebt && styles.tableCellTextDebt,
+                            ]}
+                          >
+                            {formatPrice(sale.total)}
+                          </Text>
+                        </View>
+
+                        {/* Note */}
+                        <View style={[styles.tableCell, { width: 200 }]}>
+                          <Text style={styles.tableCellText} numberOfLines={2}>
+                            {sale.note || '-'}
+                          </Text>
+                        </View>
+
+                        {/* Actions */}
+                        <View style={[styles.tableCell, { width: 80 }]}>
+                          <TouchableOpacity
+                            onPress={() => handleSalePress(sale)}
+                            style={styles.tableActionButton}
+                          >
+                            <Eye size={16} color="#059669" />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
+                contentContainerStyle={{ paddingBottom: 20 }}
+              />
+            </View>
+          </ScrollView>
+        )}
+
+        {/* Date Range Picker */}
+        <DateRangePicker
+          visible={showDateRangePicker}
+          onClose={() => setShowDateRangePicker(false)}
+          onApply={handleDateRangeApply}
+          initialStartDate={customStartDate}
+          initialEndDate={customEndDate}
+          maxDate={new Date()}
+        />
+
+        {/* Export Options Modal - Simplified version */}
         <Modal
-          visible={showRecordPaymentModal}
+          visible={showExportModal}
           transparent={true}
           animationType="fade"
-          onRequestClose={() => setShowRecordPaymentModal(false)}
+          onRequestClose={() => setShowExportModal(false)}
         >
-          <View style={styles.recordPaymentModalOverlay}>
-            <View style={styles.recordPaymentModalContainer}>
-              <View style={styles.recordPaymentModalHeader}>
-                <Text style={styles.recordPaymentModalTitle} weight="bold">
-                  {t('debt.recordDebtPayment')}
+          <View style={styles.exportModalOverlay}>
+            <View style={styles.exportModalContainer}>
+              <View style={styles.exportModalHeader}>
+                <Text style={styles.exportModalTitle} weight="bold">
+                  {t('sales.exportOptions')}
                 </Text>
-                <TouchableOpacity
-                  onPress={() => setShowRecordPaymentModal(false)}
-                  disabled={recordingPayment}
-                >
+                <TouchableOpacity onPress={() => setShowExportModal(false)}>
                   <X size={20} color="#6B7280" />
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.recordPaymentModalDescription}>
-                {t('sales.selectPaymentMethod')}
+              <Text style={styles.exportModalDescription}>
+                {t('sales.chooseDataToExport')}
               </Text>
 
-              <View style={styles.paymentMethodOptionsContainer}>
-                {paymentMethods
-                  .filter((method) => method.id !== 'debt')
-                  .map((method) => (
-                    <TouchableOpacity
-                      key={method.id}
-                      style={styles.paymentMethodOption}
-                      onPress={() => handlePaymentMethodSelection(method.name)}
-                      disabled={recordingPayment}
-                    >
-                      <View
-                        style={[
-                          styles.paymentMethodOptionIcon,
-                          { backgroundColor: method.color + '20' },
-                        ]}
-                      >
-                        <Text style={styles.paymentMethodOptionIconText}>
-                          {method.name.charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
-                      <Text
-                        style={styles.paymentMethodOptionText}
-                        weight="medium"
-                      >
-                        {method.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+              <View style={styles.exportOptionsContainer}>
+                <TouchableOpacity
+                  style={styles.exportOption}
+                  onPress={exportSalesList}
+                  disabled={exporting}
+                >
+                  <View style={styles.exportOptionIcon}>
+                    <FileText size={24} color="#059669" />
+                  </View>
+                  <View style={styles.exportOptionContent}>
+                    <Text style={styles.exportOptionTitle} weight="bold">
+                      {t('sales.salesList')}
+                    </Text>
+                    <Text style={styles.exportOptionDescription}>
+                      {t('sales.salesListDescription')}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.exportOption}
+                  onPress={exportSalesItemsData}
+                  disabled={exporting}
+                >
+                  <View style={styles.exportOptionIcon}>
+                    <FileSpreadsheet size={24} color="#0284C7" />
+                  </View>
+                  <View style={styles.exportOptionContent}>
+                    <Text style={styles.exportOptionTitle} weight="bold">
+                      {t('sales.salesItemsData')}
+                    </Text>
+                    <Text style={styles.exportOptionDescription}>
+                      {t('sales.salesItemsDataDescription')}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
               </View>
 
-              {recordingPayment && (
-                <View style={styles.recordingPaymentIndicator}>
-                  <ActivityIndicator size="small" color="#F59E0B" />
-                  <Text style={styles.recordingPaymentText}>
-                    {t('sales.recordingPayment')}
+              {(exporting || loadingAllItems) && (
+                <View style={styles.exportingIndicator}>
+                  <ActivityIndicator size="small" color="#059669" />
+                  <Text style={styles.exportingText}>
+                    {loadingAllItems
+                      ? t('sales.loadingSalesItemsData')
+                      : t('sales.preparingExport')}
                   </Text>
                 </View>
               )}
 
               <TouchableOpacity
-                style={styles.recordPaymentModalCancelButton}
-                onPress={() => setShowRecordPaymentModal(false)}
-                disabled={recordingPayment}
+                style={styles.exportModalCancelButton}
+                onPress={() => setShowExportModal(false)}
+                disabled={exporting || loadingAllItems}
               >
-                <Text style={styles.recordPaymentModalCancelText}>
+                <Text style={styles.exportModalCancelText}>
                   {t('common.cancel')}
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
         </Modal>
-      </Modal>
-    </SafeAreaView>
+
+        {/* Sale Detail Modal */}
+        <Modal
+          visible={showSaleDetail}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowSaleDetail(false)}
+        >
+          <SafeAreaView style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('sales.saleDetails')}</Text>
+              <TouchableOpacity onPress={() => setShowSaleDetail(false)}>
+                <Text style={styles.modalClose}>{t('sales.close')}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {selectedSale && (
+              <ScrollView style={styles.saleDetailContent}>
+                <View style={styles.saleDetailActions}>
+                  <TouchableOpacity
+                    style={[
+                      styles.voucherToggleButton,
+                      isCustomerVoucher && styles.voucherToggleButtonActive,
+                    ]}
+                    onPress={() => setIsCustomerVoucher(!isCustomerVoucher)}
+                  >
+                    <FileText
+                      size={16}
+                      color={isCustomerVoucher ? '#FFFFFF' : '#059669'}
+                    />
+                    <Text
+                      style={[
+                        styles.voucherToggleButtonText,
+                        isCustomerVoucher &&
+                          styles.voucherToggleButtonTextActive,
+                      ]}
+                    >
+                      {isCustomerVoucher
+                        ? t('sales.customerReceipt')
+                        : t('sales.internalView')}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <View style={styles.actionButtonsRow}>
+                    <TouchableOpacity
+                      style={styles.deleteSaleButton}
+                      onPress={handleDeleteSale}
+                    >
+                      <Trash2 size={16} color="#FFFFFF" />
+                      <Text style={styles.deleteSaleButtonText}>
+                        {t('sales.deleteSale')}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.exportImageButton}
+                      onPress={
+                        isCustomerVoucher
+                          ? handlePrintReceipt
+                          : captureSaleDetail
+                      }
+                      disabled={capturing}
+                    >
+                      {isCustomerVoucher ? (
+                        <Printer size={16} color="#FFFFFF" />
+                      ) : (
+                        <ImageIcon size={16} color="#FFFFFF" />
+                      )}
+                      <Text style={styles.exportImageButtonText}>
+                        {capturing
+                          ? t('sales.exporting')
+                          : isCustomerVoucher
+                            ? t('sales.printCustomerReceipt')
+                            : t('sales.exportAsImage')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {selectedSale?.payment_method === 'Debt' && (
+                    <TouchableOpacity
+                      style={styles.recordPaymentButton}
+                      onPress={handleRecordDebtPayment}
+                    >
+                      <FileText size={16} color="#FFFFFF" />
+                      <Text style={styles.recordPaymentButtonText}>
+                        {t('debt.recordPayment')}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                <View
+                  ref={saleDetailRef}
+                  collapsable={false}
+                  style={styles.captureContainer}
+                >
+                  <Card style={styles.saleDetailCard}>
+                    <Text style={styles.saleDetailTitle}>
+                      {t('sales.saleInformation')}
+                    </Text>
+                    <View style={styles.saleDetailRow}>
+                      <Text style={styles.saleDetailLabel}>
+                        {t('sales.saleId')}
+                      </Text>
+                      <Text style={styles.saleDetailValue}>
+                        #{selectedSale.id}
+                      </Text>
+                    </View>
+                    <View style={styles.saleDetailRow}>
+                      <Text style={styles.saleDetailLabel}>
+                        {t('sales.date')}
+                      </Text>
+                      <Text style={styles.saleDetailValue}>
+                        {formatDate(selectedSale.created_at)}
+                      </Text>
+                    </View>
+                    <View style={styles.saleDetailRow}>
+                      <Text style={styles.saleDetailLabel}>
+                        {t('sales.paymentMethod')}
+                      </Text>
+                      <Text style={styles.saleDetailValue}>
+                        {selectedSale.payment_method.toUpperCase()}
+                      </Text>
+                    </View>
+                    {selectedSale.note && (
+                      <View style={styles.saleDetailRow}>
+                        <Text style={styles.saleDetailLabel}>
+                          {t('sales.saleNote')}
+                        </Text>
+                        <Text style={styles.saleDetailValue}>
+                          {selectedSale.note}
+                        </Text>
+                      </View>
+                    )}
+                    <View style={styles.saleDetailRow}>
+                      <Text style={styles.saleDetailLabel}>
+                        {t('sales.totalAmount')}
+                      </Text>
+                      <Text
+                        style={[styles.saleDetailValue, styles.saleDetailTotal]}
+                      >
+                        {formatPrice(selectedSale.total)}
+                      </Text>
+                    </View>
+
+                    {!isCustomerVoucher && (
+                      <>
+                        <View style={styles.saleDetailRow}>
+                          <Text style={styles.saleDetailLabel}>
+                            {t('sales.totalCost')}
+                          </Text>
+                          <Text style={styles.saleDetailValue}>
+                            {formatPrice(
+                              saleItems.reduce(
+                                (sum, item) => sum + item.cost * item.quantity,
+                                0,
+                              ),
+                            )}
+                          </Text>
+                        </View>
+                        <View style={styles.saleDetailRow}>
+                          <Text style={styles.saleDetailLabel}>
+                            {t('sales.totalProfit')}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.saleDetailValue,
+                              styles.saleDetailProfit,
+                            ]}
+                          >
+                            {formatPrice(
+                              selectedSale.total -
+                                saleItems.reduce(
+                                  (sum, item) =>
+                                    sum + item.cost * item.quantity,
+                                  0,
+                                ),
+                            )}
+                          </Text>
+                        </View>
+                      </>
+                    )}
+                  </Card>
+
+                  <Card style={styles.saleDetailCard}>
+                    <Text style={styles.saleDetailTitle}>
+                      {t('sales.itemsPurchased')}
+                    </Text>
+                    {saleItems.map((item, index) => (
+                      <View key={index} style={styles.saleItemRow}>
+                        <View style={styles.saleItemInfo}>
+                          <Text style={styles.saleItemName}>
+                            {item.product_name}
+                          </Text>
+                          <Text style={styles.saleItemDetails}>
+                            {item.quantity} × {formatPrice(item.price)}
+                            {item.discount > 0 && (
+                              <Text style={styles.saleItemDiscount}>
+                                {' '}
+                                - {formatPrice(item.discount)}{' '}
+                                {t('sales.discount')}
+                              </Text>
+                            )}
+                          </Text>
+                        </View>
+                        <View style={styles.saleItemPricing}>
+                          <Text style={styles.saleItemSubtotal}>
+                            {formatPrice(item.subtotal)}
+                          </Text>
+                          {!isCustomerVoucher && (
+                            <Text style={styles.saleItemProfit}>
+                              {t('sales.profit')}{' '}
+                              {formatPrice(
+                                item.subtotal - item.cost * item.quantity,
+                              )}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    ))}
+
+                    <View style={styles.saleItemsTotal}>
+                      <Text style={styles.saleItemsTotalLabel}>
+                        {t('sales.totalItems')} {saleItems.length}
+                      </Text>
+                      <Text style={styles.saleItemsTotalValue}>
+                        {formatPrice(selectedSale.total)}
+                      </Text>
+                    </View>
+                  </Card>
+                </View>
+              </ScrollView>
+            )}
+
+            {receiptData && (
+              <EnhancedPrintManager
+                visible={showPrintManager}
+                onClose={() => {
+                  setShowPrintManager(false);
+                  setReceiptData(null);
+                }}
+                receiptData={receiptData}
+              />
+            )}
+          </SafeAreaView>
+
+          {/* Record Debt Payment Modal */}
+          <Modal
+            visible={showRecordPaymentModal}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setShowRecordPaymentModal(false)}
+          >
+            <View style={styles.recordPaymentModalOverlay}>
+              <View style={styles.recordPaymentModalContainer}>
+                <View style={styles.recordPaymentModalHeader}>
+                  <Text style={styles.recordPaymentModalTitle} weight="bold">
+                    {t('debt.recordDebtPayment')}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setShowRecordPaymentModal(false)}
+                    disabled={recordingPayment}
+                  >
+                    <X size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.recordPaymentModalDescription}>
+                  {t('sales.selectPaymentMethod')}
+                </Text>
+
+                <View style={styles.paymentMethodOptionsContainer}>
+                  {paymentMethods
+                    .filter((method) => method.id !== 'debt')
+                    .map((method) => (
+                      <TouchableOpacity
+                        key={method.id}
+                        style={styles.paymentMethodOption}
+                        onPress={() =>
+                          handlePaymentMethodSelection(method.name)
+                        }
+                        disabled={recordingPayment}
+                      >
+                        <View
+                          style={[
+                            styles.paymentMethodOptionIcon,
+                            { backgroundColor: method.color + '20' },
+                          ]}
+                        >
+                          <Text style={styles.paymentMethodOptionIconText}>
+                            {method.name.charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                        <Text
+                          style={styles.paymentMethodOptionText}
+                          weight="medium"
+                        >
+                          {method.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                </View>
+
+                {recordingPayment && (
+                  <View style={styles.recordingPaymentIndicator}>
+                    <ActivityIndicator size="small" color="#F59E0B" />
+                    <Text style={styles.recordingPaymentText}>
+                      {t('sales.recordingPayment')}
+                    </Text>
+                  </View>
+                )}
+
+                <TouchableOpacity
+                  style={styles.recordPaymentModalCancelButton}
+                  onPress={() => setShowRecordPaymentModal(false)}
+                  disabled={recordingPayment}
+                >
+                  <Text style={styles.recordPaymentModalCancelText}>
+                    {t('common.cancel')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+        </Modal>
+      </SafeAreaView>
+    </TouchableWithoutFeedback>
   );
 }
 const styles = StyleSheet.create({
@@ -1254,13 +1456,47 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 12,
   },
-  exportButton: {
-    backgroundColor: '#10B981',
+  moreButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  optionsMenu: {
+    position: 'absolute',
+    top: 60,
+    right: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 8,
+    minWidth: 180,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    zIndex: 1000,
+  },
+  optionsMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  optionsMenuItemText: {
+    fontSize: 15,
+    color: '#111827',
+  },
+  optionsMenuDivider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 4,
   },
   filtersContainer: {
     backgroundColor: '#FFFFFF',
@@ -1781,5 +2017,68 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6B7280',
     fontWeight: '500',
+  },
+
+  // Table View Styles
+  tableContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#F9FAFB',
+    borderBottomWidth: 2,
+    borderBottomColor: '#E5E7EB',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  tableHeaderCell: {
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  tableHeaderText: {
+    fontSize: 13,
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+  },
+  tableRowDebt: {
+    backgroundColor: '#FEF2F2',
+    borderLeftWidth: 4,
+    borderLeftColor: '#DC2626',
+  },
+  tableCell: {
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  tableCellText: {
+    fontSize: 14,
+    color: '#111827',
+  },
+  tableCellTextDebt: {
+    color: '#DC2626',
+    fontWeight: '600',
+  },
+  tableCellAmount: {
+    fontWeight: '600',
+  },
+  tableActionButton: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: '#F0FDF4',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
