@@ -2122,6 +2122,7 @@ export class DatabaseService {
   async addSale(
     sale: Omit<Sale, 'id' | 'created_at' | 'voucher_id'> & {
       created_at?: string;
+      voucher_id?: string; // Optional voucher_id for import
     },
     items: Omit<SaleItem, 'id' | 'sale_id'>[],
   ): Promise<{ id: string; voucherId: string }> {
@@ -2136,8 +2137,8 @@ export class DatabaseService {
         const saleId = generateUUID();
         const createdAt = formatTimestampForDatabase(sale.created_at);
 
-        // Generate voucher_id within transaction
-        const voucherId = await this.generateVoucherID();
+        // Use provided voucher_id if available (for imports), otherwise generate new one
+        const voucherId = sale.voucher_id || (await this.generateVoucherID());
 
         await this.db.runAsync(
           'INSERT INTO sales (id, voucher_id, total, payment_method, note, customer_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',

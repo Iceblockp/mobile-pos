@@ -204,7 +204,6 @@ export default function Overview() {
           <Text style={styles.title} weight="bold">
             {t('analytics.overview')}
           </Text>
-          <Text style={styles.subtitle}>{t('analytics.subtitle')}</Text>
         </View>
         <View style={styles.headerRight} />
       </View>

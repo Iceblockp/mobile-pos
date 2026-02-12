@@ -142,7 +142,7 @@ export class DataImportService {
       // Validate data structure
       const structureValidation = this.validationService.validateDataStructure(
         data.data,
-        data.dataType
+        data.dataType,
       );
       if (!structureValidation.isValid) {
         return structureValidation;
@@ -257,7 +257,7 @@ export class DataImportService {
           if (!Array.isArray(section)) {
             if (section !== null && section !== undefined) {
               validationErrors.push(
-                `Data section "${key}" is not an array (found ${typeof section})`
+                `Data section "${key}" is not an array (found ${typeof section})`,
               );
               corruptedSections.push(key);
             }
@@ -278,7 +278,7 @@ export class DataImportService {
           if (validRecords.length < section.length) {
             const corruptedCount = section.length - validRecords.length;
             validationErrors.push(
-              `Data section "${key}" has ${corruptedCount} corrupted/invalid records out of ${section.length}`
+              `Data section "${key}" has ${corruptedCount} corrupted/invalid records out of ${section.length}`,
             );
             if (validRecords.length === 0) {
               corruptedSections.push(key);
@@ -288,7 +288,7 @@ export class DataImportService {
           validationErrors.push(
             `Error validating data section "${key}": ${
               error instanceof Error ? error.message : 'Unknown error'
-            }`
+            }`,
           );
           corruptedSections.push(key);
           detailedCounts[key] = 0;
@@ -302,14 +302,14 @@ export class DataImportService {
       if (!hasValidData) {
         if (corruptedSections.length > 0) {
           message = `Import file contains only corrupted data sections: ${corruptedSections.join(
-            ', '
+            ', ',
           )}`;
         } else {
           message = 'Import file does not contain any valid data';
         }
       } else if (corruptedSections.length > 0) {
         message = `Some data sections are corrupted and will be skipped: ${corruptedSections.join(
-          ', '
+          ', ',
         )}`;
       }
 
@@ -353,7 +353,7 @@ export class DataImportService {
         // Basic validation - must be an object
         if (!record || typeof record !== 'object') {
           console.warn(
-            `Skipping invalid ${sectionName} record at index ${index}: not an object`
+            `Skipping invalid ${sectionName} record at index ${index}: not an object`,
           );
           return;
         }
@@ -363,7 +363,7 @@ export class DataImportService {
           JSON.stringify(record);
         } catch (error) {
           console.warn(
-            `Skipping ${sectionName} record at index ${index}: circular reference or non-serializable data`
+            `Skipping ${sectionName} record at index ${index}: circular reference or non-serializable data`,
           );
           return;
         }
@@ -371,7 +371,7 @@ export class DataImportService {
         // Validate required fields based on section type
         if (!this.validateRecordRequiredFields(record, sectionName)) {
           console.warn(
-            `Skipping ${sectionName} record at index ${index}: missing required fields`
+            `Skipping ${sectionName} record at index ${index}: missing required fields`,
           );
           return;
         }
@@ -379,7 +379,7 @@ export class DataImportService {
         // Validate data types
         if (!this.validateRecordDataTypes(record, sectionName)) {
           console.warn(
-            `Skipping ${sectionName} record at index ${index}: invalid data types`
+            `Skipping ${sectionName} record at index ${index}: invalid data types`,
           );
           return;
         }
@@ -388,7 +388,7 @@ export class DataImportService {
       } catch (error) {
         console.warn(
           `Skipping corrupted ${sectionName} record at index ${index}:`,
-          error
+          error,
         );
       }
     });
@@ -399,7 +399,7 @@ export class DataImportService {
   // Validate required fields for different record types
   private validateRecordRequiredFields(
     record: any,
-    sectionName: string
+    sectionName: string,
   ): boolean {
     try {
       switch (sectionName) {
@@ -445,7 +445,7 @@ export class DataImportService {
     } catch (error) {
       console.error(
         `Error validating required fields for ${sectionName}:`,
-        error
+        error,
       );
       return false;
     }
@@ -542,7 +542,7 @@ export class DataImportService {
             message: error,
             code: 'INVALID_UUID_FORMAT',
             severity: 'warning' as const,
-          }))
+          })),
         );
       }
 
@@ -562,7 +562,7 @@ export class DataImportService {
       throw new Error(
         `Failed to preview import data: ${
           error instanceof Error ? error.message : 'Unknown error'
-        }`
+        }`,
       );
     }
   }
@@ -572,7 +572,7 @@ export class DataImportService {
   private detectRecordConflict(
     record: any,
     existingRecords: any[],
-    recordType: string
+    recordType: string,
   ): DataConflict | null {
     try {
       // Validate input parameters
@@ -584,7 +584,7 @@ export class DataImportService {
       const matchResult = this.findMatchingRecord(
         record,
         existingRecords,
-        recordType
+        recordType,
       );
 
       if (matchResult.matchedRecord) {
@@ -595,7 +595,7 @@ export class DataImportService {
           message: this.generateConflictMessage(
             record,
             matchResult,
-            recordType
+            recordType,
           ),
           index: 0, // This will be set by the caller
           recordType,
@@ -615,7 +615,7 @@ export class DataImportService {
   private findMatchingRecord(
     record: any,
     existingRecords: any[],
-    recordType: string
+    recordType: string,
   ): { matchedRecord: any | null; matchedBy: 'uuid' | 'name' | 'other' } {
     // Strategy 1: UUID matching (primary method)
     if (record.id && isValidUUID(record.id)) {
@@ -693,7 +693,7 @@ export class DataImportService {
   private generateConflictMessage(
     record: any,
     matchResult: { matchedRecord: any; matchedBy: 'uuid' | 'name' | 'other' },
-    recordType: string
+    recordType: string,
   ): string {
     if (matchResult.matchedBy === 'uuid') {
       return `${recordType} with ID "${record.id}" already exists`;
@@ -757,7 +757,7 @@ export class DataImportService {
 
       // Process each data type using universal conflict detection
       for (const [dataType, existingRecords] of Object.entries(
-        existingDataMap
+        existingDataMap,
       )) {
         if (data[dataType] && Array.isArray(data[dataType])) {
           data[dataType].forEach((record: any, index: number) => {
@@ -771,7 +771,7 @@ export class DataImportService {
                   dataType,
                   record,
                   index,
-                  'missing required fields'
+                  'missing required fields',
                 );
                 return;
               }
@@ -784,7 +784,7 @@ export class DataImportService {
                   dataType,
                   record,
                   index,
-                  'invalid data types'
+                  'invalid data types',
                 );
                 return;
               }
@@ -793,7 +793,7 @@ export class DataImportService {
               const conflict = this.detectRecordConflict(
                 record,
                 existingRecords,
-                dataType
+                dataType,
               );
               if (conflict) {
                 conflict.index = index;
@@ -812,7 +812,7 @@ export class DataImportService {
                 index,
                 `corrupted record: ${
                   error instanceof Error ? error.message : 'Unknown error'
-                }`
+                }`,
               );
             }
           });
@@ -824,7 +824,7 @@ export class DataImportService {
         conflicts,
         conflictsByType,
         conflictStatistics,
-        error
+        error,
       );
     }
 
@@ -860,7 +860,7 @@ export class DataImportService {
     const existingBulkPricing: any[] = [];
     for (const product of existingProducts) {
       const productBulkPricing = await this.db.getBulkPricingForProduct(
-        product.id
+        product.id,
       );
       existingBulkPricing.push(...productBulkPricing);
     }
@@ -885,7 +885,7 @@ export class DataImportService {
     dataType: string,
     record: any,
     index: number,
-    reason: string
+    reason: string,
   ): void {
     const conflict: DataConflict = {
       type: 'validation_failed',
@@ -907,7 +907,7 @@ export class DataImportService {
     conflicts: DataConflict[],
     conflictsByType: { [dataType: string]: DataConflict[] },
     conflictStatistics: { [dataType: string]: any },
-    error: any
+    error: any,
   ): void {
     const conflict: DataConflict = {
       type: 'validation_failed',
@@ -938,7 +938,7 @@ export class DataImportService {
   // Legacy method for backward compatibility - now uses the enhanced method
   private async detectConflicts(
     data: any,
-    dataType: string
+    dataType: string,
   ): Promise<DataConflict[]> {
     const conflictSummary = await this.detectAllConflicts(data);
     return Object.values(conflictSummary.conflictsByType).flat();
@@ -954,7 +954,7 @@ export class DataImportService {
       existingProducts: any[];
       existingCustomers: any[];
       existingCategories: any[];
-    }
+    },
   ): void {
     const { existingProducts, existingCustomers, existingCategories } =
       existingData;
@@ -1040,7 +1040,7 @@ export class DataImportService {
     } catch (error) {
       console.warn(
         `Error checking reference integrity for ${recordType}:`,
-        error
+        error,
       );
     }
   }
@@ -1048,7 +1048,7 @@ export class DataImportService {
   // Import all data - simplified for "all data" only
   async importAllData(
     fileUri: string,
-    options: ImportOptions
+    options: ImportOptions,
   ): Promise<ImportResult> {
     const startTime = Date.now();
     let totalImported = 0;
@@ -1138,7 +1138,7 @@ export class DataImportService {
         (dataType) =>
           data[dataType] &&
           Array.isArray(data[dataType]) &&
-          data[dataType].length > 0
+          data[dataType].length > 0,
       ).length;
 
       // Process each data type directly without individual import methods
@@ -1151,14 +1151,14 @@ export class DataImportService {
           this.updateProgress(
             `Importing ${dataType}...`,
             currentStage,
-            totalStages
+            totalStages,
           );
 
           const result = await this.processDataType(
             dataType,
             data[dataType],
             options,
-            conflicts
+            conflicts,
           );
 
           totalImported += result.imported;
@@ -1172,7 +1172,7 @@ export class DataImportService {
       }
 
       const processedDataTypes = Object.keys(data).filter(
-        (key) => Array.isArray(data[key]) && data[key].length > 0
+        (key) => Array.isArray(data[key]) && data[key].length > 0,
       );
 
       // Calculate detailed counts for all data types
@@ -1245,7 +1245,7 @@ export class DataImportService {
     dataType: string,
     records: any[],
     options: ImportOptions,
-    allConflicts: DataConflict[]
+    allConflicts: DataConflict[],
   ): Promise<{
     imported: number;
     updated: number;
@@ -1273,7 +1273,7 @@ export class DataImportService {
               dataType,
               globalIndex,
               options,
-              allConflicts
+              allConflicts,
             );
 
             switch (result.action) {
@@ -1307,7 +1307,7 @@ export class DataImportService {
           this.updateProgress(
             `Importing ${dataType}...`,
             globalIndex + 1,
-            records.length
+            records.length,
           );
         }
 
@@ -1327,7 +1327,7 @@ export class DataImportService {
     dataType: string,
     index: number,
     options: ImportOptions,
-    allConflicts: DataConflict[]
+    allConflicts: DataConflict[],
   ): Promise<{
     action: 'imported' | 'updated' | 'skipped';
     error?: ImportError;
@@ -1341,7 +1341,7 @@ export class DataImportService {
 
     // Check for conflicts
     const recordConflict = allConflicts.find(
-      (c) => c.record === record && c.recordType === dataType
+      (c) => c.record === record && c.recordType === dataType,
     );
 
     if (recordConflict) {
@@ -1351,7 +1351,7 @@ export class DataImportService {
         await this.updateRecord(
           dataType,
           record,
-          recordConflict.existingRecord
+          recordConflict.existingRecord,
         );
         return { action: 'updated' };
       } else {
@@ -1368,7 +1368,7 @@ export class DataImportService {
   private validateRecord(
     record: any,
     dataType: string,
-    index: number
+    index: number,
   ): ImportError | null {
     if (!this.validateRecordRequiredFields(record, dataType)) {
       return {
@@ -1423,11 +1423,11 @@ export class DataImportService {
         // Resolve category and supplier relationships properly
         const resolvedCategoryId = await this.resolveCategoryId(
           record.category_id,
-          record.category
+          record.category,
         );
         const resolvedSupplierId = await this.resolveSupplierId(
           record.supplier_id,
-          record.supplier
+          record.supplier,
         );
 
         const productData: any = {
@@ -1486,19 +1486,23 @@ export class DataImportService {
         if (record.created_at) {
           saleData.created_at = record.created_at;
         }
+        // Preserve original voucher_id if available
+        if (record.voucher_id) {
+          saleData.voucher_id = record.voucher_id;
+        }
         await this.db.addSale(saleData, saleItems);
         break;
 
       case 'expenses':
         const categoryId2 = await this.findOrCreateExpenseCategoryId(
-          record.category
+          record.category,
         );
 
         await this.db.addExpense(
           categoryId2,
           record.amount,
           record.description || '',
-          record.date
+          record.date,
         );
         break;
 
@@ -1531,18 +1535,18 @@ export class DataImportService {
   private async updateRecord(
     dataType: string,
     newRecord: any,
-    existingRecord: any
+    existingRecord: any,
   ): Promise<void> {
     switch (dataType) {
       case 'products':
         // Resolve category and supplier relationships properly
         const resolvedCategoryId = await this.resolveCategoryId(
           newRecord.category_id,
-          newRecord.category
+          newRecord.category,
         );
         const resolvedSupplierId = await this.resolveSupplierId(
           newRecord.supplier_id,
-          newRecord.supplier
+          newRecord.supplier,
         );
 
         await this.db.updateProduct(existingRecord.id, {
@@ -1599,17 +1603,17 @@ export class DataImportService {
       data.products.forEach((product: any, index: number) => {
         if (product.id && !isValidUUID(product.id)) {
           errors.push(
-            `Product ${index}: Invalid UUID format for id: ${product.id}`
+            `Product ${index}: Invalid UUID format for id: ${product.id}`,
           );
         }
         if (product.category_id && !isValidUUID(product.category_id)) {
           errors.push(
-            `Product ${index}: Invalid UUID format for category_id: ${product.category_id}`
+            `Product ${index}: Invalid UUID format for category_id: ${product.category_id}`,
           );
         }
         if (product.supplier_id && !isValidUUID(product.supplier_id)) {
           errors.push(
-            `Product ${index}: Invalid UUID format for supplier_id: ${product.supplier_id}`
+            `Product ${index}: Invalid UUID format for supplier_id: ${product.supplier_id}`,
           );
         }
       });
@@ -1620,7 +1624,7 @@ export class DataImportService {
       data.categories.forEach((category: any, index: number) => {
         if (category.id && !isValidUUID(category.id)) {
           errors.push(
-            `Category ${index}: Invalid UUID format for id: ${category.id}`
+            `Category ${index}: Invalid UUID format for id: ${category.id}`,
           );
         }
       });
@@ -1631,7 +1635,7 @@ export class DataImportService {
       data.suppliers.forEach((supplier: any, index: number) => {
         if (supplier.id && !isValidUUID(supplier.id)) {
           errors.push(
-            `Supplier ${index}: Invalid UUID format for id: ${supplier.id}`
+            `Supplier ${index}: Invalid UUID format for id: ${supplier.id}`,
           );
         }
       });
@@ -1645,7 +1649,7 @@ export class DataImportService {
         }
         if (sale.customer_id && !isValidUUID(sale.customer_id)) {
           errors.push(
-            `Sale ${index}: Invalid UUID format for customer_id: ${sale.customer_id}`
+            `Sale ${index}: Invalid UUID format for customer_id: ${sale.customer_id}`,
           );
         }
         // Validate sale items
@@ -1653,17 +1657,17 @@ export class DataImportService {
           sale.items.forEach((item: any, itemIndex: number) => {
             if (item.id && !isValidUUID(item.id)) {
               errors.push(
-                `Sale ${index}, Item ${itemIndex}: Invalid UUID format for id: ${item.id}`
+                `Sale ${index}, Item ${itemIndex}: Invalid UUID format for id: ${item.id}`,
               );
             }
             if (item.sale_id && !isValidUUID(item.sale_id)) {
               errors.push(
-                `Sale ${index}, Item ${itemIndex}: Invalid UUID format for sale_id: ${item.sale_id}`
+                `Sale ${index}, Item ${itemIndex}: Invalid UUID format for sale_id: ${item.sale_id}`,
               );
             }
             if (item.product_id && !isValidUUID(item.product_id)) {
               errors.push(
-                `Sale ${index}, Item ${itemIndex}: Invalid UUID format for product_id: ${item.product_id}`
+                `Sale ${index}, Item ${itemIndex}: Invalid UUID format for product_id: ${item.product_id}`,
               );
             }
           });
@@ -1676,7 +1680,7 @@ export class DataImportService {
       data.customers.forEach((customer: any, index: number) => {
         if (customer.id && !isValidUUID(customer.id)) {
           errors.push(
-            `Customer ${index}: Invalid UUID format for id: ${customer.id}`
+            `Customer ${index}: Invalid UUID format for id: ${customer.id}`,
           );
         }
       });
@@ -1687,12 +1691,12 @@ export class DataImportService {
       data.expenses.forEach((expense: any, index: number) => {
         if (expense.id && !isValidUUID(expense.id)) {
           errors.push(
-            `Expense ${index}: Invalid UUID format for id: ${expense.id}`
+            `Expense ${index}: Invalid UUID format for id: ${expense.id}`,
           );
         }
         if (expense.category_id && !isValidUUID(expense.category_id)) {
           errors.push(
-            `Expense ${index}: Invalid UUID format for category_id: ${expense.category_id}`
+            `Expense ${index}: Invalid UUID format for category_id: ${expense.category_id}`,
           );
         }
       });
@@ -1703,17 +1707,17 @@ export class DataImportService {
       data.stockMovements.forEach((movement: any, index: number) => {
         if (movement.id && !isValidUUID(movement.id)) {
           errors.push(
-            `Stock Movement ${index}: Invalid UUID format for id: ${movement.id}`
+            `Stock Movement ${index}: Invalid UUID format for id: ${movement.id}`,
           );
         }
         if (movement.product_id && !isValidUUID(movement.product_id)) {
           errors.push(
-            `Stock Movement ${index}: Invalid UUID format for product_id: ${movement.product_id}`
+            `Stock Movement ${index}: Invalid UUID format for product_id: ${movement.product_id}`,
           );
         }
         if (movement.supplier_id && !isValidUUID(movement.supplier_id)) {
           errors.push(
-            `Stock Movement ${index}: Invalid UUID format for supplier_id: ${movement.supplier_id}`
+            `Stock Movement ${index}: Invalid UUID format for supplier_id: ${movement.supplier_id}`,
           );
         }
       });
@@ -1727,7 +1731,7 @@ export class DataImportService {
   // Resolve category ID with proper priority: UUID first, then name fallback
   private async resolveCategoryId(
     categoryId?: string,
-    categoryName?: string
+    categoryName?: string,
   ): Promise<string> {
     // Strategy 1: Use provided UUID if valid
     if (categoryId && isValidUUID(categoryId)) {
@@ -1738,7 +1742,7 @@ export class DataImportService {
       }
       // UUID provided but category doesn't exist - log warning but continue with name fallback
       console.warn(
-        `Category with ID ${categoryId} not found, trying name fallback`
+        `Category with ID ${categoryId} not found, trying name fallback`,
       );
     }
 
@@ -1772,7 +1776,7 @@ export class DataImportService {
   // Resolve supplier ID with proper priority: UUID first, then name fallback
   private async resolveSupplierId(
     supplierId?: string,
-    supplierName?: string
+    supplierName?: string,
   ): Promise<string | null> {
     // Strategy 1: Use provided UUID if valid
     if (supplierId && isValidUUID(supplierId)) {
@@ -1783,7 +1787,7 @@ export class DataImportService {
       }
       // UUID provided but supplier doesn't exist - log warning but continue with name fallback
       console.warn(
-        `Supplier with ID ${supplierId} not found, trying name fallback`
+        `Supplier with ID ${supplierId} not found, trying name fallback`,
       );
     }
 
@@ -1811,7 +1815,7 @@ export class DataImportService {
 
   // Helper method for expense categories (kept for backward compatibility)
   private async findOrCreateExpenseCategoryId(
-    categoryName?: string
+    categoryName?: string,
   ): Promise<string> {
     if (!categoryName) {
       const categories = await this.db.getExpenseCategories();
@@ -1820,7 +1824,7 @@ export class DataImportService {
       }
       return await this.db.addExpenseCategory(
         'General',
-        'Default expense category'
+        'Default expense category',
       );
     }
 
@@ -1891,7 +1895,7 @@ export class DataImportService {
         message = `✓ Import file is ready for import.`;
         if (validation.detailedCounts) {
           const availableTypesWithCounts = Object.entries(
-            validation.detailedCounts
+            validation.detailedCounts,
           )
             .filter(([_, count]) => count > 0)
             .map(([type, count]) => `${type} (${count} records)`)
@@ -1925,7 +1929,7 @@ export class DataImportService {
   // Resolve conflicts
   async resolveConflicts(
     conflicts: DataConflict[],
-    resolution: ConflictResolution
+    resolution: ConflictResolution,
   ): Promise<void> {
     // This method would be called by the UI after user makes conflict resolution decisions
     // Implementation would depend on the specific conflict resolution logic needed
