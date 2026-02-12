@@ -36,7 +36,7 @@ interface CartItem {
 }
 
 interface ReceiptData {
-  saleId: string;
+  voucherId: string;
   items: CartItem[];
   total: number;
   paymentMethod: string;
@@ -142,7 +142,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
     try {
       // Convert receipt data to template format
       const templateReceiptData: TemplateReceiptData = {
-        saleId: receiptData.saleId,
+        saleId: receiptData.voucherId,
         items: receiptData.items,
         total: receiptData.total,
         paymentMethod: receiptData.paymentMethod,
@@ -190,7 +190,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
 
   // Responsive receipt generation - adapts to any paper size
   const generateFallbackReceipt = () => {
-    const { saleId, items, total, paymentMethod, note, date } = receiptData;
+    const { voucherId, items, total, paymentMethod, note, date } = receiptData;
 
     return `
       <!DOCTYPE html>
@@ -198,7 +198,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Receipt #${saleId}</title>
+          <title>Receipt #${voucherId}</title>
           <style>
             @page {
               margin: 0.5in;
@@ -410,7 +410,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
             <div class="receipt-info">
               <div><strong>${t(
                 'printing.receiptNumber',
-              )}:</strong> ${saleId}</div>
+              )}:</strong> ${voucherId}</div>
               <div><strong>${t('common.date')}:</strong> ${formatDate(
                 date,
               )}</div>
@@ -540,7 +540,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
           mimeType: 'application/pdf',
-          dialogTitle: `Receipt #${receiptData.saleId}`,
+          dialogTitle: `Receipt #${receiptData.voucherId}`,
         });
       } else {
         Alert.alert(
@@ -604,7 +604,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
 
       // Convert receipt data for Bluetooth printing
       const bluetoothReceiptData = {
-        saleId: receiptData.saleId,
+        saleId: receiptData.voucherId,
         items: receiptData.items,
         total: receiptData.total,
         paymentMethod: receiptData.paymentMethod,
@@ -685,7 +685,7 @@ export const EnhancedPrintManager: React.FC<EnhancedPrintManagerProps> = ({
                       {t('printing.receiptNumber')}:
                     </Text>
                     <Text style={styles.receiptValue}>
-                      {receiptData.saleId}
+                      {receiptData.voucherId}
                     </Text>
                   </View>
                   <View style={styles.receiptRow}>

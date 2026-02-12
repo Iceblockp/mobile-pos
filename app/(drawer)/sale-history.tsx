@@ -196,23 +196,39 @@ export default function SaleHistory() {
 
   const filteredSales = useMemo(() => {
     return sales.filter((sale) => {
-      // Search by sale ID, payment method, customer name, or note
+      // Search by voucher ID (full, date prefix, sequential number, or partial match), payment method, customer name, or note
+      const matchesFullVoucher = sale.voucher_id === searchQuery;
+      const matchesDatePrefix = sale.voucher_id.startsWith(searchQuery);
+      const matchesSequential = sale.voucher_id.endsWith(
+        `-${searchQuery.padStart(3, '0')}`,
+      );
+      const matchesPartial = sale.voucher_id.includes(searchQuery);
+
+      const matchesPaymentMethod = sale.payment_method
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      const matchesCustomer =
+        sale.customer_name &&
+        sale.customer_name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesNote =
+        sale.note &&
+        sale.note.toLowerCase().includes(searchQuery.toLowerCase());
+
       const matchesSearch =
         !searchQuery ||
-        sale.id.toString().includes(searchQuery) ||
-        sale.payment_method.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (sale.customer_name &&
-          sale.customer_name
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase())) ||
-        (sale.note &&
-          sale.note.toLowerCase().includes(searchQuery.toLowerCase()));
+        matchesFullVoucher ||
+        matchesDatePrefix ||
+        matchesSequential ||
+        matchesPartial ||
+        matchesPaymentMethod ||
+        matchesCustomer ||
+        matchesNote;
 
-      const matchesPaymentMethod =
+      const matchesPaymentMethodFilter =
         paymentMethodFilter === 'All' ||
         sale.payment_method === paymentMethodFilter;
 
-      return matchesSearch && matchesPaymentMethod;
+      return matchesSearch && matchesPaymentMethodFilter;
     });
   }, [sales, searchQuery, paymentMethodFilter]);
 
@@ -293,6 +309,7 @@ export default function SaleHistory() {
           sale_date: sale.created_at,
           payment_method: sale.payment_method,
           sale_id: sale.id,
+          voucher_id: sale.voucher_id,
         }));
         allItems.push(...itemsWithSaleInfo);
       }
@@ -332,7 +349,7 @@ export default function SaleHistory() {
     }));
 
     return {
-      saleId: selectedSale.id,
+      voucherId: selectedSale.voucher_id,
       items: formattedItems,
       total: selectedSale.total,
       paymentMethod: selectedSale.payment_method,
@@ -369,7 +386,7 @@ export default function SaleHistory() {
       if (isAvailable) {
         await Sharing.shareAsync(uri, {
           mimeType: 'image/png',
-          dialogTitle: `Sale #${selectedSale.id} Details`,
+          dialogTitle: `Sale #${selectedSale.voucher_id} Details`,
           UTI: 'public.png',
         });
         showToast('Sale detail exported as image', 'success');
@@ -392,7 +409,7 @@ export default function SaleHistory() {
 
     Alert.alert(
       t('sales.deleteSale'),
-      t('sales.deleteSaleConfirm', { saleId: selectedSale.id }),
+      t('sales.deleteSaleConfirm', { saleId: selectedSale.voucher_id }),
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
@@ -461,7 +478,7 @@ export default function SaleHistory() {
 
       if (Platform.OS !== 'web') {
         const excelData = allSales.map((sale) => ({
-          'Sale ID': sale.id,
+          'Sale ID': sale.voucher_id,
           Date: formatDate(sale.created_at),
           'Payment Method': sale.payment_method.toUpperCase(),
           'Total Amount': sale.total,
@@ -579,7 +596,7 @@ export default function SaleHistory() {
 
       if (Platform.OS !== 'web') {
         const excelData = items.map((item) => ({
-          'Sale ID': item.sale_id,
+          'Sale ID': item.voucher_id,
           Date: formatDate(item.sale_date),
           Product: item.product_name,
           Quantity: item.quantity,
@@ -829,7 +846,7 @@ export default function SaleHistory() {
                     <View style={styles.saleHeader}>
                       <View style={styles.saleInfo}>
                         <Text style={styles.saleId}>
-                          {t('sales.saleNumber')} {sale.id}
+                          {t('sales.saleNumber')} {sale.voucher_id}
                         </Text>
                         <Text style={styles.saleDate}>
                           {formatDate(sale.created_at)}
@@ -952,7 +969,9 @@ export default function SaleHistory() {
                       >
                         {/* Sale ID */}
                         <View style={[styles.tableCell, { width: 250 }]}>
-                          <Text style={styles.tableCellText}>#{sale.id}</Text>
+                          <Text style={styles.tableCellText}>
+                            #{sale.voucher_id}
+                          </Text>
                         </View>
 
                         {/* Date */}
@@ -1211,7 +1230,7 @@ export default function SaleHistory() {
                         {t('sales.saleId')}
                       </Text>
                       <Text style={styles.saleDetailValue}>
-                        #{selectedSale.id}
+                        #{selectedSale.voucher_id}
                       </Text>
                     </View>
                     <View style={styles.saleDetailRow}>

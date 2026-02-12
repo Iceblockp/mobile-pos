@@ -101,7 +101,7 @@ export class TemplateEngine {
     shopSettings: ShopSettings | null,
     receiptData: ReceiptData,
     translations: { [key: string]: string } = {},
-    fontSize?: 'small' | 'medium' | 'large' | 'extra-large'
+    fontSize?: 'small' | 'medium' | 'large' | 'extra-large',
   ): TemplateContext {
     return {
       shopSettings,
@@ -158,7 +158,7 @@ export class TemplateEngine {
   async renderReceipt(
     templateId: string,
     context: TemplateContext,
-    isPreview: boolean = false
+    isPreview: boolean = false,
   ): Promise<string> {
     const template = this.getTemplate(templateId);
     if (!template) {
@@ -173,23 +173,23 @@ export class TemplateEngine {
       if (context.shopSettings) {
         html = html.replace(
           /{{shopName}}/g,
-          context.shopSettings.shopName || ''
+          context.shopSettings.shopName || '',
         );
         html = html.replace(/{{address}}/g, context.shopSettings.address || '');
         html = html.replace(/{{phone}}/g, context.shopSettings.phone || '');
         html = html.replace(
           /{{receiptFooter}}/g,
-          context.shopSettings.receiptFooter || ''
+          context.shopSettings.receiptFooter || '',
         );
         html = html.replace(
           /{{thankYouMessage}}/g,
-          context.shopSettings.thankYouMessage || ''
+          context.shopSettings.thankYouMessage || '',
         );
 
         // Handle logo - convert to base64 for PDF compatibility
         if (context.shopSettings.logoPath) {
           const logoBase64 = await this.convertImageToBase64(
-            context.shopSettings.logoPath
+            context.shopSettings.logoPath,
           );
           if (logoBase64) {
             html = html.replace(/{{logoSrc}}/g, logoBase64);
@@ -210,7 +210,7 @@ export class TemplateEngine {
         html = html.replace(/{{phone}}/g, '');
         html = html.replace(
           /{{receiptFooter}}/g,
-          'Thank you for your business!'
+          'Thank you for your business!',
         );
         html = html.replace(/{{thankYouMessage}}/g, '');
         html = html.replace(/{{logoSrc}}/g, '');
@@ -218,21 +218,18 @@ export class TemplateEngine {
       }
 
       // Replace receipt data
-      html = html.replace(
-        /{{saleId}}/g,
-        context.receiptData.saleId.slice(0, 8)
-      );
+      html = html.replace(/{{saleId}}/g, context.receiptData.saleId);
       html = html.replace(
         /{{date}}/g,
-        context.formatters.formatDate(context.receiptData.date)
+        context.formatters.formatDate(context.receiptData.date),
       );
       html = html.replace(
         /{{paymentMethod}}/g,
-        context.receiptData.paymentMethod.toUpperCase()
+        context.receiptData.paymentMethod.toUpperCase(),
       );
       html = html.replace(
         /{{total}}/g,
-        context.formatters.formatMMK(context.receiptData.total)
+        context.formatters.formatMMK(context.receiptData.total),
       );
       html = html.replace(/{{note}}/g, context.receiptData.note || '');
 
@@ -244,8 +241,8 @@ export class TemplateEngine {
           <div class="item-name">${item.product.name}</div>
           <div class="item-details">
             <span>${item.quantity} x ${context.formatters.formatMMK(
-            item.product.price
-          )}</span>
+              item.product.price,
+            )}</span>
             <span>${context.formatters.formatMMK(item.subtotal)}</span>
           </div>
           ${
@@ -259,7 +256,7 @@ export class TemplateEngine {
               : ''
           }
         </div>
-      `
+      `,
         )
         .join('');
 
@@ -285,7 +282,7 @@ export class TemplateEngine {
       // Replace the static page size with dynamic calculation
       cssStyles = cssStyles.replace(
         /@page\s*{[^}]*}/,
-        `@page { margin: 0.5in 0; size: 8.5in ${dynamicHeight}in; }`
+        `@page { margin: 0.5in 0; size: 8.5in ${dynamicHeight}in; }`,
       );
 
       const fullHtml = `
@@ -317,7 +314,7 @@ export class TemplateEngine {
     templateId: string,
     shopSettings: ShopSettings | null,
     isPreview: boolean = true,
-    fontSize?: 'small' | 'medium' | 'large' | 'extra-large'
+    fontSize?: 'small' | 'medium' | 'large' | 'extra-large',
   ): Promise<string> {
     const sampleData: ReceiptData = {
       saleId: '12345',
@@ -357,14 +354,14 @@ export class TemplateEngine {
       shopSettings,
       sampleData,
       {},
-      fontSize
+      fontSize,
     );
     return this.renderReceipt(templateId, context, isPreview);
   }
 
   // Get font size multiplier based on setting
   private getFontSizeMultiplier(
-    fontSize: 'small' | 'medium' | 'large' | 'extra-large'
+    fontSize: 'small' | 'medium' | 'large' | 'extra-large',
   ): number {
     switch (fontSize) {
       case 'small':
@@ -398,7 +395,7 @@ export class TemplateEngine {
   // Apply font size scaling to CSS
   private applyFontSizeScaling(
     css: string,
-    fontSize: 'small' | 'medium' | 'large' | 'extra-large'
+    fontSize: 'small' | 'medium' | 'large' | 'extra-large',
   ): string {
     const multiplier = this.getFontSizeMultiplier(fontSize);
     const baseSizes = this.getBaseFontSizes();
@@ -410,14 +407,14 @@ export class TemplateEngine {
       :root {
         --shop-name-size: ${Math.round(baseSizes.shopName * multiplier)}px;
         --shop-details-size: ${Math.round(
-          baseSizes.shopDetails * multiplier
+          baseSizes.shopDetails * multiplier,
         )}px;
         --item-name-size: ${Math.round(baseSizes.itemName * multiplier)}px;
         --item-details-size: ${Math.round(
-          baseSizes.itemDetails * multiplier
+          baseSizes.itemDetails * multiplier,
         )}px;
         --item-discount-size: ${Math.round(
-          baseSizes.itemDiscount * multiplier
+          baseSizes.itemDiscount * multiplier,
         )}px;
         --total-size: ${Math.round(baseSizes.total * multiplier)}px;
         --footer-size: ${Math.round(baseSizes.footer * multiplier)}px;
@@ -430,7 +427,7 @@ export class TemplateEngine {
       const scaledSize = Math.round(baseSize * multiplier);
       scaledCSS = scaledCSS.replace(
         new RegExp(`font-size:\\s*${baseSize}px`, 'g'),
-        `font-size: ${scaledSize}px`
+        `font-size: ${scaledSize}px`,
       );
     });
 
@@ -550,7 +547,7 @@ export class TemplateEngine {
     } catch (error) {
       console.warn(
         'Failed to use currency formatter, falling back to MMK:',
-        error
+        error,
       );
       // Fallback to MMK formatting
       return (

@@ -654,7 +654,7 @@ export default function Sale() {
       // Handle receipt printing if requested
       if (shouldPrint && result) {
         const printData = {
-          saleId: result,
+          voucherId: result.voucherId,
           items: cart,
           total,
           paymentMethod,

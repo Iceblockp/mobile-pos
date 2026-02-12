@@ -55,6 +55,7 @@ export interface ProductSearchParams {
 
 export interface Sale {
   id: string;
+  voucher_id: string;
   total: number;
   payment_method: string;
   note?: string; // Optional note field
@@ -175,6 +176,33 @@ export interface SupplierProduct {
   last_delivery_date?: string;
   total_received: number;
 }
+
+// Voucher ID system interfaces and error class
+export interface VoucherIDComponents {
+  date: string; // YYYY-MM-DD format
+  sequential: number; // 1-999
+}
+
+export class VoucherIDError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public details?: any,
+  ) {
+    super(message);
+    this.name = 'VoucherIDError';
+  }
+}
+
+// Error codes for voucher ID operations
+export const VOUCHER_ERROR_CODES = {
+  DAILY_LIMIT_REACHED: 'VOUCHER_DAILY_LIMIT',
+  COLLISION_RETRY_FAILED: 'VOUCHER_COLLISION',
+  INVALID_DATE: 'VOUCHER_INVALID_DATE',
+  MIGRATION_FAILED: 'VOUCHER_MIGRATION_FAILED',
+  VALIDATION_FAILED: 'VOUCHER_VALIDATION_FAILED',
+  FOREIGN_KEY_VIOLATION: 'VOUCHER_FK_VIOLATION',
+};
 
 // ShopSettings moved to shopSettingsStorage.ts (using AsyncStorage instead of SQLite)
 
@@ -321,59 +349,214 @@ export class DatabaseService {
     await this.migrateDatabase();
   }
 
+  // Voucher ID utility methods
+
+  /**
+   * Format a voucher ID from date and sequential number
+   * @param date The date for the voucher ID
+   * @param sequential The sequential number (1-999)
+   * @returns Formatted voucher ID in YYYY-MM-DD-NNN format
+   */
+  private formatVoucherID(date: Date, sequential: number): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const seq = String(sequential).padStart(3, '0');
+    return `${year}-${month}-${day}-${seq}`;
+  }
+
+  /**
+   * Parse a voucher ID into its components
+   * @param voucherId The voucher ID to parse
+   * @returns VoucherIDComponents or null if invalid
+   */
+  private parseVoucherID(voucherId: string): VoucherIDComponents | null {
+    const parts = voucherId.split('-');
+    if (parts.length !== 4) {
+      return null;
+    }
+
+    const [year, month, day, seq] = parts;
+    const date = `${year}-${month}-${day}`;
+    const sequential = parseInt(seq, 10);
+
+    if (isNaN(sequential)) {
+      return null;
+    }
+
+    return { date, sequential };
+  }
+
+  /**
+   * Validate a voucher ID format
+   * @param voucherId The voucher ID to validate
+   * @returns true if valid, false otherwise
+   */
+  private validateVoucherID(voucherId: string): boolean {
+    // Check format with regex: YYYY-MM-DD-NNN
+    const regex = /^\d{4}-\d{2}-\d{2}-\d{3}$/;
+    if (!regex.test(voucherId)) {
+      return false;
+    }
+
+    // Parse components
+    const components = this.parseVoucherID(voucherId);
+    if (!components) {
+      return false;
+    }
+
+    // Validate date is a valid calendar date
+    const [year, month, day] = components.date.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    if (
+      date.getFullYear() !== year ||
+      date.getMonth() !== month - 1 ||
+      date.getDate() !== day
+    ) {
+      return false;
+    }
+
+    // Validate sequential number is between 001 and 999
+    if (components.sequential < 1 || components.sequential > 999) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Get the next sequential number for a given date
+   * @param date The date to get the next sequential number for
+   * @returns The next sequential number (1-999)
+   * @throws VoucherIDError if sequential number would exceed 999
+   */
+  private async getNextSequentialNumber(date: Date): Promise<number> {
+    // Format date prefix in local timezone
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const datePrefix = `${year}-${month}-${day}`;
+
+    // Query maximum voucher_id for the given date
+    const result = await this.db.getFirstAsync<{ voucher_id: string | null }>(
+      `SELECT voucher_id FROM sales WHERE voucher_id LIKE ? ORDER BY voucher_id DESC LIMIT 1`,
+      [`${datePrefix}%`],
+    );
+
+    // If no sales exist for this date, start at 001
+    if (!result || !result.voucher_id) {
+      return 1;
+    }
+
+    // Parse the sequential number from the voucher_id
+    const components = this.parseVoucherID(result.voucher_id);
+    if (!components) {
+      // If parsing fails, start at 001
+      return 1;
+    }
+
+    // Increment and return
+    const nextSequential = components.sequential + 1;
+
+    // Check if we've exceeded the daily limit
+    if (nextSequential > 999) {
+      throw new VoucherIDError(
+        'Daily voucher limit reached (999 sales). Cannot create more sales for this date.',
+        VOUCHER_ERROR_CODES.DAILY_LIMIT_REACHED,
+        { date: datePrefix, sequential: nextSequential },
+      );
+    }
+
+    return nextSequential;
+  }
+
+  /**
+   * Generate a new voucher ID for a sale
+   * @param date Optional date to use (defaults to current date)
+   * @returns A formatted voucher ID in YYYY-MM-DD-NNN format
+   * @throws VoucherIDError if date is invalid or daily limit is reached
+   */
+  private async generateVoucherID(date?: Date): Promise<string> {
+    const targetDate = date || new Date();
+
+    // Validate date is valid (not NaN)
+    if (isNaN(targetDate.getTime())) {
+      throw new VoucherIDError(
+        'Invalid system date detected. Cannot generate voucher ID.',
+        VOUCHER_ERROR_CODES.INVALID_DATE,
+        { date: targetDate },
+      );
+    }
+
+    // Get the next sequential number for this date
+    const sequential = await this.getNextSequentialNumber(targetDate);
+
+    // Check if sequential exceeds 999 (should be caught in getNextSequentialNumber, but double-check)
+    if (sequential > 999) {
+      throw new VoucherIDError(
+        'Daily voucher limit reached (999 sales). Cannot create more sales for this date.',
+        VOUCHER_ERROR_CODES.DAILY_LIMIT_REACHED,
+        { date: targetDate, sequential },
+      );
+    }
+
+    // Format and return voucher ID
+    return this.formatVoucherID(targetDate, sequential);
+  }
+
   async migrateDatabase() {
     try {
       // Check if description column exists in categories table
       const tableInfo = await this.db.getAllAsync(
-        'PRAGMA table_info(categories)'
+        'PRAGMA table_info(categories)',
       );
       const hasDescriptionColumn = tableInfo.some(
-        (column: any) => column.name === 'description'
+        (column: any) => column.name === 'description',
       );
 
       if (!hasDescriptionColumn) {
         await this.db.execAsync(
-          'ALTER TABLE categories ADD COLUMN description TEXT'
+          'ALTER TABLE categories ADD COLUMN description TEXT',
         );
         console.log('Added description column to categories table');
       }
 
       // Check if cost column exists in sale_items table
       const saleItemsInfo = await this.db.getAllAsync(
-        'PRAGMA table_info(sale_items)'
+        'PRAGMA table_info(sale_items)',
       );
       const hasCostColumn = saleItemsInfo.some(
-        (column: any) => column.name === 'cost'
+        (column: any) => column.name === 'cost',
       );
 
       if (!hasCostColumn) {
         await this.db.execAsync(
-          'ALTER TABLE sale_items ADD COLUMN cost INTEGER DEFAULT 0'
+          'ALTER TABLE sale_items ADD COLUMN cost INTEGER DEFAULT 0',
         );
         console.log('Added cost column to sale_items table');
       }
 
       // Check if imageUrl column exists in products table
       const productsInfo = await this.db.getAllAsync(
-        'PRAGMA table_info(products)'
+        'PRAGMA table_info(products)',
       );
       const hasImageUrlColumn = productsInfo.some(
-        (column: any) => column.name === 'imageUrl'
+        (column: any) => column.name === 'imageUrl',
       );
 
       if (!hasImageUrlColumn) {
         await this.db.execAsync(
-          'ALTER TABLE products ADD COLUMN imageUrl TEXT'
+          'ALTER TABLE products ADD COLUMN imageUrl TEXT',
         );
         console.log('Added imageUrl column to products table');
       }
 
       // CRITICAL MIGRATION: Convert category TEXT to category_id INTEGER
       const productTableInfo = await this.db.getAllAsync(
-        'PRAGMA table_info(products)'
+        'PRAGMA table_info(products)',
       );
       const hasCategoryIdColumn = productTableInfo.some(
-        (column: any) => column.name === 'category_id'
+        (column: any) => column.name === 'category_id',
       );
 
       if (!hasCategoryIdColumn) {
@@ -381,30 +564,30 @@ export class DatabaseService {
 
         // Step 1: Add category_id column
         await this.db.execAsync(
-          'ALTER TABLE products ADD COLUMN category_id INTEGER'
+          'ALTER TABLE products ADD COLUMN category_id INTEGER',
         );
 
         // Step 2: Update category_id based on existing category names
         const categories = await this.db.getAllAsync(
-          'SELECT id, name FROM categories'
+          'SELECT id, name FROM categories',
         );
 
         for (const category of categories as { id: string; name: string }[]) {
           await this.db.runAsync(
             'UPDATE products SET category_id = ? WHERE category = ?',
-            [category.id, category.name]
+            [category.id, category.name],
           );
         }
 
         // Step 3: Set default category for products without valid category
         const defaultCategory = (await this.db.getFirstAsync(
-          'SELECT id FROM categories LIMIT 1'
+          'SELECT id FROM categories LIMIT 1',
         )) as { id: string } | null;
 
         if (defaultCategory) {
           await this.db.runAsync(
             'UPDATE products SET category_id = ? WHERE category_id IS NULL',
-            [defaultCategory.id]
+            [defaultCategory.id],
           );
         }
 
@@ -445,10 +628,10 @@ export class DatabaseService {
 
       // Migration: Add note column to sales table
       const salesTableInfo = await this.db.getAllAsync(
-        'PRAGMA table_info(sales)'
+        'PRAGMA table_info(sales)',
       );
       const hasNoteColumn = salesTableInfo.some(
-        (column: any) => column.name === 'note'
+        (column: any) => column.name === 'note',
       );
 
       if (!hasNoteColumn) {
@@ -458,21 +641,21 @@ export class DatabaseService {
 
       // Migration: Add discount column to sale_items table
       const saleItemsTableInfo = await this.db.getAllAsync(
-        'PRAGMA table_info(sale_items)'
+        'PRAGMA table_info(sale_items)',
       );
       const hasDiscountColumn = saleItemsTableInfo.some(
-        (column: any) => column.name === 'discount'
+        (column: any) => column.name === 'discount',
       );
 
       if (!hasDiscountColumn) {
         await this.db.execAsync(
-          'ALTER TABLE sale_items ADD COLUMN discount INTEGER DEFAULT 0'
+          'ALTER TABLE sale_items ADD COLUMN discount INTEGER DEFAULT 0',
         );
         console.log('Added discount column to sale_items table');
 
         // Update existing records to have 0 discount
         await this.db.execAsync(
-          'UPDATE sale_items SET discount = 0 WHERE discount IS NULL'
+          'UPDATE sale_items SET discount = 0 WHERE discount IS NULL',
         );
         console.log('Updated existing sale_items with default discount value');
       }
@@ -482,6 +665,9 @@ export class DatabaseService {
 
       // Decimal pricing migration
       await this.migrateToDecimalPricing();
+
+      // Voucher ID migration
+      await this.migrateToVoucherIDs();
 
       // shop_settings table migration removed (now using AsyncStorage)
     } catch (error) {
@@ -520,7 +706,7 @@ export class DatabaseService {
   async createCustomersTable() {
     // Check if customers table already exists
     const tableExists = await this.db.getFirstAsync(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name='customers'"
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='customers'",
     );
 
     if (!tableExists) {
@@ -544,7 +730,7 @@ export class DatabaseService {
   async createStockMovementsTable() {
     // Check if stock_movements table already exists
     const tableExists = await this.db.getFirstAsync(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name='stock_movements'"
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='stock_movements'",
     );
 
     if (!tableExists) {
@@ -570,7 +756,7 @@ export class DatabaseService {
   async createBulkPricingTable() {
     // Check if bulk_pricing table already exists
     const tableExists = await this.db.getFirstAsync(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name='bulk_pricing'"
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='bulk_pricing'",
     );
 
     if (!tableExists) {
@@ -591,15 +777,15 @@ export class DatabaseService {
   async addCustomerIdToSales() {
     // Check if customer_id column exists in sales table
     const salesTableInfo = await this.db.getAllAsync(
-      'PRAGMA table_info(sales)'
+      'PRAGMA table_info(sales)',
     );
     const hasCustomerIdColumn = salesTableInfo.some(
-      (column: any) => column.name === 'customer_id'
+      (column: any) => column.name === 'customer_id',
     );
 
     if (!hasCustomerIdColumn) {
       await this.db.execAsync(
-        'ALTER TABLE sales ADD COLUMN customer_id INTEGER'
+        'ALTER TABLE sales ADD COLUMN customer_id INTEGER',
       );
       console.log('Added customer_id column to sales table');
     }
@@ -608,48 +794,48 @@ export class DatabaseService {
   async createEnhancedIndexes() {
     // Customer search optimization
     await this.db.execAsync(
-      'CREATE INDEX IF NOT EXISTS idx_customers_name ON customers(name)'
+      'CREATE INDEX IF NOT EXISTS idx_customers_name ON customers(name)',
     );
     await this.db.execAsync(
-      'CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone)'
+      'CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone)',
     );
 
     // Stock movement queries
     await this.db.execAsync(
-      'CREATE INDEX IF NOT EXISTS idx_stock_movements_product_id ON stock_movements(product_id)'
+      'CREATE INDEX IF NOT EXISTS idx_stock_movements_product_id ON stock_movements(product_id)',
     );
     await this.db.execAsync(
-      'CREATE INDEX IF NOT EXISTS idx_stock_movements_created_at ON stock_movements(created_at)'
+      'CREATE INDEX IF NOT EXISTS idx_stock_movements_created_at ON stock_movements(created_at)',
     );
     await this.db.execAsync(
-      'CREATE INDEX IF NOT EXISTS idx_stock_movements_type ON stock_movements(type)'
+      'CREATE INDEX IF NOT EXISTS idx_stock_movements_type ON stock_movements(type)',
     );
 
     // Bulk pricing lookups
     await this.db.execAsync(
-      'CREATE INDEX IF NOT EXISTS idx_bulk_pricing_product_id ON bulk_pricing(product_id)'
+      'CREATE INDEX IF NOT EXISTS idx_bulk_pricing_product_id ON bulk_pricing(product_id)',
     );
     await this.db.execAsync(
-      'CREATE INDEX IF NOT EXISTS idx_bulk_pricing_min_quantity ON bulk_pricing(min_quantity)'
+      'CREATE INDEX IF NOT EXISTS idx_bulk_pricing_min_quantity ON bulk_pricing(min_quantity)',
     );
 
     // Enhanced sales queries
     await this.db.execAsync(
-      'CREATE INDEX IF NOT EXISTS idx_sales_customer_id ON sales(customer_id)'
+      'CREATE INDEX IF NOT EXISTS idx_sales_customer_id ON sales(customer_id)',
     );
 
     // Composite indexes for complex queries
     await this.db.execAsync(
-      'CREATE INDEX IF NOT EXISTS idx_stock_movements_product_date ON stock_movements(product_id, created_at)'
+      'CREATE INDEX IF NOT EXISTS idx_stock_movements_product_date ON stock_movements(product_id, created_at)',
     );
     await this.db.execAsync(
-      'CREATE INDEX IF NOT EXISTS idx_stock_movements_type_date ON stock_movements(type, created_at)'
+      'CREATE INDEX IF NOT EXISTS idx_stock_movements_type_date ON stock_movements(type, created_at)',
     );
     await this.db.execAsync(
-      'CREATE INDEX IF NOT EXISTS idx_sales_customer_date ON sales(customer_id, created_at)'
+      'CREATE INDEX IF NOT EXISTS idx_sales_customer_date ON sales(customer_id, created_at)',
     );
     await this.db.execAsync(
-      'CREATE INDEX IF NOT EXISTS idx_customers_total_spent ON customers(total_spent DESC)'
+      'CREATE INDEX IF NOT EXISTS idx_customers_total_spent ON customers(total_spent DESC)',
     );
 
     console.log('Created enhanced feature indexes');
@@ -661,10 +847,10 @@ export class DatabaseService {
     try {
       // Check if decimal pricing migration has already been done
       const productsInfo = await this.db.getAllAsync(
-        'PRAGMA table_info(products)'
+        'PRAGMA table_info(products)',
       );
       const hasDecimalPrice = productsInfo.some(
-        (column: any) => column.name === 'price' && column.type === 'REAL'
+        (column: any) => column.name === 'price' && column.type === 'REAL',
       );
 
       if (!hasDecimalPrice) {
@@ -696,10 +882,10 @@ export class DatabaseService {
   async addDecimalPriceColumns() {
     // Add decimal columns to products table
     await this.db.execAsync(
-      'ALTER TABLE products ADD COLUMN price_decimal REAL'
+      'ALTER TABLE products ADD COLUMN price_decimal REAL',
     );
     await this.db.execAsync(
-      'ALTER TABLE products ADD COLUMN cost_decimal REAL'
+      'ALTER TABLE products ADD COLUMN cost_decimal REAL',
     );
 
     // Add decimal columns to sales table
@@ -707,36 +893,36 @@ export class DatabaseService {
 
     // Add decimal columns to sale_items table
     await this.db.execAsync(
-      'ALTER TABLE sale_items ADD COLUMN price_decimal REAL'
+      'ALTER TABLE sale_items ADD COLUMN price_decimal REAL',
     );
     await this.db.execAsync(
-      'ALTER TABLE sale_items ADD COLUMN cost_decimal REAL'
+      'ALTER TABLE sale_items ADD COLUMN cost_decimal REAL',
     );
     await this.db.execAsync(
-      'ALTER TABLE sale_items ADD COLUMN discount_decimal REAL'
+      'ALTER TABLE sale_items ADD COLUMN discount_decimal REAL',
     );
     await this.db.execAsync(
-      'ALTER TABLE sale_items ADD COLUMN subtotal_decimal REAL'
+      'ALTER TABLE sale_items ADD COLUMN subtotal_decimal REAL',
     );
 
     // Add decimal columns to bulk_pricing table
     await this.db.execAsync(
-      'ALTER TABLE bulk_pricing ADD COLUMN bulk_price_decimal REAL'
+      'ALTER TABLE bulk_pricing ADD COLUMN bulk_price_decimal REAL',
     );
 
     // Add decimal columns to stock_movements table
     await this.db.execAsync(
-      'ALTER TABLE stock_movements ADD COLUMN unit_cost_decimal REAL'
+      'ALTER TABLE stock_movements ADD COLUMN unit_cost_decimal REAL',
     );
 
     // Add decimal columns to expenses table
     await this.db.execAsync(
-      'ALTER TABLE expenses ADD COLUMN amount_decimal REAL'
+      'ALTER TABLE expenses ADD COLUMN amount_decimal REAL',
     );
 
     // Add decimal columns to customers table (total_spent)
     await this.db.execAsync(
-      'ALTER TABLE customers ADD COLUMN total_spent_decimal REAL'
+      'ALTER TABLE customers ADD COLUMN total_spent_decimal REAL',
     );
 
     console.log('Added decimal price columns');
@@ -745,12 +931,12 @@ export class DatabaseService {
   async migrateIntegerToDecimalPrices() {
     // Migrate products table (assuming prices were stored as cents/smallest unit)
     await this.db.execAsync(
-      'UPDATE products SET price_decimal = CAST(price AS REAL), cost_decimal = CAST(cost AS REAL)'
+      'UPDATE products SET price_decimal = CAST(price AS REAL), cost_decimal = CAST(cost AS REAL)',
     );
 
     // Migrate sales table
     await this.db.execAsync(
-      'UPDATE sales SET total_decimal = CAST(total AS REAL)'
+      'UPDATE sales SET total_decimal = CAST(total AS REAL)',
     );
 
     // Migrate sale_items table
@@ -764,22 +950,22 @@ export class DatabaseService {
 
     // Migrate bulk_pricing table
     await this.db.execAsync(
-      'UPDATE bulk_pricing SET bulk_price_decimal = CAST(bulk_price AS REAL)'
+      'UPDATE bulk_pricing SET bulk_price_decimal = CAST(bulk_price AS REAL)',
     );
 
     // Migrate stock_movements table
     await this.db.execAsync(
-      'UPDATE stock_movements SET unit_cost_decimal = CAST(unit_cost AS REAL) WHERE unit_cost IS NOT NULL'
+      'UPDATE stock_movements SET unit_cost_decimal = CAST(unit_cost AS REAL) WHERE unit_cost IS NOT NULL',
     );
 
     // Migrate expenses table
     await this.db.execAsync(
-      'UPDATE expenses SET amount_decimal = CAST(amount AS REAL)'
+      'UPDATE expenses SET amount_decimal = CAST(amount AS REAL)',
     );
 
     // Migrate customers table
     await this.db.execAsync(
-      'UPDATE customers SET total_spent_decimal = CAST(total_spent AS REAL)'
+      'UPDATE customers SET total_spent_decimal = CAST(total_spent AS REAL)',
     );
 
     console.log('Migrated integer prices to decimal format');
@@ -824,7 +1010,7 @@ export class DatabaseService {
       const result = (await this.db.getFirstAsync(query)) as { count: number };
       if (result.count > 0) {
         throw new Error(
-          `Migration verification failed for ${table}: ${result.count} records with NULL decimal values`
+          `Migration verification failed for ${table}: ${result.count} records with NULL decimal values`,
         );
       }
     }
@@ -833,6 +1019,14 @@ export class DatabaseService {
   }
 
   async finalizeDecimalMigration() {
+    // Check if voucher_id column exists in sales table
+    const salesTableInfo = await this.db.getAllAsync(
+      'PRAGMA table_info(sales)',
+    );
+    const hasVoucherIdColumn = salesTableInfo.some(
+      (column: any) => column.name === 'voucher_id',
+    );
+
     // Create new tables with REAL price columns
     await this.db.execAsync(`
       CREATE TABLE products_decimal (
@@ -853,17 +1047,33 @@ export class DatabaseService {
       );
     `);
 
-    await this.db.execAsync(`
-      CREATE TABLE sales_decimal (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        total REAL NOT NULL,
-        payment_method TEXT NOT NULL,
-        note TEXT,
-        customer_id INTEGER,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (customer_id) REFERENCES customers (id)
-      );
-    `);
+    // Create sales_decimal table with or without voucher_id based on whether it exists
+    if (hasVoucherIdColumn) {
+      await this.db.execAsync(`
+        CREATE TABLE sales_decimal (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          voucher_id TEXT,
+          total REAL NOT NULL,
+          payment_method TEXT NOT NULL,
+          note TEXT,
+          customer_id INTEGER,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (customer_id) REFERENCES customers (id)
+        );
+      `);
+    } else {
+      await this.db.execAsync(`
+        CREATE TABLE sales_decimal (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          total REAL NOT NULL,
+          payment_method TEXT NOT NULL,
+          note TEXT,
+          customer_id INTEGER,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (customer_id) REFERENCES customers (id)
+        );
+      `);
+    }
 
     await this.db.execAsync(`
       CREATE TABLE sale_items_decimal (
@@ -941,11 +1151,20 @@ export class DatabaseService {
       FROM products;
     `);
 
-    await this.db.execAsync(`
-      INSERT INTO sales_decimal (id, total, payment_method, note, customer_id, created_at)
-      SELECT id, total_decimal, payment_method, note, customer_id, created_at
-      FROM sales;
-    `);
+    // Copy sales data with or without voucher_id
+    if (hasVoucherIdColumn) {
+      await this.db.execAsync(`
+        INSERT INTO sales_decimal (id, voucher_id, total, payment_method, note, customer_id, created_at)
+        SELECT id, voucher_id, total_decimal, payment_method, note, customer_id, created_at
+        FROM sales;
+      `);
+    } else {
+      await this.db.execAsync(`
+        INSERT INTO sales_decimal (id, total, payment_method, note, customer_id, created_at)
+        SELECT id, total_decimal, payment_method, note, customer_id, created_at
+        FROM sales;
+      `);
+    }
 
     await this.db.execAsync(`
       INSERT INTO sale_items_decimal (id, sale_id, product_id, quantity, price, cost, discount, subtotal)
@@ -986,17 +1205,17 @@ export class DatabaseService {
 
     await this.db.execAsync('DROP TABLE sale_items');
     await this.db.execAsync(
-      'ALTER TABLE sale_items_decimal RENAME TO sale_items'
+      'ALTER TABLE sale_items_decimal RENAME TO sale_items',
     );
 
     await this.db.execAsync('DROP TABLE bulk_pricing');
     await this.db.execAsync(
-      'ALTER TABLE bulk_pricing_decimal RENAME TO bulk_pricing'
+      'ALTER TABLE bulk_pricing_decimal RENAME TO bulk_pricing',
     );
 
     await this.db.execAsync('DROP TABLE stock_movements');
     await this.db.execAsync(
-      'ALTER TABLE stock_movements_decimal RENAME TO stock_movements'
+      'ALTER TABLE stock_movements_decimal RENAME TO stock_movements',
     );
 
     await this.db.execAsync('DROP TABLE expenses');
@@ -1004,21 +1223,141 @@ export class DatabaseService {
 
     await this.db.execAsync('DROP TABLE customers');
     await this.db.execAsync(
-      'ALTER TABLE customers_decimal RENAME TO customers'
+      'ALTER TABLE customers_decimal RENAME TO customers',
     );
 
     // Recreate indexes
     await this.createEnhancedIndexes();
 
     console.log(
-      'Finalized decimal migration - replaced integer tables with decimal tables'
+      'Finalized decimal migration - replaced integer tables with decimal tables',
     );
+  }
+
+  async migrateToVoucherIDs(): Promise<{ migrated: number; errors: number }> {
+    console.log('Starting voucher ID migration...');
+    let migratedCount = 0;
+    let errorCount = 0;
+    let allSales: Array<{ id: string; created_at: string }> = [];
+
+    try {
+      // Check if voucher_id column exists
+      const salesTableInfo = await this.db.getAllAsync(
+        'PRAGMA table_info(sales)',
+      );
+      const hasVoucherIdColumn = salesTableInfo.some(
+        (column: any) => column.name === 'voucher_id',
+      );
+
+      // Add voucher_id column if it doesn't exist
+      if (!hasVoucherIdColumn) {
+        console.log('Adding voucher_id column to sales table...');
+        await this.db.execAsync('ALTER TABLE sales ADD COLUMN voucher_id TEXT');
+      }
+
+      // Check if UNIQUE index exists
+      const indexes = await this.db.getAllAsync(
+        "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='sales' AND name='idx_sales_voucher_id'",
+      );
+
+      if (indexes.length === 0) {
+        console.log('Creating UNIQUE index on voucher_id...');
+        // Note: We can't add UNIQUE constraint to existing column directly in SQLite
+        // We'll create a unique index instead
+        await this.db.execAsync(
+          'CREATE UNIQUE INDEX IF NOT EXISTS idx_sales_voucher_id ON sales(voucher_id)',
+        );
+      }
+
+      // Query all sales ordered by created_at ASC
+      console.log('Querying all sales for migration...');
+      allSales = await this.db.getAllAsync<{
+        id: string;
+        created_at: string;
+      }>('SELECT id, created_at FROM sales ORDER BY created_at ASC');
+
+      if (allSales.length === 0) {
+        console.log('No sales to migrate');
+        return { migrated: 0, errors: 0 };
+      }
+
+      console.log(`Found ${allSales.length} sales to migrate`);
+
+      // Group sales by date (extract date from created_at in local timezone)
+      const salesByDate = new Map<
+        string,
+        Array<{ id: string; created_at: string }>
+      >();
+
+      for (const sale of allSales) {
+        // Parse the created_at timestamp and extract date in local timezone
+        const date = new Date(sale.created_at);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateKey = `${year}-${month}-${day}`;
+
+        if (!salesByDate.has(dateKey)) {
+          salesByDate.set(dateKey, []);
+        }
+        salesByDate.get(dateKey)!.push(sale);
+      }
+
+      console.log(`Grouped sales into ${salesByDate.size} dates`);
+
+      // Begin transaction for the entire migration
+      await this.db.execAsync('BEGIN TRANSACTION');
+
+      try {
+        // For each date group, assign sequential numbers starting from 001
+        for (const [dateKey, sales] of salesByDate.entries()) {
+          console.log(`Migrating ${sales.length} sales for date ${dateKey}...`);
+
+          for (let i = 0; i < sales.length; i++) {
+            const sequential = i + 1;
+            const voucherId = `${dateKey}-${String(sequential).padStart(3, '0')}`;
+
+            try {
+              await this.db.runAsync(
+                'UPDATE sales SET voucher_id = ? WHERE id = ?',
+                [voucherId, sales[i].id],
+              );
+              migratedCount++;
+            } catch (error) {
+              console.error(
+                `Error migrating sale ${sales[i].id} to voucher ${voucherId}:`,
+                error,
+              );
+              errorCount++;
+              throw error; // Re-throw to trigger rollback
+            }
+          }
+        }
+
+        // Commit transaction
+        await this.db.execAsync('COMMIT');
+        console.log(
+          `Voucher ID migration completed successfully! Migrated: ${migratedCount}, Errors: ${errorCount}`,
+        );
+      } catch (error) {
+        // Rollback on error
+        await this.db.execAsync('ROLLBACK');
+        console.error('Voucher ID migration failed, rolled back:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error during voucher ID migration:', error);
+      errorCount = allSales.length;
+      migratedCount = 0;
+    }
+
+    return { migrated: migratedCount, errors: errorCount };
   }
 
   async seedInitialData() {
     // Check if data has already been seeded
     const existingProducts = await this.db.getFirstAsync(
-      'SELECT COUNT(*) as count FROM products'
+      'SELECT COUNT(*) as count FROM products',
     );
     const hasProducts = (existingProducts as { count: number }).count > 0;
 
@@ -1037,13 +1376,13 @@ export class DatabaseService {
         try {
           await this.db.runAsync(
             'INSERT OR IGNORE INTO categories (id, name, description) VALUES (?, ?, ?)',
-            [categoryId, category.name, category.description]
+            [categoryId, category.name, category.description],
           );
         } catch (error) {
           // Fallback for databases without description column
           await this.db.runAsync(
             'INSERT OR IGNORE INTO categories (id, name) VALUES (?, ?)',
-            [categoryId, category.name]
+            [categoryId, category.name],
           );
         }
       }
@@ -1069,14 +1408,14 @@ export class DatabaseService {
             supplier.phone,
             supplier.email,
             supplier.address,
-          ]
+          ],
         );
       }
     }
 
     // Seed expense categories if needed
     const existingExpenseCategories = await this.db.getFirstAsync(
-      'SELECT COUNT(*) as count FROM expense_categories'
+      'SELECT COUNT(*) as count FROM expense_categories',
     );
     const hasExpenseCategories =
       (existingExpenseCategories as { count: number }).count > 0;
@@ -1101,7 +1440,7 @@ export class DatabaseService {
       // Get category IDs for seeding products
       const categoryMap = new Map<string, string>();
       const categoriesForSeeding = (await this.db.getAllAsync(
-        'SELECT id, name FROM categories'
+        'SELECT id, name FROM categories',
       )) as { id: string; name: string }[];
 
       categoriesForSeeding.forEach((cat) => {
@@ -1111,7 +1450,7 @@ export class DatabaseService {
       // Get supplier IDs for seeding products
       const supplierMap = new Map<string, string>();
       const suppliersForSeeding = (await this.db.getAllAsync(
-        'SELECT id, name FROM suppliers'
+        'SELECT id, name FROM suppliers',
       )) as { id: string; name: string }[];
 
       suppliersForSeeding.forEach((supplier) => {
@@ -1149,20 +1488,20 @@ export class DatabaseService {
               product.quantity,
               product.min_stock,
               supplierId,
-            ]
+            ],
           );
         }
       }
 
       // Verify seeding was successful
       const seededCategories = await this.db.getFirstAsync(
-        'SELECT COUNT(*) as count FROM categories'
+        'SELECT COUNT(*) as count FROM categories',
       );
       const seededSuppliers = await this.db.getFirstAsync(
-        'SELECT COUNT(*) as count FROM suppliers'
+        'SELECT COUNT(*) as count FROM suppliers',
       );
       const seededProducts = await this.db.getFirstAsync(
-        'SELECT COUNT(*) as count FROM products'
+        'SELECT COUNT(*) as count FROM products',
       );
 
       console.log(`Successfully seeded initial data with UUIDs:
@@ -1176,17 +1515,17 @@ export class DatabaseService {
     try {
       // Check categories have valid UUIDs
       const categories = (await this.db.getAllAsync(
-        'SELECT id, name FROM categories LIMIT 5'
+        'SELECT id, name FROM categories LIMIT 5',
       )) as { id: string; name: string }[];
 
       // Check suppliers have valid UUIDs
       const suppliers = (await this.db.getAllAsync(
-        'SELECT id, name FROM suppliers LIMIT 5'
+        'SELECT id, name FROM suppliers LIMIT 5',
       )) as { id: string; name: string }[];
 
       // Check products have valid UUIDs
       const products = (await this.db.getAllAsync(
-        'SELECT id, name FROM products LIMIT 5'
+        'SELECT id, name FROM products LIMIT 5',
       )) as { id: string; name: string }[];
 
       // Verify UUID format (basic check for length and hyphens)
@@ -1208,7 +1547,7 @@ export class DatabaseService {
       suppliers.forEach((supplier) => {
         if (!isValidUUID(supplier.id)) {
           console.warn(
-            `Invalid UUID for supplier "${supplier.name}": ${supplier.id}`
+            `Invalid UUID for supplier "${supplier.name}": ${supplier.id}`,
           );
           invalidUUIDs++;
         }
@@ -1217,7 +1556,7 @@ export class DatabaseService {
       products.forEach((product) => {
         if (!isValidUUID(product.id)) {
           console.warn(
-            `Invalid UUID for product "${product.name}": ${product.id}`
+            `Invalid UUID for product "${product.name}": ${product.id}`,
           );
           invalidUUIDs++;
         }
@@ -1235,7 +1574,7 @@ export class DatabaseService {
 
   async getProducts(): Promise<Product[]> {
     const result = await this.db.getAllAsync(
-      'SELECT p.*, c.name as category, s.name as supplier_name FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN suppliers s ON p.supplier_id = s.id ORDER BY p.name'
+      'SELECT p.*, c.name as category, s.name as supplier_name FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN suppliers s ON p.supplier_id = s.id ORDER BY p.name',
     );
     return result as Product[];
   }
@@ -1330,7 +1669,7 @@ export class DatabaseService {
   // Lightweight search for sales screen
   async searchProductsForSale(
     query: string,
-    limit: number = 20
+    limit: number = 20,
   ): Promise<Product[]> {
     if (!query.trim()) return [];
 
@@ -1349,7 +1688,7 @@ export class DatabaseService {
         p.name ASC
       LIMIT ?
     `,
-      [searchPattern, query.trim(), query.trim(), limit]
+      [searchPattern, query.trim(), query.trim(), limit],
     );
 
     return result as Product[];
@@ -1369,7 +1708,7 @@ export class DatabaseService {
       LEFT JOIN (SELECT DISTINCT product_id FROM bulk_pricing) bp ON p.id = bp.product_id
       WHERE p.barcode = ?
     `,
-      [barcode.trim()]
+      [barcode.trim()],
     );
 
     return result as Product | null;
@@ -1379,7 +1718,7 @@ export class DatabaseService {
   async hasProductBulkPricing(productId: string): Promise<boolean> {
     const result = await this.db.getFirstAsync(
       'SELECT 1 FROM bulk_pricing WHERE product_id = ? LIMIT 1',
-      [productId]
+      [productId],
     );
     return !!result;
   }
@@ -1416,7 +1755,7 @@ export class DatabaseService {
 
     // Get bulk pricing for all products in a single query
     const bulkPricingResult = (await this.db.getAllAsync(
-      'SELECT * FROM bulk_pricing ORDER BY product_id, min_quantity'
+      'SELECT * FROM bulk_pricing ORDER BY product_id, min_quantity',
     )) as BulkPricing[];
 
     // Group bulk pricing by product_id
@@ -1438,7 +1777,7 @@ export class DatabaseService {
   async getProductsByCategory(categoryId: string): Promise<Product[]> {
     const result = await this.db.getAllAsync(
       'SELECT p.*, c.name as category, s.name as supplier_name FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.category_id = ? ORDER BY p.name',
-      [categoryId]
+      [categoryId],
     );
     return result as Product[];
   }
@@ -1446,7 +1785,7 @@ export class DatabaseService {
   async getProductByBarcode(barcode: string): Promise<Product | null> {
     const result = await this.db.getFirstAsync(
       'SELECT p.*, c.name as category, s.name as supplier_name FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.barcode = ?',
-      [barcode]
+      [barcode],
     );
     return result as Product | null;
   }
@@ -1454,7 +1793,7 @@ export class DatabaseService {
   async addProduct(
     product:
       | Omit<Product, 'created_at' | 'updated_at'>
-      | Omit<Product, 'id' | 'created_at' | 'updated_at'>
+      | Omit<Product, 'id' | 'created_at' | 'updated_at'>,
   ): Promise<string> {
     const id = (product as any).id || generateUUID();
     await this.db.runAsync(
@@ -1470,7 +1809,7 @@ export class DatabaseService {
         product.min_stock,
         product.supplier_id || null, // Handle optional supplier_id
         product.imageUrl || null,
-      ]
+      ],
     );
     return id;
   }
@@ -1500,7 +1839,7 @@ export class DatabaseService {
     if (Object.keys(updateData).length === 0) {
       await this.db.runAsync(
         `UPDATE products SET updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-        [id]
+        [id],
       );
       return;
     }
@@ -1509,12 +1848,12 @@ export class DatabaseService {
       .map((key) => `${key} = ?`)
       .join(', ');
     const values = Object.values(updateData).map((value) =>
-      value === undefined ? null : value
+      value === undefined ? null : value,
     );
 
     await this.db.runAsync(
       `UPDATE products SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-      [...values, id]
+      [...values, id],
     );
   }
 
@@ -1525,40 +1864,42 @@ export class DatabaseService {
   async getProductById(id: string): Promise<Product | null> {
     const result = await this.db.getFirstAsync(
       'SELECT p.*, c.name as category, s.name as supplier_name FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.id = ?',
-      [id]
+      [id],
     );
     return result as Product | null;
   }
 
   async getLowStockProducts(): Promise<Product[]> {
     const result = await this.db.getAllAsync(
-      'SELECT p.*, c.name as category, s.name as supplier_name FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.quantity <= p.min_stock ORDER BY p.quantity ASC'
+      'SELECT p.*, c.name as category, s.name as supplier_name FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.quantity <= p.min_stock ORDER BY p.quantity ASC',
     );
     return result as Product[];
   }
 
   async getCategories(): Promise<Category[]> {
     const result = await this.db.getAllAsync(
-      'SELECT * FROM categories ORDER BY name'
+      'SELECT * FROM categories ORDER BY name',
     );
     return result as Category[];
   }
 
   async addCategory(
-    category: Omit<Category, 'created_at'> | Omit<Category, 'id' | 'created_at'>
+    category:
+      | Omit<Category, 'created_at'>
+      | Omit<Category, 'id' | 'created_at'>,
   ): Promise<string> {
     const id = (category as any).id || generateUUID();
     try {
       await this.db.runAsync(
         'INSERT INTO categories (id, name, description) VALUES (?, ?, ?)',
-        [id, category.name, category.description || '']
+        [id, category.name, category.description || ''],
       );
       return id;
     } catch (error) {
       // Fallback for databases without description column
       await this.db.runAsync(
         'INSERT INTO categories (id, name) VALUES (?, ?)',
-        [id, category.name]
+        [id, category.name],
       );
       return id;
     }
@@ -1595,7 +1936,7 @@ export class DatabaseService {
     // Check if category is being used by products
     const productsUsingCategory = (await this.db.getFirstAsync(
       'SELECT COUNT(*) as count FROM products WHERE category_id = ?',
-      [id]
+      [id],
     )) as { count: number };
 
     if (productsUsingCategory.count > 0) {
@@ -1607,7 +1948,7 @@ export class DatabaseService {
 
   async getSuppliers(): Promise<Supplier[]> {
     const result = await this.db.getAllAsync(
-      'SELECT * FROM suppliers ORDER BY name'
+      'SELECT * FROM suppliers ORDER BY name',
     );
     return result as Supplier[];
   }
@@ -1615,7 +1956,7 @@ export class DatabaseService {
   async getSupplierById(id: string): Promise<Supplier | null> {
     const result = await this.db.getFirstAsync(
       'SELECT * FROM suppliers WHERE id = ?',
-      [id]
+      [id],
     );
     return result as Supplier | null;
   }
@@ -1624,7 +1965,7 @@ export class DatabaseService {
   async getSuppliersWithStats(
     searchQuery?: string,
     page: number = 1,
-    pageSize: number = 50
+    pageSize: number = 50,
   ): Promise<SupplierWithStats[]> {
     const offset = (page - 1) * pageSize;
     let query = `
@@ -1654,7 +1995,9 @@ export class DatabaseService {
   }
 
   async addSupplier(
-    supplier: Omit<Supplier, 'created_at'> | Omit<Supplier, 'id' | 'created_at'>
+    supplier:
+      | Omit<Supplier, 'created_at'>
+      | Omit<Supplier, 'id' | 'created_at'>,
   ): Promise<string> {
     const id = (supplier as any).id || generateUUID();
     await this.db.runAsync(
@@ -1666,14 +2009,14 @@ export class DatabaseService {
         supplier.phone,
         supplier.email || null,
         supplier.address,
-      ]
+      ],
     );
     return id;
   }
 
   async updateSupplier(id: string, supplier: Partial<Supplier>): Promise<void> {
     const filteredKeys = Object.keys(supplier).filter(
-      (key) => key !== 'id' && key !== 'created_at'
+      (key) => key !== 'id' && key !== 'created_at',
     );
 
     // If no fields to update, return early
@@ -1694,12 +2037,12 @@ export class DatabaseService {
     // Check if supplier has any products
     const productsCount = (await this.db.getFirstAsync(
       'SELECT COUNT(*) as count FROM products WHERE supplier_id = ?',
-      [id]
+      [id],
     )) as { count: number };
 
     if (productsCount.count > 0) {
       throw new Error(
-        'Cannot delete supplier with associated products. Please remove products first or assign them to another supplier.'
+        'Cannot delete supplier with associated products. Please remove products first or assign them to another supplier.',
       );
     }
 
@@ -1719,7 +2062,7 @@ export class DatabaseService {
        WHERE p.supplier_id = ?
        GROUP BY p.id, p.name, p.quantity
        ORDER BY p.name`,
-      [supplierId, supplierId]
+      [supplierId, supplierId],
     );
     return result as SupplierProduct[];
   }
@@ -1733,7 +2076,7 @@ export class DatabaseService {
     // Get total products
     const productsResult = (await this.db.getFirstAsync(
       'SELECT COUNT(*) as count FROM products WHERE supplier_id = ?',
-      [supplierId]
+      [supplierId],
     )) as { count: number };
 
     // Get total purchase value (last 30 days)
@@ -1741,14 +2084,14 @@ export class DatabaseService {
       `SELECT COALESCE(SUM(sm.quantity * sm.unit_cost), 0) as total_value
        FROM stock_movements sm
        WHERE sm.supplier_id = ? AND sm.type = 'stock_in' AND sm.created_at >= datetime('now', '-30 days')`,
-      [supplierId]
+      [supplierId],
     )) as { total_value: number };
 
     // Get recent deliveries
     const recentDeliveries = await this.getStockMovements(
       { supplierId, type: 'stock_in' },
       1,
-      10
+      10,
     );
 
     // Get top products by quantity received
@@ -1765,7 +2108,7 @@ export class DatabaseService {
        GROUP BY p.id, p.name, p.quantity
        ORDER BY total_received DESC
        LIMIT 5`,
-      [supplierId, supplierId]
+      [supplierId, supplierId],
     )) as SupplierProduct[];
 
     return {
@@ -1777,67 +2120,118 @@ export class DatabaseService {
   }
 
   async addSale(
-    sale: Omit<Sale, 'id' | 'created_at'> & { created_at?: string },
-    items: Omit<SaleItem, 'id' | 'sale_id'>[]
-  ): Promise<string> {
-    // Start transaction for atomic operation
-    await this.db.execAsync('BEGIN TRANSACTION');
+    sale: Omit<Sale, 'id' | 'created_at' | 'voucher_id'> & {
+      created_at?: string;
+    },
+    items: Omit<SaleItem, 'id' | 'sale_id'>[],
+  ): Promise<{ id: string; voucherId: string }> {
+    const maxRetries = 3;
+    let attempt = 0;
 
-    try {
-      const saleId = generateUUID();
-      const createdAt = formatTimestampForDatabase(sale.created_at);
+    while (attempt < maxRetries) {
+      try {
+        // Start transaction for atomic operation
+        await this.db.execAsync('BEGIN TRANSACTION');
 
-      await this.db.runAsync(
-        'INSERT INTO sales (id, total, payment_method, note, customer_id, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-        [
-          saleId,
-          sale.total,
-          sale.payment_method,
-          sale.note || null,
-          sale.customer_id || null,
-          createdAt,
-        ]
-      );
+        const saleId = generateUUID();
+        const createdAt = formatTimestampForDatabase(sale.created_at);
 
-      for (const item of items) {
-        const itemId = generateUUID();
+        // Generate voucher_id within transaction
+        const voucherId = await this.generateVoucherID();
+
         await this.db.runAsync(
-          'INSERT INTO sale_items (id, sale_id, product_id, quantity, price, cost, discount, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO sales (id, voucher_id, total, payment_method, note, customer_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
           [
-            itemId,
             saleId,
-            item.product_id,
-            item.quantity,
-            item.price,
-            item.cost,
-            item.discount || 0,
-            item.subtotal,
-          ]
+            voucherId,
+            sale.total,
+            sale.payment_method,
+            sale.note || null,
+            sale.customer_id || null,
+            createdAt,
+          ],
         );
 
-        await this.db.runAsync(
-          'UPDATE products SET quantity = quantity - ? WHERE id = ?',
-          [item.quantity, item.product_id]
-        );
-      }
+        for (const item of items) {
+          const itemId = generateUUID();
+          await this.db.runAsync(
+            'INSERT INTO sale_items (id, sale_id, product_id, quantity, price, cost, discount, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [
+              itemId,
+              saleId,
+              item.product_id,
+              item.quantity,
+              item.price,
+              item.cost,
+              item.discount || 0,
+              item.subtotal,
+            ],
+          );
 
-      // Update customer statistics if customer is associated
-      if (sale.customer_id) {
-        await this.updateCustomerStatistics(sale.customer_id, sale.total);
-      }
+          await this.db.runAsync(
+            'UPDATE products SET quantity = quantity - ? WHERE id = ?',
+            [item.quantity, item.product_id],
+          );
+        }
 
-      await this.db.execAsync('COMMIT');
-      return saleId;
-    } catch (error) {
-      await this.db.execAsync('ROLLBACK');
-      throw error;
+        // Update customer statistics if customer is associated
+        if (sale.customer_id) {
+          await this.updateCustomerStatistics(sale.customer_id, sale.total);
+        }
+
+        await this.db.execAsync('COMMIT');
+        return { id: saleId, voucherId };
+      } catch (error: any) {
+        await this.db.execAsync('ROLLBACK');
+
+        // Check if error is due to UNIQUE constraint violation on voucher_id
+        if (
+          error.message?.includes('UNIQUE constraint failed: sales.voucher_id')
+        ) {
+          attempt++;
+          if (attempt >= maxRetries) {
+            throw new VoucherIDError(
+              'Unable to generate unique voucher ID after 3 attempts',
+              VOUCHER_ERROR_CODES.COLLISION_RETRY_FAILED,
+              { attempts: maxRetries },
+            );
+          }
+          // Retry with incremented sequential number
+          continue;
+        }
+
+        // Re-throw other errors
+        throw error;
+      }
     }
+
+    throw new VoucherIDError(
+      'Unexpected error in sale creation',
+      'VOUCHER_UNKNOWN_ERROR',
+    );
+  }
+
+  // Get sale by voucher ID
+  async getSaleByVoucherID(voucherId: string): Promise<Sale | null> {
+    const result = await this.db.getAllAsync(
+      `SELECT s.*, c.name as customer_name 
+       FROM sales s 
+       LEFT JOIN customers c ON s.customer_id = c.id 
+       WHERE s.voucher_id = ?`,
+      [voucherId],
+    );
+
+    if (result.length === 0) {
+      return null;
+    }
+
+    return result[0] as Sale;
   }
 
   // Add these functions after the getSales function
   async getSalesPaginated(
     page: number = 1,
-    pageSize: number = 50
+    pageSize: number = 50,
   ): Promise<Sale[]> {
     const offset = (page - 1) * pageSize;
     const result = await this.db.getAllAsync(
@@ -1845,7 +2239,7 @@ export class DatabaseService {
        FROM sales s 
        LEFT JOIN customers c ON s.customer_id = c.id 
        ORDER BY s.created_at DESC LIMIT ? OFFSET ?`,
-      [pageSize, offset]
+      [pageSize, offset],
     );
     return result as Sale[];
   }
@@ -1854,7 +2248,7 @@ export class DatabaseService {
     startDate: Date,
     endDate: Date,
     page: number = 1,
-    pageSize: number = 50
+    pageSize: number = 50,
   ): Promise<Sale[]> {
     // Use local time ranges to match stored timestamps
     const startDateStr = getStartOfDayForDB(startDate);
@@ -1867,7 +2261,7 @@ export class DatabaseService {
        LEFT JOIN customers c ON s.customer_id = c.id 
        WHERE s.created_at >= ? AND s.created_at <= ? 
        ORDER BY s.created_at DESC LIMIT ? OFFSET ?`,
-      [startDateStr, endDateStr, pageSize, offset]
+      [startDateStr, endDateStr, pageSize, offset],
     );
     return result as Sale[];
   }
@@ -1875,7 +2269,7 @@ export class DatabaseService {
   async getSalesByCustomer(
     customerId: string,
     page: number = 1,
-    pageSize: number = 20
+    pageSize: number = 20,
   ): Promise<Sale[]> {
     const offset = (page - 1) * pageSize;
     const result = await this.db.getAllAsync(
@@ -1884,7 +2278,7 @@ export class DatabaseService {
        LEFT JOIN customers c ON s.customer_id = c.id 
        WHERE s.customer_id = ? 
        ORDER BY s.created_at DESC LIMIT ? OFFSET ?`,
-      [customerId, pageSize, offset]
+      [customerId, pageSize, offset],
     );
     return result as Sale[];
   }
@@ -1892,7 +2286,7 @@ export class DatabaseService {
   async getSalesByDateRange(
     startDate: Date,
     endDate: Date,
-    limit: number = 100
+    limit: number = 100,
   ): Promise<Sale[]> {
     // Use local time ranges to match stored timestamps
     const startDateStr = getStartOfDayForDB(startDate);
@@ -1904,7 +2298,7 @@ export class DatabaseService {
        LEFT JOIN customers c ON s.customer_id = c.id 
        WHERE s.created_at >= ? AND s.created_at <= ? 
        ORDER BY s.created_at DESC LIMIT ?`,
-      [startDateStr, endDateStr, limit]
+      [startDateStr, endDateStr, limit],
     );
     return result as Sale[];
   }
@@ -1918,10 +2312,10 @@ export class DatabaseService {
    * For -6:30 timezone: includes sales from yesterday 17:30 to today 17:30
    */
   async getTodaysSalesTimezoneAware(
-    timezoneOffsetMinutes: number = -390
+    timezoneOffsetMinutes: number = -390,
   ): Promise<Sale[]> {
     const { start, end } = getTimezoneAwareTodayRangeForDB(
-      timezoneOffsetMinutes
+      timezoneOffsetMinutes,
     );
 
     const result = await this.db.getAllAsync(
@@ -1930,7 +2324,7 @@ export class DatabaseService {
        LEFT JOIN customers c ON s.customer_id = c.id 
        WHERE s.created_at >= ? AND s.created_at <= ? 
        ORDER BY s.created_at DESC`,
-      [start, end]
+      [start, end],
     );
     return result as Sale[];
   }
@@ -1940,11 +2334,11 @@ export class DatabaseService {
    */
   async getSalesForDateTimezoneAware(
     date: Date,
-    timezoneOffsetMinutes: number = -390
+    timezoneOffsetMinutes: number = -390,
   ): Promise<Sale[]> {
     const { start, end } = getTimezoneAwareDateRangeForDB(
       date,
-      timezoneOffsetMinutes
+      timezoneOffsetMinutes,
     );
 
     const result = await this.db.getAllAsync(
@@ -1953,7 +2347,7 @@ export class DatabaseService {
        LEFT JOIN customers c ON s.customer_id = c.id 
        WHERE s.created_at >= ? AND s.created_at <= ? 
        ORDER BY s.created_at DESC`,
-      [start, end]
+      [start, end],
     );
     return result as Sale[];
   }
@@ -1966,17 +2360,17 @@ export class DatabaseService {
     startDate: Date,
     endDate: Date,
     timezoneOffsetMinutes: number = -390,
-    limit: number = 100
+    limit: number = 100,
   ): Promise<Sale[]> {
     // Get timezone-aware range for start date
     const startRange = getTimezoneAwareDateRangeForDB(
       startDate,
-      timezoneOffsetMinutes
+      timezoneOffsetMinutes,
     );
     // Get timezone-aware range for end date
     const endRange = getTimezoneAwareDateRangeForDB(
       endDate,
-      timezoneOffsetMinutes
+      timezoneOffsetMinutes,
     );
 
     const result = await this.db.getAllAsync(
@@ -1985,7 +2379,7 @@ export class DatabaseService {
        LEFT JOIN customers c ON s.customer_id = c.id 
        WHERE s.created_at >= ? AND s.created_at <= ? 
        ORDER BY s.created_at DESC LIMIT ?`,
-      [startRange.start, endRange.end, limit]
+      [startRange.start, endRange.end, limit],
     );
     return result as Sale[];
   }
@@ -1998,17 +2392,17 @@ export class DatabaseService {
     endDate: Date,
     timezoneOffsetMinutes: number = -390,
     page: number = 1,
-    pageSize: number = 50
+    pageSize: number = 50,
   ): Promise<Sale[]> {
     // Get timezone-aware range for start date
     const startRange = getTimezoneAwareDateRangeForDB(
       startDate,
-      timezoneOffsetMinutes
+      timezoneOffsetMinutes,
     );
     // Get timezone-aware range for end date
     const endRange = getTimezoneAwareDateRangeForDB(
       endDate,
-      timezoneOffsetMinutes
+      timezoneOffsetMinutes,
     );
     const offset = (page - 1) * pageSize;
 
@@ -2018,17 +2412,17 @@ export class DatabaseService {
        LEFT JOIN customers c ON s.customer_id = c.id 
        WHERE s.created_at >= ? AND s.created_at <= ? 
        ORDER BY s.created_at DESC LIMIT ? OFFSET ?`,
-      [startRange.start, endRange.end, pageSize, offset]
+      [startRange.start, endRange.end, pageSize, offset],
     );
     return result as Sale[];
   }
 
   async getSaleItems(
-    saleId: string
+    saleId: string,
   ): Promise<(SaleItem & { product_name: string })[]> {
     const result = await this.db.getAllAsync(
       'SELECT si.*, COALESCE(p.name, "[Deleted Product]") as product_name FROM sale_items si LEFT JOIN products p ON si.product_id = p.id WHERE si.sale_id = ?',
-      [saleId]
+      [saleId],
     );
     return result as (SaleItem & { product_name: string })[];
   }
@@ -2039,7 +2433,7 @@ export class DatabaseService {
        FROM sales s 
        LEFT JOIN customers c ON s.customer_id = c.id 
        WHERE s.id = ?`,
-      [saleId]
+      [saleId],
     );
     return result.length > 0 ? (result[0] as Sale) : null;
   }
@@ -2056,7 +2450,7 @@ export class DatabaseService {
       for (const item of saleItems) {
         await this.db.runAsync(
           'UPDATE products SET quantity = quantity + ? WHERE id = ?',
-          [item.quantity, item.product_id]
+          [item.quantity, item.product_id],
         );
       }
 
@@ -2080,7 +2474,7 @@ export class DatabaseService {
   // Get sales summary (count and total) without pagination
   async getSalesSummary(
     searchQuery?: string,
-    customerId?: string
+    customerId?: string,
   ): Promise<{ count: number; total: number }> {
     let query = `
       SELECT 
@@ -2120,17 +2514,17 @@ export class DatabaseService {
     endDate: Date,
     searchQuery?: string,
     customerId?: string,
-    timezoneOffsetMinutes: number = -390
+    timezoneOffsetMinutes: number = -390,
   ): Promise<{ count: number; total: number }> {
     // Get timezone-aware range for start date
     const startRange = getTimezoneAwareDateRangeForDB(
       startDate,
-      timezoneOffsetMinutes
+      timezoneOffsetMinutes,
     );
     // Get timezone-aware range for end date
     const endRange = getTimezoneAwareDateRangeForDB(
       endDate,
-      timezoneOffsetMinutes
+      timezoneOffsetMinutes,
     );
 
     let query = `
@@ -2171,7 +2565,7 @@ export class DatabaseService {
     customerId?: string,
     startDate?: Date,
     endDate?: Date,
-    timezoneOffsetMinutes: number = -390
+    timezoneOffsetMinutes: number = -390,
   ): Promise<Sale[]> {
     let query = `
       SELECT s.*, c.name as customer_name 
@@ -2185,12 +2579,12 @@ export class DatabaseService {
       // Get timezone-aware range for start date
       const startRange = getTimezoneAwareDateRangeForDB(
         startDate,
-        timezoneOffsetMinutes
+        timezoneOffsetMinutes,
       );
       // Get timezone-aware range for end date
       const endRange = getTimezoneAwareDateRangeForDB(
         endDate,
-        timezoneOffsetMinutes
+        timezoneOffsetMinutes,
       );
       query += ` AND s.created_at >= ? AND s.created_at <= ?`;
       params.push(startRange.start, endRange.end);
@@ -2251,7 +2645,7 @@ export class DatabaseService {
         AVG(total) as avg_sale 
        FROM sales 
        WHERE created_at >= ? AND created_at <= ?`,
-      [startDateStr, endDateStr]
+      [startDateStr, endDateStr],
     )) as { total_sales: number; total_revenue: number; avg_sale: number };
 
     // Calculate cost and profit
@@ -2263,7 +2657,7 @@ export class DatabaseService {
        LEFT JOIN products p ON si.product_id = p.id 
        JOIN sales s ON si.sale_id = s.id 
        WHERE s.created_at >= ? AND s.created_at <= ?`,
-      [startDateStr, endDateStr]
+      [startDateStr, endDateStr],
     )) as { total_cost: number; total_items: number };
 
     const totalRevenue = salesResult.total_revenue || 0;
@@ -2288,7 +2682,7 @@ export class DatabaseService {
        GROUP BY p.id 
        ORDER BY revenue DESC 
        LIMIT 5`,
-      [startDateStr, endDateStr]
+      [startDateStr, endDateStr],
     )) as {
       name: string;
       quantity: number;
@@ -2307,15 +2701,15 @@ export class DatabaseService {
     // Calculate growth compared to previous period using timezone-aware ranges
     const prevPeriodEndDate = new Date(startDate.getTime() - 1);
     const prevPeriodStartDate = new Date(
-      prevPeriodEndDate.getTime() - days * 24 * 60 * 60 * 1000
+      prevPeriodEndDate.getTime() - days * 24 * 60 * 60 * 1000,
     );
     const prevStartRange = getTimezoneAwareDateRangeForDB(
       prevPeriodStartDate,
-      -390
+      -390,
     );
     const prevEndRange = getTimezoneAwareDateRangeForDB(
       prevPeriodEndDate,
-      -390
+      -390,
     );
     const prevStartDateStr = prevStartRange.start;
     const prevEndDateStr = prevEndRange.end;
@@ -2324,7 +2718,7 @@ export class DatabaseService {
       `SELECT SUM(total) as previous_revenue 
        FROM sales 
        WHERE created_at >= ? AND created_at <= ?`,
-      [prevStartDateStr, prevEndDateStr]
+      [prevStartDateStr, prevEndDateStr],
     )) as { previous_revenue: number };
 
     let revenueGrowth;
@@ -2384,7 +2778,7 @@ export class DatabaseService {
         AVG(total) as avg_sale 
        FROM sales 
        WHERE created_at >= ? AND created_at <= ?`,
-      [startDateStr, endDateStr]
+      [startDateStr, endDateStr],
     )) as { total_sales: number; total_revenue: number; avg_sale: number };
 
     // Calculate cost and profit
@@ -2396,7 +2790,7 @@ export class DatabaseService {
        LEFT JOIN products p ON si.product_id = p.id 
        JOIN sales s ON si.sale_id = s.id 
        WHERE s.created_at >= ? AND s.created_at <= ?`,
-      [startDateStr, endDateStr]
+      [startDateStr, endDateStr],
     )) as { total_cost: number; total_items: number };
 
     const totalRevenue = salesResult.total_revenue || 0;
@@ -2421,7 +2815,7 @@ export class DatabaseService {
        GROUP BY p.id 
        ORDER BY revenue DESC 
        LIMIT 5`,
-      [startDateStr, endDateStr]
+      [startDateStr, endDateStr],
     )) as {
       name: string;
       imageUrl?: string;
@@ -2449,7 +2843,7 @@ export class DatabaseService {
       `SELECT SUM(total) as previous_revenue 
        FROM sales 
        WHERE created_at >= ? AND created_at <= ?`,
-      [prevStartDateStr, prevEndDateStr]
+      [prevStartDateStr, prevEndDateStr],
     )) as { previous_revenue: number };
 
     let revenueGrowth;
@@ -2476,7 +2870,7 @@ export class DatabaseService {
       `SELECT SUM(amount) as total_expenses 
        FROM expenses 
        WHERE date >= ? AND date <= ?`,
-      [currentMonthStart, currentMonthEnd]
+      [currentMonthStart, currentMonthEnd],
     )) as { total_expenses: number };
 
     const totalExpenses = expenseResult.total_expenses || 0;
@@ -2501,7 +2895,7 @@ export class DatabaseService {
 
   async getCustomAnalytics(
     startDate: Date,
-    endDate: Date
+    endDate: Date,
   ): Promise<{
     totalSales: number;
     totalRevenue: number;
@@ -2532,7 +2926,7 @@ export class DatabaseService {
         AVG(total) as avg_sale 
        FROM sales 
        WHERE created_at >= ? AND created_at <= ?`,
-      [startDateStr, endDateStr]
+      [startDateStr, endDateStr],
     )) as { total_sales: number; total_revenue: number; avg_sale: number };
 
     // Calculate cost and profit
@@ -2544,7 +2938,7 @@ export class DatabaseService {
        LEFT JOIN products p ON si.product_id = p.id 
        JOIN sales s ON si.sale_id = s.id 
        WHERE s.created_at >= ? AND s.created_at <= ?`,
-      [startDateStr, endDateStr]
+      [startDateStr, endDateStr],
     )) as { total_cost: number; total_items: number };
     console.log('sale and co', salesResult, costResult);
 
@@ -2570,7 +2964,7 @@ export class DatabaseService {
        GROUP BY COALESCE(p.id, si.product_id) 
        ORDER BY revenue DESC 
        LIMIT 5`,
-      [startDateStr, endDateStr]
+      [startDateStr, endDateStr],
     )) as {
       name: string;
       quantity: number;
@@ -2603,18 +2997,18 @@ export class DatabaseService {
   // Expense Categories CRUD
   async getExpenseCategories(): Promise<ExpenseCategory[]> {
     return (await this.db.getAllAsync(
-      'SELECT * FROM expense_categories ORDER BY name'
+      'SELECT * FROM expense_categories ORDER BY name',
     )) as ExpenseCategory[];
   }
 
   async addExpenseCategory(
     name: string,
-    description?: string
+    description?: string,
   ): Promise<string> {
     const id = generateUUID();
     await this.db.runAsync(
       'INSERT INTO expense_categories (id, name, description) VALUES (?, ?, ?)',
-      [id, name, description || null]
+      [id, name, description || null],
     );
     return id;
   }
@@ -2622,11 +3016,11 @@ export class DatabaseService {
   async updateExpenseCategory(
     id: string,
     name: string,
-    description?: string
+    description?: string,
   ): Promise<void> {
     await this.db.runAsync(
       'UPDATE expense_categories SET name = ?, description = ? WHERE id = ?',
-      [name, description || null, id]
+      [name, description || null, id],
     );
   }
 
@@ -2634,7 +3028,7 @@ export class DatabaseService {
     // Check if category is in use
     const expensesCount = (await this.db.getFirstAsync(
       'SELECT COUNT(*) as count FROM expenses WHERE category_id = ?',
-      [id]
+      [id],
     )) as { count: number };
 
     if (expensesCount.count > 0) {
@@ -2651,14 +3045,14 @@ export class DatabaseService {
      FROM expenses e
      JOIN expense_categories ec ON e.category_id = ec.id
      ORDER BY e.date DESC LIMIT ?`,
-      [limit]
+      [limit],
     )) as (Expense & { category_name: string })[];
   }
 
   async getExpensesByDateRange(
     startDate: Date,
     endDate: Date,
-    limit: number = 100
+    limit: number = 100,
   ): Promise<Expense[]> {
     const startDateStr = startDate.toISOString();
     const endDateStr = endDate.toISOString();
@@ -2669,7 +3063,7 @@ export class DatabaseService {
      JOIN expense_categories ec ON e.category_id = ec.id
      WHERE e.date >= ? AND e.date <= ?
      ORDER BY e.date DESC LIMIT ?`,
-      [startDateStr, endDateStr, limit]
+      [startDateStr, endDateStr, limit],
     )) as (Expense & { category_name: string })[];
   }
 
@@ -2680,17 +3074,17 @@ export class DatabaseService {
     startDate: Date,
     endDate: Date,
     timezoneOffsetMinutes: number = -390,
-    limit: number = 100
+    limit: number = 100,
   ): Promise<Expense[]> {
     // Get timezone-aware range for start date
     const startRange = getTimezoneAwareDateRangeForDB(
       startDate,
-      timezoneOffsetMinutes
+      timezoneOffsetMinutes,
     );
     // Get timezone-aware range for end date
     const endRange = getTimezoneAwareDateRangeForDB(
       endDate,
-      timezoneOffsetMinutes
+      timezoneOffsetMinutes,
     );
 
     return (await this.db.getAllAsync(
@@ -2699,13 +3093,13 @@ export class DatabaseService {
      JOIN expense_categories ec ON e.category_id = ec.id
      WHERE e.created_at >= ? AND e.created_at <= ?
      ORDER BY e.created_at DESC LIMIT ?`,
-      [startRange.start, endRange.end, limit]
+      [startRange.start, endRange.end, limit],
     )) as (Expense & { category_name: string })[];
   }
 
   async getExpensesPaginated(
     page: number = 1,
-    pageSize: number = 20
+    pageSize: number = 20,
   ): Promise<Expense[]> {
     const offset = (page - 1) * pageSize;
 
@@ -2714,7 +3108,7 @@ export class DatabaseService {
      FROM expenses e
      JOIN expense_categories ec ON e.category_id = ec.id
      ORDER BY e.date DESC LIMIT ? OFFSET ?`,
-      [pageSize, offset]
+      [pageSize, offset],
     )) as (Expense & { category_name: string })[];
   }
 
@@ -2722,7 +3116,7 @@ export class DatabaseService {
     startDate: Date,
     endDate: Date,
     page: number = 1,
-    pageSize: number = 20
+    pageSize: number = 20,
   ): Promise<Expense[]> {
     const startDateStr = startDate.toISOString();
     const endDateStr = endDate.toISOString();
@@ -2734,7 +3128,7 @@ export class DatabaseService {
      JOIN expense_categories ec ON e.category_id = ec.id
      WHERE e.date >= ? AND e.date <= ?
      ORDER BY e.date DESC LIMIT ? OFFSET ?`,
-      [startDateStr, endDateStr, pageSize, offset]
+      [startDateStr, endDateStr, pageSize, offset],
     )) as (Expense & { category_name: string })[];
   }
 
@@ -2742,14 +3136,14 @@ export class DatabaseService {
     category_id: string,
     amount: number,
     description: string,
-    date: string
+    date: string,
   ): Promise<string> {
     const id = generateUUID();
     await this.db.runAsync(
       `INSERT INTO expenses 
      (id, category_id, amount, description, date, updated_at) 
      VALUES (?, ?, ?, ?, ?, datetime('now'))`,
-      [id, category_id, amount, description, date]
+      [id, category_id, amount, description, date],
     );
     return id;
   }
@@ -2759,13 +3153,13 @@ export class DatabaseService {
     category_id: string,
     amount: number,
     description: string,
-    date: string
+    date: string,
   ): Promise<void> {
     await this.db.runAsync(
       `UPDATE expenses 
      SET category_id = ?, amount = ?, description = ?, date = ?, updated_at = datetime('now') 
      WHERE id = ?`,
-      [category_id, amount, description, date, id]
+      [category_id, amount, description, date, id],
     );
   }
 
@@ -2776,7 +3170,7 @@ export class DatabaseService {
   // Chart data methods
   async getRevenueExpensesTrend(
     startDate: Date,
-    endDate: Date
+    endDate: Date,
   ): Promise<
     {
       date: string;
@@ -2798,7 +3192,7 @@ export class DatabaseService {
 
     // Determine granularity based on date range
     const days = Math.ceil(
-      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
     );
     let salesGroupBy: string;
     let expenseGroupBy: string;
@@ -2833,7 +3227,7 @@ export class DatabaseService {
        WHERE date(s.created_at, 'localtime') >= ? AND date(s.created_at, 'localtime') <= ?
        GROUP BY ${salesGroupBy}
        ORDER BY date`,
-      [salesStartDateStr, salesEndDateStr]
+      [salesStartDateStr, salesEndDateStr],
     )) as { date: string; revenue: number; sales_count: number }[];
 
     // Handle expense data differently for single day mode
@@ -2845,7 +3239,7 @@ export class DatabaseService {
         `SELECT SUM(e.amount) as expenses
          FROM expenses e
          WHERE e.date >= ? AND e.date <= ?`,
-        [expenseStartDateStr, expenseEndDateStr]
+        [expenseStartDateStr, expenseEndDateStr],
       )) as { expenses: number }[];
 
       const totalExpenses = expenseData[0]?.expenses || 0;
@@ -2868,11 +3262,11 @@ export class DatabaseService {
          WHERE e.date >= ? AND e.date <= ?
          GROUP BY ${expenseGroupBy}
          ORDER BY date`,
-        [expenseStartDateStr, expenseEndDateStr]
+        [expenseStartDateStr, expenseEndDateStr],
       )) as { date: string; expenses: number }[];
 
       expenseMap = new Map(
-        expenseData.map((item) => [item.date, item.expenses])
+        expenseData.map((item) => [item.date, item.expenses]),
       );
     }
 
@@ -2880,7 +3274,7 @@ export class DatabaseService {
       revenueData.map((item) => [
         item.date,
         { revenue: item.revenue, sales_count: item.sales_count },
-      ])
+      ]),
     );
 
     // Get all unique dates
@@ -2912,7 +3306,7 @@ export class DatabaseService {
 
   async getProfitMarginTrend(
     startDate: Date,
-    endDate: Date
+    endDate: Date,
   ): Promise<
     {
       date: string;
@@ -2928,7 +3322,7 @@ export class DatabaseService {
     const endDateStr = endRange.end;
 
     const days = Math.ceil(
-      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
     );
     let groupBy: string;
 
@@ -2952,7 +3346,7 @@ export class DatabaseService {
        WHERE date(s.created_at, 'localtime') >= ? AND date(s.created_at, 'localtime') <= ?
        GROUP BY ${groupBy}
        ORDER BY date`,
-      [startDateStr, endDateStr]
+      [startDateStr, endDateStr],
     )) as {
       date: string;
       revenue: number;
@@ -2971,7 +3365,7 @@ export class DatabaseService {
   // Analytics with expenses
   async getCustomAnalyticsWithExpenses(
     startDate: Date,
-    endDate: Date
+    endDate: Date,
   ): Promise<{
     totalSales: number;
     totalRevenue: number;
@@ -3006,7 +3400,7 @@ export class DatabaseService {
       `SELECT SUM(amount) as total_expenses
      FROM expenses
      WHERE date >= ? AND date <= ?`,
-      [expenseStartDateStr, expenseEndDateStr]
+      [expenseStartDateStr, expenseEndDateStr],
     )) as { total_expenses: number };
 
     const totalExpenses = expensesResult.total_expenses || 0;
@@ -3020,7 +3414,7 @@ export class DatabaseService {
      WHERE e.date >= ? AND e.date <= ?
      GROUP BY e.category_id
      ORDER BY amount DESC`,
-      [expenseStartDateStr, expenseEndDateStr]
+      [expenseStartDateStr, expenseEndDateStr],
     )) as { category_name: string; amount: number }[];
 
     // Calculate percentage for each category
@@ -3029,7 +3423,7 @@ export class DatabaseService {
         ...category,
         percentage:
           totalExpenses > 0 ? (category.amount / totalExpenses) * 100 : 0,
-      })
+      }),
     );
 
     return {
@@ -3050,7 +3444,7 @@ export class DatabaseService {
   async batchOperation<T>(
     items: T[],
     operation: (batch: T[]) => Promise<void>,
-    batchSize: number = 50
+    batchSize: number = 50,
   ): Promise<void> {
     for (let i = 0; i < items.length; i += batchSize) {
       const batch = items.slice(i, i + batchSize);
@@ -3067,7 +3461,7 @@ export class DatabaseService {
   // Performance monitoring utility
   async measureQueryPerformance<T>(
     queryName: string,
-    queryFn: () => Promise<T>
+    queryFn: () => Promise<T>,
   ): Promise<T> {
     const startTime = Date.now();
     try {
@@ -3090,12 +3484,12 @@ export class DatabaseService {
   }
 
   async addBulkPricing(
-    bulkPricing: Omit<BulkPricing, 'id' | 'created_at'>
+    bulkPricing: Omit<BulkPricing, 'id' | 'created_at'>,
   ): Promise<string> {
     // Validate that bulk price is less than regular price
     const product = (await this.db.getFirstAsync(
       'SELECT price FROM products WHERE id = ?',
-      [bulkPricing.product_id]
+      [bulkPricing.product_id],
     )) as { price: number } | null;
 
     if (!product) {
@@ -3108,10 +3502,10 @@ export class DatabaseService {
 
     // Check for overlapping quantity tiers
     const existingTiers = await this.getBulkPricingForProduct(
-      bulkPricing.product_id
+      bulkPricing.product_id,
     );
     const hasOverlap = existingTiers.some(
-      (tier) => tier.min_quantity === bulkPricing.min_quantity
+      (tier) => tier.min_quantity === bulkPricing.min_quantity,
     );
 
     if (hasOverlap) {
@@ -3126,7 +3520,7 @@ export class DatabaseService {
         bulkPricing.product_id,
         bulkPricing.min_quantity,
         bulkPricing.bulk_price,
-      ]
+      ],
     );
 
     // Clear cache for this product
@@ -3137,19 +3531,19 @@ export class DatabaseService {
 
   async updateBulkPricing(
     id: string,
-    bulkPricing: Partial<BulkPricing>
+    bulkPricing: Partial<BulkPricing>,
   ): Promise<void> {
     // If updating price, validate it's less than regular price
     if (bulkPricing.bulk_price) {
       const existingTier = (await this.db.getFirstAsync(
         'SELECT product_id FROM bulk_pricing WHERE id = ?',
-        [id]
+        [id],
       )) as { product_id: string } | null;
 
       if (existingTier) {
         const product = (await this.db.getFirstAsync(
           'SELECT price FROM products WHERE id = ?',
-          [existingTier.product_id]
+          [existingTier.product_id],
         )) as { price: number } | null;
 
         if (product && bulkPricing.bulk_price >= product.price) {
@@ -3159,7 +3553,7 @@ export class DatabaseService {
     }
 
     const filteredKeys = Object.keys(bulkPricing).filter(
-      (key) => key !== 'id' && key !== 'created_at'
+      (key) => key !== 'id' && key !== 'created_at',
     );
 
     // If no fields to update, return early
@@ -3178,7 +3572,7 @@ export class DatabaseService {
     // Clear cache for the affected product
     const existingTier = (await this.db.getFirstAsync(
       'SELECT product_id FROM bulk_pricing WHERE id = ?',
-      [id]
+      [id],
     )) as { product_id: string } | null;
 
     if (existingTier) {
@@ -3190,7 +3584,7 @@ export class DatabaseService {
     // Get product_id before deletion for cache clearing
     const existingTier = (await this.db.getFirstAsync(
       'SELECT product_id FROM bulk_pricing WHERE id = ?',
-      [id]
+      [id],
     )) as { product_id: string } | null;
 
     await this.db.runAsync('DELETE FROM bulk_pricing WHERE id = ?', [id]);
@@ -3216,7 +3610,7 @@ export class DatabaseService {
     // Fetch from database
     const result = await this.db.getAllAsync(
       'SELECT * FROM bulk_pricing WHERE product_id = ? ORDER BY min_quantity ASC',
-      [productId]
+      [productId],
     );
 
     const bulkPricing = result as BulkPricing[];
@@ -3230,7 +3624,7 @@ export class DatabaseService {
 
   async calculateBestPrice(
     productId: string,
-    quantity: number
+    quantity: number,
   ): Promise<{
     price: number;
     isBulkPrice: boolean;
@@ -3240,7 +3634,7 @@ export class DatabaseService {
     // Get regular product price
     const product = (await this.db.getFirstAsync(
       'SELECT price FROM products WHERE id = ?',
-      [productId]
+      [productId],
     )) as { price: number } | null;
 
     if (!product) {
@@ -3253,7 +3647,7 @@ export class DatabaseService {
     // Get applicable bulk pricing tiers
     const bulkTiers = await this.getBulkPricingForProduct(productId);
     const applicableTiers = bulkTiers.filter(
-      (tier) => quantity >= tier.min_quantity
+      (tier) => quantity >= tier.min_quantity,
     );
 
     if (applicableTiers.length === 0) {
@@ -3266,7 +3660,7 @@ export class DatabaseService {
 
     // Find the best tier (lowest price among applicable tiers)
     const bestTier = applicableTiers.reduce((best, current) =>
-      current.bulk_price < best.bulk_price ? current : best
+      current.bulk_price < best.bulk_price ? current : best,
     );
 
     const bulkTotal = bestTier.bulk_price * quantity;
@@ -3282,7 +3676,7 @@ export class DatabaseService {
 
   async validateBulkPricingTiers(
     productId: string,
-    tiers: Omit<BulkPricing, 'id' | 'product_id' | 'created_at'>[]
+    tiers: Omit<BulkPricing, 'id' | 'product_id' | 'created_at'>[],
   ): Promise<{
     isValid: boolean;
     errors: string[];
@@ -3292,7 +3686,7 @@ export class DatabaseService {
     // Get product regular price
     const product = (await this.db.getFirstAsync(
       'SELECT price FROM products WHERE id = ?',
-      [productId]
+      [productId],
     )) as { price: number } | null;
 
     if (!product) {
@@ -3304,19 +3698,19 @@ export class DatabaseService {
     for (const tier of tiers) {
       if (tier.min_quantity <= 0) {
         errors.push(
-          `Minimum quantity must be greater than 0 for tier with quantity ${tier.min_quantity}`
+          `Minimum quantity must be greater than 0 for tier with quantity ${tier.min_quantity}`,
         );
       }
 
       if (tier.bulk_price <= 0) {
         errors.push(
-          `Bulk price must be greater than 0 for tier with quantity ${tier.min_quantity}`
+          `Bulk price must be greater than 0 for tier with quantity ${tier.min_quantity}`,
         );
       }
 
       if (tier.bulk_price >= product.price) {
         errors.push(
-          `Bulk price must be less than regular price (${product.price}) for tier with quantity ${tier.min_quantity}`
+          `Bulk price must be less than regular price (${product.price}) for tier with quantity ${tier.min_quantity}`,
         );
       }
     }
@@ -3339,7 +3733,7 @@ export class DatabaseService {
     movement: Omit<
       StockMovement,
       'id' | 'created_at' | 'product_name' | 'supplier_name'
-    >
+    >,
   ): Promise<string> {
     // Start transaction for atomic operation
     await this.db.execAsync('BEGIN TRANSACTION');
@@ -3360,19 +3754,19 @@ export class DatabaseService {
           movement.supplier_id || null,
           movement.reference_number || null,
           movement.unit_cost || null,
-        ]
+        ],
       );
 
       // Update product quantity based on movement type
       if (movement.type === 'stock_in') {
         await this.db.runAsync(
           'UPDATE products SET quantity = quantity + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-          [movement.quantity, movement.product_id]
+          [movement.quantity, movement.product_id],
         );
       } else if (movement.type === 'stock_out') {
         await this.db.runAsync(
           'UPDATE products SET quantity = CASE WHEN quantity >= ? THEN quantity - ? ELSE 0 END, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-          [movement.quantity, movement.quantity, movement.product_id]
+          [movement.quantity, movement.quantity, movement.product_id],
         );
       }
 
@@ -3393,7 +3787,7 @@ export class DatabaseService {
       supplierId?: string;
     },
     page: number = 1,
-    pageSize: number = 50
+    pageSize: number = 50,
   ): Promise<StockMovement[]> {
     const offset = (page - 1) * pageSize;
     let query = `
@@ -3447,7 +3841,7 @@ export class DatabaseService {
   async getStockMovementsByProduct(
     productId: string,
     page: number = 1,
-    pageSize: number = 20
+    pageSize: number = 20,
   ): Promise<StockMovement[]> {
     return this.getStockMovements({ productId }, page, pageSize);
   }
@@ -3459,7 +3853,7 @@ export class DatabaseService {
     reason?: string,
     supplierId?: string,
     referenceNumber?: string,
-    unitCost?: number
+    unitCost?: number,
   ): Promise<string> {
     return this.addStockMovement({
       product_id: productId,
@@ -3475,7 +3869,7 @@ export class DatabaseService {
   async getStockMovementSummary(
     productId?: string,
     startDate?: Date,
-    endDate?: Date
+    endDate?: Date,
   ): Promise<{
     totalStockIn: number;
     totalStockOut: number;
@@ -3533,7 +3927,7 @@ export class DatabaseService {
   async getCustomers(
     searchQuery?: string,
     page: number = 1,
-    pageSize: number = 50
+    pageSize: number = 50,
   ): Promise<Customer[]> {
     const offset = (page - 1) * pageSize;
     let query = 'SELECT * FROM customers';
@@ -3555,7 +3949,7 @@ export class DatabaseService {
   async getCustomerById(id: string): Promise<Customer | null> {
     const result = await this.db.getFirstAsync(
       'SELECT * FROM customers WHERE id = ?',
-      [id]
+      [id],
     );
     return result as Customer | null;
   }
@@ -3569,7 +3963,7 @@ export class DatabaseService {
       | Omit<
           Customer,
           'id' | 'total_spent' | 'visit_count' | 'created_at' | 'updated_at'
-        >
+        >,
   ): Promise<string> {
     const id = (customer as any).id || generateUUID();
     await this.db.runAsync(
@@ -3580,21 +3974,21 @@ export class DatabaseService {
         customer.phone || null,
         customer.email || null,
         customer.address || null,
-      ]
+      ],
     );
     return id;
   }
 
   async updateCustomer(id: string, customer: Partial<Customer>): Promise<void> {
     const filteredKeys = Object.keys(customer).filter(
-      (key) => key !== 'id' && key !== 'created_at'
+      (key) => key !== 'id' && key !== 'created_at',
     );
 
     // If no fields to update, just update the timestamp
     if (filteredKeys.length === 0) {
       await this.db.runAsync(
         `UPDATE customers SET updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-        [id]
+        [id],
       );
       return;
     }
@@ -3604,7 +3998,7 @@ export class DatabaseService {
 
     await this.db.runAsync(
       `UPDATE customers SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-      [...values, id]
+      [...values, id],
     );
   }
 
@@ -3612,7 +4006,7 @@ export class DatabaseService {
     // Check if customer has any sales
     const salesCount = (await this.db.getFirstAsync(
       'SELECT COUNT(*) as count FROM sales WHERE customer_id = ?',
-      [id]
+      [id],
     )) as { count: number };
 
     if (salesCount.count > 0) {
@@ -3625,19 +4019,19 @@ export class DatabaseService {
   async getCustomerPurchaseHistory(
     customerId: string,
     page: number = 1,
-    pageSize: number = 20
+    pageSize: number = 20,
   ): Promise<Sale[]> {
     const offset = (page - 1) * pageSize;
     const result = await this.db.getAllAsync(
       'SELECT * FROM sales WHERE customer_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?',
-      [customerId, pageSize, offset]
+      [customerId, pageSize, offset],
     );
     return result as Sale[];
   }
 
   async updateCustomerStatistics(
     customerId: string,
-    saleAmount: number
+    saleAmount: number,
   ): Promise<void> {
     await this.db.runAsync(
       `UPDATE customers 
@@ -3645,7 +4039,7 @@ export class DatabaseService {
            visit_count = visit_count + 1,
            updated_at = CURRENT_TIMESTAMP 
        WHERE id = ?`,
-      [saleAmount, customerId]
+      [saleAmount, customerId],
     );
   }
 
@@ -3662,7 +4056,7 @@ export class DatabaseService {
 
     const lastSale = (await this.db.getFirstAsync(
       'SELECT created_at FROM sales WHERE customer_id = ? ORDER BY created_at DESC LIMIT 1',
-      [customerId]
+      [customerId],
     )) as { created_at: string } | null;
 
     const averageOrderValue =
@@ -3684,7 +4078,7 @@ export class DatabaseService {
       `SELECT COALESCE(SUM(total), 0) as debt_balance
        FROM sales
        WHERE customer_id = ? AND payment_method = 'Debt'`,
-      [customerId]
+      [customerId],
     )) as { debt_balance: number };
 
     return result.debt_balance;
@@ -3707,7 +4101,7 @@ export class DatabaseService {
        LEFT JOIN sales s ON c.id = s.customer_id
        GROUP BY c.id
        HAVING debt_balance > 0
-       ORDER BY debt_balance DESC`
+       ORDER BY debt_balance DESC`,
     );
 
     return result as Array<
@@ -3731,7 +4125,7 @@ export class DatabaseService {
       23,
       59,
       59,
-      999
+      999,
     );
 
     const result = (await this.db.getFirstAsync(
@@ -3739,7 +4133,7 @@ export class DatabaseService {
        FROM sales
        WHERE payment_method = 'Debt'
        AND created_at BETWEEN ? AND ?`,
-      [startOfMonth.toISOString(), endOfMonth.toISOString()]
+      [startOfMonth.toISOString(), endOfMonth.toISOString()],
     )) as { count: number; total: number };
 
     return result || { count: 0, total: 0 };
@@ -3747,7 +4141,7 @@ export class DatabaseService {
 
   async updateSalePaymentMethod(
     saleId: string,
-    newPaymentMethod: string
+    newPaymentMethod: string,
   ): Promise<void> {
     await this.db.runAsync('UPDATE sales SET payment_method = ? WHERE id = ?', [
       newPaymentMethod,
@@ -3774,7 +4168,7 @@ export class DatabaseService {
       ORDER BY month DESC
       LIMIT 12
     `,
-      [customerId]
+      [customerId],
     )) as { month: string; amount: number }[];
 
     // Top categories by spending
@@ -3798,7 +4192,7 @@ export class DatabaseService {
       ORDER BY amount DESC
       LIMIT 5
     `,
-      [customerId, customerId]
+      [customerId, customerId],
     )) as { category: string; amount: number; percentage: number }[];
 
     // Purchase frequency by day of week
@@ -3820,7 +4214,7 @@ export class DatabaseService {
       GROUP BY strftime('%w', created_at)
       ORDER BY strftime('%w', created_at)
     `,
-      [customerId]
+      [customerId],
     )) as { dayOfWeek: string; count: number }[];
 
     // Average items per order
@@ -3835,7 +4229,7 @@ export class DatabaseService {
         GROUP BY s.id
       )
     `,
-      [customerId]
+      [customerId],
     )) as { average: number } | null;
 
     return {
@@ -3870,7 +4264,7 @@ export class DatabaseService {
       ORDER BY created_at ASC 
       LIMIT 1
     `,
-      [customerId]
+      [customerId],
     )) as { created_at: string } | null;
 
     const lastSale = (await this.db.getFirstAsync(
@@ -3880,7 +4274,7 @@ export class DatabaseService {
       ORDER BY created_at DESC 
       LIMIT 1
     `,
-      [customerId]
+      [customerId],
     )) as { created_at: string } | null;
 
     if (!firstSale || !lastSale) {
@@ -3897,7 +4291,7 @@ export class DatabaseService {
       1,
       (new Date(lastSale.created_at).getTime() -
         new Date(firstSale.created_at).getTime()) /
-        (1000 * 60 * 60 * 24)
+        (1000 * 60 * 60 * 24),
     );
 
     // Current LTV is total spent
@@ -3997,7 +4391,7 @@ export class DatabaseService {
 
   async getCustomerAnalytics(
     startDate: Date,
-    endDate: Date
+    endDate: Date,
   ): Promise<{
     totalCustomers: number;
     totalRevenue: number;
@@ -4036,7 +4430,7 @@ export class DatabaseService {
       ORDER BY total_spent DESC
       LIMIT 50
     `,
-      [startDateStr, endDateStr]
+      [startDateStr, endDateStr],
     )) as {
       id: string;
       name: string;
@@ -4053,7 +4447,7 @@ export class DatabaseService {
       FROM sales 
       WHERE created_at >= ? AND created_at <= ?
     `,
-      [startDateStr, endDateStr]
+      [startDateStr, endDateStr],
     )) as { totalRevenue: number };
 
     // Get total unique customers who made purchases in the date range
@@ -4063,7 +4457,7 @@ export class DatabaseService {
       FROM sales 
       WHERE created_at >= ? AND created_at <= ? AND customer_id IS NOT NULL
     `,
-      [startDateStr, endDateStr]
+      [startDateStr, endDateStr],
     )) as { totalCustomers: number };
 
     return {
@@ -4076,7 +4470,7 @@ export class DatabaseService {
   // Stock Movement Analytics Methods
   async getStockMovementTrends(
     startDate?: Date,
-    endDate?: Date
+    endDate?: Date,
   ): Promise<{
     dailyMovements: {
       date: string;
@@ -4124,7 +4518,7 @@ export class DatabaseService {
       ORDER BY date DESC
       LIMIT 30
     `,
-      params
+      params,
     )) as {
       date: string;
       stockIn: number;
@@ -4146,7 +4540,7 @@ export class DatabaseService {
       ORDER BY week DESC
       LIMIT 12
     `,
-      params
+      params,
     )) as {
       week: string;
       stockIn: number;
@@ -4168,7 +4562,7 @@ export class DatabaseService {
       ORDER BY month DESC
       LIMIT 12
     `,
-      params
+      params,
     )) as {
       month: string;
       stockIn: number;
@@ -4191,7 +4585,7 @@ export class DatabaseService {
       ORDER BY totalMovement DESC
       LIMIT 10
     `,
-      params
+      params,
     )) as {
       productId: string;
       productName: string;
@@ -4367,14 +4761,14 @@ export class DatabaseService {
 
     const criticalItems = stockPredictions.filter(
       (item) =>
-        item.predictedDaysUntilEmpty <= 7 || item.currentStock <= item.minStock
+        item.predictedDaysUntilEmpty <= 7 || item.currentStock <= item.minStock,
     );
 
     const warningItems = stockPredictions.filter(
       (item) =>
         item.predictedDaysUntilEmpty > 7 &&
         item.predictedDaysUntilEmpty <= 14 &&
-        item.currentStock > item.minStock
+        item.currentStock > item.minStock,
     );
 
     return {
@@ -4386,7 +4780,7 @@ export class DatabaseService {
   async getStockMovementReport(
     startDate?: Date,
     endDate?: Date,
-    productId?: string
+    productId?: string,
   ): Promise<{
     summary: {
       totalStockIn: number;
@@ -4438,7 +4832,7 @@ export class DatabaseService {
       FROM stock_movements sm
       WHERE ${whereClause}
     `,
-      params
+      params,
     )) as {
       totalStockIn: number;
       totalStockOut: number;
@@ -4465,7 +4859,7 @@ export class DatabaseService {
       ORDER BY sm.created_at DESC
       LIMIT 1000
     `,
-      params
+      params,
     )) as {
       id: string;
       productName: string;
@@ -4765,7 +5159,7 @@ export class DatabaseService {
 
   async getBulkPricingPerformanceMetrics(
     startDate?: Date,
-    endDate?: Date
+    endDate?: Date,
   ): Promise<{
     periodComparison: {
       currentPeriod: {
@@ -4805,7 +5199,7 @@ export class DatabaseService {
     const periodLength = currentEndDate.getTime() - currentStartDate.getTime();
     const previousEndDate = new Date(currentStartDate.getTime());
     const previousStartDate = new Date(
-      currentStartDate.getTime() - periodLength
+      currentStartDate.getTime() - periodLength,
     );
 
     // Current period metrics
@@ -4820,7 +5214,7 @@ export class DatabaseService {
       JOIN sale_items si ON s.id = si.sale_id
       WHERE s.created_at BETWEEN ? AND ?
     `,
-      [currentStartDate.toISOString(), currentEndDate.toISOString()]
+      [currentStartDate.toISOString(), currentEndDate.toISOString()],
     )) as {
       totalSales: number;
       bulkSales: number;
@@ -4840,7 +5234,7 @@ export class DatabaseService {
       JOIN sale_items si ON s.id = si.sale_id
       WHERE s.created_at BETWEEN ? AND ?
     `,
-      [previousStartDate.toISOString(), previousEndDate.toISOString()]
+      [previousStartDate.toISOString(), previousEndDate.toISOString()],
     )) as {
       totalSales: number;
       bulkSales: number;
@@ -4871,19 +5265,19 @@ export class DatabaseService {
     const growth = {
       salesGrowth: calculateGrowth(
         currentPeriod.totalSales,
-        previousPeriod.totalSales
+        previousPeriod.totalSales,
       ),
       bulkSalesGrowth: calculateGrowth(
         currentPeriod.bulkSales,
-        previousPeriod.bulkSales
+        previousPeriod.bulkSales,
       ),
       discountGrowth: calculateGrowth(
         currentPeriod.bulkDiscountGiven,
-        previousPeriod.bulkDiscountGiven
+        previousPeriod.bulkDiscountGiven,
       ),
       orderValueGrowth: calculateGrowth(
         currentPeriod.avgBulkOrderValue,
-        previousPeriod.avgBulkOrderValue
+        previousPeriod.avgBulkOrderValue,
       ),
     };
 
@@ -4908,7 +5302,7 @@ export class DatabaseService {
       ORDER BY totalRevenue DESC
       LIMIT 15
     `,
-      [currentStartDate.toISOString(), currentEndDate.toISOString()]
+      [currentStartDate.toISOString(), currentEndDate.toISOString()],
     )) as {
       productId: string;
       productName: string;
@@ -4993,7 +5387,7 @@ export class DatabaseService {
   // Monitored query wrapper for performance tracking
   async monitoredQuery<T>(
     queryName: string,
-    queryFunction: () => Promise<T>
+    queryFunction: () => Promise<T>,
   ): Promise<T> {
     const startTime = Date.now();
 
@@ -5044,12 +5438,12 @@ export class DatabaseService {
       GROUP BY business_day
       HAVING business_day >= 1 AND business_day <= ?
       ORDER BY business_day`,
-      [startDateStr, endDateStr, endOfMonth.getDate()]
+      [startDateStr, endDateStr, endOfMonth.getDate()],
     )) as { business_day: number; total_sales: number }[];
 
     // Create a map for quick lookup (convert day numbers to strings for matching)
     const salesMap = new Map(
-      salesData.map((item) => [item.business_day.toString(), item.total_sales])
+      salesData.map((item) => [item.business_day.toString(), item.total_sales]),
     );
 
     // Fill in missing days with 0
@@ -5090,12 +5484,12 @@ export class DatabaseService {
       WHERE e.date >= ? AND e.date <= ?
       GROUP BY day
       ORDER BY day`,
-      [startDateStr, endDateStr]
+      [startDateStr, endDateStr],
     )) as { day: number; total_expenses: number }[];
 
     // Create a map for quick lookup (convert day numbers to strings for matching)
     const expenseMap = new Map(
-      expenseData.map((item) => [item.day.toString(), item.total_expenses])
+      expenseData.map((item) => [item.day.toString(), item.total_expenses]),
     );
 
     // Fill in missing days with 0
@@ -5111,17 +5505,17 @@ export class DatabaseService {
   async getPaymentMethodAnalytics(
     startDate: Date,
     endDate: Date,
-    timezoneOffsetMinutes: number = -390
+    timezoneOffsetMinutes: number = -390,
   ): Promise<PaymentMethodAnalytics[]> {
     try {
       // Use timezone-aware date ranges like other analytics methods
       const startRange = getTimezoneAwareDateRangeForDB(
         startDate,
-        timezoneOffsetMinutes
+        timezoneOffsetMinutes,
       );
       const endRange = getTimezoneAwareDateRangeForDB(
         endDate,
-        timezoneOffsetMinutes
+        timezoneOffsetMinutes,
       );
 
       const query = `
@@ -5207,7 +5601,7 @@ export class DatabaseService {
         `;
 
         const categoryResults = (await this.db.getAllAsync(
-          categoryQuery
+          categoryQuery,
         )) as Array<{
           category: string | null;
           value: number | null;
@@ -5246,7 +5640,7 @@ export class DatabaseService {
 }
 
 export const initializeDatabase = async (
-  onMigrationProgress?: (status: any) => void
+  onMigrationProgress?: (status: any) => void,
 ): Promise<DatabaseService> => {
   try {
     const db = await SQLite.openDatabaseAsync('grocery_pos.db');
@@ -5265,7 +5659,7 @@ export const initializeDatabase = async (
 
         if (isAlreadyMigrated) {
           console.log(
-            'Database already uses UUID format, marking migration as complete'
+            'Database already uses UUID format, marking migration as complete',
           );
           await MigrationStatusService.markUUIDMigrationComplete();
         } else {
@@ -5276,7 +5670,7 @@ export const initializeDatabase = async (
             const originalUpdateStatus = (migrationService as any).updateStatus;
             (migrationService as any).updateStatus = (
               step: string,
-              progress: number
+              progress: number,
             ) => {
               originalUpdateStatus.call(migrationService, step, progress);
               onMigrationProgress(migrationService.getMigrationStatus());
@@ -5296,7 +5690,7 @@ export const initializeDatabase = async (
               await MigrationStatusService.markUUIDMigrationComplete();
             } else {
               throw new Error(
-                `UUID migration failed: ${migrationReport.errors.join(', ')}`
+                `UUID migration failed: ${migrationReport.errors.join(', ')}`,
               );
             }
           }

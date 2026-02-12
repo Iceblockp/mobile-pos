@@ -106,7 +106,7 @@ export default function Analytics() {
       const startOfMonth = new Date(
         dateFilter.selectedYear,
         dateFilter.selectedMonth,
-        1
+        1,
       );
       const endOfMonth = new Date(
         dateFilter.selectedYear,
@@ -115,7 +115,7 @@ export default function Analytics() {
         23,
         59,
         59,
-        999
+        999,
       );
       return { startDate: startOfMonth, endDate: endOfMonth, limit: 100 };
     } else if (dateFilter.mode === 'year') {
@@ -236,12 +236,12 @@ export default function Analytics() {
       startDate = new Date(
         dateFilter.selectedYear,
         dateFilter.selectedMonth,
-        1
+        1,
       );
       endDate = new Date(
         dateFilter.selectedYear,
         dateFilter.selectedMonth + 1,
-        0
+        0,
       );
     } else if (dateFilter.mode === 'year') {
       startDate = new Date(dateFilter.selectedYear, 0, 1);
@@ -255,12 +255,12 @@ export default function Analytics() {
     const startDateOnly = new Date(
       startDate.getFullYear(),
       startDate.getMonth(),
-      startDate.getDate()
+      startDate.getDate(),
     );
     const endDateOnly = new Date(
       endDate.getFullYear(),
       endDate.getMonth(),
-      endDate.getDate()
+      endDate.getDate(),
     );
 
     const diffTime = Math.abs(endDateOnly.getTime() - startDateOnly.getTime());
@@ -451,7 +451,7 @@ export default function Analytics() {
                   >
                     {formatPrice(
                       (analytics?.totalRevenue || 0) -
-                        (analytics?.totalExpenses || 0)
+                        (analytics?.totalExpenses || 0),
                     )}
                   </Text>
                   <Text style={styles.metricLabel} weight="medium">
@@ -536,12 +536,12 @@ export default function Analytics() {
             <CustomBarChart
               data={{
                 labels: paymentAnalyticsData.map(
-                  (item: PaymentMethodAnalytics) => item.payment_method
+                  (item: PaymentMethodAnalytics) => item.payment_method,
                 ),
                 datasets: [
                   {
                     data: paymentAnalyticsData.map(
-                      (item: PaymentMethodAnalytics) => item.total_amount
+                      (item: PaymentMethodAnalytics) => item.total_amount,
                     ),
                   },
                 ],
@@ -554,8 +554,8 @@ export default function Analytics() {
                   paymentAnalyticsData.reduce(
                     (sum: number, item: PaymentMethodAnalytics) =>
                       sum + item.total_amount,
-                    0
-                  )
+                    0,
+                  ),
                 ),
               }}
             />
@@ -593,7 +593,7 @@ export default function Analytics() {
                     '#6B7280',
                     '#059669',
                   ][index % 8],
-                })
+                }),
               )}
               size={200}
               showPercentage={true}
@@ -659,7 +659,7 @@ export default function Analytics() {
                   <View style={styles.saleInfo}>
                     <Text style={styles.saleId} weight="medium">
                       {t('analytics.saleId')}
-                      {sale.id}
+                      {sale.voucher_id}
                     </Text>
                     <Text style={styles.saleDate}>
                       {formatDate(sale.created_at)}

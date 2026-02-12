@@ -636,7 +636,7 @@ export default function Sales() {
       // Handle receipt printing if requested
       if (shouldPrint && result) {
         const printData = {
-          saleId: result,
+          voucherId: result.voucherId,
           items: cart,
           total,
           paymentMethod,
@@ -1464,18 +1464,31 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   // Filter sales based on search query and payment method
   const filteredSales = useMemo(() => {
     return sales.filter((sale) => {
-      // Search query filter
+      // Search by voucher ID (full, date prefix, sequential number, or partial match) or payment method
+      const matchesFullVoucher = sale.voucher_id === searchQuery;
+      const matchesDatePrefix = sale.voucher_id.startsWith(searchQuery);
+      const matchesSequential = sale.voucher_id.endsWith(
+        `-${searchQuery.padStart(3, '0')}`,
+      );
+      const matchesPartial = sale.voucher_id.includes(searchQuery);
+      const matchesPaymentMethod = sale.payment_method
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+
       const matchesSearch =
         !searchQuery ||
-        sale.id.includes(searchQuery) ||
-        sale.payment_method.toLowerCase().includes(searchQuery.toLowerCase());
+        matchesFullVoucher ||
+        matchesDatePrefix ||
+        matchesSequential ||
+        matchesPartial ||
+        matchesPaymentMethod;
 
       // Payment method filter
-      const matchesPaymentMethod =
+      const matchesPaymentMethodFilter =
         paymentMethodFilter === 'All' ||
         sale.payment_method === paymentMethodFilter;
 
-      return matchesSearch && matchesPaymentMethod;
+      return matchesSearch && matchesPaymentMethodFilter;
     });
   }, [sales, searchQuery, paymentMethodFilter]);
 
@@ -1551,6 +1564,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           sale_date: sale.created_at,
           payment_method: sale.payment_method,
           sale_id: sale.id,
+          voucher_id: sale.voucher_id,
         }));
         allItems.push(...itemsWithSaleInfo);
       }
@@ -1593,7 +1607,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }));
 
     return {
-      saleId: selectedSale.id,
+      voucherId: selectedSale.voucher_id,
       items: formattedItems,
       total: selectedSale.total,
       paymentMethod: selectedSale.payment_method,
@@ -1637,7 +1651,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         // Share the image
         await Sharing.shareAsync(uri, {
           mimeType: 'image/png',
-          dialogTitle: `Sale #${selectedSale.id} Details`,
+          dialogTitle: `Sale #${selectedSale.voucher_id} Details`,
           UTI: 'public.png',
         });
         showToast('Sale detail exported as image', 'success');
@@ -1661,7 +1675,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
     Alert.alert(
       t('sales.deleteSale'),
-      t('sales.deleteSaleConfirm', { saleId: selectedSale.id }),
+      t('sales.deleteSaleConfirm', { saleId: selectedSale.voucher_id }),
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
@@ -1706,7 +1720,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       if (Platform.OS !== 'web') {
         // Prepare data for Excel export
         const excelData = allSales.map((sale) => ({
-          'Sale ID': sale.id,
+          'Sale ID': sale.voucher_id,
           Date: formatDate(sale.created_at),
           'Payment Method': sale.payment_method.toUpperCase(),
           'Total Amount': sale.total,
@@ -1809,7 +1823,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
       // Web export functionality
       const excelData = allSales.map((sale) => ({
-        'Sale ID': sale.id,
+        'Sale ID': sale.voucher_id,
         Date: formatDate(sale.created_at),
         'Total Amount': sale.total,
         'Total Amount (MMK)': formatPrice(sale.total),
@@ -2610,7 +2624,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 <View style={styles.saleHeader}>
                   <View style={styles.saleInfo}>
                     <Text style={styles.saleId}>
-                      {t('sales.saleNumber')} {sale.id}
+                      {t('sales.saleNumber')} {sale.voucher_id}
                     </Text>
                     <Text style={styles.saleDate}>
                       {formatDate(sale.created_at)}
@@ -2870,7 +2884,7 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         {t('sales.saleId')}
                       </Text>
                       <Text style={styles.saleDetailValue}>
-                        #{selectedSale.id}
+                        #{selectedSale.voucher_id}
                       </Text>
                     </View>
                     <View style={styles.saleDetailRow}>
