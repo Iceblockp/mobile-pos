@@ -49,9 +49,16 @@ import { InventoryDetailsModal } from '@/components/InventoryDetailsModal';
 
 interface ProductsManagerProps {
   compact?: boolean;
+  sortBy?: 'name' | 'updated_at' | 'none';
+  sortOrder?: 'asc' | 'desc';
+  viewMode?: 'card' | 'table';
 }
 
-export default function Products({}: ProductsManagerProps) {
+export default function Products({
+  sortBy: externalSortBy,
+  sortOrder: externalSortOrder,
+  viewMode: externalViewMode,
+}: ProductsManagerProps) {
   const router = useRouter();
   const { showToast } = useToast();
   const { t } = useTranslation();
@@ -61,12 +68,33 @@ export default function Products({}: ProductsManagerProps) {
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showSearchScanner, setShowSearchScanner] = useState(false);
-  const [sortBy, setSortBy] = useState<'name' | 'updated_at' | 'none'>('none');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Use external props if provided, otherwise use internal state
+  const [internalSortBy, setInternalSortBy] = useState<
+    'name' | 'updated_at' | 'none'
+  >('none');
+  const [internalSortOrder, setInternalSortOrder] = useState<'asc' | 'desc'>(
+    'asc',
+  );
+  const [internalViewMode, setInternalViewMode] = useState<'card' | 'table'>(
+    'card',
+  );
+
+  const sortBy = externalSortBy !== undefined ? externalSortBy : internalSortBy;
+  const sortOrder =
+    externalSortOrder !== undefined ? externalSortOrder : internalSortOrder;
+  const viewMode =
+    externalViewMode !== undefined ? externalViewMode : internalViewMode;
+
+  const setSortBy = externalSortBy !== undefined ? () => {} : setInternalSortBy;
+  const setSortOrder =
+    externalSortOrder !== undefined ? () => {} : setInternalSortOrder;
+  const setViewMode =
+    externalViewMode !== undefined ? () => {} : setInternalViewMode;
+
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
-  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
   // Add state for stock movement form
   const [showStockMovementForm, setShowStockMovementForm] = useState(false);
@@ -534,176 +562,185 @@ export default function Products({}: ProductsManagerProps) {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={styles.compactMenuButton}
-            onPress={() => setShowActionsMenu(!showActionsMenu)}
-          >
-            <MoreVertical size={16} color="#6B7280" />
-          </TouchableOpacity>
+          {/* Only show menu button if not controlled externally */}
+          {externalSortBy === undefined && externalViewMode === undefined && (
+            <TouchableOpacity
+              style={styles.compactMenuButton}
+              onPress={() => setShowActionsMenu(!showActionsMenu)}
+            >
+              <MoreVertical size={16} color="#6B7280" />
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Overlay for closing menus */}
-        {(showActionsMenu || showSortOptions) && (
-          <TouchableOpacity
-            style={styles.menuOverlay}
-            activeOpacity={1}
-            onPress={handleOutsidePress}
-          />
-        )}
-
-        {/* Actions Menu Dropdown */}
-        {showActionsMenu && (
-          <View style={styles.actionsMenuContainer}>
+        {/* Overlay for closing menus - only if not controlled externally */}
+        {externalSortBy === undefined &&
+          externalViewMode === undefined &&
+          (showActionsMenu || showSortOptions) && (
             <TouchableOpacity
-              style={styles.actionMenuItem}
-              onPress={() => {
-                setShowSortOptions(!showSortOptions);
-                setShowActionsMenu(false);
-              }}
-            >
-              <View style={styles.actionMenuItemContent}>
-                {sortBy === 'name' ? (
-                  sortOrder === 'asc' ? (
-                    <ArrowUpAZ size={16} color="#6B7280" />
+              style={styles.menuOverlay}
+              activeOpacity={1}
+              onPress={handleOutsidePress}
+            />
+          )}
+
+        {/* Actions Menu Dropdown - only if not controlled externally */}
+        {externalSortBy === undefined &&
+          externalViewMode === undefined &&
+          showActionsMenu && (
+            <View style={styles.actionsMenuContainer}>
+              <TouchableOpacity
+                style={styles.actionMenuItem}
+                onPress={() => {
+                  setShowSortOptions(!showSortOptions);
+                  setShowActionsMenu(false);
+                }}
+              >
+                <View style={styles.actionMenuItemContent}>
+                  {sortBy === 'name' ? (
+                    sortOrder === 'asc' ? (
+                      <ArrowUpAZ size={16} color="#6B7280" />
+                    ) : (
+                      <ArrowDownAZ size={16} color="#6B7280" />
+                    )
                   ) : (
-                    <ArrowDownAZ size={16} color="#6B7280" />
-                  )
-                ) : (
-                  <Calendar size={16} color="#6B7280" />
-                )}
-                <Text style={styles.actionMenuItemText}>
-                  {t('products.sort')} {sortOrder === 'asc' ? '↑' : '↓'}
-                </Text>
-              </View>
-            </TouchableOpacity>
+                    <Calendar size={16} color="#6B7280" />
+                  )}
+                  <Text style={styles.actionMenuItemText}>
+                    {t('products.sort')} {sortOrder === 'asc' ? '↑' : '↓'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.actionMenuItem}
-              onPress={() => {
-                setViewMode(viewMode === 'card' ? 'table' : 'card');
-                setShowActionsMenu(false);
-              }}
-            >
-              <View style={styles.actionMenuItemContent}>
-                {viewMode === 'card' ? (
-                  <List size={16} color="#6B7280" />
-                ) : (
-                  <Grid3X3 size={16} color="#6B7280" />
-                )}
-                <Text style={styles.actionMenuItemText}>
-                  {viewMode === 'card'
-                    ? t('products.tableView')
-                    : t('products.cardView')}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        )}
+              <TouchableOpacity
+                style={styles.actionMenuItem}
+                onPress={() => {
+                  setViewMode(viewMode === 'card' ? 'table' : 'card');
+                  setShowActionsMenu(false);
+                }}
+              >
+                <View style={styles.actionMenuItemContent}>
+                  {viewMode === 'card' ? (
+                    <List size={16} color="#6B7280" />
+                  ) : (
+                    <Grid3X3 size={16} color="#6B7280" />
+                  )}
+                  <Text style={styles.actionMenuItemText}>
+                    {viewMode === 'card'
+                      ? t('products.tableView')
+                      : t('products.cardView')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          )}
 
-        {/* Sort Options - appears when sort is selected */}
-        {showSortOptions && (
-          <View style={styles.sortOptionsContainer}>
-            <TouchableOpacity
-              style={[
-                styles.sortOption,
-                sortBy === 'updated_at' &&
-                  sortOrder === 'desc' &&
-                  styles.sortOptionActive,
-              ]}
-              onPress={() => {
-                setSortBy('updated_at');
-                setSortOrder('desc');
-                setShowSortOptions(false);
-              }}
-            >
-              <Text
+        {/* Sort Options - appears when sort is selected - only if not controlled externally */}
+        {externalSortBy === undefined &&
+          externalViewMode === undefined &&
+          showSortOptions && (
+            <View style={styles.sortOptionsContainer}>
+              <TouchableOpacity
                 style={[
-                  styles.sortOptionText,
+                  styles.sortOption,
                   sortBy === 'updated_at' &&
                     sortOrder === 'desc' &&
-                    styles.sortOptionTextActive,
+                    styles.sortOptionActive,
                 ]}
+                onPress={() => {
+                  setSortBy('updated_at');
+                  setSortOrder('desc');
+                  setShowSortOptions(false);
+                }}
               >
-                Newest First
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.sortOptionText,
+                    sortBy === 'updated_at' &&
+                      sortOrder === 'desc' &&
+                      styles.sortOptionTextActive,
+                  ]}
+                >
+                  Newest First
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.sortOption,
-                sortBy === 'updated_at' &&
-                  sortOrder === 'asc' &&
-                  styles.sortOptionActive,
-              ]}
-              onPress={() => {
-                setSortBy('updated_at');
-                setSortOrder('asc');
-                setShowSortOptions(false);
-              }}
-            >
-              <Text
+              <TouchableOpacity
                 style={[
-                  styles.sortOptionText,
+                  styles.sortOption,
                   sortBy === 'updated_at' &&
                     sortOrder === 'asc' &&
-                    styles.sortOptionTextActive,
+                    styles.sortOptionActive,
                 ]}
+                onPress={() => {
+                  setSortBy('updated_at');
+                  setSortOrder('asc');
+                  setShowSortOptions(false);
+                }}
               >
-                Oldest First
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.sortOptionText,
+                    sortBy === 'updated_at' &&
+                      sortOrder === 'asc' &&
+                      styles.sortOptionTextActive,
+                  ]}
+                >
+                  Oldest First
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.sortOption,
-                sortBy === 'name' &&
-                  sortOrder === 'asc' &&
-                  styles.sortOptionActive,
-              ]}
-              onPress={() => {
-                setSortBy('name');
-                setSortOrder('asc');
-                setShowSortOptions(false);
-              }}
-            >
-              <Text
+              <TouchableOpacity
                 style={[
-                  styles.sortOptionText,
+                  styles.sortOption,
                   sortBy === 'name' &&
                     sortOrder === 'asc' &&
-                    styles.sortOptionTextActive,
+                    styles.sortOptionActive,
                 ]}
+                onPress={() => {
+                  setSortBy('name');
+                  setSortOrder('asc');
+                  setShowSortOptions(false);
+                }}
               >
-                Name A-Z
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.sortOptionText,
+                    sortBy === 'name' &&
+                      sortOrder === 'asc' &&
+                      styles.sortOptionTextActive,
+                  ]}
+                >
+                  Name A-Z
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.sortOption,
-                sortBy === 'name' &&
-                  sortOrder === 'desc' &&
-                  styles.sortOptionActive,
-              ]}
-              onPress={() => {
-                setSortBy('name');
-                setSortOrder('desc');
-                setShowSortOptions(false);
-              }}
-            >
-              <Text
+              <TouchableOpacity
                 style={[
-                  styles.sortOptionText,
+                  styles.sortOption,
                   sortBy === 'name' &&
                     sortOrder === 'desc' &&
-                    styles.sortOptionTextActive,
+                    styles.sortOptionActive,
                 ]}
+                onPress={() => {
+                  setSortBy('name');
+                  setSortOrder('desc');
+                  setShowSortOptions(false);
+                }}
               >
-                Name Z-A
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
+                <Text
+                  style={[
+                    styles.sortOptionText,
+                    sortBy === 'name' &&
+                      sortOrder === 'desc' &&
+                      styles.sortOptionTextActive,
+                  ]}
+                >
+                  Name Z-A
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
       </>
 
       <View>
