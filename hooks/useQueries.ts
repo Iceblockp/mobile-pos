@@ -159,7 +159,7 @@ export const queryKeys = {
       startDate: Date,
       endDate: Date,
       page: number,
-      pageSize: number
+      pageSize: number,
     ) =>
       [
         ...queryKeys.sales.all,
@@ -178,7 +178,7 @@ export const queryKeys = {
       endDate: Date,
       searchQuery?: string,
       customerId?: string,
-      timezoneOffsetMinutes: number = -390
+      timezoneOffsetMinutes: number = -390,
     ) =>
       [
         ...queryKeys.sales.all,
@@ -194,7 +194,7 @@ export const queryKeys = {
       customerId?: string,
       startDate?: Date,
       endDate?: Date,
-      timezoneOffsetMinutes: number = -390
+      timezoneOffsetMinutes: number = -390,
     ) =>
       [
         ...queryKeys.sales.all,
@@ -276,7 +276,7 @@ export const useProductsInfinite = (
   searchQuery?: string,
   categoryId?: string,
   sortBy?: 'name' | 'updated_at' | 'none',
-  sortOrder?: 'asc' | 'desc'
+  sortOrder?: 'asc' | 'desc',
 ) => {
   const { db, isReady } = useDatabase();
 
@@ -359,7 +359,7 @@ export const useCategoriesWithCounts = () => {
 export const useSuppliers = (
   searchQuery?: string,
   page: number = 1,
-  pageSize: number = 50
+  pageSize: number = 50,
 ) => {
   const { db, isReady } = useDatabase();
 
@@ -450,7 +450,7 @@ export const useSalesAnalytics = (days: number = 30) => {
 export const useSalesByDateRange = (
   startDate: Date,
   endDate: Date,
-  limit: number = 100
+  limit: number = 100,
 ) => {
   const { db, isReady } = useDatabase();
 
@@ -480,7 +480,7 @@ export const useSalesByDateRangePaginated = (
   startDate: Date,
   endDate: Date,
   page: number,
-  pageSize: number = 50
+  pageSize: number = 50,
 ) => {
   const { db, isReady } = useDatabase();
 
@@ -489,7 +489,7 @@ export const useSalesByDateRangePaginated = (
       startDate,
       endDate,
       page,
-      pageSize
+      pageSize,
     ),
     queryFn: () =>
       db!.getSalesByDateRangePaginatedTimezoneAware(
@@ -497,7 +497,7 @@ export const useSalesByDateRangePaginated = (
         endDate,
         -390,
         page,
-        pageSize
+        pageSize,
       ),
     enabled: isReady && !!db,
     staleTime: 2 * 60 * 1000, // 2 minutes
@@ -535,7 +535,7 @@ export const useSalesSummaryByDateRange = (
   endDate: Date,
   searchQuery?: string,
   customerId?: string,
-  timezoneOffsetMinutes: number = -390
+  timezoneOffsetMinutes: number = -390,
 ) => {
   const { db, isReady } = useDatabase();
 
@@ -545,7 +545,7 @@ export const useSalesSummaryByDateRange = (
       endDate,
       searchQuery,
       customerId,
-      timezoneOffsetMinutes
+      timezoneOffsetMinutes,
     ),
     queryFn: () =>
       db!.getSalesSummaryByDateRange(
@@ -553,7 +553,7 @@ export const useSalesSummaryByDateRange = (
         endDate,
         searchQuery,
         customerId,
-        timezoneOffsetMinutes
+        timezoneOffsetMinutes,
       ),
     enabled: isReady && !!db,
     staleTime: 30 * 1000, // 30 seconds
@@ -566,7 +566,7 @@ export const useAllSalesForExport = (
   customerId?: string,
   startDate?: Date,
   endDate?: Date,
-  timezoneOffsetMinutes: number = -390
+  timezoneOffsetMinutes: number = -390,
 ) => {
   const { db, isReady } = useDatabase();
 
@@ -576,7 +576,7 @@ export const useAllSalesForExport = (
       customerId,
       startDate,
       endDate,
-      timezoneOffsetMinutes
+      timezoneOffsetMinutes,
     ),
     queryFn: () =>
       db!.getAllSalesForExport(
@@ -584,7 +584,7 @@ export const useAllSalesForExport = (
         customerId,
         startDate,
         endDate,
-        timezoneOffsetMinutes
+        timezoneOffsetMinutes,
       ),
     enabled: false, // Only fetch when explicitly requested
     staleTime: 0, // Always fresh for export
@@ -660,7 +660,7 @@ export const useDashboardAnalytics = () => {
 export const useExpensesPaginated = (
   page: number,
   filter: string,
-  selectedDate?: Date
+  selectedDate?: Date,
 ) => {
   const { db, isReady } = useDatabase();
 
@@ -736,7 +736,7 @@ export const useProductMutations = () => {
 
   const addProduct = useMutation({
     mutationFn: (
-      productData: Omit<Product, 'id' | 'created_at' | 'updated_at'>
+      productData: Omit<Product, 'id' | 'created_at' | 'updated_at'>,
     ) => db!.addProduct(productData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
@@ -1027,7 +1027,7 @@ export const useExpenseMutations = () => {
 export const useCustomers = (
   searchQuery?: string,
   page: number = 1,
-  pageSize: number = 50
+  pageSize: number = 50,
 ) => {
   const { db, isReady } = useDatabase();
 
@@ -1055,7 +1055,7 @@ export const useCustomer = (id: string) => {
 export const useCustomerPurchaseHistory = (
   customerId: string,
   page: number = 1,
-  pageSize: number = 20
+  pageSize: number = 20,
 ) => {
   const { db, isReady } = useDatabase();
 
@@ -1206,7 +1206,7 @@ export const useLowStockPrediction = () => {
 export const useStockMovementReport = (
   startDate?: Date,
   endDate?: Date,
-  productId?: string
+  productId?: string,
 ) => {
   const { db, isReady } = useDatabase();
 
@@ -1271,7 +1271,7 @@ export const useStockMovements = (
     supplierId?: string;
   },
   page: number = 1,
-  pageSize: number = 50
+  pageSize: number = 50,
 ) => {
   const { db, isReady } = useDatabase();
 
@@ -1285,10 +1285,42 @@ export const useStockMovements = (
   });
 };
 
+// Infinite scroll version of useStockMovements
+export const useInfiniteStockMovements = (
+  filters?: {
+    productId?: string;
+    type?: 'stock_in' | 'stock_out';
+    startDate?: Date;
+    endDate?: Date;
+    supplierId?: string;
+  },
+  pageSize: number = 20,
+) => {
+  const { db, isReady } = useDatabase();
+
+  return useInfiniteQuery({
+    queryKey: [...queryKeys.stockMovements.lists(), 'infinite', filters],
+    queryFn: ({ pageParam = 1 }) =>
+      db!.getStockMovements(filters, pageParam, pageSize),
+    enabled: isReady && !!db,
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages, lastPageParam) => {
+      // If the last page has fewer items than pageSize, we've reached the end
+      if (lastPage.length < pageSize) {
+        return undefined;
+      }
+      return lastPageParam + 1;
+    },
+    staleTime: 1 * 60 * 1000, // 1 minute
+    gcTime: 3 * 60 * 1000, // 3 minutes garbage collection
+    refetchOnWindowFocus: false,
+  });
+};
+
 export const useStockMovementsByProduct = (
   productId: string,
   page: number = 1,
-  pageSize: number = 20
+  pageSize: number = 20,
 ) => {
   const { db, isReady } = useDatabase();
 
@@ -1303,7 +1335,7 @@ export const useStockMovementsByProduct = (
 export const useStockMovementSummary = (
   productId?: string,
   startDate?: Date,
-  endDate?: Date
+  endDate?: Date,
 ) => {
   const { db, isReady } = useDatabase();
 
@@ -1380,7 +1412,7 @@ export const useStockMovementMutations = () => {
         reason,
         supplierId,
         referenceNumber,
-        unitCost
+        unitCost,
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.stockMovements.all });
@@ -1411,7 +1443,7 @@ export const useBulkPricing = (productId: string) => {
 
 export const useBulkPriceCalculation = (
   productId: string,
-  quantity: number
+  quantity: number,
 ) => {
   const { db, isReady } = useDatabase();
 

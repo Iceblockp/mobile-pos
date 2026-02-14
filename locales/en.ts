@@ -546,6 +546,7 @@ export const en = {
     stockInfo: 'Stock Information',
     stockInformation: 'Stock Information',
     stockMovements: 'Stock Movements',
+    viewMovementHistory: 'View Movement History',
     noSupplier: 'Select Supplier',
     selectSupplier: 'Select Supplier',
     quickActions: 'Quick Actions',

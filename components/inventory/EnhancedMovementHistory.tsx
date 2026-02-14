@@ -12,7 +12,7 @@ import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import {
-  useStockMovements,
+  useInfiniteStockMovements,
   useProducts,
   useBasicSuppliers,
 } from '@/hooks/useQueries';
@@ -40,6 +40,7 @@ interface EnhancedMovementHistoryProps {
   compact?: boolean;
   showFilters?: boolean;
   headerComponent?: React.ReactComponentElement<any, any>;
+  externalFilters?: Partial<MovementFilters>;
 }
 
 interface MovementFilters {
@@ -59,9 +60,9 @@ export const EnhancedMovementHistory: React.FC<EnhancedMovementHistoryProps> =
       compact = false,
       showFilters = true,
       headerComponent,
+      externalFilters,
     }) => {
       const { t } = useTranslation();
-      const [page, setPage] = useState(1);
       const [showFilterModal, setShowFilterModal] = useState(false);
       const [showDatePicker, setShowDatePicker] = useState<
         'start' | 'end' | null
@@ -78,41 +79,54 @@ export const EnhancedMovementHistory: React.FC<EnhancedMovementHistoryProps> =
       const { data: products = [] } = useProducts();
       const { data: suppliers = [] } = useBasicSuppliers();
 
+      // Merge external filters with internal filters
+      const effectiveFilters = useMemo(() => {
+        return externalFilters ? { ...filters, ...externalFilters } : filters;
+      }, [filters, externalFilters]);
+
       // Prepare filters for the query
       const queryFilters = useMemo(() => {
         const result: any = {};
 
-        if (filters.type && filters.type !== 'all') {
-          result.type = filters.type;
+        if (effectiveFilters.type && effectiveFilters.type !== 'all') {
+          result.type = effectiveFilters.type;
         }
-        if (filters.productId) {
-          result.productId = filters.productId;
+        if (effectiveFilters.productId) {
+          result.productId = effectiveFilters.productId;
         }
-        if (filters.supplierId) {
-          result.supplierId = filters.supplierId;
+        if (effectiveFilters.supplierId) {
+          result.supplierId = effectiveFilters.supplierId;
         }
-        if (filters.startDate) {
-          result.startDate = filters.startDate;
+        if (effectiveFilters.startDate) {
+          result.startDate = effectiveFilters.startDate;
         }
-        if (filters.endDate) {
-          result.endDate = filters.endDate;
+        if (effectiveFilters.endDate) {
+          result.endDate = effectiveFilters.endDate;
         }
 
         return result;
-      }, [filters]);
+      }, [effectiveFilters]);
 
       const {
-        data: movements = [],
+        data,
         isLoading,
-        isRefetching,
+        isFetchingNextPage,
+        hasNextPage,
+        fetchNextPage,
         refetch,
-      } = useStockMovements(queryFilters, page, pageSize);
+        isRefetching,
+      } = useInfiniteStockMovements(queryFilters, pageSize);
+
+      // Flatten all pages into a single array
+      const movements = useMemo(() => {
+        return data?.pages.flatMap((page) => page) ?? [];
+      }, [data]);
 
       // Filter movements by search query on the client side
       const filteredMovements = useMemo(() => {
-        if (!filters.searchQuery) return movements;
+        if (!effectiveFilters.searchQuery) return movements;
 
-        const query = filters.searchQuery.toLowerCase();
+        const query = effectiveFilters.searchQuery.toLowerCase();
         return movements.filter(
           (movement) =>
             movement.product_name?.toLowerCase().includes(query) ||
@@ -120,10 +134,7 @@ export const EnhancedMovementHistory: React.FC<EnhancedMovementHistoryProps> =
             movement.reference_number?.toLowerCase().includes(query) ||
             movement.supplier_name?.toLowerCase().includes(query),
         );
-      }, [movements, filters.searchQuery]);
-
-      const hasNextPage = movements.length === pageSize;
-      const isFetchingNextPage = false;
+      }, [movements, effectiveFilters.searchQuery]);
 
       const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -536,7 +547,22 @@ export const EnhancedMovementHistory: React.FC<EnhancedMovementHistoryProps> =
             keyExtractor={(item) => item.id}
             renderItem={renderMovementItem}
             ListEmptyComponent={renderEmptyState}
-            // ListHeaderComponent={headerComponent}
+            ListFooterComponent={() => {
+              if (isFetchingNextPage) {
+                return (
+                  <View style={styles.footerLoader}>
+                    <LoadingSpinner />
+                  </View>
+                );
+              }
+              return null;
+            }}
+            onEndReached={() => {
+              if (hasNextPage && !isFetchingNextPage) {
+                fetchNextPage();
+              }
+            }}
+            onEndReachedThreshold={0.5}
             refreshControl={
               <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
             }
@@ -793,5 +819,10 @@ const styles = StyleSheet.create({
   },
   filterActionButton: {
     flex: 1,
+  },
+  footerLoader: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -32,7 +32,6 @@ import {
   Minus,
   History,
 } from 'lucide-react-native';
-import { ProductMovementHistory } from '@/components/ProductMovementHistory';
 
 /**
  * Product Detail Page
@@ -240,7 +239,17 @@ export default function ProductDetail() {
             </View>
           )}
 
-          <ProductMovementHistory product={product} compact={true} />
+          <TouchableOpacity
+            style={styles.viewHistoryButton}
+            onPress={() =>
+              router.push(`/movement-history?productId=${product.id}`)
+            }
+          >
+            <History size={20} color="#6B7280" />
+            <Text style={styles.viewHistoryText}>
+              {t('products.viewMovementHistory')}
+            </Text>
+          </TouchableOpacity>
         </Card>
 
         {/* Supplier Info */}
@@ -526,5 +535,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  viewHistoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  viewHistoryText: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '500',
   },
 });
