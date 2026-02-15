@@ -40,9 +40,17 @@ export const DrawerMenuItem = React.memo(function DrawerMenuItem({
   style,
 }: DrawerMenuItemProps) {
   const router = useRouter();
-  const isActive = currentRoute === item.route;
+
+  // Normalize routes for comparison
+  // currentRoute might be "/sale-history" while item.route is "/(drawer)/sale-history"
+  const normalizedCurrentRoute = currentRoute.startsWith('/(drawer)')
+    ? currentRoute
+    : `/(drawer)${currentRoute}`;
+  const isActive = normalizedCurrentRoute === item.route;
+
   const Icon = item.icon;
 
+  console.log('active', currentRoute);
   /**
    * Handle menu item press
    * Navigates to the route and closes the drawer
@@ -67,7 +75,7 @@ export const DrawerMenuItem = React.memo(function DrawerMenuItem({
       accessibilityState={{ selected: isActive }}
       hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
     >
-      <Icon size={20} color={isActive ? '#059669' : '#6B7280'} />
+      <Icon size={22} color={isActive ? '#047857' : '#6B7280'} />
       <Text
         style={[styles.menuItemText, isActive && styles.menuItemTextActive]}
       >
@@ -87,11 +95,17 @@ const styles = StyleSheet.create({
     marginVertical: 2,
     borderRadius: 8,
     minHeight: 44, // Minimum touch target size for accessibility
+    backgroundColor: 'transparent',
   },
   menuItemActive: {
-    backgroundColor: '#F0FDF4',
-    borderLeftWidth: 3,
+    backgroundColor: '#DCFCE7', // More prominent green background
+    borderLeftWidth: 4, // Thicker border for better visibility
     borderLeftColor: '#059669',
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2, // Subtle elevation for Android
   },
   menuItemText: {
     fontSize: 15,
@@ -101,8 +115,8 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   menuItemTextActive: {
-    color: '#059669',
-    fontFamily: 'NotoSansMyanmar-Medium',
-    fontWeight: '600',
+    color: '#047857', // Darker green for better contrast
+    fontFamily: 'NotoSansMyanmar-Bold',
+    fontWeight: '700', // Bolder text
   },
 });

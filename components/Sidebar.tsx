@@ -34,6 +34,15 @@ import { DrawerMenuItem, MenuItem } from './DrawerMenuItem';
 
 const DRAWER_WIDTH = 280;
 
+/**
+ * Menu group definition
+ */
+interface MenuGroup {
+  id: string;
+  label: string;
+  items: MenuItem[];
+}
+
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -52,116 +61,165 @@ export function Sidebar({ isOpen, onClose, currentRoute }: SidebarProps) {
   const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
 
-  // Memoize menu items configuration to prevent recreation on every render (Requirement 8.4)
-  const menuItems: MenuItem[] = useMemo(
+  // Memoize menu groups configuration to prevent recreation on every render (Requirement 8.4)
+  const menuGroups: MenuGroup[] = useMemo(
     () => [
+      // Dashboard - standalone at top
       {
-        id: 'dashboard',
-        label: t('navigation.dashboard'),
-        icon: Home,
-        route: '/(drawer)/dashboard',
+        id: 'main',
+        label: '',
+        items: [
+          {
+            id: 'dashboard',
+            label: t('navigation.dashboard'),
+            icon: Home,
+            route: '/(drawer)/dashboard',
+          },
+        ],
       },
+      // Sales group
       {
-        id: 'sale',
-        label: t('navigation.sales'),
-        icon: ShoppingCart,
-        route: '/(drawer)/sale',
+        id: 'sales',
+        label: t('navigation.groupSales'),
+        items: [
+          {
+            id: 'sale',
+            label: t('navigation.sales'),
+            icon: ShoppingCart,
+            route: '/(drawer)/sale',
+          },
+          {
+            id: 'sale-history',
+            label: t('sales.salesHistory'),
+            icon: History,
+            route: '/(drawer)/sale-history',
+          },
+        ],
       },
+      // Inventory group
       {
-        id: 'sale-history',
-        label: t('sales.salesHistory'),
-        icon: History,
-        route: '/(drawer)/sale-history',
+        id: 'inventory',
+        label: t('navigation.groupInventory'),
+        items: [
+          {
+            id: 'product-management',
+            label: t('products.title'),
+            icon: Package,
+            route: '/(drawer)/product-management',
+          },
+          {
+            id: 'category-management',
+            label: t('categories.manageCategories'),
+            icon: FolderTree,
+            route: '/(drawer)/category-management',
+          },
+          {
+            id: 'movement-history',
+            label: t('stockMovement.history'),
+            icon: RotateCcw,
+            route: '/(drawer)/movement-history',
+          },
+          {
+            id: 'low-stock',
+            label: t('inventory.lowStockAlert'),
+            icon: AlertTriangle,
+            route: '/(drawer)/low-stock',
+          },
+        ],
       },
+      // Analytics & Reports group
       {
-        id: 'product-management',
-        label: t('products.title'),
-        icon: Package,
-        route: '/(drawer)/product-management',
+        id: 'analytics',
+        label: t('navigation.groupAnalytics'),
+        items: [
+          {
+            id: 'overview',
+            label: t('navigation.overview'),
+            icon: BarChart3,
+            route: '/(drawer)/overview',
+          },
+          {
+            id: 'customer-analytics',
+            label: t('navigation.customerAnalytics'),
+            icon: Users,
+            route: '/(drawer)/customer-analytics',
+          },
+          {
+            id: 'ai-analytics',
+            label: t('aiAnalytics.title'),
+            icon: Brain,
+            route: '/(drawer)/ai-analytics',
+          },
+        ],
       },
+      // Contacts group
       {
-        id: 'category-management',
-        label: t('categories.manageCategories'),
-        icon: FolderTree,
-        route: '/(drawer)/category-management',
+        id: 'contacts',
+        label: t('navigation.groupContacts'),
+        items: [
+          {
+            id: 'customers',
+            label: t('customers.customers'),
+            icon: Users,
+            route: '/(drawer)/customer-management',
+          },
+          {
+            id: 'suppliers',
+            label: t('suppliers.title'),
+            icon: Truck,
+            route: '/(drawer)/supplier-management',
+          },
+        ],
       },
+      // Financial group
       {
-        id: 'movement-history',
-        label: t('stockMovement.history'),
-        icon: RotateCcw,
-        route: '/(drawer)/movement-history',
+        id: 'financial',
+        label: t('navigation.groupFinancial'),
+        items: [
+          {
+            id: 'expenses',
+            label: t('expenses.title'),
+            icon: DollarSign,
+            route: '/(drawer)/expenses',
+          },
+        ],
       },
+      // Settings group
       {
-        id: 'low-stock',
-        label: t('inventory.lowStockAlert'),
-        icon: AlertTriangle,
-        route: '/(drawer)/low-stock',
-      },
-      {
-        id: 'overview',
-        label: t('navigation.overview'),
-        icon: BarChart3,
-        route: '/(drawer)/overview',
-      },
-      {
-        id: 'customer-analytics',
-        label: t('reports.analytics'),
-        icon: Users,
-        route: '/(drawer)/customer-analytics',
-      },
-      {
-        id: 'ai-analytics',
-        label: t('aiAnalytics.title'),
-        icon: Brain,
-        route: '/(drawer)/ai-analytics',
-      },
-      {
-        id: 'customers',
-        label: t('customers.customers'),
-        icon: Users,
-        route: '/(drawer)/customer-management',
-      },
-      {
-        id: 'suppliers',
-        label: t('suppliers.title'),
-        icon: Truck,
-        route: '/(drawer)/supplier-management',
-      },
-      {
-        id: 'expenses',
-        label: t('expenses.title'),
-        icon: DollarSign,
-        route: '/(drawer)/expenses',
-      },
-      {
-        id: 'shop-settings',
-        label: t('shopSettings.title'),
-        icon: Store,
-        route: '/(drawer)/shop-settings',
-      },
-      {
-        id: 'license-management',
-        label: t('license.title'),
-        icon: ShieldCheck,
-        route: '/(drawer)/license-management',
-      },
-      {
-        id: 'language-settings',
-        label: t('languageSettings.title'),
-        icon: Globe,
-        route: '/(drawer)/language-settings',
-      },
-      {
-        id: 'data-export',
-        label: t('dataExport.title'),
-        icon: FileUp,
-        route: '/(drawer)/data-export',
-      },
-      {
-        id: 'data-import',
-        label: t('dataImport.title'),
-        icon: FileDown,
-        route: '/(drawer)/data-import',
+        id: 'settings',
+        label: t('navigation.groupSettings'),
+        items: [
+          {
+            id: 'shop-settings',
+            label: t('shopSettings.title'),
+            icon: Store,
+            route: '/(drawer)/shop-settings',
+          },
+          {
+            id: 'license-management',
+            label: t('license.title'),
+            icon: ShieldCheck,
+            route: '/(drawer)/license-management',
+          },
+          {
+            id: 'language-settings',
+            label: t('languageSettings.title'),
+            icon: Globe,
+            route: '/(drawer)/language-settings',
+          },
+          {
+            id: 'data-export',
+            label: t('dataExport.title'),
+            icon: FileUp,
+            route: '/(drawer)/data-export',
+          },
+          {
+            id: 'data-import',
+            label: t('dataImport.title'),
+            icon: FileDown,
+            route: '/(drawer)/data-import',
+          },
+        ],
       },
     ],
     [t],
@@ -279,13 +337,28 @@ export function Sidebar({ isOpen, onClose, currentRoute }: SidebarProps) {
             style={styles.menuContainer}
             showsVerticalScrollIndicator={false}
           >
-            {menuItems.map((item) => (
-              <DrawerMenuItem
-                key={item.id}
-                item={item}
-                currentRoute={currentRoute}
-                onPress={handleClose}
-              />
+            {menuGroups.map((group, groupIndex) => (
+              <View key={group.id}>
+                {/* Group label - only show if label exists */}
+                {group.label && (
+                  <Text style={styles.groupLabel}>{group.label}</Text>
+                )}
+
+                {/* Group items */}
+                {group.items.map((item) => (
+                  <DrawerMenuItem
+                    key={item.id}
+                    item={item}
+                    currentRoute={currentRoute}
+                    onPress={handleClose}
+                  />
+                ))}
+
+                {/* Spacing between groups - except for last group */}
+                {groupIndex < menuGroups.length - 1 && (
+                  <View style={styles.groupSeparator} />
+                )}
+              </View>
             ))}
           </ScrollView>
         </SafeAreaView>
@@ -346,5 +419,19 @@ const styles = StyleSheet.create({
   menuContainer: {
     flex: 1,
     paddingVertical: 8,
+  },
+  groupLabel: {
+    fontSize: 11,
+    fontFamily: 'NotoSansMyanmar-Bold',
+    fontWeight: '700',
+    color: '#9CA3AF',
+    letterSpacing: 0.5,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+    textTransform: 'uppercase',
+  },
+  groupSeparator: {
+    height: 12,
   },
 });

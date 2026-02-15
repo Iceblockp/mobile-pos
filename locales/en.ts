@@ -73,6 +73,13 @@ export const en = {
     language: 'Language',
     dataExport: 'Data Export',
     dataImport: 'Data Import',
+    // Menu group labels
+    groupSales: 'SALES',
+    groupInventory: 'INVENTORY',
+    groupAnalytics: 'ANALYTICS & REPORTS',
+    groupContacts: 'CONTACTS',
+    groupFinancial: 'FINANCIAL',
+    groupSettings: 'SETTINGS',
   },
   dashboard: {
     title: 'Dashboard',
