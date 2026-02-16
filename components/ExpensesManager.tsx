@@ -29,15 +29,19 @@ import {
   X,
   Filter,
   Tag,
-  Settings,
 } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Button } from '@/components/Button';
 import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
+import { DateRangePicker } from '@/components/DateRangePicker';
 
-export default function Expenses() {
+interface ExpensesProps {
+  triggerAdd?: number;
+}
+
+export default function Expenses({ triggerAdd }: ExpensesProps) {
   const { formatPrice } = useCurrencyFormatter();
   const { showToast } = useToast();
   const { t } = useTranslation();
@@ -45,21 +49,11 @@ export default function Expenses() {
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 20;
 
-  // New state variables for category management
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [categoryName, setCategoryName] = useState('');
-  const [categoryDescription, setCategoryDescription] = useState('');
-  const [editingCategory, setEditingCategory] =
-    useState<ExpenseCategory | null>(null);
-
-  // Date filtering state (similar to sales.tsx)
-  const [dateFilter, setDateFilter] = useState('today');
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showFormDatePicker, setShowFormDatePicker] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [showMonthYearPicker, setShowMonthYearPicker] = useState(false);
+  // Date filtering state
+  const today = new Date();
+  const [customStartDate, setCustomStartDate] = useState(today);
+  const [customEndDate, setCustomEndDate] = useState(today);
+  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
 
   // Form state
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -67,57 +61,37 @@ export default function Expenses() {
   const [formAmount, setFormAmount] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formDate, setFormDate] = useState(new Date());
+  const [showFormDatePicker, setShowFormDatePicker] = useState(false);
 
-  // Category selector state
-  const [showCategorySelector, setShowCategorySelector] = useState(false);
+  // Category picker modal state
+  const [showCategoryPickerModal, setShowCategoryPickerModal] = useState(false);
 
-  // Add the date range calculation function (updated like sales.tsx)
+  // Calculate normalized date range
   const calculateDateRange = (
-    dateFilterType: string,
-    selectedDate: Date,
+    customStart: Date,
+    customEnd: Date,
   ): [Date, Date] => {
-    const now = new Date();
-    const startDate = new Date();
-    const endDate = new Date();
+    const startDate = new Date(customStart);
+    startDate.setHours(0, 0, 0, 0);
 
-    switch (dateFilterType) {
-      case 'today':
-        startDate.setHours(0, 0, 0, 0);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      case 'month':
-        // Current month from 1st to last day
-        startDate.setDate(1);
-        startDate.setHours(0, 0, 0, 0);
-        endDate.setMonth(now.getMonth() + 1, 0); // Last day of current month
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      case 'selectedMonth':
-        // Selected month and year
-        startDate.setFullYear(selectedYear, selectedMonth, 1);
-        startDate.setHours(0, 0, 0, 0);
-        endDate.setFullYear(selectedYear, selectedMonth + 1, 0); // Last day of selected month
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      case 'custom':
-        const customDate = new Date(selectedDate);
-        customDate.setHours(0, 0, 0, 0);
-        startDate.setTime(customDate.getTime());
-        endDate.setTime(customDate.getTime());
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      default: // 'all'
-        // For 'all', set a very old start date and current date as end date
-        startDate.setFullYear(startDate.getFullYear() - 10); // 10 years ago
-        startDate.setHours(0, 0, 0, 0);
-        endDate.setHours(23, 59, 59, 999);
-    }
+    const endDate = new Date(customEnd);
+    endDate.setHours(23, 59, 59, 999);
 
     return [startDate, endDate];
   };
 
-  // Calculate date range for React Query (like sales.tsx)
-  const [startDate, endDate] = calculateDateRange(dateFilter, selectedDate);
+  const [startDate, endDate] = calculateDateRange(
+    customStartDate,
+    customEndDate,
+  );
+
+  // Trigger add modal from parent component
+  useEffect(() => {
+    if (triggerAdd && triggerAdd > 0) {
+      resetForm();
+      setShowAddModal(true);
+    }
+  }, [triggerAdd]);
 
   // Use infinite query for optimized data fetching with pagination
   const {
@@ -128,9 +102,7 @@ export default function Expenses() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = dateFilter === 'all'
-    ? useInfiniteExpenses(dateFilter, selectedDate)
-    : useInfiniteExpensesByDateRange(startDate, endDate);
+  } = useInfiniteExpensesByDateRange(startDate, endDate);
 
   // Flatten the paginated data
   const expenses = data?.pages.flatMap((page) => page.data) || [];
@@ -138,14 +110,7 @@ export default function Expenses() {
   const { data: categories = [], isLoading: categoriesLoading } =
     useExpenseCategories();
 
-  const {
-    addExpense,
-    updateExpense,
-    deleteExpense,
-    addExpenseCategory,
-    updateExpenseCategory,
-    deleteExpenseCategory,
-  } = useExpenseMutations();
+  const { addExpense, updateExpense, deleteExpense } = useExpenseMutations();
 
   const onRefresh = () => {
     refetchExpenses();
@@ -235,123 +200,10 @@ export default function Expenses() {
     setFormDate(new Date());
   };
 
-  const resetCategoryForm = () => {
-    setEditingCategory(null);
-    setCategoryName('');
-    setCategoryDescription('');
+  const handleDateRangeApply = (start: Date, end: Date) => {
+    setCustomStartDate(start);
+    setCustomEndDate(end);
   };
-
-  const handleAddCategory = async () => {
-    if (!categoryName.trim()) {
-      Alert.alert(t('common.error'), t('categories.enterCategoryName'));
-      return;
-    }
-
-    try {
-      const categoryData = {
-        name: categoryName,
-        description: categoryDescription,
-      };
-
-      if (editingCategory) {
-        await updateExpenseCategory.mutateAsync({
-          id: editingCategory.id,
-          name: categoryName,
-          description: categoryDescription,
-        });
-      } else {
-        await addExpenseCategory.mutateAsync(categoryData);
-      }
-
-      resetCategoryForm();
-
-      // Show success toast
-      showToast(
-        editingCategory
-          ? t('categories.categoryUpdated')
-          : t('categories.categoryAdded'),
-        'success',
-      );
-    } catch (error) {
-      console.error('Error saving category:', error);
-      Alert.alert(t('common.error'), t('categories.failedToSave'));
-    }
-  };
-
-  const handleEditCategory = (category: ExpenseCategory) => {
-    setEditingCategory(category);
-    setCategoryName(category.name);
-    setCategoryDescription(category.description || '');
-  };
-
-  const handleDeleteCategory = async (id: string) => {
-    // Find the category name for better error messages
-    const category = categories.find((c) => c.id === id);
-    const categoryName = category?.name || 'this category';
-
-    // First check if there are expenses using this category
-    const expensesInCategory = expenses.filter((e) => e.category_id === id);
-
-    if (expensesInCategory.length > 0) {
-      // Show alert for error - it will appear on top of modal and be clearly visible
-      Alert.alert(
-        t('categories.cannotDelete'),
-        `${t('categories.cannotDelete')} "${categoryName}" - ${
-          expensesInCategory.length
-        } ${
-          expensesInCategory.length > 1
-            ? t('categories.expensesStillUse')
-            : t('categories.expenseStillUses')
-        }`,
-        [{ text: t('common.close'), style: 'default' }],
-      );
-      return;
-    }
-
-    Alert.alert(
-      t('categories.deleteCategory'),
-      `${t('categories.areYouSure')} "${categoryName}"?`,
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteExpenseCategory.mutateAsync(id);
-              // Keep modal open after deletion
-              showToast(t('categories.categoryDeleted'), 'success');
-            } catch (error: any) {
-              console.error('Error deleting category:', error);
-              showToast(
-                `${t('categories.failedToSave')} "${categoryName}". ${t(
-                  'common.error',
-                )}.`,
-                'error',
-              );
-            }
-          },
-        },
-      ],
-    );
-  };
-
-  // Add date picker handler (from sales.tsx)
-  const onDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      setSelectedDate(selectedDate);
-      setDateFilter('custom');
-    }
-  };
-
-  // Reload expenses when date filter changes
-  // useEffect(() => {
-  //   if (isReady) {
-  //     setCurrentPage(1);
-  //     loadExpenses(1);
-  //   }
-  // }, [dateFilter, selectedDate]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -410,88 +262,28 @@ export default function Expenses() {
 
   const renderListHeader = () => (
     <View style={styles.filtersContainer}>
-      {/* Horizontal Date Filter Chips */}
-      <FlatList
-        data={[
-          { key: 'all', label: t('common.all') },
-          { key: 'today', label: t('common.today') },
-          { key: 'month', label: t('common.thisMonth') },
-          { key: 'selectedMonth', label: t('sales.selectMonth') },
-          { key: 'custom', label: t('common.selectDate') },
-        ]}
-        keyExtractor={(item) => item.key}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            key={item.key}
-            style={[
-              styles.dateFilterChip,
-              dateFilter === item.key && styles.dateFilterChipActive,
-            ]}
-            onPress={() => {
-              if (item.key === 'custom') {
-                setShowDatePicker(true);
-              } else if (item.key === 'selectedMonth') {
-                setShowMonthYearPicker(true);
-              } else {
-                setDateFilter(item.key);
-              }
-            }}
-          >
-            <Text
-              style={[
-                styles.dateFilterText,
-                dateFilter === item.key && styles.dateFilterTextActive,
-              ]}
-              weight="medium"
-            >
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        )}
-        style={styles.dateFilters}
-      />
-
-      {/* Custom Date Picker */}
-      {dateFilter === 'custom' && (
-        <View style={styles.customDateContainer}>
-          <TouchableOpacity
-            style={styles.customDateButton}
-            onPress={() => setShowDatePicker(true)}
-          >
-            <Calendar size={16} color="#6B7280" />
-            <Text style={styles.customDateText} weight="medium">
-              {selectedDate.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-              })}
-            </Text>
-          </TouchableOpacity>
+      {/* Date Range Picker Button */}
+      <TouchableOpacity
+        style={styles.dateRangeButton}
+        onPress={() => setShowDateRangePicker(true)}
+      >
+        <Calendar size={20} color="#059669" />
+        <View style={styles.dateRangeTextContainer}>
+          <Text style={styles.dateRangeLabel}>{t('common.dateRange')}</Text>
+          <Text style={styles.dateRangeValue} weight="medium">
+            {customStartDate.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+            })}{' '}
+            -{' '}
+            {customEndDate.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })}
+          </Text>
         </View>
-      )}
-
-      {/* Selected Month Display */}
-      {dateFilter === 'selectedMonth' && (
-        <View style={styles.customDateContainer}>
-          <TouchableOpacity
-            style={styles.customDateButton}
-            onPress={() => setShowMonthYearPicker(true)}
-          >
-            <Calendar size={16} color="#6B7280" />
-            <Text style={styles.customDateText} weight="medium">
-              {new Date(selectedYear, selectedMonth).toLocaleDateString(
-                'en-US',
-                {
-                  month: 'long',
-                  year: 'numeric',
-                },
-              )}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      </TouchableOpacity>
 
       {/* Summary */}
       <View style={styles.summaryContainer}>
@@ -508,30 +300,6 @@ export default function Expenses() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title} weight="bold">
-          {t('expenses.title')}
-        </Text>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => setShowCategoryModal(true)}
-          >
-            <Settings size={20} color="#3B82F6" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => {
-              resetForm();
-              setShowAddModal(true);
-            }}
-          >
-            <Plus size={20} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
       <FlatList
         data={expenses}
         keyExtractor={(item) => item.id}
@@ -610,7 +378,7 @@ export default function Expenses() {
                 </Text>
                 <TouchableOpacity
                   style={styles.select}
-                  onPress={() => setShowCategorySelector(!showCategorySelector)}
+                  onPress={() => setShowCategoryPickerModal(true)}
                 >
                   <Text>
                     {formCategory
@@ -618,134 +386,8 @@ export default function Expenses() {
                         t('expenses.selectCategory')
                       : t('expenses.selectCategory')}
                   </Text>
-                  <ChevronDown
-                    size={16}
-                    color="#000000"
-                    style={{
-                      transform: [
-                        { rotate: showCategorySelector ? '180deg' : '0deg' },
-                      ],
-                    }}
-                  />
+                  <ChevronDown size={16} color="#000000" />
                 </TouchableOpacity>
-
-                {/* Inline Category Selector */}
-                {showCategorySelector && (
-                  <View style={styles.inlineCategorySelector}>
-                    {categories.length === 0 ? (
-                      <View style={styles.emptyCategoryState}>
-                        <Tag size={32} color="#9CA3AF" />
-                        <Text style={styles.emptyCategoryText} weight="medium">
-                          {t('expenses.noCategoriesFound')}
-                        </Text>
-                        <Text style={styles.emptyCategorySubtext}>
-                          {t('expenses.createCategoriesFirst')}
-                        </Text>
-                        <TouchableOpacity
-                          style={styles.createCategoryButton}
-                          onPress={() => {
-                            setShowCategorySelector(false);
-                            setShowCategoryModal(true);
-                          }}
-                        >
-                          <Plus size={14} color="#FFFFFF" />
-                          <Text
-                            style={styles.createCategoryButtonText}
-                            weight="medium"
-                          >
-                            {t('expenses.createCategory')}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    ) : (
-                      <>
-                        <ScrollView
-                          style={styles.categoryList}
-                          showsVerticalScrollIndicator={false}
-                          nestedScrollEnabled={true}
-                        >
-                          {categories.map((category) => (
-                            <TouchableOpacity
-                              key={category.id}
-                              style={[
-                                styles.inlineCategoryOption,
-                                formCategory === category.id &&
-                                  styles.inlineCategoryOptionSelected,
-                              ]}
-                              onPress={() => {
-                                setFormCategory(category.id);
-                                setShowCategorySelector(false);
-                                showToast(
-                                  `${t('expenses.selected')}: ${category.name}`,
-                                  'success',
-                                );
-                              }}
-                            >
-                              <View style={styles.inlineCategoryContent}>
-                                <View
-                                  style={[
-                                    styles.inlineCategoryIcon,
-                                    formCategory === category.id &&
-                                      styles.inlineCategoryIconSelected,
-                                  ]}
-                                >
-                                  <Tag
-                                    size={16}
-                                    color={
-                                      formCategory === category.id
-                                        ? '#FFFFFF'
-                                        : '#6B7280'
-                                    }
-                                  />
-                                </View>
-                                <View style={styles.inlineCategoryInfo}>
-                                  <Text
-                                    style={[
-                                      styles.inlineCategoryName,
-                                      formCategory === category.id &&
-                                        styles.inlineCategoryNameSelected,
-                                    ]}
-                                    weight="medium"
-                                  >
-                                    {category.name}
-                                  </Text>
-                                  {category.description && (
-                                    <Text
-                                      style={[
-                                        styles.inlineCategoryDescription,
-                                        formCategory === category.id &&
-                                          styles.inlineCategoryDescriptionSelected,
-                                      ]}
-                                    >
-                                      {category.description}
-                                    </Text>
-                                  )}
-                                </View>
-                                {formCategory === category.id && (
-                                  <View style={styles.inlineSelectedIndicator}>
-                                    <View style={styles.selectedDot} />
-                                  </View>
-                                )}
-                              </View>
-                            </TouchableOpacity>
-                          ))}
-                        </ScrollView>
-
-                        <TouchableOpacity
-                          style={styles.inlineAddCategoryButton}
-                        >
-                          {/* <Plus size={14} color="#3B82F6" /> */}
-                          <Text
-                            style={styles.inlineAddCategoryText}
-                            weight="medium"
-                          >
-                            {t('expenses.selectCategory')}
-                          </Text>
-                        </TouchableOpacity>
-                      </>
-                    )}
-                  </View>
-                )}
               </View>
 
               <View style={styles.formGroup}>
@@ -815,121 +457,6 @@ export default function Expenses() {
         </SafeAreaView>
       </Modal>
 
-      {/* Category Management Modal */}
-      <Modal
-        visible={showCategoryModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle} weight="bold">
-              {t('categories.manageCategories')}
-            </Text>
-            <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
-              <Text style={styles.modalClose} weight="medium">
-                {t('common.done')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Sticky Category Form - Not in ScrollView */}
-          <View style={styles.stickyFormContainer}>
-            <Card style={styles.categoryFormCard}>
-              <Text style={styles.formTitle} weight="bold">
-                {editingCategory
-                  ? t('categories.editCategory')
-                  : t('categories.addNewCategory')}
-              </Text>
-
-              <TextInput
-                style={styles.input}
-                placeholder={t('categories.categoryName') + ' *'}
-                value={categoryName}
-                onChangeText={setCategoryName}
-              />
-
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder={t('common.description')}
-                value={categoryDescription}
-                onChangeText={setCategoryDescription}
-                multiline
-                numberOfLines={3}
-              />
-
-              <View style={styles.formButtons}>
-                <Button
-                  title={t('common.cancel')}
-                  onPress={resetCategoryForm}
-                  variant="secondary"
-                  style={styles.formButton}
-                />
-                <Button
-                  title={editingCategory ? t('common.edit') : t('common.add')}
-                  onPress={handleAddCategory}
-                  style={styles.formButton}
-                />
-              </View>
-            </Card>
-          </View>
-
-          {/* Scrollable Categories List */}
-          <View style={styles.categoriesListContainer}>
-            <Text style={styles.sectionTitle} weight="medium">
-              {t('categories.existingCategories')}
-            </Text>
-            <ScrollView
-              style={styles.categoriesScrollView}
-              contentContainerStyle={styles.categoriesContent}
-              showsVerticalScrollIndicator={true}
-            >
-              {categories.map((category) => (
-                <Card key={category.id} style={styles.categoryCard}>
-                  <View style={styles.categoryHeader}>
-                    <View style={styles.categoryInfo}>
-                      <Text style={styles.categoryName} weight="medium">
-                        {category.name}
-                      </Text>
-                      {category.description && (
-                        <Text style={styles.categoryDescription}>
-                          {category.description}
-                        </Text>
-                      )}
-                    </View>
-                    <View style={styles.categoryActions}>
-                      <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={() => handleEditCategory(category)}
-                      >
-                        <Edit size={18} color="#6B7280" />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={() => handleDeleteCategory(category.id)}
-                      >
-                        <Trash2 size={18} color="#EF4444" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </Card>
-              ))}
-            </ScrollView>
-          </View>
-        </SafeAreaView>
-      </Modal>
-
-      {/* Date Picker for custom date selection */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={selectedDate}
-          mode="date"
-          display="default"
-          onChange={onDateChange}
-          maximumDate={new Date()}
-        />
-      )}
-
       {/* Form Date Picker */}
       {showFormDatePicker && (
         <DateTimePicker
@@ -946,149 +473,119 @@ export default function Expenses() {
         />
       )}
 
-      {/* Month/Year Picker Overlay */}
-      {showMonthYearPicker && (
-        <View style={styles.monthPickerOverlay}>
-          <View style={styles.monthPickerContainer}>
-            <View style={styles.monthPickerHeader}>
-              <Text style={styles.monthPickerTitle} weight="medium">
-                {t('sales.selectMonthYear')}
+      {/* Category Picker Modal */}
+      <Modal
+        visible={showCategoryPickerModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowCategoryPickerModal(false)}
+      >
+        <View style={styles.categoryPickerOverlay}>
+          <View style={styles.categoryPickerDialog}>
+            <View style={styles.categoryPickerHeader}>
+              <Text style={styles.categoryPickerTitle} weight="bold">
+                {t('expenses.selectCategory')}
               </Text>
               <TouchableOpacity
-                onPress={() => setShowMonthYearPicker(false)}
-                style={styles.monthPickerCloseButton}
+                onPress={() => setShowCategoryPickerModal(false)}
+                style={styles.categoryPickerCloseButton}
               >
-                <X size={20} color="#6B7280" />
+                <X size={24} color="#6B7280" />
               </TouchableOpacity>
             </View>
 
-            {/* Year Selector */}
-            {/* <View style={styles.yearSelectorContainer}>
-              <Text style={styles.yearSelectorLabel}>{t('sales.year')}</Text>
-              <View>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={[
-                    styles.yearSelector,
-                    { height: 40, backgroundColor: '#000' },
-                  ]}
-                >
-                  {Array.from(
-                    { length: 5 },
-                    (_, i) => new Date().getFullYear() - i
-                  ).map((year) => (
-                    <TouchableOpacity
-                      key={year}
-                      style={[
-                        styles.yearOption,
-                        selectedYear === year && styles.yearOptionActive,
-                      ]}
-                      onPress={() => setSelectedYear(year)}
-                    >
-                      <Text
-                        style={[
-                          styles.yearOptionText,
-                          selectedYear === year && styles.yearOptionTextActive,
-                        ]}
-                      >
-                        {year}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+            {categories.length === 0 ? (
+              <View style={styles.emptyCategoryStateDialog}>
+                <Tag size={48} color="#9CA3AF" />
+                <Text style={styles.emptyCategoryText} weight="medium">
+                  {t('expenses.noCategoriesFound')}
+                </Text>
+                <Text style={styles.emptyCategorySubtext}>
+                  {t('expenses.createCategoriesFirst')}
+                </Text>
               </View>
-            </View> */}
-
-            {/* Month Selector */}
-            <View style={[styles.monthSelectorContainer, { maxHeight: 300 }]}>
-              <Text style={styles.yearSelectorLabel} weight="medium">
-                {t('sales.year')}
-              </Text>
-              <View>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={[styles.yearSelector, { height: 40 }]}
-                >
-                  {Array.from(
-                    { length: 5 },
-                    (_, i) => new Date().getFullYear() - i,
-                  ).map((year) => (
-                    <TouchableOpacity
-                      key={year}
-                      style={[
-                        styles.yearOption,
-                        selectedYear === year && styles.yearOptionActive,
-                      ]}
-                      onPress={() => setSelectedYear(year)}
-                    >
-                      <Text
-                        style={[
-                          styles.yearOptionText,
-                          selectedYear === year && styles.yearOptionTextActive,
-                        ]}
-                        weight="medium"
-                      >
-                        {year}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-              <Text style={styles.monthSelectorLabel} weight="medium">
-                {t('sales.month')}
-              </Text>
-              <View style={[styles.monthGrid]}>
-                {Array.from({ length: 12 }, (_, i) => i).map((month) => (
+            ) : (
+              <ScrollView
+                style={styles.categoryPickerList}
+                contentContainerStyle={styles.categoryPickerContent}
+              >
+                {categories.map((category) => (
                   <TouchableOpacity
-                    key={month}
+                    key={category.id}
                     style={[
-                      styles.monthOption,
-                      selectedMonth === month && styles.monthOptionActive,
+                      styles.categoryPickerOption,
+                      formCategory === category.id &&
+                        styles.categoryPickerOptionSelected,
                     ]}
-                    onPress={() => setSelectedMonth(month)}
+                    onPress={() => {
+                      setFormCategory(category.id);
+                      setShowCategoryPickerModal(false);
+                      showToast(
+                        `${t('expenses.selected')}: ${category.name}`,
+                        'success',
+                      );
+                    }}
                   >
-                    <Text
-                      style={[
-                        styles.monthOptionText,
-                        selectedMonth === month && styles.monthOptionTextActive,
-                      ]}
-                      weight="medium"
-                    >
-                      {new Date(2024, month).toLocaleDateString('en-US', {
-                        month: 'short',
-                      })}
-                    </Text>
+                    <View style={styles.categoryPickerOptionContent}>
+                      <View
+                        style={[
+                          styles.categoryPickerIcon,
+                          formCategory === category.id &&
+                            styles.categoryPickerIconSelected,
+                        ]}
+                      >
+                        <Tag
+                          size={20}
+                          color={
+                            formCategory === category.id ? '#FFFFFF' : '#6B7280'
+                          }
+                        />
+                      </View>
+                      <View style={styles.categoryPickerInfo}>
+                        <Text
+                          style={[
+                            styles.categoryPickerName,
+                            formCategory === category.id &&
+                              styles.categoryPickerNameSelected,
+                          ]}
+                          weight="medium"
+                        >
+                          {category.name}
+                        </Text>
+                        {category.description && (
+                          <Text
+                            style={[
+                              styles.categoryPickerDescription,
+                              formCategory === category.id &&
+                                styles.categoryPickerDescriptionSelected,
+                            ]}
+                          >
+                            {category.description}
+                          </Text>
+                        )}
+                      </View>
+                      {formCategory === category.id && (
+                        <View style={styles.categoryPickerSelectedIndicator}>
+                          <View style={styles.selectedCheckmark} />
+                        </View>
+                      )}
+                    </View>
                   </TouchableOpacity>
                 ))}
-              </View>
-            </View>
-
-            <View style={styles.monthPickerActions}>
-              <TouchableOpacity
-                style={styles.monthPickerCancelButton}
-                onPress={() => setShowMonthYearPicker(false)}
-              >
-                <Text style={styles.monthPickerCancelText} weight="medium">
-                  {t('common.cancel')}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.monthPickerConfirmButton}
-                onPress={() => {
-                  setDateFilter('selectedMonth');
-                  setShowMonthYearPicker(false);
-                }}
-              >
-                <Text style={styles.monthPickerConfirmText} weight="medium">
-                  {t('common.confirm')}
-                </Text>
-              </TouchableOpacity>
-            </View>
+              </ScrollView>
+            )}
           </View>
         </View>
-      )}
+      </Modal>
+
+      {/* Date Range Picker */}
+      <DateRangePicker
+        visible={showDateRangePicker}
+        onClose={() => setShowDateRangePicker(false)}
+        onApply={handleDateRangeApply}
+        initialStartDate={customStartDate}
+        initialEndDate={customEndDate}
+      />
     </View>
   );
 }
@@ -1397,124 +894,118 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
-  // Inline Category Selector Styles
-  inlineCategorySelector: {
-    marginTop: 8,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    maxHeight: 300,
+  // Category Picker Modal Styles
+  categoryPickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
-  emptyCategoryState: {
+  categoryPickerDialog: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 500,
+    maxHeight: '80%',
+    overflow: 'hidden',
+  },
+  categoryPickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  categoryPickerTitle: {
+    fontSize: 20,
+    color: '#111827',
+  },
+  categoryPickerCloseButton: {
+    padding: 4,
+  },
+  categoryPickerList: {
+    maxHeight: 400,
+  },
+  categoryPickerContent: {
+    padding: 16,
+  },
+  emptyCategoryStateDialog: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: 60,
     paddingHorizontal: 20,
   },
   emptyCategoryText: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#374151',
-    marginTop: 12,
+    marginTop: 16,
     textAlign: 'center',
   },
   emptyCategorySubtext: {
     fontSize: 14,
     color: '#6B7280',
-    marginTop: 6,
+    marginTop: 8,
     textAlign: 'center',
   },
-  createCategoryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#3B82F6',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 6,
-    marginTop: 16,
-  },
-  createCategoryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    marginLeft: 6,
-  },
-  categoryList: {
-    maxHeight: 200,
-    paddingVertical: 8,
-  },
-  inlineCategoryOption: {
+  categoryPickerOption: {
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 8,
-    marginVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 2,
     borderColor: '#E5E7EB',
+    overflow: 'hidden',
   },
-  inlineCategoryOptionSelected: {
-    borderColor: '#3B82F6',
-    backgroundColor: '#EFF6FF',
+  categoryPickerOptionSelected: {
+    borderColor: '#059669',
+    backgroundColor: '#F0FDF4',
   },
-  inlineCategoryContent: {
+  categoryPickerOptionContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    padding: 16,
   },
-  inlineCategoryIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  categoryPickerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 16,
   },
-  inlineCategoryIconSelected: {
-    backgroundColor: '#3B82F6',
+  categoryPickerIconSelected: {
+    backgroundColor: '#059669',
   },
-  inlineCategoryInfo: {
+  categoryPickerInfo: {
     flex: 1,
   },
-  inlineCategoryName: {
-    fontSize: 15,
+  categoryPickerName: {
+    fontSize: 16,
     color: '#111827',
   },
-  inlineCategoryNameSelected: {
-    color: '#1D4ED8',
+  categoryPickerNameSelected: {
+    color: '#047857',
   },
-  inlineCategoryDescription: {
-    fontSize: 13,
+  categoryPickerDescription: {
+    fontSize: 14,
     color: '#6B7280',
-    marginTop: 2,
-  },
-  inlineCategoryDescriptionSelected: {
-    color: '#3B82F6',
-  },
-  inlineSelectedIndicator: {
-    marginLeft: 8,
-  },
-  selectedDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#10B981',
-  },
-  inlineAddCategoryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderStyle: 'dashed',
-    borderRadius: 6,
-    padding: 12,
-    margin: 8,
     marginTop: 4,
   },
-  inlineAddCategoryText: {
-    color: '#3B82F6',
-    fontSize: 14,
-    marginLeft: 6,
+  categoryPickerDescriptionSelected: {
+    color: '#059669',
+  },
+  categoryPickerSelectedIndicator: {
+    marginLeft: 12,
+  },
+  selectedCheckmark: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#10B981',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   // Date Filter Styles (from sales.tsx)
@@ -1524,6 +1015,29 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
     marginBottom: 8,
+  },
+  dateRangeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    marginBottom: 12,
+  },
+  dateRangeTextContainer: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  dateRangeLabel: {
+    fontSize: 12,
+    color: '#059669',
+    marginBottom: 2,
+  },
+  dateRangeValue: {
+    fontSize: 14,
+    color: '#047857',
   },
   dateFilters: {
     flexDirection: 'row',
@@ -1582,126 +1096,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     marginTop: 8,
-  },
-  // Month/Year Picker Styles
-  monthPickerOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  monthPickerContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 24,
-    margin: 20,
-    minWidth: 320,
-    maxWidth: 400,
-  },
-  monthPickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  monthPickerTitle: {
-    fontSize: 18,
-    color: '#111827',
-  },
-  monthPickerCloseButton: {
-    padding: 4,
-  },
-  yearSelectorContainer: {
-    marginBottom: 20,
-  },
-  yearSelectorLabel: {
-    fontSize: 14,
-    color: '#374151',
-    marginBottom: 8,
-  },
-  yearSelector: {
-    flexDirection: 'row',
-  },
-  yearOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-    marginRight: 8,
-  },
-  yearOptionActive: {
-    backgroundColor: '#10B981',
-  },
-  yearOptionText: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  yearOptionTextActive: {
-    color: '#FFFFFF',
-  },
-  monthSelectorContainer: {
-    marginBottom: 20,
-  },
-  monthSelectorLabel: {
-    fontSize: 14,
-    color: '#374151',
-    marginBottom: 8,
-  },
-  monthGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  monthOption: {
-    width: '30%',
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  monthOptionActive: {
-    backgroundColor: '#10B981',
-  },
-  monthOptionText: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  monthOptionTextActive: {
-    color: '#FFFFFF',
-  },
-  monthPickerActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
-  },
-  monthPickerCancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    marginRight: 8,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-  },
-  monthPickerCancelText: {
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  monthPickerConfirmButton: {
-    flex: 1,
-    paddingVertical: 12,
-    marginLeft: 8,
-    borderRadius: 8,
-    backgroundColor: '#10B981',
-    alignItems: 'center',
-  },
-  monthPickerConfirmText: {
-    fontSize: 16,
-    color: '#FFFFFF',
   },
 });

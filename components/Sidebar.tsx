@@ -28,6 +28,7 @@ import {
   FileDown,
   X,
   FolderTree,
+  Tag,
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
 import { DrawerMenuItem, MenuItem } from './DrawerMenuItem';
@@ -184,6 +185,12 @@ export function Sidebar({ isOpen, onClose, currentRoute }: SidebarProps) {
             label: t('expenses.title'),
             icon: DollarSign,
             route: '/(drawer)/expenses',
+          },
+          {
+            id: 'expense-categories',
+            label: t('expenses.expenseCategories'),
+            icon: Tag,
+            route: '/(drawer)/expense-category-management',
           },
         ],
       },

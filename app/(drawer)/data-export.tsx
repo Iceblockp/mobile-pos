@@ -226,15 +226,15 @@ export default function DataExport() {
           <Text style={styles.title} weight="medium">
             {t('dataExport.title')}
           </Text>
-          <Text style={styles.subtitle}>{t('dataExport.subtitle')}</Text>
+          {/* <Text style={styles.subtitle}>{t('dataExport.subtitle')}</Text> */}
         </View>
         <View style={styles.headerButtons}>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.infoButton}
             onPress={() => setShowGuide(true)}
           >
             <HelpCircle size={16} color="#6B7280" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <TouchableOpacity style={styles.infoButton} onPress={showExportInfo}>
             <Text style={styles.infoButtonText} weight="medium">
               ?

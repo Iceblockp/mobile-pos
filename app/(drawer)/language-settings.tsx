@@ -27,7 +27,7 @@ export default function LanguageSettings() {
           <Text style={styles.title} weight="medium">
             {t('languageSettings.title')}
           </Text>
-          <Text style={styles.subtitle}>{t('languageSettings.subtitle')}</Text>
+          {/* <Text style={styles.subtitle}>{t('languageSettings.subtitle')}</Text> */}
         </View>
       </View>
 
