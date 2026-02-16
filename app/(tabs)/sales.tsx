@@ -1456,7 +1456,6 @@ const SalesHistory: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   } = dateFilter === 'all'
     ? useInfiniteSales()
     : useInfiniteSalesByDateRange(startDate, endDate);
-  console.log('sale', salesPages);
 
   // Flatten the paginated data
   const sales = salesPages?.pages.flatMap((page) => page.data) || [];

@@ -61,6 +61,9 @@ export function Sidebar({ isOpen, onClose, currentRoute }: SidebarProps) {
   const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
 
+  // Track active item position for auto-scroll
+  const scrollViewRef = useRef<ScrollView>(null);
+
   // Memoize menu groups configuration to prevent recreation on every render (Requirement 8.4)
   const menuGroups: MenuGroup[] = useMemo(
     () => [
@@ -144,12 +147,12 @@ export function Sidebar({ isOpen, onClose, currentRoute }: SidebarProps) {
             icon: Users,
             route: '/(drawer)/customer-analytics',
           },
-          {
-            id: 'ai-analytics',
-            label: t('aiAnalytics.title'),
-            icon: Brain,
-            route: '/(drawer)/ai-analytics',
-          },
+          // {
+          //   id: 'ai-analytics',
+          //   label: t('aiAnalytics.title'),
+          //   icon: Brain,
+          //   route: '/(drawer)/ai-analytics',
+          // },
         ],
       },
       // Contacts group
@@ -290,6 +293,59 @@ export function Sidebar({ isOpen, onClose, currentRoute }: SidebarProps) {
     };
   }, [isOpen, slideAnim, overlayAnim]);
 
+  // Auto-scroll to active menu item when drawer opens
+  useEffect(() => {
+    if (isOpen && scrollViewRef.current) {
+      // Delay to ensure drawer animation completes and layout is ready
+      const timer = setTimeout(() => {
+        // Normalize current route
+        const normalizedCurrentRoute = currentRoute.startsWith('/(drawer)')
+          ? currentRoute
+          : `/(drawer)${currentRoute}`;
+
+        // Calculate cumulative Y position by iterating through menu groups
+        let cumulativeY = 8; // Initial padding from paddingVertical: 8
+        let found = false;
+
+        for (const group of menuGroups) {
+          // Add group label height if it exists
+          if (group.label) {
+            cumulativeY += 16 + 8 + 20; // paddingTop + paddingBottom + approximate text height
+          }
+
+          // Check each item in the group
+          for (const item of group.items) {
+            if (item.route === normalizedCurrentRoute) {
+              found = true;
+              break;
+            }
+            // Add menu item height (minHeight 44 + marginVertical 2*2)
+            cumulativeY += 48;
+          }
+
+          if (found) break;
+
+          // Add group separator height
+          cumulativeY += 12;
+        }
+
+        if (found) {
+          console.log('Calculated cumulative Y:', cumulativeY);
+          // Scroll to position with some offset to show item nicely
+          const scrollPosition = Math.max(0, cumulativeY - 100);
+          console.log('Scrolling to position:', scrollPosition);
+
+          scrollViewRef.current?.scrollTo({
+            y: scrollPosition,
+            animated: true,
+          });
+        }
+      }, 350);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, currentRoute, menuGroups]);
+
   // Don't render if not open (performance optimization - Requirement 8.2)
   if (!isOpen) {
     return null;
@@ -334,6 +390,7 @@ export function Sidebar({ isOpen, onClose, currentRoute }: SidebarProps) {
 
           {/* Menu Items */}
           <ScrollView
+            ref={scrollViewRef}
             style={styles.menuContainer}
             showsVerticalScrollIndicator={false}
           >

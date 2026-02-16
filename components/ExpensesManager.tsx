@@ -74,7 +74,7 @@ export default function Expenses() {
   // Add the date range calculation function (updated like sales.tsx)
   const calculateDateRange = (
     dateFilterType: string,
-    selectedDate: Date
+    selectedDate: Date,
   ): [Date, Date] => {
     const now = new Date();
     const startDate = new Date();
@@ -131,8 +131,6 @@ export default function Expenses() {
   } = dateFilter === 'all'
     ? useInfiniteExpenses(dateFilter, selectedDate)
     : useInfiniteExpensesByDateRange(startDate, endDate);
-
-  console.log('expens', data);
 
   // Flatten the paginated data
   const expenses = data?.pages.flatMap((page) => page.data) || [];
@@ -193,7 +191,7 @@ export default function Expenses() {
         editingExpense
           ? t('expenses.expenseUpdated')
           : t('expenses.expenseAdded'),
-        'success'
+        'success',
       );
     } catch (error) {
       console.error('Error saving expense:', error);
@@ -272,7 +270,7 @@ export default function Expenses() {
         editingCategory
           ? t('categories.categoryUpdated')
           : t('categories.categoryAdded'),
-        'success'
+        'success',
       );
     } catch (error) {
       console.error('Error saving category:', error);
@@ -305,7 +303,7 @@ export default function Expenses() {
             ? t('categories.expensesStillUse')
             : t('categories.expenseStillUses')
         }`,
-        [{ text: t('common.close'), style: 'default' }]
+        [{ text: t('common.close'), style: 'default' }],
       );
       return;
     }
@@ -327,14 +325,14 @@ export default function Expenses() {
               console.error('Error deleting category:', error);
               showToast(
                 `${t('categories.failedToSave')} "${categoryName}". ${t(
-                  'common.error'
+                  'common.error',
                 )}.`,
-                'error'
+                'error',
               );
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -488,7 +486,7 @@ export default function Expenses() {
                 {
                   month: 'long',
                   year: 'numeric',
-                }
+                },
               )}
             </Text>
           </TouchableOpacity>
@@ -501,7 +499,7 @@ export default function Expenses() {
           {expenses.length} {t('expenses.title').toLowerCase()} •{' '}
           {t('common.total')}:{' '}
           {formatPrice(
-            expenses.reduce((sum, expense) => sum + expense.amount, 0)
+            expenses.reduce((sum, expense) => sum + expense.amount, 0),
           )}
         </Text>
       </View>
@@ -679,7 +677,7 @@ export default function Expenses() {
                                 setShowCategorySelector(false);
                                 showToast(
                                   `${t('expenses.selected')}: ${category.name}`,
-                                  'success'
+                                  'success',
                                 );
                               }}
                             >
@@ -1015,7 +1013,7 @@ export default function Expenses() {
                 >
                   {Array.from(
                     { length: 5 },
-                    (_, i) => new Date().getFullYear() - i
+                    (_, i) => new Date().getFullYear() - i,
                   ).map((year) => (
                     <TouchableOpacity
                       key={year}

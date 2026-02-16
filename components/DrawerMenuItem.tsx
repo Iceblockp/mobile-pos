@@ -1,5 +1,11 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  ViewStyle,
+  LayoutChangeEvent,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 
 /**
@@ -20,6 +26,7 @@ interface DrawerMenuItemProps {
   currentRoute: string;
   onPress: () => void;
   style?: ViewStyle;
+  onLayout?: (event: LayoutChangeEvent) => void;
 }
 
 /**
@@ -32,12 +39,14 @@ interface DrawerMenuItemProps {
  * @param currentRoute - Current active route
  * @param onPress - Callback to close drawer after navigation
  * @param style - Optional additional styles
+ * @param onLayout - Optional layout callback for position tracking
  */
 export const DrawerMenuItem = React.memo(function DrawerMenuItem({
   item,
   currentRoute,
   onPress,
   style,
+  onLayout,
 }: DrawerMenuItemProps) {
   const router = useRouter();
 
@@ -50,7 +59,6 @@ export const DrawerMenuItem = React.memo(function DrawerMenuItem({
 
   const Icon = item.icon;
 
-  console.log('active', currentRoute);
   /**
    * Handle menu item press
    * Navigates to the route and closes the drawer
@@ -70,6 +78,7 @@ export const DrawerMenuItem = React.memo(function DrawerMenuItem({
     <TouchableOpacity
       style={[styles.menuItem, isActive && styles.menuItemActive, style]}
       onPress={handlePress}
+      onLayout={onLayout}
       accessibilityLabel={item.label}
       accessibilityRole="button"
       accessibilityState={{ selected: isActive }}
