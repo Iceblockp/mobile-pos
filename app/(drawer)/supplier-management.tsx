@@ -161,9 +161,7 @@ export default function SupplierManagement() {
         <Text style={styles.title} weight="medium">
           {t('suppliers.title')}
         </Text>
-        <TouchableOpacity style={styles.addButton} onPress={handleAddSupplier}>
-          <Ionicons name="add" size={24} color="#3B82F6" />
-        </TouchableOpacity>
+        <View style={styles.headerSpacer} />
       </View>
 
       {/* Search Bar */}
@@ -209,6 +207,11 @@ export default function SupplierManagement() {
         onEndReachedThreshold={0.1}
       />
 
+      {/* Floating Action Button */}
+      <TouchableOpacity style={styles.fab} onPress={handleAddSupplier}>
+        <Ionicons name="add" size={28} color="#FFFFFF" />
+      </TouchableOpacity>
+
       {/* Add/Edit Supplier Modal */}
       <SupplierFormModal
         visible={showAddModal}
@@ -238,8 +241,8 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#111827',
   },
-  addButton: {
-    padding: 8,
+  headerSpacer: {
+    width: 40,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -310,5 +313,21 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     paddingHorizontal: 24,
+  },
+  fab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#059669',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });

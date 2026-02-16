@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
@@ -125,7 +126,7 @@ export const SupplierFormModal: React.FC<SupplierFormModalProps> = ({
     } catch (error) {
       Alert.alert(
         t('common.error'),
-        error instanceof Error ? error.message : t('suppliers.failedToSave')
+        error instanceof Error ? error.message : t('suppliers.failedToSave'),
       );
     }
   };
@@ -145,7 +146,7 @@ export const SupplierFormModal: React.FC<SupplierFormModalProps> = ({
       multiline?: boolean;
       keyboardType?: 'default' | 'email-address' | 'phone-pad';
       required?: boolean;
-    }
+    },
   ) => (
     <View style={styles.inputContainer}>
       <Text style={styles.inputLabel} weight="medium">
@@ -178,102 +179,107 @@ export const SupplierFormModal: React.FC<SupplierFormModalProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={24} color="#374151" />
-          </TouchableOpacity>
-          <Text style={styles.title} weight="medium">
-            {isEditing
-              ? t('suppliers.editSupplier')
-              : t('suppliers.addSupplier')}
-          </Text>
-          <View style={styles.placeholder} />
-        </View>
-
-        {/* Form */}
-        <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
-          {renderInput(
-            'name',
-            t('suppliers.supplierName'),
-            t('suppliers.supplierNamePlaceholder'),
-            {
-              required: true,
-            }
-          )}
-
-          {renderInput(
-            'contact_name',
-            t('suppliers.contactPerson'),
-            t('suppliers.contactNamePlaceholder'),
-            { required: true }
-          )}
-
-          {renderInput(
-            'phone',
-            t('suppliers.phone'),
-            t('suppliers.phonePlaceholder'),
-            {
-              keyboardType: 'phone-pad',
-              required: true,
-            }
-          )}
-
-          {renderInput(
-            'email',
-            t('suppliers.email'),
-            t('suppliers.emailPlaceholder'),
-            {
-              keyboardType: 'email-address',
-            }
-          )}
-
-          {renderInput(
-            'address',
-            t('suppliers.address'),
-            t('suppliers.addressPlaceholder'),
-            {
-              multiline: true,
-              required: true,
-            }
-          )}
-        </ScrollView>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Button
-            title={t('common.cancel')}
-            onPress={onClose}
-            variant="secondary"
-            style={styles.cancelButton}
-            disabled={isLoading}
-          />
-          <Button
-            title={isEditing ? t('common.update') : t('common.add')}
-            onPress={handleSubmit}
-            style={styles.submitButton}
-            disabled={isLoading}
-          />
-        </View>
-
-        {isLoading && (
-          <View style={styles.loadingOverlay}>
-            <LoadingSpinner />
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <KeyboardAvoidingView
+          style={styles.container}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <Ionicons name="close" size={24} color="#374151" />
+            </TouchableOpacity>
+            <Text style={styles.title} weight="medium">
+              {isEditing
+                ? t('suppliers.editSupplier')
+                : t('suppliers.addSupplier')}
+            </Text>
+            <View style={styles.placeholder} />
           </View>
-        )}
-      </KeyboardAvoidingView>
+
+          {/* Form */}
+          <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
+            {renderInput(
+              'name',
+              t('suppliers.supplierName'),
+              t('suppliers.supplierNamePlaceholder'),
+              {
+                required: true,
+              },
+            )}
+
+            {renderInput(
+              'contact_name',
+              t('suppliers.contactPerson'),
+              t('suppliers.contactNamePlaceholder'),
+              { required: true },
+            )}
+
+            {renderInput(
+              'phone',
+              t('suppliers.phone'),
+              t('suppliers.phonePlaceholder'),
+              {
+                keyboardType: 'phone-pad',
+                required: true,
+              },
+            )}
+
+            {renderInput(
+              'email',
+              t('suppliers.email'),
+              t('suppliers.emailPlaceholder'),
+              {
+                keyboardType: 'email-address',
+              },
+            )}
+
+            {renderInput(
+              'address',
+              t('suppliers.address'),
+              t('suppliers.addressPlaceholder'),
+              {
+                multiline: true,
+                required: true,
+              },
+            )}
+          </ScrollView>
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <Button
+              title={t('common.cancel')}
+              onPress={onClose}
+              variant="secondary"
+              style={styles.cancelButton}
+              disabled={isLoading}
+            />
+            <Button
+              title={isEditing ? t('common.update') : t('common.add')}
+              onPress={handleSubmit}
+              style={styles.submitButton}
+              disabled={isLoading}
+            />
+          </View>
+
+          {isLoading && (
+            <View style={styles.loadingOverlay}>
+              <LoadingSpinner />
+            </View>
+          )}
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: '#F9FAFB',
+  },
+  container: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',

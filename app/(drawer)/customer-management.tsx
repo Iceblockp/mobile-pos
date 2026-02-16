@@ -6,9 +6,10 @@ import {
   FlatList,
   Alert,
   RefreshControl,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Search, Plus, Users, Filter } from 'lucide-react-native';
+import { Search, Plus, Users, MoreVertical } from 'lucide-react-native';
 import { CustomerCard } from '@/components/CustomerCard';
 import { CustomerForm } from '@/components/CustomerForm';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -37,7 +38,7 @@ export default function CustomerManagement() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
-  const [showFilters, setShowFilters] = useState(false);
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
   const {
     data: customers = [],
@@ -146,90 +147,99 @@ export default function CustomerManagement() {
           ? t('customers.tryDifferentSearch')
           : t('customers.addFirstCustomer')}
       </Text>
-      {!searchQuery && filterBy === 'all' && (
-        <TouchableOpacity
-          style={styles.emptyButton}
-          onPress={handleAddCustomer}
-        >
-          <Plus size={16} color="#FFFFFF" />
-          <Text style={styles.emptyButtonText} weight="medium">
-            {t('customers.addCustomer')}
-          </Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 
-  const renderFilterOptions = () => {
-    if (!showFilters) return null;
+  const renderSortMenu = () => {
+    if (!showSortMenu) return null;
 
     return (
-      <View style={styles.filterContainer}>
-        <View style={styles.filterSection}>
-          <Text style={styles.filterTitle} weight="medium">
-            Sort By
-          </Text>
-          <View style={styles.filterOptions}>
-            {[
-              { key: 'name', label: 'Name' },
-              { key: 'totalSpent', label: 'Total Spent' },
-              { key: 'visitCount', label: 'Visit Count' },
-              { key: 'recent', label: 'Recently Added' },
-            ].map((option) => (
-              <TouchableOpacity
-                key={option.key}
-                style={[
-                  styles.filterOption,
-                  sortBy === option.key && styles.filterOptionActive,
-                ]}
-                onPress={() => setSortBy(option.key as SortOption)}
-              >
-                <Text
-                  style={[
-                    styles.filterOptionText,
-                    sortBy === option.key && styles.filterOptionTextActive,
-                  ]}
-                  weight="medium"
-                >
-                  {option.label}
+      <Modal
+        visible={showSortMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSortMenu(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowSortMenu(false)}
+        >
+          <View style={styles.sortMenuContainer}>
+            <View style={styles.sortMenuContent}>
+              <View style={styles.sortMenuSection}>
+                <Text style={styles.sortMenuTitle} weight="medium">
+                  Sort By
                 </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+                {[
+                  { key: 'name', label: 'Name' },
+                  { key: 'totalSpent', label: 'Total Spent' },
+                  { key: 'visitCount', label: 'Visit Count' },
+                  { key: 'recent', label: 'Recently Added' },
+                ].map((option) => (
+                  <TouchableOpacity
+                    key={option.key}
+                    style={styles.sortMenuItem}
+                    onPress={() => {
+                      setSortBy(option.key as SortOption);
+                      setShowSortMenu(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.sortMenuItemText,
+                        sortBy === option.key && styles.sortMenuItemTextActive,
+                      ]}
+                      weight={sortBy === option.key ? 'medium' : 'regular'}
+                    >
+                      {option.label}
+                    </Text>
+                    {sortBy === option.key && (
+                      <View style={styles.sortMenuItemCheck} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-        <View style={styles.filterSection}>
-          <Text style={styles.filterTitle} weight="medium">
-            Filter By
-          </Text>
-          <View style={styles.filterOptions}>
-            {[
-              { key: 'all', label: 'All Customers' },
-              { key: 'active', label: 'Active Customers' },
-              { key: 'inactive', label: 'New Customers' },
-            ].map((option) => (
-              <TouchableOpacity
-                key={option.key}
-                style={[
-                  styles.filterOption,
-                  filterBy === option.key && styles.filterOptionActive,
-                ]}
-                onPress={() => setFilterBy(option.key as FilterOption)}
+              <View
+                style={[styles.sortMenuSection, styles.sortMenuSectionLast]}
               >
-                <Text
-                  style={[
-                    styles.filterOptionText,
-                    filterBy === option.key && styles.filterOptionTextActive,
-                  ]}
-                  weight="medium"
-                >
-                  {option.label}
+                <Text style={styles.sortMenuTitle} weight="medium">
+                  Filter By
                 </Text>
-              </TouchableOpacity>
-            ))}
+                {[
+                  { key: 'all', label: 'All Customers' },
+                  { key: 'active', label: 'Active Customers' },
+                  { key: 'inactive', label: 'New Customers' },
+                ].map((option) => (
+                  <TouchableOpacity
+                    key={option.key}
+                    style={styles.sortMenuItem}
+                    onPress={() => {
+                      setFilterBy(option.key as FilterOption);
+                      setShowSortMenu(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.sortMenuItemText,
+                        filterBy === option.key &&
+                          styles.sortMenuItemTextActive,
+                      ]}
+                      weight={filterBy === option.key ? 'medium' : 'regular'}
+                    >
+                      {option.label}
+                    </Text>
+                    {filterBy === option.key && (
+                      <View style={styles.sortMenuItemCheck} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           </View>
-        </View>
-      </View>
+        </TouchableOpacity>
+      </Modal>
     );
   };
 
@@ -269,9 +279,15 @@ export default function CustomerManagement() {
               {filteredAndSortedCustomers.length} {t('customers.customers')}
             </Text>
           </View>
+          <TouchableOpacity
+            style={styles.moreButton}
+            onPress={() => setShowSortMenu(true)}
+          >
+            <MoreVertical size={20} color="#6B7280" />
+          </TouchableOpacity>
         </View>
 
-        {/* Search and Filter Bar */}
+        {/* Search Bar */}
         <View style={styles.searchContainer}>
           <View style={styles.searchInputContainer}>
             <Search size={16} color="#6B7280" style={styles.searchIcon} />
@@ -283,26 +299,7 @@ export default function CustomerManagement() {
               placeholderTextColor="#9CA3AF"
             />
           </View>
-
-          <TouchableOpacity
-            style={[
-              styles.filterButton,
-              showFilters && styles.filterButtonActive,
-            ]}
-            onPress={() => setShowFilters(!showFilters)}
-          >
-            <Filter size={16} color={showFilters ? '#FFFFFF' : '#6B7280'} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={handleAddCustomer}
-          >
-            <Plus size={16} color="#FFFFFF" />
-          </TouchableOpacity>
         </View>
-
-        {renderFilterOptions()}
       </View>
 
       {/* Customer List */}
@@ -320,6 +317,14 @@ export default function CustomerManagement() {
         }
         showsVerticalScrollIndicator={false}
       />
+
+      {/* Floating Action Button */}
+      <TouchableOpacity style={styles.fab} onPress={handleAddCustomer}>
+        <Plus size={24} color="#FFFFFF" />
+      </TouchableOpacity>
+
+      {/* Sort Menu Modal */}
+      {renderSortMenu()}
 
       {/* Customer Form Modal */}
       <CustomerForm
@@ -365,14 +370,17 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 2,
   },
-  searchContainer: {
-    flexDirection: 'row',
+  moreButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 8,
+  },
+  searchContainer: {
     paddingHorizontal: 16,
-    gap: 8,
   },
   searchInputContainer: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F3F4F6',
@@ -387,58 +395,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: '#111827',
-  },
-  filterButton: {
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-  },
-  filterButtonActive: {
-    backgroundColor: '#059669',
-  },
-  addButton: {
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: '#059669',
-  },
-  filterContainer: {
-    backgroundColor: '#F9FAFB',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  filterSection: {
-    marginBottom: 16,
-  },
-  filterTitle: {
-    fontSize: 14,
-    color: '#111827',
-    marginBottom: 8,
-  },
-  filterOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  filterOption: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-  },
-  filterOptionActive: {
-    backgroundColor: '#059669',
-    borderColor: '#059669',
-  },
-  filterOptionText: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  filterOptionTextActive: {
-    color: '#FFFFFF',
   },
   listContainer: {
     padding: 16,
@@ -463,18 +419,76 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
   },
-  emptyButton: {
+  fab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#059669',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+  },
+  sortMenuContainer: {
+    marginTop: 60,
+    marginRight: 16,
+  },
+  sortMenuContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    minWidth: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  sortMenuSection: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  sortMenuSectionLast: {
+    borderBottomWidth: 0,
+  },
+  sortMenuTitle: {
+    fontSize: 12,
+    color: '#6B7280',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    textTransform: 'uppercase',
+  },
+  sortMenuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#059669',
-    paddingHorizontal: 20,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 8,
   },
-  emptyButtonText: {
+  sortMenuItemText: {
     fontSize: 14,
-    color: '#FFFFFF',
-    marginLeft: 8,
+    color: '#111827',
+  },
+  sortMenuItemTextActive: {
+    color: '#059669',
+  },
+  sortMenuItemCheck: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#059669',
   },
   errorState: {
     flex: 1,
