@@ -275,9 +275,6 @@ export default function CustomerManagement() {
             <Text style={styles.headerTitle} weight="bold">
               {t('more.customers')}
             </Text>
-            <Text style={styles.headerSubtitle}>
-              {filteredAndSortedCustomers.length} {t('customers.customers')}
-            </Text>
           </View>
           <TouchableOpacity
             style={styles.moreButton}
@@ -299,6 +296,9 @@ export default function CustomerManagement() {
               placeholderTextColor="#9CA3AF"
             />
           </View>
+          <Text style={styles.headerSubtitle}>
+            {filteredAndSortedCustomers.length} {t('customers.customers')}
+          </Text>
         </View>
       </View>
 

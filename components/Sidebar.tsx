@@ -6,7 +6,6 @@ import {
   Animated,
   StyleSheet,
   ScrollView,
-  Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -240,116 +239,71 @@ export function Sidebar({ isOpen, onClose, currentRoute }: SidebarProps) {
     onClose();
   }, [onClose]);
 
-  // Animation logic for opening/closing drawer
-  // Uses native driver and easing for optimal performance (Requirement 8.4)
+  // Simplified animation logic for better performance
   useEffect(() => {
-    let slideAnimation: Animated.CompositeAnimation | null = null;
-    let overlayAnimation: Animated.CompositeAnimation | null = null;
-
     if (isOpen) {
-      // Open animations with easing for natural motion
-      slideAnimation = Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 250,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      });
-      overlayAnimation = Animated.timing(overlayAnim, {
-        toValue: 1,
-        duration: 200,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
-      });
+      // Simple parallel animations
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+        Animated.timing(overlayAnim, {
+          toValue: 1,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+      ]).start();
 
-      Animated.parallel([slideAnimation, overlayAnimation]).start();
-    } else {
-      // Close animations with easing for natural motion
-      slideAnimation = Animated.timing(slideAnim, {
-        toValue: -DRAWER_WIDTH,
-        duration: 250,
-        easing: Easing.in(Easing.cubic),
-        useNativeDriver: true,
-      });
-      overlayAnimation = Animated.timing(overlayAnim, {
-        toValue: 0,
-        duration: 200,
-        easing: Easing.in(Easing.ease),
-        useNativeDriver: true,
-      });
+      // Position scroll to show active menu instantly
+      requestAnimationFrame(() => {
+        if (scrollViewRef.current) {
+          const normalizedCurrentRoute = currentRoute.startsWith('/(drawer)')
+            ? currentRoute
+            : `/(drawer)${currentRoute}`;
 
-      Animated.parallel([slideAnimation, overlayAnimation]).start();
-    }
+          let cumulativeY = 8;
+          let found = false;
 
-    // Cleanup function to stop animations on unmount or state change (Requirement 8.3)
-    return () => {
-      // Stop any ongoing animations
-      if (slideAnimation) {
-        slideAnimation.stop();
-      }
-      if (overlayAnimation) {
-        overlayAnimation.stop();
-      }
-      slideAnim.stopAnimation();
-      overlayAnim.stopAnimation();
-
-      // Reset animation values to final state if component unmounts
-      if (!isOpen) {
-        slideAnim.setValue(-DRAWER_WIDTH);
-        overlayAnim.setValue(0);
-      }
-    };
-  }, [isOpen, slideAnim, overlayAnim]);
-
-  // Auto-scroll to active menu item when drawer opens
-  useEffect(() => {
-    if (isOpen && scrollViewRef.current) {
-      // Delay to ensure drawer animation completes and layout is ready
-      const timer = setTimeout(() => {
-        // Normalize current route
-        const normalizedCurrentRoute = currentRoute.startsWith('/(drawer)')
-          ? currentRoute
-          : `/(drawer)${currentRoute}`;
-
-        // Calculate cumulative Y position by iterating through menu groups
-        let cumulativeY = 8; // Initial padding from paddingVertical: 8
-        let found = false;
-
-        for (const group of menuGroups) {
-          // Add group label height if it exists
-          if (group.label) {
-            cumulativeY += 16 + 8 + 20; // paddingTop + paddingBottom + approximate text height
-          }
-
-          // Check each item in the group
-          for (const item of group.items) {
-            if (item.route === normalizedCurrentRoute) {
-              found = true;
-              break;
+          for (const group of menuGroups) {
+            if (group.label) {
+              cumulativeY += 44;
             }
-            // Add menu item height (minHeight 44 + marginVertical 2*2)
-            cumulativeY += 48;
+
+            for (const item of group.items) {
+              if (item.route === normalizedCurrentRoute) {
+                found = true;
+                break;
+              }
+              cumulativeY += 48;
+            }
+
+            if (found) break;
+            cumulativeY += 12;
           }
 
-          if (found) break;
-
-          // Add group separator height
-          cumulativeY += 12;
+          if (found) {
+            scrollViewRef.current.scrollTo({
+              y: Math.max(0, cumulativeY - 100),
+              animated: false,
+            });
+          }
         }
-
-        if (found) {
-          console.log('Calculated cumulative Y:', cumulativeY);
-          // Scroll to position with some offset to show item nicely
-          const scrollPosition = Math.max(0, cumulativeY - 100);
-          console.log('Scrolling to position:', scrollPosition);
-
-          scrollViewRef.current?.scrollTo({
-            y: scrollPosition,
-            animated: true,
-          });
-        }
-      }, 350);
-
-      return () => clearTimeout(timer);
+      });
+    } else {
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: -DRAWER_WIDTH,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+        Animated.timing(overlayAnim, {
+          toValue: 0,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
   }, [isOpen, currentRoute, menuGroups]);
 

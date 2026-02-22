@@ -232,13 +232,13 @@ export default function SaleHistory() {
     });
   }, [sales, searchQuery, paymentMethodFilter]);
 
-  const { data: salesSummary } = useSalesSummaryByDateRange(
-    startDate,
-    endDate,
-    searchQuery,
-    undefined,
-    -390,
-  );
+  // Calculate summary from filtered sales
+  const salesSummary = useMemo(() => {
+    return {
+      count: filteredSales.length,
+      total: filteredSales.reduce((sum, sale) => sum + sale.total, 0),
+    };
+  }, [filteredSales]);
 
   const { data: allSalesForExport, refetch: refetchAllSales } =
     useAllSalesForExport(searchQuery, undefined, startDate, endDate, -390);

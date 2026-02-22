@@ -1,0 +1,246 @@
+Great question — this is classic offline-first / hybrid sync architecture, and there is a better approach than a “normal CRUD API flow”.
+
+For a POS offline app with SQLite + online sync, you should NOT treat it like a regular online-only app.
+
+Below is the industry-proven architecture used by POS, banking, logistics, and field apps.
+
+❌ What NOT to do (common mistake)
+
+“When user saves → call API → if offline, fail”
+
+Problems:
+
+Data loss
+
+Broken UX
+
+Sync conflicts
+
+Impossible reconciliation
+
+✅ Correct approach: Offline-First + Sync Engine
+Core Principle
+
+SQLite is the source of truth
+Server is a replica, not the primary DB
+
+High-level Architecture
+UI
+ ↓
+Local SQLite (always write)
+ ↓
+Sync Queue / Change Log
+ ↓
+Sync Engine
+ ↓
+Remote API
+
+1️⃣ Always save locally first (non-negotiable)
+
+Every operation:
+
+Sale
+
+Payment
+
+Refund
+
+Inventory update
+
+👉 Write to SQLite immediately, even when online.
+
+Example:
+
+Sale completed → saved locally → receipt printed → DONE
+
+
+POS must never depend on network to complete a sale.
+
+2️⃣ Use a Sync Queue (very important)
+
+Create a table like:
+
+sync_queue (
+  id UUID,
+  entity_type TEXT,      -- sale, payment, product
+  entity_id UUID,
+  operation TEXT,        -- CREATE, UPDATE, DELETE
+  payload JSON,
+  status TEXT,           -- PENDING, SYNCED, FAILED
+  retry_count INT,
+  created_at TIMESTAMP
+)
+
+
+Every local change:
+
+Save data to main table
+
+Add record to sync_queue
+
+This gives you:
+
+Retry
+
+Ordering
+
+Audit trail
+
+Conflict handling
+
+3️⃣ Background Sync Engine
+
+Runs when:
+
+Internet is available
+
+App starts
+
+Periodically (every X minutes)
+
+Flow:
+
+FOR each PENDING record in sync_queue:
+  → send to server
+  → if success → mark SYNCED
+  → if fail → retry later
+
+
+🚨 Important:
+
+Sync must be idempotent
+
+Server must handle duplicate requests safely
+
+4️⃣ Server-side: accept offline reality
+
+Your API must:
+
+Accept client-generated UUIDs
+
+Accept timestamps from client
+
+Allow delayed writes
+
+Handle duplicates
+
+Example
+{
+  "sale_id": "uuid-from-client",
+  "created_at": "2026-02-18T10:21:00",
+  "device_id": "POS-DEVICE-01"
+}
+
+
+Server checks:
+
+If already exists → ignore / update
+
+If new → insert
+
+5️⃣ Conflict strategy (keep it simple)
+
+POS systems usually avoid complex conflicts by design.
+
+Common strategies:
+
+Last write wins (most POS)
+
+Server authoritative for inventory
+
+Client authoritative for sales
+
+Example:
+
+Sales → client always wins
+
+Product prices → server wins
+
+Inventory → server recalculates
+
+👉 Avoid multi-device editing of same records when possible.
+
+6️⃣ Pull sync (don’t forget this)
+
+Hybrid means:
+
+Push local changes
+
+Pull server changes
+
+Add:
+
+sync_metadata (
+  last_sync_at TIMESTAMP
+)
+
+
+Flow:
+
+GET /sync?since=last_sync_at
+→ update local SQLite
+→ update last_sync_at
+
+
+Used for:
+
+Price changes
+
+New products
+
+Tax rules
+
+Promotions
+
+7️⃣ Data versioning (small but powerful)
+
+Add:
+
+updated_at
+
+version (optional integer)
+
+This helps:
+
+Conflict detection
+
+Debugging
+
+Partial sync
+
+8️⃣ Recommended architecture summary
+✔ Best practice for POS
+Layer	Responsibility
+UI	Never talk to API directly
+Local DB	Always writable
+Sync Queue	Track all changes
+Sync Engine	Push + pull
+API	Idempotent + tolerant
+9️⃣ When is “normal API flow” acceptable?
+
+Only if:
+
+Read-only app
+
+No payments
+
+No legal/financial records
+
+❌ Never acceptable for POS
+
+10️⃣ Bonus: future-proofing
+
+If you later add:
+
+Multiple devices
+
+Cloud dashboard
+
+Offline reports
+
+This architecture already supports it.
+
+Final recommendation (short)
+
+Offline-first + local SQLite + sync queue + background sync engine
+Not direct API writes.

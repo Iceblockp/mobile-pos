@@ -60,18 +60,18 @@ export const DrawerMenuItem = React.memo(function DrawerMenuItem({
   const Icon = item.icon;
 
   /**
-   * Handle menu item press
-   * Navigates to the route and closes the drawer
+   * Handle menu item press - instant navigation with smooth drawer close
    */
   const handlePress = () => {
+    // Navigate immediately for instant page change
     try {
       router.push(item.route as any);
-      onPress();
     } catch (error) {
       console.error('Navigation error:', error);
-      // If navigation fails, still close the drawer
-      onPress();
     }
+
+    // Close drawer smoothly in background
+    onPress();
   };
 
   return (
@@ -103,18 +103,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     marginVertical: 2,
     borderRadius: 8,
-    minHeight: 44, // Minimum touch target size for accessibility
+    minHeight: 44,
     backgroundColor: 'transparent',
   },
   menuItemActive: {
-    backgroundColor: '#DCFCE7', // More prominent green background
-    borderLeftWidth: 4, // Thicker border for better visibility
+    backgroundColor: '#DCFCE7',
+    borderLeftWidth: 3,
     borderLeftColor: '#059669',
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2, // Subtle elevation for Android
   },
   menuItemText: {
     fontSize: 15,
@@ -124,8 +119,8 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   menuItemTextActive: {
-    color: '#047857', // Darker green for better contrast
+    color: '#047857',
     fontFamily: 'NotoSansMyanmar-Bold',
-    fontWeight: '700', // Bolder text
+    fontWeight: '700',
   },
 });

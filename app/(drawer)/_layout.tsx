@@ -5,6 +5,7 @@ import { DrawerProvider } from '@/context/DrawerContext';
 import { Sidebar } from '@/components/Sidebar';
 import { useDrawer } from '@/context/DrawerContext';
 import { detailScreenOptions } from '@/config/screenOptions';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 /**
  * DrawerContent component
@@ -16,7 +17,7 @@ function DrawerContent() {
   const pathname = usePathname();
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Screen content with Stack navigation */}
       <Stack screenOptions={{ headerShown: false }}>
         {/* Detail and form screens with modal presentation */}
@@ -26,7 +27,7 @@ function DrawerContent() {
 
       {/* Sidebar overlay */}
       <Sidebar isOpen={isOpen} onClose={closeDrawer} currentRoute={pathname} />
-    </View>
+    </SafeAreaView>
   );
 }
 
