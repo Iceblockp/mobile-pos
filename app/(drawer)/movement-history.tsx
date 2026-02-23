@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MyanmarText as Text } from '@/components/MyanmarText';
@@ -15,7 +21,7 @@ import { useDrawer } from '@/context/DrawerContext';
 import { useTranslation } from '@/context/LocalizationContext';
 import { useProducts } from '@/hooks/useQueries';
 import { useBasicSuppliers } from '@/hooks/useQueries';
-import { Filter } from 'lucide-react-native';
+import { Filter, Plus } from 'lucide-react-native';
 
 /**
  * Parse URL parameters into MovementFilters object
@@ -197,6 +203,14 @@ export default function MovementHistory() {
         products={products}
         suppliers={suppliers}
       />
+
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => router.push('/stock-movement-form')}
+      >
+        <Plus size={24} color="#FFFFFF" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -239,5 +253,21 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 20,
+  },
+  fab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#059669',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });

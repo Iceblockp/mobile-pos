@@ -3924,6 +3924,48 @@ export class DatabaseService {
     };
   }
 
+  async deleteStockMovement(movementId: string): Promise<void> {
+    // Start transaction for atomic operation
+    await this.db.execAsync('BEGIN TRANSACTION');
+
+    try {
+      // Get the movement details before deleting
+      const movement = (await this.db.getFirstAsync(
+        'SELECT * FROM stock_movements WHERE id = ?',
+        [movementId],
+      )) as StockMovement | null;
+
+      if (!movement) {
+        throw new Error('Stock movement not found');
+      }
+
+      // Reverse the product quantity change
+      if (movement.type === 'stock_in') {
+        // If it was stock in, subtract the quantity
+        await this.db.runAsync(
+          'UPDATE products SET quantity = CASE WHEN quantity >= ? THEN quantity - ? ELSE 0 END, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+          [movement.quantity, movement.quantity, movement.product_id],
+        );
+      } else if (movement.type === 'stock_out') {
+        // If it was stock out, add the quantity back
+        await this.db.runAsync(
+          'UPDATE products SET quantity = quantity + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+          [movement.quantity, movement.product_id],
+        );
+      }
+
+      // Delete the movement record
+      await this.db.runAsync('DELETE FROM stock_movements WHERE id = ?', [
+        movementId,
+      ]);
+
+      await this.db.execAsync('COMMIT');
+    } catch (error) {
+      await this.db.execAsync('ROLLBACK');
+      throw error;
+    }
+  }
+
   // Customer Management Methods
   async getCustomers(
     searchQuery?: string,

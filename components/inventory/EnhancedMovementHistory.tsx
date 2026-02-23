@@ -7,6 +7,7 @@ import {
   RefreshControl,
   Modal,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -15,6 +16,7 @@ import {
   useInfiniteStockMovements,
   useProducts,
   useBasicSuppliers,
+  useStockMovementMutations,
 } from '@/hooks/useQueries';
 import { StockMovement } from '@/services/database';
 import { MyanmarText as Text } from '../MyanmarText';
@@ -30,8 +32,10 @@ import {
   Filter,
   X,
   ChevronDown,
+  Trash2,
 } from 'lucide-react-native';
 import { useTranslation } from '@/context/LocalizationContext';
+import { useToast } from '@/context/ToastContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 interface EnhancedMovementHistoryProps {
@@ -63,6 +67,8 @@ export const EnhancedMovementHistory: React.FC<EnhancedMovementHistoryProps> =
       externalFilters,
     }) => {
       const { t } = useTranslation();
+      const { showToast } = useToast();
+      const { deleteStockMovement } = useStockMovementMutations();
       const [showFilterModal, setShowFilterModal] = useState(false);
       const [showDatePicker, setShowDatePicker] = useState<
         'start' | 'end' | null
@@ -213,102 +219,155 @@ export const EnhancedMovementHistory: React.FC<EnhancedMovementHistoryProps> =
         return count;
       };
 
+      const handleDeleteMovement = useCallback(
+        (movement: StockMovement) => {
+          Alert.alert(
+            t('stockMovement.deleteMovement'),
+            t('stockMovement.deleteConfirmation', {
+              type:
+                movement.type === 'stock_in'
+                  ? t('stockMovement.stockIn')
+                  : t('stockMovement.stockOut'),
+              quantity: movement.quantity,
+              product: movement.product_name || 'Unknown',
+            }),
+            [
+              {
+                text: t('common.cancel'),
+                style: 'cancel',
+              },
+              {
+                text: t('common.delete'),
+                style: 'destructive',
+                onPress: async () => {
+                  try {
+                    await deleteStockMovement.mutateAsync(movement.id);
+                    showToast(t('stockMovement.movementDeleted'), 'success');
+                  } catch (error) {
+                    console.error('Error deleting movement:', error);
+                    Alert.alert(
+                      t('common.error'),
+                      t('stockMovement.failedToDelete'),
+                    );
+                  }
+                },
+              },
+            ],
+          );
+        },
+        [deleteStockMovement, showToast, t],
+      );
+
       // Memoize the render function to prevent unnecessary re-renders
       const renderMovementItem = useCallback(
         ({ item }: { item: StockMovement }) => (
-          <Card
-            //@ts-ignore
-            style={
-              compact
-                ? [styles.movementItem, styles.movementItemCompact]
-                : styles.movementItem
-            }
+          <TouchableOpacity
+            onLongPress={() => handleDeleteMovement(item)}
+            delayLongPress={500}
+            activeOpacity={0.7}
           >
-            <View style={styles.movementHeader}>
-              <View style={styles.movementType}>
-                {getMovementIcon(item.type)}
-                <Text
-                  style={[
-                    styles.movementTypeText,
-                    { color: getMovementColor(item.type) },
-                  ]}
-                >
-                  {item.type === 'stock_in'
-                    ? t('stockMovement.stockIn')
-                    : t('stockMovement.stockOut')}
-                </Text>
-              </View>
-              <Text style={styles.movementDate}>
-                {formatDate(item.created_at)}
-              </Text>
-            </View>
-
-            <View style={styles.movementContent}>
-              {showProductName && item.product_name && (
-                <View style={styles.movementRow}>
-                  <Package size={16} color="#6B7280" />
-                  <Text style={styles.movementProductName}>
-                    {item.product_name}
+            <Card
+              //@ts-ignore
+              style={
+                compact
+                  ? [styles.movementItem, styles.movementItemCompact]
+                  : styles.movementItem
+              }
+            >
+              <View style={styles.movementHeader}>
+                <View style={styles.movementType}>
+                  {getMovementIcon(item.type)}
+                  <Text
+                    style={[
+                      styles.movementTypeText,
+                      { color: getMovementColor(item.type) },
+                    ]}
+                  >
+                    {item.type === 'stock_in'
+                      ? t('stockMovement.stockIn')
+                      : t('stockMovement.stockOut')}
                   </Text>
                 </View>
-              )}
-
-              <View style={styles.movementRow}>
-                <Text style={styles.movementLabel}>
-                  {t('stockMovement.quantity')}:
-                </Text>
-                <Text
-                  style={[
-                    styles.movementQuantity,
-                    { color: getMovementColor(item.type) },
-                  ]}
-                >
-                  {item.type === 'stock_in' ? '+' : '-'}
-                  {item.quantity}
-                </Text>
+                <View style={styles.movementHeaderRight}>
+                  <Text style={styles.movementDate}>
+                    {formatDate(item.created_at)}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDeleteMovement(item)}
+                  >
+                    <Trash2 size={16} color="#EF4444" />
+                  </TouchableOpacity>
+                </View>
               </View>
 
-              {item.reason && (
-                <View style={styles.movementRow}>
-                  <FileText size={16} color="#6B7280" />
-                  <Text style={styles.movementReason}>{item.reason}</Text>
-                </View>
-              )}
+              <View style={styles.movementContent}>
+                {showProductName && item.product_name && (
+                  <View style={styles.movementRow}>
+                    <Package size={16} color="#6B7280" />
+                    <Text style={styles.movementProductName}>
+                      {item.product_name}
+                    </Text>
+                  </View>
+                )}
 
-              {item.supplier_name && (
-                <View style={styles.movementRow}>
-                  <User size={16} color="#6B7280" />
-                  <Text style={styles.movementSupplier}>
-                    {item.supplier_name}
-                  </Text>
-                </View>
-              )}
-
-              {item.reference_number && (
                 <View style={styles.movementRow}>
                   <Text style={styles.movementLabel}>
-                    {t('stockMovement.reference')}:
+                    {t('stockMovement.quantity')}:
                   </Text>
-                  <Text style={styles.movementReference}>
-                    {item.reference_number}
+                  <Text
+                    style={[
+                      styles.movementQuantity,
+                      { color: getMovementColor(item.type) },
+                    ]}
+                  >
+                    {item.type === 'stock_in' ? '+' : '-'}
+                    {item.quantity}
                   </Text>
                 </View>
-              )}
 
-              {item.unit_cost && (
-                <View style={styles.movementRow}>
-                  <Text style={styles.movementLabel}>
-                    {t('stockMovement.unitCost')}:
-                  </Text>
-                  <Text style={styles.movementCost}>
-                    {formatMMK(item.unit_cost)}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </Card>
+                {item.reason && (
+                  <View style={styles.movementRow}>
+                    <FileText size={16} color="#6B7280" />
+                    <Text style={styles.movementReason}>{item.reason}</Text>
+                  </View>
+                )}
+
+                {item.supplier_name && (
+                  <View style={styles.movementRow}>
+                    <User size={16} color="#6B7280" />
+                    <Text style={styles.movementSupplier}>
+                      {item.supplier_name}
+                    </Text>
+                  </View>
+                )}
+
+                {item.reference_number && (
+                  <View style={styles.movementRow}>
+                    <Text style={styles.movementLabel}>
+                      {t('stockMovement.reference')}:
+                    </Text>
+                    <Text style={styles.movementReference}>
+                      {item.reference_number}
+                    </Text>
+                  </View>
+                )}
+
+                {item.unit_cost && (
+                  <View style={styles.movementRow}>
+                    <Text style={styles.movementLabel}>
+                      {t('stockMovement.unitCost')}:
+                    </Text>
+                    <Text style={styles.movementCost}>
+                      {formatMMK(item.unit_cost)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </Card>
+          </TouchableOpacity>
         ),
-        [compact, showProductName, t],
+        [compact, showProductName, t, handleDeleteMovement],
       );
 
       const renderEmptyState = () => (
@@ -645,6 +704,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  movementHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  deleteButton: {
+    padding: 4,
   },
   movementType: {
     flexDirection: 'row',

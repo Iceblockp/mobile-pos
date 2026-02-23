@@ -1067,6 +1067,40 @@ export const useCustomerPurchaseHistory = (
   });
 };
 
+// Infinite scroll version for customer sales history
+export const useInfiniteCustomerSales = (
+  customerId: string,
+  startDate?: Date,
+  endDate?: Date,
+  pageSize: number = 20,
+) => {
+  const { db, isReady } = useDatabase();
+
+  return useInfiniteQuery({
+    queryKey: [
+      ...queryKeys.customers.all,
+      'sales',
+      'infinite',
+      customerId,
+      startDate?.toISOString(),
+      endDate?.toISOString(),
+    ],
+    queryFn: ({ pageParam = 1 }) =>
+      db!.getSalesByCustomer(customerId, pageParam, pageSize),
+    enabled: isReady && !!db && customerId.length > 0,
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages, lastPageParam) => {
+      if (lastPage.length < pageSize) {
+        return undefined;
+      }
+      return lastPageParam + 1;
+    },
+    staleTime: 1 * 60 * 1000, // 1 minute
+    gcTime: 3 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+};
+
 export const useCustomerStatistics = (customerId: string) => {
   const { db, isReady } = useDatabase();
 
@@ -1421,9 +1455,19 @@ export const useStockMovementMutations = () => {
     },
   });
 
+  const deleteStockMovement = useMutation({
+    mutationFn: (movementId: string) => db!.deleteStockMovement(movementId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.stockMovements.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
+    },
+  });
+
   return {
     addStockMovement,
     updateProductQuantityWithMovement,
+    deleteStockMovement,
   };
 };
 

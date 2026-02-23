@@ -500,6 +500,11 @@ export const my: TranslationKeys = {
     clearAll: 'အားလုံးရှင်းမည်',
     apply: 'အတည်ပြုမည်',
     noResultsFound: 'ရလဒ်မတွေ့ပါ',
+    deleteMovement: 'လှုပ်ရှားမှုဖျက်ရန်',
+    deleteConfirmation:
+      '{{product}} အတွက် {{quantity}} ယူနစ် {{type}} လှုပ်ရှားမှုကို ဖျက်လိုသည်မှာ သေချာပါသလား? ဤသည်မှာ ကုန်လက်ကျန်ပြောင်းလဲမှုကို ပြန်လှည့်ပေးမည်ဖြစ်သည်။',
+    movementDeleted: 'လှုပ်ရှားမှုကို အောင်မြင်စွာဖျက်ပြီးပါပြီ',
+    failedToDelete: 'လှုပ်ရှားမှုဖျက်ရန် မအောင်မြင်ပါ',
   },
   bulkPricing: {
     bulkPricing: 'လက်ကားစျေးနှုန်း',

@@ -26,6 +26,7 @@ interface SearchablePickerModalProps {
   onSelect: (id?: string) => void;
   placeholder?: string;
   allOptionLabel?: string;
+  showAllOption?: boolean;
 }
 
 export const SearchablePickerModal: React.FC<SearchablePickerModalProps> = ({
@@ -37,6 +38,7 @@ export const SearchablePickerModal: React.FC<SearchablePickerModalProps> = ({
   onSelect,
   placeholder = 'Search...',
   allOptionLabel = 'All',
+  showAllOption = true,
 }) => {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -91,7 +93,11 @@ export const SearchablePickerModal: React.FC<SearchablePickerModalProps> = ({
 
         {/* Items List */}
         <FlatList
-          data={[{ id: undefined, name: allOptionLabel }, ...filteredItems]}
+          data={
+            showAllOption
+              ? [{ id: undefined, name: allOptionLabel }, ...filteredItems]
+              : filteredItems
+          }
           keyExtractor={(item) => item.id || 'all'}
           renderItem={({ item }) => {
             const isSelected = item.id === selectedId;

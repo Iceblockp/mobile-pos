@@ -488,6 +488,11 @@ export const en = {
     clearAll: 'Clear All',
     apply: 'Apply',
     noResultsFound: 'No results found',
+    deleteMovement: 'Delete Movement',
+    deleteConfirmation:
+      'Are you sure you want to delete this {{type}} movement of {{quantity}} units for {{product}}? This will reverse the stock change.',
+    movementDeleted: 'Movement deleted successfully',
+    failedToDelete: 'Failed to delete movement',
   },
   bulkPricing: {
     bulkPricing: 'Bulk Pricing',
