@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,26 +8,20 @@ import {
   Modal,
   Platform,
   ActivityIndicator,
-  PixelRatio,
   FlatList,
   TouchableWithoutFeedback,
 } from 'react-native';
 import { MyanmarText as Text } from '@/components/MyanmarText';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import {
-  useSaleItems,
-  useSaleMutations,
-  useSalesSummary,
-  useSalesSummaryByDateRange,
-  useAllSalesForExport,
-} from '@/hooks/useQueries';
+import { useSaleMutations, useAllSalesForExport } from '@/hooks/useQueries';
 import {
   useInfiniteSales,
   useInfiniteSalesByDateRange,
 } from '@/hooks/useInfiniteQueries';
 import { useDatabase } from '@/context/DatabaseContext';
 import { useCurrencyFormatter } from '@/context/CurrencyContext';
+import { useRouter } from 'expo-router';
 import {
   History,
   Calendar,
@@ -36,9 +30,6 @@ import {
   Eye,
   FileText,
   FileSpreadsheet,
-  Trash2,
-  ImageIcon,
-  Printer,
   MoreVertical,
   LayoutGrid,
   List,
@@ -47,16 +38,10 @@ import * as XLSX from 'xlsx';
 import * as FileSystem from 'expo-file-system';
 import { cacheDirectory } from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import { captureRef } from 'react-native-view-shot';
 import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/context/LocalizationContext';
-import { EnhancedPrintManager } from '@/components/EnhancedPrintManager';
 import { MyanmarTextInput as TextInput } from '@/components/MyanmarTextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  PaymentMethodService,
-  type PaymentMethod,
-} from '@/services/paymentMethodService';
 import { MenuButton } from '@/components/MenuButton';
 import { useDrawer } from '@/context/DrawerContext';
 import { DateRangePicker } from '@/components/DateRangePicker';
@@ -86,22 +71,16 @@ export default function SaleHistory() {
   const { showToast } = useToast();
   const { t } = useTranslation();
   const { openDrawer } = useDrawer();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const today = new Date();
   const [customStartDate, setCustomStartDate] = useState(today);
   const [customEndDate, setCustomEndDate] = useState(today);
   const [showDateRangePicker, setShowDateRangePicker] = useState(false);
-  const [selectedSale, setSelectedSale] = useState<any>(null);
-  const [showSaleDetail, setShowSaleDetail] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [allSaleItems, setAllSaleItems] = useState<any[]>([]);
   const [loadingAllItems, setLoadingAllItems] = useState(false);
-  const saleDetailRef = useRef(null);
-  const [capturing, setCapturing] = useState(false);
-  const [isCustomerVoucher, setIsCustomerVoucher] = useState(true);
-  const [showPrintManager, setShowPrintManager] = useState(false);
-  const [receiptData, setReceiptData] = useState<any>(null);
   const { formatPrice } = useCurrencyFormatter();
 
   // View mode and dropdown menu state
@@ -112,15 +91,13 @@ export default function SaleHistory() {
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('All');
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
 
-  // Debt payment recording state
-  const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false);
-  const [recordingPayment, setRecordingPayment] = useState(false);
-
   // Load payment methods on mount
   useEffect(() => {
     const loadPaymentMethods = async () => {
       try {
-        const methods = await PaymentMethodService.getPaymentMethods();
+        const methods = await (
+          await import('@/services/paymentMethodService')
+        ).PaymentMethodService.getPaymentMethods();
         setPaymentMethods(methods);
       } catch (error) {
         console.error('Error loading payment methods:', error);
@@ -243,10 +220,6 @@ export default function SaleHistory() {
   const { data: allSalesForExport, refetch: refetchAllSales } =
     useAllSalesForExport(searchQuery, undefined, startDate, endDate, -390);
 
-  const { data: saleItems = [], isLoading: saleItemsLoading } = useSaleItems(
-    selectedSale?.id || 0,
-  );
-
   const { deleteSale } = useSaleMutations();
   const { db } = useDatabase();
 
@@ -257,8 +230,10 @@ export default function SaleHistory() {
   };
 
   const handleSalePress = (sale: any) => {
-    setSelectedSale(sale);
-    setShowSaleDetail(true);
+    router.push({
+      pathname: '/(drawer)/sale-detail',
+      params: { sale: JSON.stringify(sale) },
+    });
   };
 
   useEffect(() => {
@@ -332,131 +307,6 @@ export default function SaleHistory() {
     }
 
     setShowExportModal(true);
-  };
-
-  const prepareReceiptData = () => {
-    if (!selectedSale || !saleItems) return null;
-
-    const formattedItems = saleItems.map((item) => ({
-      product: {
-        id: item.product_id,
-        name: item.product_name || 'Unknown Product',
-        price: item.price,
-      },
-      quantity: item.quantity,
-      discount: item.discount || 0,
-      subtotal: item.subtotal,
-    }));
-
-    return {
-      voucherId: selectedSale.voucher_id,
-      items: formattedItems,
-      total: selectedSale.total,
-      paymentMethod: selectedSale.payment_method,
-      note: selectedSale.note || '',
-      date: new Date(selectedSale.created_at),
-    };
-  };
-
-  const handlePrintReceipt = () => {
-    const printData = prepareReceiptData();
-    if (printData) {
-      setReceiptData(printData);
-      setShowPrintManager(true);
-    }
-  };
-
-  const captureSaleDetail = async () => {
-    if (!saleDetailRef.current || !selectedSale) return;
-
-    try {
-      setCapturing(true);
-      const pixelRatio = PixelRatio.get();
-
-      const uri = await captureRef(saleDetailRef, {
-        format: 'png',
-        quality: 1,
-        result: 'tmpfile',
-        height: 1920 / pixelRatio,
-        width: 1080 / pixelRatio,
-      });
-
-      const isAvailable = await Sharing.isAvailableAsync();
-
-      if (isAvailable) {
-        await Sharing.shareAsync(uri, {
-          mimeType: 'image/png',
-          dialogTitle: `Sale #${selectedSale.voucher_id} Details`,
-          UTI: 'public.png',
-        });
-        showToast('Sale detail exported as image', 'success');
-      } else {
-        Alert.alert(
-          'Sharing not available',
-          'Sharing is not available on this device',
-        );
-      }
-    } catch (error) {
-      console.error('Error capturing sale detail:', error);
-      Alert.alert(t('common.error'), t('sales.failedToExportSaleDetail'));
-    } finally {
-      setCapturing(false);
-    }
-  };
-
-  const handleDeleteSale = async () => {
-    if (!selectedSale) return;
-
-    Alert.alert(
-      t('sales.deleteSale'),
-      t('sales.deleteSaleConfirm', { saleId: selectedSale.voucher_id }),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteSale.mutateAsync(selectedSale.id);
-              setShowSaleDetail(false);
-              showToast(t('sales.saleDeletedSuccessfully'), 'success');
-            } catch (error) {
-              console.error('Error deleting sale:', error);
-              Alert.alert(t('common.error'), t('sales.failedToDeleteSale'));
-            }
-          },
-        },
-      ],
-    );
-  };
-
-  const handleRecordDebtPayment = () => {
-    if (!selectedSale) return;
-    setShowRecordPaymentModal(true);
-  };
-
-  const handlePaymentMethodSelection = async (paymentMethodName: string) => {
-    if (!selectedSale || !db) return;
-
-    try {
-      setRecordingPayment(true);
-
-      await db.updateSalePaymentMethod(selectedSale.id, paymentMethodName);
-      const updatedSale = await db.getSaleById(selectedSale.id);
-
-      if (updatedSale) {
-        setSelectedSale(updatedSale);
-      }
-
-      showToast(t('debt.paymentRecorded'), 'success');
-      setShowRecordPaymentModal(false);
-      refetch();
-    } catch (error) {
-      console.error('Error recording debt payment:', error);
-      Alert.alert(t('common.error'), t('common.error'));
-    } finally {
-      setRecordingPayment(false);
-    }
   };
 
   // Simplified export functions - full implementation can be added later
@@ -1124,331 +974,6 @@ export default function SaleHistory() {
               </TouchableOpacity>
             </View>
           </View>
-        </Modal>
-
-        {/* Sale Detail Modal */}
-        <Modal
-          visible={showSaleDetail}
-          animationType="slide"
-          presentationStyle="pageSheet"
-          onRequestClose={() => setShowSaleDetail(false)}
-        >
-          <SafeAreaView style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('sales.saleDetails')}</Text>
-              <TouchableOpacity onPress={() => setShowSaleDetail(false)}>
-                <Text style={styles.modalClose}>{t('sales.close')}</Text>
-              </TouchableOpacity>
-            </View>
-
-            {selectedSale && (
-              <ScrollView style={styles.saleDetailContent}>
-                <View style={styles.saleDetailActions}>
-                  <TouchableOpacity
-                    style={[
-                      styles.voucherToggleButton,
-                      isCustomerVoucher && styles.voucherToggleButtonActive,
-                    ]}
-                    onPress={() => setIsCustomerVoucher(!isCustomerVoucher)}
-                  >
-                    <FileText
-                      size={16}
-                      color={isCustomerVoucher ? '#FFFFFF' : '#059669'}
-                    />
-                    <Text
-                      style={[
-                        styles.voucherToggleButtonText,
-                        isCustomerVoucher &&
-                          styles.voucherToggleButtonTextActive,
-                      ]}
-                    >
-                      {isCustomerVoucher
-                        ? t('sales.customerReceipt')
-                        : t('sales.internalView')}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <View style={styles.actionButtonsRow}>
-                    <TouchableOpacity
-                      style={styles.deleteSaleButton}
-                      onPress={handleDeleteSale}
-                    >
-                      <Trash2 size={16} color="#FFFFFF" />
-                      <Text style={styles.deleteSaleButtonText}>
-                        {t('sales.deleteSale')}
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.exportImageButton}
-                      onPress={
-                        isCustomerVoucher
-                          ? handlePrintReceipt
-                          : captureSaleDetail
-                      }
-                      disabled={capturing}
-                    >
-                      {isCustomerVoucher ? (
-                        <Printer size={16} color="#FFFFFF" />
-                      ) : (
-                        <ImageIcon size={16} color="#FFFFFF" />
-                      )}
-                      <Text style={styles.exportImageButtonText}>
-                        {capturing
-                          ? t('sales.exporting')
-                          : isCustomerVoucher
-                            ? t('sales.printCustomerReceipt')
-                            : t('sales.exportAsImage')}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {selectedSale?.payment_method === 'Debt' && (
-                    <TouchableOpacity
-                      style={styles.recordPaymentButton}
-                      onPress={handleRecordDebtPayment}
-                    >
-                      <FileText size={16} color="#FFFFFF" />
-                      <Text style={styles.recordPaymentButtonText}>
-                        {t('debt.recordPayment')}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                <View
-                  ref={saleDetailRef}
-                  collapsable={false}
-                  style={styles.captureContainer}
-                >
-                  <Card style={styles.saleDetailCard}>
-                    <Text style={styles.saleDetailTitle}>
-                      {t('sales.saleInformation')}
-                    </Text>
-                    <View style={styles.saleDetailRow}>
-                      <Text style={styles.saleDetailLabel}>
-                        {t('sales.saleId')}
-                      </Text>
-                      <Text style={styles.saleDetailValue}>
-                        #{selectedSale.voucher_id}
-                      </Text>
-                    </View>
-                    <View style={styles.saleDetailRow}>
-                      <Text style={styles.saleDetailLabel}>
-                        {t('sales.date')}
-                      </Text>
-                      <Text style={styles.saleDetailValue}>
-                        {formatDate(selectedSale.created_at)}
-                      </Text>
-                    </View>
-                    <View style={styles.saleDetailRow}>
-                      <Text style={styles.saleDetailLabel}>
-                        {t('sales.paymentMethod')}
-                      </Text>
-                      <Text style={styles.saleDetailValue}>
-                        {selectedSale.payment_method.toUpperCase()}
-                      </Text>
-                    </View>
-                    {selectedSale.note && (
-                      <View style={styles.saleDetailRow}>
-                        <Text style={styles.saleDetailLabel}>
-                          {t('sales.saleNote')}
-                        </Text>
-                        <Text style={styles.saleDetailValue}>
-                          {selectedSale.note}
-                        </Text>
-                      </View>
-                    )}
-                    <View style={styles.saleDetailRow}>
-                      <Text style={styles.saleDetailLabel}>
-                        {t('sales.totalAmount')}
-                      </Text>
-                      <Text
-                        style={[styles.saleDetailValue, styles.saleDetailTotal]}
-                      >
-                        {formatPrice(selectedSale.total)}
-                      </Text>
-                    </View>
-
-                    {!isCustomerVoucher && (
-                      <>
-                        <View style={styles.saleDetailRow}>
-                          <Text style={styles.saleDetailLabel}>
-                            {t('sales.totalCost')}
-                          </Text>
-                          <Text style={styles.saleDetailValue}>
-                            {formatPrice(
-                              saleItems.reduce(
-                                (sum, item) => sum + item.cost * item.quantity,
-                                0,
-                              ),
-                            )}
-                          </Text>
-                        </View>
-                        <View style={styles.saleDetailRow}>
-                          <Text style={styles.saleDetailLabel}>
-                            {t('sales.totalProfit')}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.saleDetailValue,
-                              styles.saleDetailProfit,
-                            ]}
-                          >
-                            {formatPrice(
-                              selectedSale.total -
-                                saleItems.reduce(
-                                  (sum, item) =>
-                                    sum + item.cost * item.quantity,
-                                  0,
-                                ),
-                            )}
-                          </Text>
-                        </View>
-                      </>
-                    )}
-                  </Card>
-
-                  <Card style={styles.saleDetailCard}>
-                    <Text style={styles.saleDetailTitle}>
-                      {t('sales.itemsPurchased')}
-                    </Text>
-                    {saleItems.map((item, index) => (
-                      <View key={index} style={styles.saleItemRow}>
-                        <View style={styles.saleItemInfo}>
-                          <Text style={styles.saleItemName}>
-                            {item.product_name}
-                          </Text>
-                          <Text style={styles.saleItemDetails}>
-                            {item.quantity} × {formatPrice(item.price)}
-                            {item.discount > 0 && (
-                              <Text style={styles.saleItemDiscount}>
-                                {' '}
-                                - {formatPrice(item.discount)}{' '}
-                                {t('sales.discount')}
-                              </Text>
-                            )}
-                          </Text>
-                        </View>
-                        <View style={styles.saleItemPricing}>
-                          <Text style={styles.saleItemSubtotal}>
-                            {formatPrice(item.subtotal)}
-                          </Text>
-                          {!isCustomerVoucher && (
-                            <Text style={styles.saleItemProfit}>
-                              {t('sales.profit')}{' '}
-                              {formatPrice(
-                                item.subtotal - item.cost * item.quantity,
-                              )}
-                            </Text>
-                          )}
-                        </View>
-                      </View>
-                    ))}
-
-                    <View style={styles.saleItemsTotal}>
-                      <Text style={styles.saleItemsTotalLabel}>
-                        {t('sales.totalItems')} {saleItems.length}
-                      </Text>
-                      <Text style={styles.saleItemsTotalValue}>
-                        {formatPrice(selectedSale.total)}
-                      </Text>
-                    </View>
-                  </Card>
-                </View>
-              </ScrollView>
-            )}
-
-            {receiptData && (
-              <EnhancedPrintManager
-                visible={showPrintManager}
-                onClose={() => {
-                  setShowPrintManager(false);
-                  setReceiptData(null);
-                }}
-                receiptData={receiptData}
-              />
-            )}
-          </SafeAreaView>
-
-          {/* Record Debt Payment Modal */}
-          <Modal
-            visible={showRecordPaymentModal}
-            transparent={true}
-            animationType="fade"
-            onRequestClose={() => setShowRecordPaymentModal(false)}
-          >
-            <View style={styles.recordPaymentModalOverlay}>
-              <View style={styles.recordPaymentModalContainer}>
-                <View style={styles.recordPaymentModalHeader}>
-                  <Text style={styles.recordPaymentModalTitle} weight="bold">
-                    {t('debt.recordDebtPayment')}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => setShowRecordPaymentModal(false)}
-                    disabled={recordingPayment}
-                  >
-                    <X size={20} color="#6B7280" />
-                  </TouchableOpacity>
-                </View>
-
-                <Text style={styles.recordPaymentModalDescription}>
-                  {t('sales.selectPaymentMethod')}
-                </Text>
-
-                <View style={styles.paymentMethodOptionsContainer}>
-                  {paymentMethods
-                    .filter((method) => method.id !== 'debt')
-                    .map((method) => (
-                      <TouchableOpacity
-                        key={method.id}
-                        style={styles.paymentMethodOption}
-                        onPress={() =>
-                          handlePaymentMethodSelection(method.name)
-                        }
-                        disabled={recordingPayment}
-                      >
-                        <View
-                          style={[
-                            styles.paymentMethodOptionIcon,
-                            { backgroundColor: method.color + '20' },
-                          ]}
-                        >
-                          <Text style={styles.paymentMethodOptionIconText}>
-                            {method.name.charAt(0).toUpperCase()}
-                          </Text>
-                        </View>
-                        <Text
-                          style={styles.paymentMethodOptionText}
-                          weight="medium"
-                        >
-                          {method.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                </View>
-
-                {recordingPayment && (
-                  <View style={styles.recordingPaymentIndicator}>
-                    <ActivityIndicator size="small" color="#F59E0B" />
-                    <Text style={styles.recordingPaymentText}>
-                      {t('sales.recordingPayment')}
-                    </Text>
-                  </View>
-                )}
-
-                <TouchableOpacity
-                  style={styles.recordPaymentModalCancelButton}
-                  onPress={() => setShowRecordPaymentModal(false)}
-                  disabled={recordingPayment}
-                >
-                  <Text style={styles.recordPaymentModalCancelText}>
-                    {t('common.cancel')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Modal>
         </Modal>
       </SafeAreaView>
     </TouchableWithoutFeedback>

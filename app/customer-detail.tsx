@@ -19,9 +19,9 @@ import {
   TrendingUp,
   User,
   FileText,
+  MoreVertical,
 } from 'lucide-react-native';
 import { Card } from '@/components/Card';
-import { CustomerForm } from '@/components/CustomerForm';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useCustomer, useCustomerMutations } from '@/hooks/useQueries';
 import { useTranslation } from '@/context/LocalizationContext';
@@ -40,7 +40,7 @@ export default function CustomerDetail() {
   const { deleteCustomer } = useCustomerMutations();
   const { db } = useDatabase();
 
-  const [showEditForm, setShowEditForm] = useState(false);
+  const [showActionsMenu, setShowActionsMenu] = useState(false);
 
   const { data: customer, isLoading, error, refetch } = useCustomer(id!);
   const { formatPrice } = useCurrencyFormatter();
@@ -64,11 +64,14 @@ export default function CustomerDetail() {
   };
 
   const handleEdit = () => {
-    setShowEditForm(true);
+    setShowActionsMenu(false);
+    router.push(`/customer-form?id=${customer?.id}`);
   };
 
   const handleDelete = () => {
     if (!customer) return;
+
+    setShowActionsMenu(false);
 
     Alert.alert(
       t('customers.deleteCustomer'),
@@ -92,7 +95,7 @@ export default function CustomerDetail() {
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -148,16 +151,38 @@ export default function CustomerDetail() {
           <Text style={styles.headerTitle} weight="bold">
             {customer.name}
           </Text>
-          <Text style={styles.headerSubtitle}>Customer Details</Text>
         </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerAction} onPress={handleEdit}>
-            <Edit size={20} color="#059669" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerAction} onPress={handleDelete}>
-            <Trash2 size={20} color="#EF4444" />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.moreButton}
+          onPress={() => setShowActionsMenu(!showActionsMenu)}
+        >
+          <MoreVertical size={24} color="#111827" />
+        </TouchableOpacity>
+
+        {/* Actions Dropdown Menu */}
+        {showActionsMenu && (
+          <View style={styles.actionsMenu}>
+            <TouchableOpacity
+              style={styles.actionsMenuItem}
+              onPress={handleEdit}
+            >
+              <Edit size={18} color="#059669" />
+              <Text style={styles.actionsMenuItemText}>{t('common.edit')}</Text>
+            </TouchableOpacity>
+
+            <View style={styles.actionsMenuDivider} />
+
+            <TouchableOpacity
+              style={styles.actionsMenuItem}
+              onPress={handleDelete}
+            >
+              <Trash2 size={18} color="#EF4444" />
+              <Text style={[styles.actionsMenuItemText, styles.deleteText]}>
+                {t('common.delete')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -235,7 +260,7 @@ export default function CustomerDetail() {
             <Text style={styles.statValue} weight="bold">
               {customer.visit_count > 0
                 ? formatPrice(
-                    Math.round(customer.total_spent / customer.visit_count)
+                    Math.round(customer.total_spent / customer.visit_count),
                   )
                 : formatPrice(0)}
             </Text>
@@ -304,16 +329,6 @@ export default function CustomerDetail() {
           </Text>
         </Card>
       </ScrollView>
-
-      {/* Edit Customer Form */}
-      <CustomerForm
-        visible={showEditForm}
-        onClose={() => setShowEditForm(false)}
-        customer={customer}
-        onSuccess={() => {
-          refetch();
-        }}
-      />
     </SafeAreaView>
   );
 }
@@ -343,18 +358,45 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#111827',
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 2,
+  moreButton: {
+    padding: 4,
   },
-  headerActions: {
+  actionsMenu: {
+    position: 'absolute',
+    top: 60,
+    right: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 8,
+    minWidth: 180,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    zIndex: 1000,
+  },
+  actionsMenuItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  headerAction: {
-    padding: 8,
-    marginLeft: 4,
+  actionsMenuItemText: {
+    fontSize: 15,
+    color: '#111827',
+  },
+  deleteText: {
+    color: '#EF4444',
+  },
+  actionsMenuDivider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 4,
   },
   content: {
     flex: 1,

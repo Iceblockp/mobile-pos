@@ -327,14 +327,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 16,
   },
   container: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 24,
     width: '100%',
-    maxWidth: 500,
+    maxWidth: 700,
     maxHeight: '90%',
   },
   header: {

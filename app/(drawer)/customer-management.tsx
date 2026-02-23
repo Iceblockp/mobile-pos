@@ -11,7 +11,6 @@ import {
 import { useRouter } from 'expo-router';
 import { Search, Plus, Users, MoreVertical } from 'lucide-react-native';
 import { CustomerCard } from '@/components/CustomerCard';
-import { CustomerForm } from '@/components/CustomerForm';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { MenuButton } from '@/components/MenuButton';
 import { useDrawer } from '@/context/DrawerContext';
@@ -34,8 +33,6 @@ export default function CustomerManagement() {
   const { deleteCustomer } = useCustomerMutations();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
   const [showSortMenu, setShowSortMenu] = useState(false);
@@ -89,13 +86,11 @@ export default function CustomerManagement() {
   }, [customers, searchQuery, sortBy, filterBy]);
 
   const handleAddCustomer = () => {
-    setEditingCustomer(null);
-    setShowForm(true);
+    router.push('/customer-form');
   };
 
   const handleEditCustomer = (customer: Customer) => {
-    setEditingCustomer(customer);
-    setShowForm(true);
+    router.push(`/customer-form?id=${customer.id}`);
   };
 
   const handleDeleteCustomer = (customer: Customer) => {
@@ -325,16 +320,6 @@ export default function CustomerManagement() {
 
       {/* Sort Menu Modal */}
       {renderSortMenu()}
-
-      {/* Customer Form Modal */}
-      <CustomerForm
-        visible={showForm}
-        onClose={() => setShowForm(false)}
-        customer={editingCustomer}
-        onSuccess={() => {
-          refetch();
-        }}
-      />
     </SafeAreaView>
   );
 }
