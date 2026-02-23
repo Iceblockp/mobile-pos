@@ -121,7 +121,6 @@ export default function ShopSettingsPage() {
     try {
       await updateShopSettings(formData);
       showToast(t('shopSettings.success.settingsSaved'), 'success');
-      router.back();
     } catch (error) {
       console.error('Failed to save shop settings:', error);
       showToast(t('shopSettings.errors.failedToSave'), 'error');

@@ -30,7 +30,7 @@ export const my: TranslationKeys = {
     actions: 'လုပ်ဆောင်ချက်များ',
     previous: 'ယခင်',
     total: 'စုစုပေါင်း',
-    amount: 'ပမာণ',
+    amount: 'ပမာဏ',
     date: 'ရက်စွဲ',
     name: 'အမည်',
     description: 'ဖော်ပြချက်',

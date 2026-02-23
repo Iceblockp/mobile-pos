@@ -2439,6 +2439,27 @@ export class DatabaseService {
     return result.length > 0 ? (result[0] as Sale) : null;
   }
 
+  async getSalesByProduct(
+    productId: string,
+    page: number = 1,
+    pageSize: number = 20,
+  ): Promise<Sale[]> {
+    const offset = (page - 1) * pageSize;
+
+    const result = await this.db.getAllAsync(
+      `SELECT DISTINCT s.*, c.name as customer_name 
+       FROM sales s 
+       LEFT JOIN customers c ON s.customer_id = c.id 
+       INNER JOIN sale_items si ON s.id = si.sale_id 
+       WHERE si.product_id = ? 
+       ORDER BY s.created_at DESC 
+       LIMIT ? OFFSET ?`,
+      [productId, pageSize, offset],
+    );
+
+    return result as Sale[];
+  }
+
   async deleteSale(saleId: string): Promise<void> {
     // Start a transaction to ensure data integrity
     await this.db.execAsync('BEGIN TRANSACTION');
