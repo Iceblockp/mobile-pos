@@ -4,12 +4,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   Modal,
-  TextInput,
   ScrollView,
 } from 'react-native';
 import { MyanmarText as Text } from '@/components/MyanmarText';
-import { X, Calendar } from 'lucide-react-native';
+import { X, Calendar, ChevronRight } from 'lucide-react-native';
+import { SearchablePickerModal } from '@/components/SearchablePickerModal';
 import { DateRangePicker } from '@/components/DateRangePicker';
+import { useTranslation } from '@/context/LocalizationContext';
 
 export interface MovementFilters {
   type: 'all' | 'stock_in' | 'stock_out';
@@ -46,24 +47,21 @@ export const MovementFilterSheet: React.FC<MovementFilterSheetProps> = ({
   products,
   suppliers,
 }) => {
+  const { t } = useTranslation();
+
   // Local filter state - only applied when user presses Apply
   const [localFilters, setLocalFilters] =
     useState<MovementFilters>(currentFilters);
-  const [productSearchQuery, setProductSearchQuery] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showProductPicker, setShowProductPicker] = useState(false);
+  const [showSupplierPicker, setShowSupplierPicker] = useState(false);
 
   // Reset local filters when modal opens
   useEffect(() => {
     if (visible) {
       setLocalFilters(currentFilters);
-      setProductSearchQuery('');
     }
   }, [visible, currentFilters]);
-
-  // Filter products based on search query
-  const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(productSearchQuery.toLowerCase()),
-  );
 
   const handleClearAll = () => {
     setLocalFilters({
@@ -73,7 +71,6 @@ export const MovementFilterSheet: React.FC<MovementFilterSheetProps> = ({
       startDate: undefined,
       endDate: undefined,
     });
-    setProductSearchQuery('');
   };
 
   const handleApply = () => {
@@ -91,7 +88,7 @@ export const MovementFilterSheet: React.FC<MovementFilterSheetProps> = ({
 
   const formatDateRange = () => {
     if (!localFilters.startDate || !localFilters.endDate) {
-      return 'Select Date Range';
+      return t('stockMovement.selectDateRange');
     }
     const start = localFilters.startDate.toLocaleDateString('en-US', {
       month: 'short',
@@ -130,7 +127,7 @@ export const MovementFilterSheet: React.FC<MovementFilterSheetProps> = ({
             {/* Header */}
             <View style={styles.header}>
               <Text style={styles.title} weight="medium">
-                Filter Movement History
+                {t('stockMovement.filterTitle')}
               </Text>
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                 <X size={24} color="#6B7280" />
@@ -141,71 +138,26 @@ export const MovementFilterSheet: React.FC<MovementFilterSheetProps> = ({
               style={styles.content}
               showsVerticalScrollIndicator={false}
             >
-              {/* Product Search Section */}
+              {/* Product Picker Button */}
               <View style={styles.section}>
                 <Text style={styles.sectionLabel} weight="medium">
-                  Product
+                  {t('products.product')}
                 </Text>
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Search products..."
-                  value={productSearchQuery}
-                  onChangeText={setProductSearchQuery}
-                  placeholderTextColor="#9CA3AF"
-                />
-                <ScrollView style={styles.productList} nestedScrollEnabled>
-                  <TouchableOpacity
-                    style={[
-                      styles.productItem,
-                      !localFilters.productId && styles.productItemSelected,
-                    ]}
-                    onPress={() =>
-                      setLocalFilters({ ...localFilters, productId: undefined })
-                    }
-                  >
-                    <Text
-                      style={[
-                        styles.productItemText,
-                        !localFilters.productId &&
-                          styles.productItemTextSelected,
-                      ]}
-                    >
-                      All Products
-                    </Text>
-                  </TouchableOpacity>
-                  {filteredProducts.map((product) => (
-                    <TouchableOpacity
-                      key={product.id}
-                      style={[
-                        styles.productItem,
-                        localFilters.productId === product.id &&
-                          styles.productItemSelected,
-                      ]}
-                      onPress={() =>
-                        setLocalFilters({
-                          ...localFilters,
-                          productId: product.id,
-                        })
-                      }
-                    >
-                      <Text
-                        style={[
-                          styles.productItemText,
-                          localFilters.productId === product.id &&
-                            styles.productItemTextSelected,
-                        ]}
-                      >
-                        {product.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => setShowProductPicker(true)}
+                >
+                  <Text style={styles.pickerButtonText}>
+                    {getSelectedProductName() || t('stockMovement.allProducts')}
+                  </Text>
+                  <ChevronRight size={20} color="#6B7280" />
+                </TouchableOpacity>
               </View>
 
               {/* Movement Type Section */}
               <View style={styles.section}>
                 <Text style={styles.sectionLabel} weight="medium">
-                  Movement Type
+                  {t('stockMovement.movementType')}
                 </Text>
                 <View style={styles.typeToggleRow}>
                   <TouchableOpacity
@@ -225,7 +177,7 @@ export const MovementFilterSheet: React.FC<MovementFilterSheetProps> = ({
                       ]}
                       weight="medium"
                     >
-                      All
+                      {t('common.all')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -246,7 +198,7 @@ export const MovementFilterSheet: React.FC<MovementFilterSheetProps> = ({
                       ]}
                       weight="medium"
                     >
-                      Stock In
+                      {t('stockMovement.stockIn')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -267,73 +219,33 @@ export const MovementFilterSheet: React.FC<MovementFilterSheetProps> = ({
                       ]}
                       weight="medium"
                     >
-                      Stock Out
+                      {t('stockMovement.stockOut')}
                     </Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
-              {/* Supplier Section */}
+              {/* Supplier Picker Button */}
               <View style={styles.section}>
                 <Text style={styles.sectionLabel} weight="medium">
-                  Supplier
+                  {t('stockMovement.supplier')}
                 </Text>
-                <ScrollView style={styles.supplierList} nestedScrollEnabled>
-                  <TouchableOpacity
-                    style={[
-                      styles.supplierItem,
-                      !localFilters.supplierId && styles.supplierItemSelected,
-                    ]}
-                    onPress={() =>
-                      setLocalFilters({
-                        ...localFilters,
-                        supplierId: undefined,
-                      })
-                    }
-                  >
-                    <Text
-                      style={[
-                        styles.supplierItemText,
-                        !localFilters.supplierId &&
-                          styles.supplierItemTextSelected,
-                      ]}
-                    >
-                      All Suppliers
-                    </Text>
-                  </TouchableOpacity>
-                  {suppliers.map((supplier) => (
-                    <TouchableOpacity
-                      key={supplier.id}
-                      style={[
-                        styles.supplierItem,
-                        localFilters.supplierId === supplier.id &&
-                          styles.supplierItemSelected,
-                      ]}
-                      onPress={() =>
-                        setLocalFilters({
-                          ...localFilters,
-                          supplierId: supplier.id,
-                        })
-                      }
-                    >
-                      <Text
-                        style={[
-                          styles.supplierItemText,
-                          localFilters.supplierId === supplier.id &&
-                            styles.supplierItemTextSelected,
-                        ]}
-                      >
-                        {supplier.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => setShowSupplierPicker(true)}
+                >
+                  <Text style={styles.pickerButtonText}>
+                    {getSelectedSupplierName() ||
+                      t('stockMovement.allSuppliers')}
+                  </Text>
+                  <ChevronRight size={20} color="#6B7280" />
+                </TouchableOpacity>
               </View>
 
               {/* Date Range Section */}
               <View style={styles.section}>
                 <Text style={styles.sectionLabel} weight="medium">
-                  Date Range
+                  {t('stockMovement.dateRange')}
                 </Text>
                 <TouchableOpacity
                   style={styles.dateRangeButton}
@@ -354,7 +266,7 @@ export const MovementFilterSheet: React.FC<MovementFilterSheetProps> = ({
                 onPress={handleClearAll}
               >
                 <Text style={styles.clearButtonText} weight="medium">
-                  Clear All
+                  {t('stockMovement.clearAll')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -362,7 +274,7 @@ export const MovementFilterSheet: React.FC<MovementFilterSheetProps> = ({
                 onPress={handleApply}
               >
                 <Text style={styles.applyButtonText} weight="medium">
-                  Apply
+                  {t('stockMovement.apply')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -377,6 +289,30 @@ export const MovementFilterSheet: React.FC<MovementFilterSheetProps> = ({
         onApply={handleDateRangeApply}
         initialStartDate={localFilters.startDate}
         initialEndDate={localFilters.endDate}
+      />
+
+      {/* Product Picker Modal */}
+      <SearchablePickerModal
+        visible={showProductPicker}
+        onClose={() => setShowProductPicker(false)}
+        title={t('stockMovement.selectProduct')}
+        items={products}
+        selectedId={localFilters.productId}
+        onSelect={(id) => setLocalFilters({ ...localFilters, productId: id })}
+        placeholder={t('stockMovement.searchProducts')}
+        allOptionLabel={t('stockMovement.allProducts')}
+      />
+
+      {/* Supplier Picker Modal */}
+      <SearchablePickerModal
+        visible={showSupplierPicker}
+        onClose={() => setShowSupplierPicker(false)}
+        title={t('stockMovement.selectSupplier')}
+        items={suppliers}
+        selectedId={localFilters.supplierId}
+        onSelect={(id) => setLocalFilters({ ...localFilters, supplierId: id })}
+        placeholder={t('stockMovement.searchSuppliers')}
+        allOptionLabel={t('stockMovement.allSuppliers')}
       />
     </>
   );
@@ -420,38 +356,20 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: 12,
   },
-  searchInput: {
-    backgroundColor: '#F9FAFB',
+  pickerButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: '#F9FAFB',
+  },
+  pickerButtonText: {
     fontSize: 16,
-    color: '#111827',
-    marginBottom: 12,
-  },
-  productList: {
-    maxHeight: 150,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    backgroundColor: '#F9FAFB',
-  },
-  productItem: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  productItemSelected: {
-    backgroundColor: '#FDF2F8',
-  },
-  productItemText: {
-    fontSize: 14,
     color: '#374151',
-  },
-  productItemTextSelected: {
-    color: '#EC4899',
-    fontWeight: '600',
+    flex: 1,
   },
   typeToggleRow: {
     flexDirection: 'row',
@@ -477,29 +395,6 @@ const styles = StyleSheet.create({
   },
   typeToggleTextActive: {
     color: '#EC4899',
-  },
-  supplierList: {
-    maxHeight: 150,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    backgroundColor: '#F9FAFB',
-  },
-  supplierItem: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  supplierItemSelected: {
-    backgroundColor: '#FDF2F8',
-  },
-  supplierItemText: {
-    fontSize: 14,
-    color: '#374151',
-  },
-  supplierItemTextSelected: {
-    color: '#EC4899',
-    fontWeight: '600',
   },
   dateRangeButton: {
     flexDirection: 'row',

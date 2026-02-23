@@ -103,7 +103,10 @@ export default function MovementHistory() {
     const chips: Array<{ key: keyof MovementFilters; label: string }> = [];
 
     if (filters.type !== 'all') {
-      const typeLabel = filters.type === 'stock_in' ? 'Stock In' : 'Stock Out';
+      const typeLabel =
+        filters.type === 'stock_in'
+          ? t('stockMovement.stockIn')
+          : t('stockMovement.stockOut');
       chips.push({ key: 'type', label: typeLabel });
     }
 
