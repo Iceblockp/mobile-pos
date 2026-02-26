@@ -537,6 +537,8 @@ export const my: TranslationKeys = {
   },
   products: {
     title: 'ကုန်ပစ္စည်းများ',
+    products: 'ကုန်ပစ္စည်းများ',
+    product: 'ကုန်ပစ္စည်း',
     addNewProduct: 'ကုန်ပစ္စည်းအသစ်ထည့်မည်',
     editProduct: 'ကုန်ပစ္စည်းပြင်ဆင်မည်',
     productDetails: 'ကုန်ပစ္စည်းအသေးစိတ်',

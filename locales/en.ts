@@ -525,6 +525,8 @@ export const en = {
   },
   products: {
     title: 'Products',
+    products: 'products',
+    product: 'product',
     addNewProduct: 'Add New Product',
     editProduct: 'Edit Product',
     productDetails: 'Product Details',

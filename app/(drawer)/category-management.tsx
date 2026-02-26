@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     color: '#111827',
     flex: 1,
   },

@@ -188,7 +188,7 @@ export const CompleteSaleModal: React.FC<CompleteSaleModalProps> = ({
         <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title} weight="medium">
+            <Text style={styles.title} weight="bold">
               {t('paymentModal.title')}
             </Text>
             <TouchableOpacity
@@ -201,99 +201,104 @@ export const CompleteSaleModal: React.FC<CompleteSaleModalProps> = ({
               accessibilityHint="Closes the complete sale modal"
               accessibilityState={{ disabled: loading }}
             >
-              <X size={24} color="#6B7280" />
+              <X size={20} color="#6B7280" />
             </TouchableOpacity>
           </View>
 
-          {/* Payment Method Display (Read-only when provided, selector when not) */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle} weight="medium">
-                {t('paymentModal.paymentMethod')}
-              </Text>
-              {!providedPaymentMethod && (
+          {/* Payment Method & Total Amount - Compact Row Layout */}
+          <View style={styles.compactInfoRow}>
+            {/* Payment Method */}
+            <View style={styles.compactSection}>
+              <View style={styles.compactSectionHeader}>
+                <Text style={styles.compactLabel} weight="medium">
+                  {t('paymentModal.paymentMethod')}
+                </Text>
+                {!providedPaymentMethod && (
+                  <TouchableOpacity
+                    style={styles.manageButtonCompact}
+                    onPress={() => setShowManagementModal(true)}
+                    disabled={loading}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel="Manage payment methods"
+                    accessibilityState={{ disabled: loading }}
+                  >
+                    <Settings size={14} color="#6B7280" />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {loadingMethods ? (
+                <View style={styles.compactLoadingContainer}>
+                  <ActivityIndicator size="small" color="#6B7280" />
+                </View>
+              ) : providedPaymentMethod ? (
+                <View style={styles.compactPaymentDisplay}>
+                  <View
+                    style={[
+                      styles.compactIconContainer,
+                      { backgroundColor: `${currentPaymentMethod.color}15` },
+                    ]}
+                  >
+                    <IconComponent
+                      size={16}
+                      color={currentPaymentMethod.color}
+                    />
+                  </View>
+                  <Text style={styles.compactPaymentText} weight="medium">
+                    {currentPaymentMethod.name}
+                  </Text>
+                </View>
+              ) : (
                 <TouchableOpacity
-                  style={styles.manageButton}
-                  onPress={() => setShowManagementModal(true)}
+                  style={styles.compactPaymentDropdown}
+                  onPress={() => setShowPaymentPicker(true)}
                   disabled={loading}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel="Manage payment methods"
-                  accessibilityHint="Opens payment method management"
-                  accessibilityState={{ disabled: loading }}
+                  activeOpacity={0.7}
                 >
-                  <Settings size={16} color="#6B7280" />
+                  <View
+                    style={[
+                      styles.compactIconContainer,
+                      { backgroundColor: `${currentPaymentMethod.color}15` },
+                    ]}
+                  >
+                    <IconComponent
+                      size={16}
+                      color={currentPaymentMethod.color}
+                    />
+                  </View>
+                  <Text style={styles.compactPaymentText} weight="medium">
+                    {currentPaymentMethod.name}
+                  </Text>
+                  <ChevronDown size={16} color="#6B7280" />
                 </TouchableOpacity>
               )}
             </View>
 
-            {loadingMethods ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#6B7280" />
-                <Text style={styles.loadingText}>
-                  Loading payment methods...
+            {/* Total Amount */}
+            <View style={styles.compactSection}>
+              <View style={styles.compactSectionHeader}>
+                <Text style={styles.compactLabel} weight="medium">
+                  {t('paymentModal.totalAmount')}
                 </Text>
+                {isCashPayment && onRecalculate && (
+                  <TouchableOpacity
+                    style={styles.calculatorButtonCompact}
+                    onPress={onRecalculate}
+                    disabled={loading}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel="Recalculate"
+                    accessibilityState={{ disabled: loading }}
+                  >
+                    <Calculator size={16} color="#059669" />
+                  </TouchableOpacity>
+                )}
               </View>
-            ) : providedPaymentMethod ? (
-              // Read-only display when payment method is provided
-              <View
-                style={styles.paymentMethodDisplay}
-                accessible={true}
-                accessibilityRole="text"
-                accessibilityLabel={`Payment method: ${currentPaymentMethod.name}`}
-              >
-                <View style={styles.paymentMethodContent}>
-                  <View
-                    style={[
-                      styles.paymentMethodIconContainer,
-                      { backgroundColor: `${currentPaymentMethod.color}15` },
-                    ]}
-                  >
-                    <IconComponent
-                      size={20}
-                      color={currentPaymentMethod.color}
-                    />
-                  </View>
-                  <Text style={styles.paymentMethodText} weight="medium">
-                    {currentPaymentMethod.name}
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              // Selector when payment method is not provided (backward compatibility)
-              <TouchableOpacity
-                style={styles.paymentMethodDropdown}
-                onPress={() => setShowPaymentPicker(true)}
-                disabled={loading}
-                activeOpacity={0.7}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel={`Payment method: ${currentPaymentMethod.name}`}
-                accessibilityHint="Opens payment method picker"
-                accessibilityState={{ disabled: loading }}
-              >
-                <View style={styles.paymentMethodDropdownContent}>
-                  <View
-                    style={[
-                      styles.paymentMethodIconContainer,
-                      { backgroundColor: `${currentPaymentMethod.color}15` },
-                    ]}
-                  >
-                    <IconComponent
-                      size={20}
-                      color={currentPaymentMethod.color}
-                    />
-                  </View>
-                  <Text
-                    style={styles.paymentMethodDropdownText}
-                    weight="medium"
-                  >
-                    {currentPaymentMethod.name}
-                  </Text>
-                </View>
-                <ChevronDown size={20} color="#6B7280" />
-              </TouchableOpacity>
-            )}
+              <Text style={styles.compactTotalAmount} weight="bold">
+                {formatPrice(total)}
+              </Text>
+            </View>
           </View>
 
           {/* Payment Method Picker Modal (only when not provided) */}
@@ -384,7 +389,7 @@ export const CompleteSaleModal: React.FC<CompleteSaleModalProps> = ({
           )}
 
           {/* Total Amount with Calculator Icon */}
-          <View
+          {/* <View
             style={styles.totalSection}
             accessible={true}
             accessibilityRole="text"
@@ -412,7 +417,7 @@ export const CompleteSaleModal: React.FC<CompleteSaleModalProps> = ({
             <Text style={styles.totalAmount} weight="bold">
               {formatPrice(total)}
             </Text>
-          </View>
+          </View> */}
 
           {/* Sale Note */}
           <View style={styles.section}>
@@ -468,9 +473,6 @@ export const CompleteSaleModal: React.FC<CompleteSaleModalProps> = ({
                     {t('paymentModal.printReceipt')}
                   </Text>
                 </View>
-                <Text style={styles.checkboxDescription}>
-                  {t('paymentModal.printReceiptDesc')}
-                </Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -552,7 +554,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     color: '#111827',
   },
   closeButton: {
@@ -563,7 +565,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   section: {
-    marginBottom: 20,
+    marginTop: 20,
+    marginBottom: 8,
   },
   sectionTitle: {
     fontSize: 16,
@@ -574,7 +577,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   manageButton: {
     padding: 4,
@@ -773,23 +776,22 @@ const styles = StyleSheet.create({
   },
   checkboxContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 12,
-    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 8,
+    gap: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    minHeight: 56, // Ensure minimum touch target size
+    borderColor: '#D1D5DB',
   },
   checkbox: {
     width: 24,
     height: 24,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: '#D1D5DB',
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
     backgroundColor: '#FFFFFF',
   },
   checkboxChecked: {
@@ -820,11 +822,10 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 24,
+    gap: 10,
   },
   cancelButton: {
-    flex: 0.45,
-    paddingVertical: 12,
+    paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
@@ -839,8 +840,8 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   confirmButton: {
-    flex: 0.45,
-    paddingVertical: 12,
+    flex: 1,
+    paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
     backgroundColor: '#059669',
@@ -858,5 +859,67 @@ const styles = StyleSheet.create({
   buttonLoadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  // Compact Layout Styles
+  compactInfoRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  compactSection: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  compactSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  compactLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  manageButtonCompact: {
+    padding: 2,
+    borderRadius: 4,
+  },
+  calculatorButtonCompact: {
+    padding: 2,
+    borderRadius: 4,
+  },
+  compactLoadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  compactPaymentDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  compactPaymentDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  compactIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 6,
+  },
+  compactPaymentText: {
+    fontSize: 14,
+    color: '#111827',
+    flex: 1,
+  },
+  compactTotalAmount: {
+    fontSize: 20,
+    color: '#059669',
   },
 });
