@@ -239,24 +239,41 @@ export function Sidebar({ isOpen, onClose, currentRoute }: SidebarProps) {
     onClose();
   }, [onClose]);
 
-  // Simplified animation logic for better performance
+  // Animation effect - only depends on isOpen to prevent unnecessary re-runs
   useEffect(() => {
     if (isOpen) {
-      // Simple parallel animations
+      // Fast parallel animations for instant feel
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: 0,
-          duration: 180,
+          duration: 50,
           useNativeDriver: true,
         }),
         Animated.timing(overlayAnim, {
           toValue: 1,
-          duration: 180,
+          duration: 50,
           useNativeDriver: true,
         }),
       ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: -DRAWER_WIDTH,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(overlayAnim, {
+          toValue: 0,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [isOpen, slideAnim, overlayAnim]);
 
-      // Position scroll to show active menu instantly
+  // Separate effect for scroll positioning - only when drawer opens
+  useEffect(() => {
+    if (isOpen && scrollViewRef.current) {
       requestAnimationFrame(() => {
         if (scrollViewRef.current) {
           const normalizedCurrentRoute = currentRoute.startsWith('/(drawer)')
@@ -291,42 +308,24 @@ export function Sidebar({ isOpen, onClose, currentRoute }: SidebarProps) {
           }
         }
       });
-    } else {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: -DRAWER_WIDTH,
-          duration: 180,
-          useNativeDriver: true,
-        }),
-        Animated.timing(overlayAnim, {
-          toValue: 0,
-          duration: 180,
-          useNativeDriver: true,
-        }),
-      ]).start();
     }
   }, [isOpen, currentRoute, menuGroups]);
 
-  // Don't render if not open (performance optimization - Requirement 8.2)
-  if (!isOpen) {
-    return null;
-  }
-
   return (
     <>
-      {/* Overlay with fade animation */}
+      {/* Overlay with fade animation - always mounted, controlled by pointerEvents */}
       <Animated.View
         style={[
           styles.overlay,
           {
             opacity: overlayAnim,
-            pointerEvents: isOpen ? 'auto' : 'none',
           },
         ]}
+        pointerEvents={isOpen ? 'auto' : 'none'}
         onTouchEnd={handleClose}
       />
 
-      {/* Drawer with slide animation */}
+      {/* Drawer with slide animation - always mounted, hidden via transform */}
       <Animated.View
         style={[
           styles.drawer,
@@ -334,6 +333,7 @@ export function Sidebar({ isOpen, onClose, currentRoute }: SidebarProps) {
             transform: [{ translateX: slideAnim }],
           },
         ]}
+        pointerEvents={isOpen ? 'auto' : 'none'}
       >
         <SafeAreaView style={styles.safeArea}>
           {/* Header */}
