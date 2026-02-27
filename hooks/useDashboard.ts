@@ -38,5 +38,7 @@ export const useDashboardAnalytics = () => {
     enabled: isReady && !!db,
     staleTime: 3 * 60 * 1000, // 3 minutes
     gcTime: 10 * 60 * 1000,
+    // Show cached data immediately while refetching in background
+    placeholderData: (previousData) => previousData,
   });
 };

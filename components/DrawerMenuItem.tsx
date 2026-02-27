@@ -65,7 +65,7 @@ export const DrawerMenuItem = React.memo(function DrawerMenuItem({
   const handlePress = () => {
     // Navigate immediately for instant page change
     try {
-      router.push(item.route as any);
+      router.replace(item.route as any);
     } catch (error) {
       console.error('Navigation error:', error);
     }

@@ -57,12 +57,12 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onClose, currentRoute }: SidebarProps) {
   const { t } = useTranslation();
 
-  // Animated values for slide and overlay animations
-  const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
-  const overlayAnim = useRef(new Animated.Value(0)).current;
-
   // Track active item position for auto-scroll
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Animated values - set directly based on isOpen for instant response
+  const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
+  const overlayAnim = useRef(new Animated.Value(0)).current;
 
   // Memoize menu groups configuration to prevent recreation on every render (Requirement 8.4)
   const menuGroups: MenuGroup[] = useMemo(
@@ -239,36 +239,20 @@ export function Sidebar({ isOpen, onClose, currentRoute }: SidebarProps) {
     onClose();
   }, [onClose]);
 
-  // Animation effect - only depends on isOpen to prevent unnecessary re-runs
+  // Smooth animation with 180ms duration
   useEffect(() => {
-    if (isOpen) {
-      // Fast parallel animations for instant feel
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 50,
-          useNativeDriver: true,
-        }),
-        Animated.timing(overlayAnim, {
-          toValue: 1,
-          duration: 50,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: -DRAWER_WIDTH,
-          duration: 50,
-          useNativeDriver: true,
-        }),
-        Animated.timing(overlayAnim, {
-          toValue: 0,
-          duration: 50,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: isOpen ? 0 : -DRAWER_WIDTH,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.timing(overlayAnim, {
+        toValue: isOpen ? 1 : 0,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, [isOpen, slideAnim, overlayAnim]);
 
   // Separate effect for scroll positioning - only when drawer opens
@@ -338,7 +322,7 @@ export function Sidebar({ isOpen, onClose, currentRoute }: SidebarProps) {
         <SafeAreaView style={styles.safeArea}>
           {/* Header */}
           <View style={styles.drawerHeader}>
-            <Text style={styles.drawerTitle}>Mobile POS</Text>
+            <Text style={styles.drawerTitle}>Mini POS</Text>
             <TouchableOpacity
               onPress={handleClose}
               style={styles.closeButton}

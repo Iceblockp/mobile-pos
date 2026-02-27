@@ -530,13 +530,6 @@ export default function Sale() {
     );
   };
 
-  console.log(
-    'saleda',
-    saleDateTime,
-    saleDateTime.toISOString(),
-    convertISOToDBFormat(saleDateTime.toISOString()),
-  );
-
   const removeFromCart = (productId: string) => {
     setCart(cart.filter((item) => item.product.id !== productId));
   };
