@@ -62,7 +62,7 @@ export const useInfiniteExpenses = (filter: string, selectedDate?: Date) => {
           startDate,
           endDate,
           pageParam,
-          PAGE_SIZE
+          PAGE_SIZE,
         );
       }
 
@@ -83,7 +83,7 @@ export const useInfiniteExpenses = (filter: string, selectedDate?: Date) => {
 // Infinite query for expenses with date range
 export const useInfiniteExpensesByDateRange = (
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ) => {
   const { db, isReady } = useDatabase();
 
@@ -103,7 +103,7 @@ export const useInfiniteExpensesByDateRange = (
         startDate,
         endDate,
         pageParam,
-        PAGE_SIZE
+        PAGE_SIZE,
       );
 
       return {
@@ -147,7 +147,12 @@ export const useInfiniteSales = () => {
 };
 
 // Infinite query for sales history by date range
-export const useInfiniteSalesByDateRange = (startDate: Date, endDate: Date) => {
+export const useInfiniteSalesByDateRange = (
+  startDate: Date,
+  endDate: Date,
+  searchQuery?: string,
+  paymentMethod?: string,
+) => {
   const { db, isReady } = useDatabase();
 
   return useInfiniteQuery({
@@ -157,23 +162,37 @@ export const useInfiniteSalesByDateRange = (startDate: Date, endDate: Date) => {
       'dateRange',
       startDate.toISOString(),
       endDate.toISOString(),
+      searchQuery,
+      paymentMethod,
     ],
     queryFn: async ({ pageParam = 1 }) => {
-      if (!db) return { data: [], hasMore: false };
+      if (!db)
+        return {
+          data: [],
+          hasMore: false,
+          totalCount: 0,
+          totalAmount: 0,
+        };
 
       const PAGE_SIZE = 50;
-      const sales = await db.getSalesByDateRangePaginatedTimezoneAware(
+
+      // Get paginated sales with totals in one query
+      const result = await db.getSalesByDateRangePaginatedTimezoneAware(
         startDate,
         endDate,
         -390, // timezone offset
         pageParam,
-        PAGE_SIZE
+        PAGE_SIZE,
+        searchQuery,
+        paymentMethod,
       );
 
       return {
-        data: sales,
-        hasMore: sales.length === PAGE_SIZE,
-        nextPage: sales.length === PAGE_SIZE ? pageParam + 1 : undefined,
+        data: result.sales,
+        hasMore: result.sales.length === PAGE_SIZE,
+        nextPage: result.sales.length === PAGE_SIZE ? pageParam + 1 : undefined,
+        totalCount: result.totalCount,
+        totalAmount: result.totalAmount,
       };
     },
     initialPageParam: 1,

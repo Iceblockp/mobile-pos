@@ -2394,7 +2394,13 @@ export class DatabaseService {
     timezoneOffsetMinutes: number = -390,
     page: number = 1,
     pageSize: number = 50,
-  ): Promise<Sale[]> {
+    searchQuery?: string,
+    paymentMethod?: string,
+  ): Promise<{
+    sales: Sale[];
+    totalCount: number;
+    totalAmount: number;
+  }> {
     // Get timezone-aware range for start date
     const startRange = getTimezoneAwareDateRangeForDB(
       startDate,
@@ -2407,15 +2413,58 @@ export class DatabaseService {
     );
     const offset = (page - 1) * pageSize;
 
-    const result = await this.db.getAllAsync(
+    // Build WHERE clause with search query and payment method support
+    let whereClause = 's.created_at >= ? AND s.created_at <= ?';
+    const params: any[] = [startRange.start, endRange.end];
+
+    if (searchQuery) {
+      whereClause += ` AND (
+        s.voucher_id LIKE ? OR 
+        s.payment_method LIKE ? OR
+        c.name LIKE ? OR
+        s.note LIKE ?
+      )`;
+      const searchPattern = `%${searchQuery}%`;
+      params.push(searchPattern, searchPattern, searchPattern, searchPattern);
+    }
+
+    if (paymentMethod && paymentMethod !== 'All') {
+      whereClause += ` AND s.payment_method = ?`;
+      params.push(paymentMethod);
+    }
+
+    // Get total count and amount (only calculated once per query, not per page)
+    const summaryResult = await this.db.getFirstAsync<{
+      count: number;
+      total: number;
+    }>(
+      `SELECT 
+        COUNT(*) as count,
+        COALESCE(SUM(s.total), 0) as total
+       FROM sales s 
+       LEFT JOIN customers c ON s.customer_id = c.id 
+       WHERE ${whereClause}`,
+      params,
+    );
+
+    const totalCount = summaryResult?.count || 0;
+    const totalAmount = summaryResult?.total || 0;
+
+    // Get paginated sales
+    const sales = await this.db.getAllAsync(
       `SELECT s.*, c.name as customer_name 
        FROM sales s 
        LEFT JOIN customers c ON s.customer_id = c.id 
-       WHERE s.created_at >= ? AND s.created_at <= ? 
+       WHERE ${whereClause}
        ORDER BY s.created_at DESC LIMIT ? OFFSET ?`,
-      [startRange.start, endRange.end, pageSize, offset],
+      [...params, pageSize, offset],
     );
-    return result as Sale[];
+
+    return {
+      sales: sales as Sale[],
+      totalCount,
+      totalAmount,
+    };
   }
 
   async getSaleItems(

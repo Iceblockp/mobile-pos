@@ -160,6 +160,7 @@ export default function SaleHistory() {
     customEndDate,
   );
 
+  // Pass searchQuery and paymentMethod to the database query for server-side filtering
   const {
     data: salesPages,
     refetch,
@@ -167,55 +168,29 @@ export default function SaleHistory() {
     hasNextPage,
     isFetchingNextPage,
     isLoading: salesLoading,
-  } = useInfiniteSalesByDateRange(startDate, endDate);
+  } = useInfiniteSalesByDateRange(
+    startDate,
+    endDate,
+    searchQuery,
+    paymentMethodFilter,
+  );
 
   const sales = salesPages?.pages.flatMap((page) => page.data) || [];
 
-  const filteredSales = useMemo(() => {
-    return sales.filter((sale) => {
-      // Search by voucher ID (full, date prefix, sequential number, or partial match), payment method, customer name, or note
-      const matchesFullVoucher = sale.voucher_id === searchQuery;
-      const matchesDatePrefix = sale.voucher_id.startsWith(searchQuery);
-      const matchesSequential = sale.voucher_id.endsWith(
-        `-${searchQuery.padStart(3, '0')}`,
-      );
-      const matchesPartial = sale.voucher_id.includes(searchQuery);
+  // Get total count and amount from first page (calculated by database with filters applied)
+  const totalCount = salesPages?.pages[0]?.totalCount || 0;
+  const totalAmount = salesPages?.pages[0]?.totalAmount || 0;
 
-      const matchesPaymentMethod = sale.payment_method
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
-      const matchesCustomer =
-        sale.customer_name &&
-        sale.customer_name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesNote =
-        sale.note &&
-        sale.note.toLowerCase().includes(searchQuery.toLowerCase());
+  // No client-side filtering needed - all filtering is done at database level
+  const filteredSales = sales;
 
-      const matchesSearch =
-        !searchQuery ||
-        matchesFullVoucher ||
-        matchesDatePrefix ||
-        matchesSequential ||
-        matchesPartial ||
-        matchesPaymentMethod ||
-        matchesCustomer ||
-        matchesNote;
-
-      const matchesPaymentMethodFilter =
-        paymentMethodFilter === 'All' ||
-        sale.payment_method === paymentMethodFilter;
-
-      return matchesSearch && matchesPaymentMethodFilter;
-    });
-  }, [sales, searchQuery, paymentMethodFilter]);
-
-  // Calculate summary from filtered sales
+  // Use totals directly from database (already filtered by search and payment method)
   const salesSummary = useMemo(() => {
     return {
-      count: filteredSales.length,
-      total: filteredSales.reduce((sum, sale) => sum + sale.total, 0),
+      count: totalCount,
+      total: totalAmount,
     };
-  }, [filteredSales]);
+  }, [totalCount, totalAmount]);
 
   const { data: allSalesForExport, refetch: refetchAllSales } =
     useAllSalesForExport(searchQuery, undefined, startDate, endDate, -390);
@@ -646,8 +621,8 @@ export default function SaleHistory() {
 
           <View style={styles.summaryContainer}>
             <Text style={styles.summaryText}>
-              {salesSummary?.count || 0} {t('sales.salesTotal')}{' '}
-              {formatPrice(salesSummary?.total || 0)}
+              {filteredSales.length}/{salesSummary?.count || 0}{' '}
+              {t('sales.salesTotal')} {formatPrice(salesSummary?.total || 0)}
             </Text>
           </View>
         </View>
