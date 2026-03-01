@@ -629,6 +629,8 @@ export const my: TranslationKeys = {
     tableView: 'ဇယားပုံစံ',
     cardView: 'ကဒ် ပုံစံ',
     image: 'ဓာတ်ပုံ',
+    productImage: 'ကုန်ပစ္စည်းဓာတ်ပုံ',
+    quantity: 'အရေအတွက်',
     name: 'အမည်',
     category: 'အမျိုးအစား',
     minStock: 'အနည်းဆုံးလက်ကျန်အဆင့်',

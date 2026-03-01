@@ -615,6 +615,8 @@ export const en = {
     tableView: 'Table View',
     cardView: 'Card View',
     image: 'Image',
+    productImage: 'Product Image',
+    quantity: 'Quantity',
     name: 'Name',
     category: 'Category',
     minStock: 'Min Stock',
