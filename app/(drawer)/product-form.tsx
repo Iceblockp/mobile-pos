@@ -327,10 +327,7 @@ export default function ProductForm() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Image Section */}
-        <Card style={styles.card}>
-          <Text style={styles.sectionTitle} weight="bold">
-            {t('products.productImage')}
-          </Text>
+        <View style={styles.card}>
           <View style={styles.imageSection}>
             {formData.imageUrl ? (
               <Image
@@ -361,10 +358,10 @@ export default function ProductForm() {
               </TouchableOpacity>
             </View>
           </View>
-        </Card>
+        </View>
 
         {/* Basic Information */}
-        <Card style={styles.card}>
+        <View style={styles.card}>
           <Text style={styles.sectionTitle} weight="bold">
             {t('products.basicInfo')}
           </Text>
@@ -411,18 +408,17 @@ export default function ProductForm() {
               <ChevronDown size={20} color="#6B7280" />
             </TouchableOpacity>
           </View>
-        </Card>
+        </View>
 
         {/* Pricing Information */}
-        <Card style={styles.card}>
+        <View style={styles.card}>
           <Text style={styles.sectionTitle} weight="bold">
             {t('products.pricingInfo')}
           </Text>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>{t('products.price')} *</Text>
             <PriceInput
-              label=""
+              label={`${t('products.price')} *`}
               value={formData.price}
               onValueChange={(text: string, numericValue: number) => {
                 setFormData({ ...formData, price: text });
@@ -433,9 +429,8 @@ export default function ProductForm() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>{t('products.cost')} *</Text>
             <PriceInput
-              label=""
+              label={`${t('products.cost')} *`}
               value={formData.cost}
               onValueChange={(text: string, numericValue: number) => {
                 setFormData({ ...formData, cost: text });
@@ -461,10 +456,10 @@ export default function ProductForm() {
               </Text>
             </View>
           )}
-        </Card>
+        </View>
 
         {/* Stock Information */}
-        <Card style={styles.card}>
+        <View style={styles.card}>
           <Text style={styles.sectionTitle} weight="bold">
             {t('products.stockInfo')}
           </Text>
@@ -507,10 +502,10 @@ export default function ProductForm() {
               <ChevronDown size={20} color="#6B7280" />
             </TouchableOpacity>
           </View>
-        </Card>
+        </View>
 
         {/* Bulk Pricing */}
-        <Card style={styles.card}>
+        <View style={styles.card}>
           <Text style={styles.sectionTitle} weight="bold">
             {t('products.bulkPricing')} ({t('products.optional')})
           </Text>
@@ -519,7 +514,7 @@ export default function ProductForm() {
             initialTiers={bulkPricingTiers}
             onTiersChange={handleBulkPricingTiersChange}
           />
-        </Card>
+        </View>
       </ScrollView>
 
       {/* Footer Buttons */}
@@ -690,7 +685,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   card: {
-    margin: 16,
     padding: 16,
   },
   sectionTitle: {
@@ -743,7 +737,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   inputLabel: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#374151',
     marginBottom: 8,
     fontWeight: '500',

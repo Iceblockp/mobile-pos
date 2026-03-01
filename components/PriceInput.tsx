@@ -12,8 +12,10 @@ import { useCurrencyFormatter } from '@/context/CurrencyContext';
 import { PriceInputErrorBoundary } from './PriceInputErrorBoundary';
 
 // Standardized interface for all price input components
-interface StandardPriceInputProps
-  extends Omit<TextInputProps, 'value' | 'onChangeText'> {
+interface StandardPriceInputProps extends Omit<
+  TextInputProps,
+  'value' | 'onChangeText'
+> {
   value: string;
   onValueChange: (value: string, numericValue: number) => void;
   placeholder?: string;
@@ -112,7 +114,7 @@ export const PriceInput: React.FC<PriceInputProps> = ({
         onValueChange(newValue, 0);
       }
     },
-    [onValueChange, validatePriceInput, parsePrice]
+    [onValueChange, validatePriceInput, parsePrice],
   );
 
   const displayError = error || validationError;
@@ -123,13 +125,7 @@ export const PriceInput: React.FC<PriceInputProps> = ({
   return (
     <PriceInputErrorBoundary>
       <View style={styles.container}>
-        <Text
-          style={[
-            styles.label,
-            { fontSize: isSmall ? 12 : 16, marginBottom: isSmall ? 4 : 8 },
-          ]}
-          weight="medium"
-        >
+        <Text style={[styles.label, { fontSize: 16, marginBottom: 8 }]}>
           {label}
           {required && <Text style={styles.required}> *</Text>}
         </Text>
@@ -216,7 +212,7 @@ export const SimplePriceInput: React.FC<StandardPriceInputProps> = ({
         : parsePrice(newValue);
       onValueChange(newValue, numeric);
     },
-    [onValueChange, validatePriceInput, parsePrice]
+    [onValueChange, validatePriceInput, parsePrice],
   );
 
   const displayError = error || validationError;
@@ -375,9 +371,7 @@ export const PriceRangeDisplay: React.FC<PriceRangeDisplayProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: 16,
-  },
+  container: {},
   label: {
     color: '#374151',
   },
@@ -507,7 +501,7 @@ export const createPriceInputProps = (
     error?: string;
     showCurrencySymbol?: boolean;
     autoFormat?: boolean;
-  }
+  },
 ): StandardPriceInputProps => ({
   value,
   onValueChange,
